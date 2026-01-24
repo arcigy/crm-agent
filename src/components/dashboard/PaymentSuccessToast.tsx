@@ -9,6 +9,8 @@ export function PaymentSuccessToast() {
   const router = useRouter();
 
   useEffect(() => {
+    if (!searchParams) return;
+
     if (searchParams.get('success') === 'true') {
       toast.success('Payment successful! You now have access.');
       // Remove the query param to clean up URL
@@ -17,10 +19,10 @@ export function PaymentSuccessToast() {
       newParams.delete('tool');
       router.replace(`/dashboard?${newParams.toString()}`);
     } else if (searchParams.get('canceled') === 'true') {
-        toast.error('Payment canceled.');
-        const newParams = new URLSearchParams(searchParams.toString());
-        newParams.delete('canceled');
-        router.replace(`/dashboard?${newParams.toString()}`);
+      toast.error('Payment canceled.');
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete('canceled');
+      router.replace(`/dashboard?${newParams.toString()}`);
     }
   }, [searchParams, router]);
 
