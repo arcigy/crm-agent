@@ -1,3 +1,5 @@
+import { EmailClassification } from './ai';
+
 export interface GmailAttachment {
     id: string;
     filename: string;
@@ -17,11 +19,7 @@ export interface GmailMessage {
     attachments?: GmailAttachment[];
     isRead: boolean;
     labels: string[];
-    classification?: {
-        category: 'lead' | 'support' | 'spam' | 'other';
-        confidence: number;
-        reason: string;
-    };
+    classification?: EmailClassification;
 }
 
 export interface GmailInboxResponse {

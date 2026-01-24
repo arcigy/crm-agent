@@ -1,5 +1,3 @@
-import { GmailMessage } from './gmail';
-
 export interface EmailClassification {
     intent: 'dopyt' | 'otazka' | 'problem' | 'faktura' | 'spam' | 'ine';
     priority: 'vysoka' | 'stredna' | 'nizka';
@@ -12,6 +10,4 @@ export interface EmailClassification {
     summary: string;
 }
 
-export interface GmailMessageWithAI extends GmailMessage {
-    classification?: EmailClassification;
-}
+
