@@ -7,8 +7,11 @@ import Link from 'next/link';
 export default function MobileSetupPage() {
     const [copied, setCopied] = React.useState(false);
 
-    // Hardcoded IP for dev environment
-    const profileUrl = 'http://172.20.10.2:3000/api/ios-profile';
+    const [profileUrl, setProfileUrl] = React.useState('');
+
+    React.useEffect(() => {
+        setProfileUrl(`${window.location.origin}/api/ios-profile`);
+    }, []);
 
     const copyLink = async () => {
         try {

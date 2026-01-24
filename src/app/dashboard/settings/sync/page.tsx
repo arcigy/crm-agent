@@ -7,10 +7,13 @@ import { QRCodeSVG } from 'qrcode.react';
 export default function MobileSyncPage() {
     const [copied, setCopied] = React.useState(false);
 
-    // In production, these should come from the user's session and env vars
-    // In production, these should come from the user's session and env vars
-    // Using local IP for dev testing
-    const serverUrl = 'http://172.20.10.2:3000/api/dav';
+    const [origin, setOrigin] = React.useState('');
+
+    React.useEffect(() => {
+        setOrigin(window.location.origin);
+    }, []);
+
+    const serverUrl = origin ? `${origin}/api/dav` : '';
     const username = 'user@example.com';
     const password = 'app-specific-password-123'; // This should be a generated App Password
 
@@ -46,7 +49,7 @@ export default function MobileSyncPage() {
                     <div className="flex-1 flex flex-col items-center justify-center p-4">
                         <div className="bg-white p-4 rounded-2xl shadow-lg border border-gray-100 mb-6 group-hover:scale-105 transition-transform duration-300">
                             {/* iPhone Configuration Profile URL */}
-                            <QRCodeSVG value={`http://172.20.10.2:3000/mobile-setup`} size={180} />
+                            {origin && <QRCodeSVG value={`${origin}/mobile-setup`} size={180} />}
                         </div>
                         <p className="text-center text-sm font-medium text-gray-600 mb-6">
                             Naskenujte pre automatické nastavenie.<br />
