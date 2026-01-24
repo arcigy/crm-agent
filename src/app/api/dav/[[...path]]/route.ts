@@ -160,6 +160,19 @@ async function handleRequest(req: NextRequest, params: { path?: string[] }) {
         'Allow': 'OPTIONS, GET, HEAD, POST, PUT, DELETE, PROPFIND, PROPPATCH, REPORT',
     };
 
+    // --- BASIC AUTH CHALLENGE ---
+    // Force iOS to prompt for password if not sent
+    // (We accept any password for now, but we MUST challenge first)
+    if (!req.headers.get('authorization')) {
+        return new NextResponse('Unauthorized', {
+            status: 401,
+            headers: {
+                'WWW-Authenticate': 'Basic realm="CRM Contacts"',
+                ...davHeaders
+            }
+        });
+    }
+
     if (method === 'OPTIONS') {
         return new NextResponse(null, { status: 200, headers: davHeaders });
     }
