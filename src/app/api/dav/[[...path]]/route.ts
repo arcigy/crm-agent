@@ -167,6 +167,26 @@ async function handleRequest(req: NextRequest, params: { path?: string[] }) {
     if (method === 'PROPFIND') {
         // iOS Discovery Logic
 
+        // 0. Root /api/dav Discovery -> Point to User Principal
+        if (pathStr === '/api/dav' || pathStr === '/api/dav/') {
+            const xml = `<?xml version="1.0" encoding="utf-8"?>
+<D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
+    <D:response>
+        <D:href>/api/dav/</D:href>
+        <D:propstat>
+            <D:prop>
+                <D:resourcetype><D:collection/></D:resourcetype>
+                <D:current-user-principal>
+                    <D:href>/api/dav/principals/user/</D:href>
+                </D:current-user-principal>
+            </D:prop>
+            <D:status>HTTP/1.1 200 OK</D:status>
+        </D:propstat>
+    </D:response>
+</D:multistatus>`;
+            return new NextResponse(xml, { status: 207, headers: { ...davHeaders, 'Content-Type': 'application/xml; charset=utf-8' } });
+        }
+
         // 1. Principal URL Handling
         if (pathStr.includes('/principals/user')) {
             const xml = `<?xml version="1.0" encoding="utf-8"?>
