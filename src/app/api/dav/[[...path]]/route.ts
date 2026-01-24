@@ -81,22 +81,70 @@ export async function REPORT(req: NextRequest, { params }: { params: Promise<{ p
 
     console.log(`[CardDAV] REPORT ${pathStr}`);
 
-    // iOS sends an XML body asking for specific properties (getetag, address-data)
-    // For now, we return a valid but EMPTY address book response to satisfy the initial sync.
-    // In the future, we will query Supabase 'mobile_sync_queue' or 'contacts' here and inject them.
+    try {
+        // Fetch all contacts from Supabase
+        const { data: contacts, error } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('status', 'published'); // Only active contacts
 
-    const xml = `<?xml version="1.0" encoding="utf-8"?>
+        if (error) {
+            console.error('[CardDAV] DB Error:', error);
+            return new NextResponse('Internal Server Error', { status: 500 });
+        }
+
+        const responses = (contacts || []).map((contact: any) => {
+            // Helper to clean strings
+            const clean = (s: string) => (s || '').trim();
+
+            // Construct vCard
+            const vcard = [
+                'BEGIN:VCARD',
+                'VERSION:3.0',
+                `FN:${clean(contact.first_name)} ${clean(contact.last_name)}`,
+                `N:${clean(contact.last_name)};${clean(contact.first_name)};;;`,
+                contact.email ? `EMAIL;TYPE=INTERNET:${clean(contact.email)}` : '',
+                contact.phone ? `TEL;TYPE=CELL:${clean(contact.phone)}` : '',
+                contact.company ? `ORG:${clean(contact.company)}` : '',
+                contact.comments ? `NOTE:${clean(contact.comments)}` : '',
+                `UID:urn:uuid:${contact.id}`, // Using ID as UUID, in prod user real UUIDs for better sync
+                `REV:${new Date().toISOString()}`,
+                'END:VCARD'
+            ].filter(Boolean).join('\r\n');
+
+            const href = `/api/dav/addressbooks/user/default/${contact.id}.vcf`;
+            const etag = `"${contact.updated_at ? new Date(contact.updated_at).getTime() : '0'}"`;
+
+            return `
+    <D:response>
+        <D:href>${href}</D:href>
+        <D:propstat>
+            <D:prop>
+                <D:getetag>${etag}</D:getetag>
+                <C:address-data>${vcard}</C:address-data>
+            </D:prop>
+            <D:status>HTTP/1.1 200 OK</D:status>
+        </D:propstat>
+    </D:response>`;
+        }).join('\n');
+
+        const xml = `<?xml version="1.0" encoding="utf-8"?>
 <D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
-    <!-- No responses means empty address book -->
+${responses}
 </D:multistatus>`;
 
-    return new NextResponse(xml, {
-        status: 207,
-        headers: {
-            'DAV': '1, 3, addressbook',
-            'Content-Type': 'application/xml; charset=utf-8'
-        }
-    });
+        return new NextResponse(xml, {
+            status: 207,
+            headers: {
+                'DAV': '1, 3, addressbook',
+                'Content-Type': 'application/xml; charset=utf-8'
+            }
+        });
+
+    } catch (e) {
+        console.error('[CardDAV] Report Failed', e);
+        return new NextResponse('Internal Error', { status: 500 });
+    }
 }
 
 async function handleRequest(req: NextRequest, params: { path?: string[] }) {
