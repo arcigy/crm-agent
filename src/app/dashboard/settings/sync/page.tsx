@@ -8,14 +8,32 @@ export default function MobileSyncPage() {
     const [copied, setCopied] = React.useState(false);
 
     const [origin, setOrigin] = React.useState('');
+    const [username, setUsername] = React.useState('user@example.com');
 
+    // Fetch user email and set origin
     React.useEffect(() => {
         setOrigin(window.location.origin);
+
+        const fetchUser = async () => {
+            try {
+                const { createBrowserClient } = await import('@supabase/ssr');
+                const supabase = createBrowserClient(
+                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                );
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user?.email) {
+                    setUsername(user.email);
+                }
+            } catch (e) {
+                console.error('Failed to fetch user', e);
+            }
+        };
+        fetchUser();
     }, []);
 
     const serverUrl = origin ? `${origin}/api/dav` : '';
-    const username = 'user@example.com';
-    const password = 'app-specific-password-123'; // This should be a generated App Password
+    const password = 'heslo'; // Simplifying based on user interaction (POC)
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
