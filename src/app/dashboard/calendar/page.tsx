@@ -21,7 +21,7 @@ function CalendarContent() {
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
     useEffect(() => {
-        const dateParam = searchParams.get('date');
+        const dateParam = searchParams?.get('date');
         if (dateParam) {
             const parsedDate = new Date(dateParam);
             if (!isNaN(parsedDate.getTime())) {
