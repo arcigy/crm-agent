@@ -41,6 +41,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 import { updateContactComments } from '@/app/actions/contacts';
 import { ContactDetailModal } from './ContactDetailModal';
+import { ContactImportModal } from './ContactImportModal';
 import { Lead, Activity, Deal } from '@/types/contact';
 
 const columnHelper = createColumnHelper<Lead>();
@@ -701,6 +702,7 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
     const [grouping, setGrouping] = React.useState<GroupingState>(['status']);
     const [globalFilter, setGlobalFilter] = React.useState('');
     const [isModalOpen, setIsModalOpen] = React.useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
     const [qrPhone, setQrPhone] = React.useState<string | null>(null);
     const [detailContact, setDetailContact] = React.useState<Lead | null>(null);
     const [fullDetailContact, setFullDetailContact] = React.useState<Lead | null>(null);
@@ -771,6 +773,17 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
                 }}
             />
 
+            <ContactImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onSuccess={() => {
+                    // Refresh data or something (revalidatePath does it on server, maybe we need router.refresh() if client cache persists)
+                    // The server action calls revalidatePath, so next render (which might happen on router refresh) gets new data.
+                    // For now simple close is enough, Next.js should handle RSC update.
+                    window.location.reload(); // Simple brute force to ensure table updates immediately
+                }}
+            />
+
             <PhoneQrModal phone={qrPhone} onClose={() => setQrPhone(null)} />
 
             <ActivityDetailModal contact={detailContact} onClose={() => setDetailContact(null)} />
@@ -792,6 +805,12 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
                             className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 shadow-sm transition-all active:scale-95"
                         >
                             New <ChevronDown className="w-3 h-3 opacity-70" />
+                        </button>
+                        <button
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 transition-all active:scale-95 shadow-sm"
+                        >
+                            Import vCard
                         </button>
                         <div className="h-3 w-px bg-gray-300 mx-1"></div>
                         <div className="relative">

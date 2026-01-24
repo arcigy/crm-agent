@@ -155,3 +155,74 @@ export async function updateContactComments(id: number, comments: string) {
         return { success: false, error: error.message };
     }
 }
+
+export async function uploadVCard(vcardContent: string) {
+    try {
+        const supabase = await createClient();
+
+        // Split multiple vCards in one file if present. 
+        // VCards start with BEGIN:VCARD and end with END:VCARD
+        const cards = vcardContent.split('BEGIN:VCARD').filter(c => c.trim().length > 0);
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const rawCard of cards) {
+            const card = 'BEGIN:VCARD' + rawCard; // Re-add header if split removed it (except first might have issue if strict split, but usually ok)
+
+            // Regex parse
+            const fnMatch = card.match(/FN:(.*)/);
+            const emailMatch = card.match(/EMAIL.*:(.*)/);
+            const telMatch = card.match(/TEL.*:(.*)/);
+            const orgMatch = card.match(/ORG:(.*)/);
+
+            // If essential info missing (e.g. just garbage text), skip
+            if (!fnMatch && !emailMatch && !telMatch) continue;
+
+            const fullName = fnMatch ? fnMatch[1].trim() : 'Imported Contact';
+            const email = emailMatch ? emailMatch[1].trim() : undefined;
+            const phone = telMatch ? telMatch[1].trim() : undefined;
+            const company = orgMatch ? orgMatch[1].trim().split(';')[0] : undefined;
+
+            const nameParts = fullName.split(' ');
+            const lastName = nameParts.length > 1 ? nameParts.pop() : '';
+            const firstName = nameParts.join(' ');
+
+            const payload: any = {
+                first_name: firstName,
+                last_name: lastName || '',
+                company: company || '',
+                status: 'published',
+                source: 'import'
+            };
+            if (email) payload.email = email;
+            if (phone) payload.phone = phone;
+
+            // Attempt upsert
+            let error = null;
+            if (email) {
+                const { error: err } = await supabase.from('contacts').upsert(payload, { onConflict: 'email' });
+                error = err;
+            } else {
+                // If no email, just insert. Potentially duplicate if run twice. 
+                // Could check phone dedupe but email is primary key usually.
+                const { error: err } = await supabase.from('contacts').insert(payload);
+                error = err;
+            }
+
+            if (error) {
+                console.error('Import error for ' + fullName, error);
+                failCount++;
+            } else {
+                successCount++;
+            }
+        }
+
+        revalidatePath('/dashboard/contacts');
+        return { success: true, count: successCount, failed: failCount };
+
+    } catch (error: any) {
+        console.error('VCard import failed:', error);
+        return { success: false, error: error.message };
+    }
+}
