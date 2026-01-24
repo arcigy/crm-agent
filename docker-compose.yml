@@ -1,0 +1,13 @@
+services:
+  directus:
+    image: directus/directus:latest
+    ports:
+      - 8055:8055
+    volumes:
+      - ./uploads:/directus/uploads
+      - ./extensions:/directus/extensions
+    env_file:
+      - .env
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    restart: always
