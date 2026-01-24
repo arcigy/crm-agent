@@ -216,10 +216,13 @@ export async function PATCH(request: Request) {
         const gmail = getGmailClient(tokenData.access_token, tokenData.refresh_token);
 
         // Mark as read by removing UNREAD label
+        // Mark as read by removing UNREAD label
         await gmail.users.messages.batchModify({
             userId: 'me',
-            ids: [messageId],
-            removeLabelIds: ['UNREAD']
+            requestBody: {
+                ids: [messageId],
+                removeLabelIds: ['UNREAD']
+            }
         });
 
         return NextResponse.json({ success: true });
