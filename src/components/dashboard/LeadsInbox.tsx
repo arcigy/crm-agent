@@ -168,8 +168,8 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         ...filteredMessages.map(m => ({ ...m, itemType: 'email' as const })),
         ...filteredLogs.map(l => ({ ...l, itemType: 'android' as const }))
     ].sort((a, b) => {
-        const dateA = new Date(a.date || a.timestamp).getTime();
-        const dateB = new Date(b.date || b.timestamp).getTime();
+        const dateA = new Date((a as any).date || (a as any).timestamp).getTime();
+        const dateB = new Date((b as any).date || (b as any).timestamp).getTime();
         return dateB - dateA;
     });
 
