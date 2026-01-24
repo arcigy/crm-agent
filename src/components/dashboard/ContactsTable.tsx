@@ -696,7 +696,7 @@ function CreateContactModal({ isOpen, onClose, onSubmit }: { isOpen: boolean; on
     );
 }
 
-export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (data: any) => Promise<void> }) {
+export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (data: any) => Promise<any> }) {
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [grouping, setGrouping] = React.useState<GroupingState>(['status']);
     const [globalFilter, setGlobalFilter] = React.useState('');
