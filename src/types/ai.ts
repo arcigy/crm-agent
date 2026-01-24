@@ -1,3 +1,5 @@
+import { GmailMessage } from './gmail';
+
 export interface EmailClassification {
     intent: 'dopyt' | 'otazka' | 'problem' | 'faktura' | 'spam' | 'ine';
     priority: 'vysoka' | 'stredna' | 'nizka';
