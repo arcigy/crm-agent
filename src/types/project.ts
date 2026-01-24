@@ -4,7 +4,7 @@ export interface Project {
     date_created: string;
     project_type: string;
     contact_id: number | null;
-    contact_name?: string; // Joined from contacts table
+    contact_name?: string | null; // Joined from contacts table
     stage: ProjectStage;
     end_date: string | null;
     deleted_at: string | null;
