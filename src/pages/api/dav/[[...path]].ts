@@ -45,6 +45,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return handleReport(req, res, pathStr);
     }
 
+    if (method === 'PUT') {
+        return handlePut(req, res, pathStr);
+    }
+
     // Fallback
     return res.status(200).send('OK');
 }
@@ -227,6 +231,66 @@ ${responses}
         return res.status(207).send(xml);
     } catch (e) {
         console.error(e);
+        return res.status(500).send('Error');
+    }
+}
+
+async function handlePut(req: NextApiRequest, res: NextApiResponse, pathStr: string) {
+    const body = req.body;
+
+    // NOTE: Next.js by default parses body. 
+    // We assume string/buffer handling here for vCards.
+    let vcard = '';
+    if (typeof body === 'string') vcard = body;
+    else if (Buffer.isBuffer(body)) vcard = body.toString();
+    else vcard = JSON.stringify(body);
+
+    // Simple VCard Parser
+    const fnMatch = vcard.match(/FN:(.*)/);
+    const emailMatch = vcard.match(/EMAIL.*:(.*)/);
+    const telMatch = vcard.match(/TEL.*:(.*)/);
+    const orgMatch = vcard.match(/ORG:(.*)/);
+
+    const fullName = fnMatch ? fnMatch[1].trim() : 'Unknown';
+    const email = emailMatch ? emailMatch[1].trim() : '';
+    const phone = telMatch ? telMatch[1].trim() : '';
+    const company = orgMatch ? orgMatch[1].trim().split(';')[0] : '';
+
+    const nameParts = fullName.split(' ');
+    const lastName = nameParts.length > 1 ? nameParts.pop() : '';
+    const firstName = nameParts.join(' ');
+
+    if (!email && !phone && firstName === 'Unknown') {
+        return res.status(400).send('Invalid vCard');
+    }
+
+    try {
+        const payload: any = {
+            first_name: firstName,
+            last_name: lastName || '',
+            company: company,
+            status: 'published',
+            updated_at: new Date().toISOString()
+        };
+        if (email) payload.email = email;
+        if (phone) payload.phone = phone;
+
+        let error = null;
+        if (email) {
+            const { error: err } = await supabase.from('contacts').upsert(payload, { onConflict: 'email' });
+            error = err;
+        } else {
+            const { error: err } = await supabase.from('contacts').insert(payload);
+            error = err;
+        }
+
+        if (error) console.error('Save error', error);
+
+        const etag = `"${Date.now()}"`;
+        res.setHeader('ETag', etag);
+        return res.status(201).send('Created');
+    } catch (e) {
+        console.error('PUT Error', e);
         return res.status(500).send('Error');
     }
 }
