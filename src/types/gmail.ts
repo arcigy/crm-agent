@@ -17,6 +17,11 @@ export interface GmailMessage {
     attachments?: GmailAttachment[];
     isRead: boolean;
     labels: string[];
+    classification?: {
+        category: 'lead' | 'support' | 'spam' | 'other';
+        confidence: number;
+        reason: string;
+    };
 }
 
 export interface GmailInboxResponse {
