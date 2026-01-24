@@ -6,7 +6,7 @@ const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_SECRET,
     process.env.NEXT_PUBLIC_APP_URL
         ? `${process.env.NEXT_PUBLIC_APP_URL}/api/google/callback`
-        : 'http://localhost:3000/api/google/callback'
+        : 'https://crm-agent-production-01eb.up.railway.app/api/google/callback'
 );
 
 // Scopes pre Google Calendar a Gmail API
