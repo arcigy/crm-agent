@@ -38,7 +38,7 @@ export default async function ProjectsPage() {
                         const contact = contacts.find(c => String(c.id) === String(p.contact_id));
                         return {
                             ...p,
-                            contact_name: contact ? `${contact.first_name || contact.firstName} ${contact.last_name || contact.lastName}` : 'Neznámy kontakt'
+                            contact_name: contact ? `${contact.first_name} ${contact.last_name}` : 'Neznámy kontakt'
                         };
                     });
                 } else {
