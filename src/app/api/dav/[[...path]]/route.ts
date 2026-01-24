@@ -150,7 +150,8 @@ ${responses}
 async function handleRequest(req: NextRequest, params: { path?: string[] }) {
     const method = req.method;
     const pathSegments = params.path || [];
-    const pathStr = '/api/dav/' + pathSegments.join('/');
+    // Normalize path: always starts with /api/dav, no trailing slash
+    const pathStr = '/api/dav' + (pathSegments.length > 0 ? '/' + pathSegments.join('/') : '');
 
     console.log(`[CardDAV] ${method} ${pathStr}`);
 
@@ -163,17 +164,15 @@ async function handleRequest(req: NextRequest, params: { path?: string[] }) {
         return new NextResponse(null, { status: 200, headers: davHeaders });
     }
 
-    /* ... PROPFIND ... */
-
     if (method === 'PROPFIND') {
         // iOS Discovery Logic
 
-        // 1. If asking for Principal (User config) -> Point to Addressbook Home
-        if (pathStr.includes('principals')) {
+        // 1. Principal URL Handling
+        if (pathStr.includes('/principals/user')) {
             const xml = `<?xml version="1.0" encoding="utf-8"?>
 <D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
     <D:response>
-        <D:href>${pathStr}</D:href>
+        <D:href>${pathStr}/</D:href>
         <D:propstat>
             <D:prop>
                 <D:resourcetype><D:collection/></D:resourcetype>
@@ -189,8 +188,8 @@ async function handleRequest(req: NextRequest, params: { path?: string[] }) {
             return new NextResponse(xml, { status: 207, headers: { ...davHeaders, 'Content-Type': 'application/xml; charset=utf-8' } });
         }
 
-        // 2. If asking for Addressbook Home (Listing books) -> Return the 'default' book
-        if (pathStr.endsWith('/addressbooks/user/') || pathStr.endsWith('/addressbooks/user')) {
+        // 2. Addressbook Home (Listing books)
+        if (pathStr.endsWith('/addressbooks/user')) {
             const xml = `<?xml version="1.0" encoding="utf-8"?>
 <D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
     <D:response>
@@ -211,6 +210,9 @@ async function handleRequest(req: NextRequest, params: { path?: string[] }) {
                     <C:addressbook/>
                 </D:resourcetype>
                 <D:displayname>CRM Contacts</D:displayname>
+                <C:supported-report-set>
+                    <C:supported-report><C:addressbook-multiget/></C:supported-report>
+                </C:supported-report-set>
             </D:prop>
             <D:status>HTTP/1.1 200 OK</D:status>
         </D:propstat>
@@ -219,12 +221,38 @@ async function handleRequest(req: NextRequest, params: { path?: string[] }) {
             return new NextResponse(xml, { status: 207, headers: { ...davHeaders, 'Content-Type': 'application/xml; charset=utf-8' } });
         }
 
-        // 3. If asking for the specific book 'default' -> Confirm it exists
-        if (pathStr.includes('default')) {
-            const xml = `<?xml version="1.0" encoding="utf-8"?>
-<D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
+        // 3. Specific Addressbook 'default'
+        if (pathStr.endsWith('/default')) {
+            const depth = req.headers.get('Depth') || '0';
+
+            // Sync Token / CTag - Timestamp of last update to table
+            // In a real app we'd query MAX(updated_at)
+            const ctag = `${Date.now()}`;
+
+            let childrenXml = '';
+
+            // If Depth: 1, we must list all resources (contacts)
+            if (depth === '1') {
+                try {
+                    const { data: contacts } = await supabase.from('contacts').select('id, updated_at').eq('status', 'published');
+                    childrenXml = (contacts || []).map((c: any) => `
     <D:response>
-        <D:href>${pathStr}</D:href>
+        <D:href>/api/dav/addressbooks/user/default/${c.id}.vcf</D:href>
+        <D:propstat>
+            <D:prop>
+                <D:getetag>"${c.updated_at ? new Date(c.updated_at).getTime() : '0'}"</D:getetag>
+                <D:resourcetype/>
+            </D:prop>
+            <D:status>HTTP/1.1 200 OK</D:status>
+        </D:propstat>
+    </D:response>`).join('\n');
+                } catch (e) { console.error('Error fetching contacts for Depth:1', e); }
+            }
+
+            const xml = `<?xml version="1.0" encoding="utf-8"?>
+<D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav" xmlns:CS="http://calendarserver.org/ns/">
+    <D:response>
+        <D:href>/api/dav/addressbooks/user/default/</D:href>
         <D:propstat>
             <D:prop>
                 <D:resourcetype>
@@ -232,19 +260,19 @@ async function handleRequest(req: NextRequest, params: { path?: string[] }) {
                     <C:addressbook/>
                 </D:resourcetype>
                 <D:supported-report-set>
-                    <D:supported-report>
-                        <D:report><C:addressbook-multiget/></D:report>
-                    </D:supported-report>
+                    <D:supported-report><C:addressbook-multiget/></D:supported-report>
                 </D:supported-report-set>
+                <CS:getctag>${ctag}</CS:getctag>
             </D:prop>
             <D:status>HTTP/1.1 200 OK</D:status>
         </D:propstat>
     </D:response>
+    ${childrenXml}
 </D:multistatus>`;
             return new NextResponse(xml, { status: 207, headers: { ...davHeaders, 'Content-Type': 'application/xml; charset=utf-8' } });
         }
 
-        // Fallback
+        // Fallback for root or unknown
         return new NextResponse(null, { status: 404 });
     }
 
