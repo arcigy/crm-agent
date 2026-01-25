@@ -3,6 +3,8 @@
 
 import { createClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
+import directus from '@/lib/directus';
+import { createItem } from '@directus/sdk';
 
 // NOTE: We need to import getPeopleClient dynamically or ensure it exists
 // But server actions need top level imports usually. 
@@ -16,27 +18,29 @@ export async function createContact(data: any) {
 
         if (!user) throw new Error('Unauthorized');
 
-        // Basic validation - First Name is enough for a contact
         if (!data.first_name) {
             throw new Error('First name is required');
         }
 
-        // If email is provided, check for global uniqueness or just ignore if it belongs to someone else?
-        // Rules say: Central contacts, one source of truth.
-        // But for now, let's just avoid duplicate emails for the SAME user to keep it simple.
-        if (data.email) {
-            const { data: existing } = await supabase
-                .from('contacts')
-                .select('id')
-                .eq('email', data.email)
-                .eq('owner_id', user.id)
-                .single();
-
-            if (existing) {
-                return { success: false, error: 'A contact with this email already exists in your workspace.' };
-            }
+        // 1. SAVE TO DIRECTUS
+        let directusId = null;
+        try {
+            const drContact = await directus.request(createItem('contacts', {
+                first_name: data.first_name,
+                last_name: data.last_name || '',
+                email: data.email || '',
+                phone: data.phone || '',
+                company: data.company || '',
+                status: data.status || 'published',
+                activities: [],
+                deals: []
+            }));
+            directusId = (drContact as any).id;
+        } catch (de: any) {
+            console.error('Directus save error:', de.message);
         }
 
+        // 2. SAVE TO SUPABASE
         const { data: newContact, error: insertError } = await supabase
             .from('contacts')
             .insert({
@@ -46,13 +50,13 @@ export async function createContact(data: any) {
                 phone: data.phone || null,
                 company: data.company || '',
                 status: data.status || 'published',
-                owner_id: user.id, // Linking to user
+                owner_id: user.id,
                 activities: []
             })
             .select()
             .single();
 
-        if (insertError) throw insertError;
+        if (insertError && !directusId) throw insertError;
 
         // --- TRIGGER GOOGLE SYNC (EMAILS) ---
         // We do this in the background (or await it if fast enough)

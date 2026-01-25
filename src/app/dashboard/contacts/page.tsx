@@ -3,7 +3,8 @@ import { ContactsTable } from '@/components/dashboard/ContactsTable';
 import { createContact } from '@/app/actions/contacts';
 import { Lead } from '@/types/contact';
 import { getProjects } from '@/app/actions/projects';
-import { MOCK_PROJECTS, MOCK_CONTACTS } from '@/types/mockData';
+import directus from '@/lib/directus';
+import { readItems } from '@directus/sdk';
 
 export default async function ContactsPage() {
     let contacts: Lead[] = [];
@@ -13,47 +14,56 @@ export default async function ContactsPage() {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) {
-            throw new Error('Not authenticated');
-        }
+        if (!user) throw new Error('Not authenticated');
 
-        // Fetch projects belonging to user
-        let { data: projectsData, error: projectsError } = await getProjects();
-        if (projectsError) console.error('Projects fetch error:', projectsError);
+        // Fetch projects from Supabase
+        let { data: projectsData } = await getProjects();
 
-        // Fetch contacts belonging to user OR orphaned contacts (to fix previous imports visibility)
-        const { data: rawContacts, error: contactsError } = await supabase
-            .from('contacts')
-            .select('*')
-            .or(`owner_id.eq.${user.id},owner_id.is.null`)
-            .order('created_at', { ascending: false });
+        // Fetch contacts from DIRECTUS
+        try {
+            // @ts-ignore
+            const rawItems = await directus.request(readItems('contacts'));
+            if (rawItems && rawItems.length > 0) {
+                const normalize = (s: string) => (s || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
-        if (contactsError) throw contactsError;
+                contacts = (rawItems as any[]).map(contact => {
+                    const fName = contact.first_name || '';
+                    const lName = contact.last_name || '';
+                    const fullName = normalize(`${fName} ${lName}`);
 
-        if (rawContacts && rawContacts.length > 0) {
-            // Optional: Automatically claim orphans for the current user in the background/silently?
-            // For now, just showing them is enough to satisfy the user request.
+                    const contactProjects = (projectsData || [])?.filter(p => {
+                        const idMatch = String(p.contact_id) === String(contact.id);
+                        const projectContactName = normalize(p.contact_name || '');
+                        const nameMatch = projectContactName !== '' && projectContactName === fullName;
+                        return idMatch || nameMatch;
+                    });
 
-            const normalize = (s: string) => (s || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-
-            contacts = (rawContacts as any[]).map(contact => {
-                const fName = contact.first_name || '';
-                const lName = contact.last_name || '';
-                const fullName = normalize(`${fName} ${lName}`);
-
-                // Link projects to contact by ID or Name
-                const contactProjects = (projectsData || [])?.filter(p => {
-                    const idMatch = String(p.contact_id) === String(contact.id);
-                    const projectContactName = normalize(p.contact_name || '');
-                    const nameMatch = projectContactName !== '' && projectContactName === fullName;
-                    return idMatch || nameMatch;
+                    return { ...contact, projects: contactProjects };
                 });
+            }
+        } catch (directusError: any) {
+            console.warn('Directus fetch failed, using Supabase fallback:', directusError.message);
 
-                return {
-                    ...contact,
-                    projects: contactProjects
-                };
-            });
+            // Fallback to Supabase
+            const { data: sbContacts } = await supabase
+                .from('contacts')
+                .select('*')
+                .or(`owner_id.eq.${user.id},owner_id.is.null`);
+
+            if (sbContacts) {
+                const normalize = (s: string) => (s || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+                contacts = (sbContacts as any[]).map(contact => {
+                    const fName = contact.first_name || '';
+                    const lName = contact.last_name || '';
+                    const fullName = normalize(`${fName} ${lName}`);
+                    const contactProjects = (projectsData || [])?.filter(p => {
+                        const idMatch = String(p.contact_id) === String(contact.id);
+                        const nameMatch = normalize(p.contact_name || '') === fullName;
+                        return idMatch || nameMatch;
+                    });
+                    return { ...contact, projects: contactProjects };
+                });
+            }
         }
 
     } catch (e: any) {
