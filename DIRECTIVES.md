@@ -9,3 +9,11 @@
 **Stav:** Supabase bola úplne odstránená a nahradená Directusom.
 **Pravidlo:** Všetky nové funkcie musia používať Directus SDK (`@/lib/directus`). Nepridávať žiadne importy zo `@supabase/supabase-js` alebo `@supabase/ssr`.
 
+## 🛡️ DEPLOYMENT PROTOKOL (CRITICAL)
+**Pravidlo:** NIKDY nepushovať kód na GitHub (production) bez predchádzajúceho lokálneho overenia buildu.
+**Postup:**
+1.  Pred každým `git push`:
+2.  Spustiť `npm run build` v termináli užívateľa.
+3.  Ak príkaz zlyhá, oprava musí prebehnúť LOKÁLNE.
+4.  Git Push je povolený AŽ KEĎ `npm run build` skončí s `✓ Compiled successfully`.
+**Dôvod:** Railway buildy trvajú dlho a odhalenie chyby až tam je strata času. Lokálny build odhalí 99% problémov (TypeScript, chýbajúce balíčky, syntax).

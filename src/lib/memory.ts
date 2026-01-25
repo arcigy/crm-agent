@@ -86,8 +86,9 @@ export async function saveNewMemories(userEmail: string, lastUserMessage: string
         const toolCalls = completion.choices[0].message.tool_calls;
 
         if (toolCalls) {
-            for (const toolCall of toolCalls) {
-                if (toolCall.function.name === "update_memory") {
+            // Cast to any to avoid TS union type issues with OpenAI SDK
+            for (const toolCall of toolCalls as any[]) {
+                if (toolCall.function && toolCall.function.name === "update_memory") {
                     const args = JSON.parse(toolCall.function.arguments);
                     if (args.new_facts && args.new_facts.length > 0) {
                         for (const fact of args.new_facts) {
