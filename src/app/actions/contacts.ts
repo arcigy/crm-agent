@@ -129,6 +129,17 @@ export async function createContact(data: any) {
             // Don't fail the creation just because sync failed
         }
 
+        // One-way sync to Google (Fire and forget)
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                // No await, run in background
+                createGoogleContact(newContact.id, data, user.id);
+            }
+        } catch (e) {
+            console.error('Trigger Google Create Error', e);
+        }
+
         // Revalidate dashboard to show new data
         revalidatePath('/dashboard/contacts');
 
@@ -140,6 +151,42 @@ export async function createContact(data: any) {
             return { success: false, error: 'A contact with this email already exists.' };
         }
         return { success: false, error: error.message || 'Failed to create contact' };
+    }
+}
+
+async function createGoogleContact(contactId: string, contactData: any, userId: string) {
+    try {
+        const supabase = await createClient();
+        const { data: tokens } = await supabase
+            .from('google_tokens')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (!tokens) return;
+
+        const { getPeopleClient, refreshAccessToken } = await import('@/lib/google');
+
+        let accessToken = tokens.access_token;
+        if (tokens.expiry_date && tokens.expiry_date < Date.now() && tokens.refresh_token) {
+            const newTokens = await refreshAccessToken(tokens.refresh_token);
+            accessToken = newTokens.access_token;
+        }
+
+        const people = getPeopleClient(accessToken, tokens.refresh_token);
+
+        // Create Person
+        await people.people.createContact({
+            requestBody: {
+                names: [{ givenName: contactData.first_name, familyName: contactData.last_name }],
+                emailAddresses: contactData.email ? [{ value: contactData.email }] : [],
+                phoneNumbers: contactData.phone ? [{ value: contactData.phone }] : [],
+                organizations: contactData.company ? [{ name: contactData.company }] : []
+            }
+        });
+
+    } catch (e) {
+        console.error('Failed to sync new contact to Google:', e);
     }
 }
 
