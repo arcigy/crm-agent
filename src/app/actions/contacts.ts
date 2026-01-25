@@ -213,6 +213,7 @@ export async function updateContactComments(id: number, comments: string) {
 export async function uploadVCard(vcardContent: string) {
     try {
         const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
         // Normalize newlines to \n to simplify regex
         const content = vcardContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -278,13 +279,17 @@ export async function uploadVCard(vcardContent: string) {
 
             // Upsert by email or phone or insert
             let error = null;
+            let data = null;
+
             if (email) {
-                const { error: err } = await supabase.from('contacts').upsert(payload, { onConflict: 'email' });
+                const { error: err, data: d } = await supabase.from('contacts').upsert(payload, { onConflict: 'email' }).select().single();
                 error = err;
+                data = d;
             } else {
                 // Without email to dedup, we just insert. 
-                const { error: err } = await supabase.from('contacts').insert(payload);
+                const { error: err, data: d } = await supabase.from('contacts').insert(payload).select().single();
                 error = err;
+                data = d;
             }
 
             if (error) {
@@ -292,6 +297,11 @@ export async function uploadVCard(vcardContent: string) {
                 failCount++;
             } else {
                 successCount++;
+                // Sync to Google if we have user
+                if (user && data) {
+                    // Fire and forget
+                    createGoogleContact(data.id, payload, user.id);
+                }
             }
         }
 
@@ -307,6 +317,8 @@ export async function uploadVCard(vcardContent: string) {
 export async function bulkCreateContacts(contacts: any[]) {
     try {
         const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
         let successCount = 0;
         let failCount = 0;
 
@@ -334,20 +346,28 @@ export async function bulkCreateContacts(contacts: any[]) {
 
             // Attempt upsert
             let error = null;
+            let data = null;
+
             if (email) {
-                const { error: err } = await supabase.from('contacts').upsert(payload, { onConflict: 'email' });
+                const { error: err, data: d } = await supabase.from('contacts').upsert(payload, { onConflict: 'email' }).select().single();
                 error = err;
+                data = d;
             } else {
-                const { error: err } = await supabase.from('contacts').insert(payload);
+                const { error: err, data: d } = await supabase.from('contacts').insert(payload).select().single();
                 error = err;
+                data = d;
             }
 
             if (error) {
-                // Ignore duplicates if we decide so, but counting as fail for now to be safe
                 console.warn('Bulk import warning:', error);
                 failCount++;
             } else {
                 successCount++;
+                // Sync to Google if we have user
+                if (user && data) {
+                    // Fire and forget (or await if we want certainty)
+                    createGoogleContact(data.id, payload, user.id);
+                }
             }
         }
 
