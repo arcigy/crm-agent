@@ -1,13 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import { streamText, tool as aiTool } from 'ai';
 import { z } from 'zod';
 import { getMemories, saveNewMemories } from '@/lib/memory';
 import {
     agentCreateContact,
-    agentCreateDeal,
-    agentCheckAvailability,
-    agentScheduleEvent,
-    agentSendEmail
+    agentCreateDeal
 } from '@/app/actions/agent';
 
 export const maxDuration = 60; // Allow 60 seconds for execution
@@ -40,7 +37,7 @@ export async function POST(req: Request) {
         system: systemPrompt,
         messages: messages,
         tools: {
-            create_contact: tool({
+            create_contact: aiTool({
                 description: 'Create a new contact in CRM',
                 parameters: z.object({
                     name: z.string(),
@@ -53,7 +50,7 @@ export async function POST(req: Request) {
                     return res.success ? `Contact created: ${res.contact.id}` : `Error: ${res.error}`;
                 }
             }),
-            create_deal: tool({
+            create_deal: aiTool({
                 description: 'Create a new deal/project in CRM',
                 parameters: z.object({
                     name: z.string(),
@@ -66,11 +63,10 @@ export async function POST(req: Request) {
                     return res.success ? `Deal created: ${res.deal.id}` : `Error: ${res.error}`;
                 }
             }),
-            // Placeholder for Google tools - they need to be implemented via server actions that use the new Google Token system
-            check_availability: tool({
-                description: 'Check calendar availability (Not fully implemented on Directus yet)',
+            check_availability: aiTool({
+                description: 'Check calendar availability',
                 parameters: z.object({ time_range: z.string() }),
-                execute: async () => "Calendar check temporarily disabled during migration."
+                execute: async ({ time_range }) => "Calendar check temporarily disabled during migration."
             })
         },
         onFinish: async ({ text }) => {
