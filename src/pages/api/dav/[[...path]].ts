@@ -49,6 +49,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return handlePut(req, res, pathStr);
     }
 
+    if (method === 'DELETE') {
+        return handleDelete(req, res, pathStr);
+    }
+
     // Fallback
     return res.status(200).send('OK');
 }
@@ -291,6 +295,37 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse, pathStr: str
         return res.status(201).send('Created');
     } catch (e) {
         console.error('PUT Error', e);
+        return res.status(500).send('Error');
+    }
+}
+
+async function handleDelete(req: NextApiRequest, res: NextApiResponse, pathStr: string) {
+    try {
+        // Extract ID from path: /api/dav/addressbooks/user/default/123.vcf
+        const match = pathStr.match(/\/(\d+)\.vcf$/);
+        if (!match) {
+            return res.status(404).send('Not Found');
+        }
+
+        const id = match[1];
+
+        // Soft delete rule: "Soft Deletes: Žiadny riadok sa nikdy reálne nemaže. Každá tabuľka má stĺpec deleted_at (timestamp)."
+        const { error } = await supabase
+            .from('contacts')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (error) {
+            console.error('DELETE error', error);
+            // If record not found or error, return conflict or error? 
+            // 404 is technically better if not found, but soft delete 'update' might return success even if 0 rows. 
+            // We assume success.
+            return res.status(500).send('Error');
+        }
+
+        return res.status(204).end();
+    } catch (e) {
+        console.error('DELETE Error', e);
         return res.status(500).send('Error');
     }
 }
