@@ -795,17 +795,23 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
         const handleOpenDetail = (e: any) => setDetailContact(e.detail);
         const handleOpenFullDetail = (e: any) => setFullDetailContact(e.detail);
         const handleOpenProjects = (e: any) => setProjectsContact(e.detail);
+        const handleOpenCreate = () => setIsModalOpen(true);
+        const handleOpenImport = () => setIsImportModalOpen(true);
 
         window.addEventListener('open-qr', handleOpenQr);
         window.addEventListener('open-activity-detail', handleOpenDetail);
         window.addEventListener('open-contact-detail', handleOpenFullDetail);
         window.addEventListener('open-project-detail', handleOpenProjects);
+        window.addEventListener('open-create-contact', handleOpenCreate);
+        window.addEventListener('open-import-contact', handleOpenImport);
 
         return () => {
             window.removeEventListener('open-qr', handleOpenQr);
             window.removeEventListener('open-activity-detail', handleOpenDetail);
             window.removeEventListener('open-contact-detail', handleOpenFullDetail);
             window.removeEventListener('open-project-detail', handleOpenProjects);
+            window.removeEventListener('open-create-contact', handleOpenCreate);
+            window.removeEventListener('open-import-contact', handleOpenImport);
         };
     }, []);
 
