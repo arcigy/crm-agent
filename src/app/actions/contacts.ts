@@ -192,7 +192,7 @@ export async function uploadVCard(vcardContent: string) {
             const orgMatch = card.match(/(?:^|\n)ORG(?:;.*)?:(.*)/i);
 
             // Clean function to remove charset info if visible or whitespace
-            const clean = (s: string) => s ? s.trim() : '';
+            const clean = (s: string | undefined): string => s ? s.trim() : '';
 
             let fullName = clean(fnMatch ? fnMatch[1] : '');
 
