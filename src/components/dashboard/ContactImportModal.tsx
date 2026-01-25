@@ -83,12 +83,15 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
 
         setIsUploading(true);
         try {
-            const text = await file.text();
+            // Use FormData to bypass message body limits (1MB default for JSON)
+            const formData = new FormData();
+            formData.append('file', file);
 
-            // Dynamic import of the action to ensure we use the one we just created
+            // Dynamic import of the action
             const { uploadVCard } = await import('@/app/actions/contacts');
 
-            const result = await uploadVCard(text);
+            // @ts-ignore - We are changing the signature to accept FormData in the next step
+            const result = await uploadVCard(formData);
 
             if (result.success) {
                 toast.success(`Importované: ${result.count}, Chyby: ${result.failed || 0}`);
@@ -97,9 +100,14 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
             } else {
                 throw new Error(result.error || 'Upload failed');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Import failed', error);
-            toast.error('Chyba pri importe. Skúste to prosím znova.');
+            // Better error message for payload too large
+            if (error.message?.includes('413') || error.digest?.includes('413')) {
+                toast.error('Súbor je príliš veľký. Skúste menší súbor.');
+            } else {
+                toast.error('Chyba pri importe. Skúste to prosím znova.');
+            }
         } finally {
             setIsUploading(false);
         }

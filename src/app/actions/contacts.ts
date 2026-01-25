@@ -210,8 +210,13 @@ export async function updateContactComments(id: number, comments: string) {
 }
 
 
-export async function uploadVCard(vcardContent: string) {
+export async function uploadVCard(formData: FormData) {
     try {
+        const file = formData.get('file') as File;
+        if (!file) throw new Error('No file provided');
+
+        const vcardContent = await file.text();
+
         const supabase = await createClient();
 
         // 1. CLEANUP: Strip photos and normalized newlines
