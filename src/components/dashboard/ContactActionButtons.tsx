@@ -1,63 +1,91 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, Download, UserPlus } from 'lucide-react';
+import { Plus, Download, UserPlus, Code, FileText, ChevronDown } from 'lucide-react';
 
 export function ContactActionButtons() {
-    const openCreate = () => {
-        window.dispatchEvent(new CustomEvent('open-create-contact'));
-    };
+    const [isOpen, setIsOpen] = React.useState(false);
+    const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-    const openImport = () => {
-        window.dispatchEvent(new CustomEvent('open-import-contact'));
+    React.useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const trigger = (eventName: string, mode?: string) => {
+        window.dispatchEvent(new CustomEvent(eventName, { detail: mode }));
+        setIsOpen(false);
     };
 
     return (
-        <div className="flex items-center gap-3">
+        <div className="relative" ref={dropdownRef}>
             <button
-                onClick={openImport}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm active:scale-95"
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-gray-200 active:scale-95 group"
             >
-                <Download className="w-3.5 h-3.5" />
-                Import
+                <Plus className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-45' : ''}`} />
+                New
+                <ChevronDown className={`w-3 h-3 ml-1 opacity-50 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
-            <button
-                onClick={openCreate}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-gray-200 active:scale-95"
-            >
-                <UserPlus className="w-4 h-4" />
-                New Contact
-            </button>
+
+            {isOpen && (
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-[100] animate-in fade-in zoom-in-95 duration-200">
+                    <button
+                        onClick={() => trigger('open-create-contact', 'form')}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors group"
+                    >
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            <UserPlus className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">Manual Form</span>
+                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Standard entry</span>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() => trigger('open-create-contact', 'json')}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors group"
+                    >
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                            <Code className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">Raw JSON</span>
+                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Bulk Extraction</span>
+                        </div>
+                    </button>
+
+                    <div className="h-px bg-gray-50 my-1 mx-2"></div>
+
+                    <button
+                        onClick={() => trigger('open-import-contact')}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors group"
+                    >
+                        <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-500 group-hover:bg-gray-900 group-hover:text-white transition-colors">
+                            <Download className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">Import File</span>
+                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">vCard / CSV</span>
+                        </div>
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
 
-// Separate component for the big buttons in the empty state
 export function EmptyStateActions() {
-    const openCreate = () => {
-        window.dispatchEvent(new CustomEvent('open-create-contact'));
-    };
-
-    const openImport = () => {
-        window.dispatchEvent(new CustomEvent('open-import-contact'));
-    };
-
     return (
         <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10">
-            <button
-                onClick={openCreate}
-                className="px-10 py-5 bg-gray-900 text-white rounded-2xl font-black uppercase italic tracking-[0.1em] shadow-2xl hover:bg-blue-600 transition-all active:scale-95 flex items-center gap-3"
-            >
-                <Plus className="w-5 h-5" />
-                Create Manually
-            </button>
-            <button
-                onClick={openImport}
-                className="px-10 py-5 bg-white border-4 border-gray-100 text-gray-900 rounded-2xl font-black uppercase italic tracking-[0.1em] shadow-xl hover:border-blue-500 transition-all active:scale-95 flex items-center gap-3"
-            >
-                <Download className="w-5 h-5 text-blue-500" />
-                Import Data
-            </button>
+            <ContactActionButtons />
+            <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] italic">Or select automated source</p>
         </div>
     );
 }

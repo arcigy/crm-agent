@@ -578,10 +578,10 @@ function ContactProjectsModal({ contact, onClose }: { contact: Lead | null; onCl
     );
 }
 
-// Simple Modal Component with JSON Debug Mode
-function CreateContactModal({ isOpen, onClose, onSubmit }: { isOpen: boolean; onClose: () => void; onSubmit: (data: any) => Promise<void> }) {
+// Simple Modal Component with JSON Support
+function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'form' }: { isOpen: boolean; onClose: () => void; onSubmit: (data: any) => Promise<void>; initialMode?: 'form' | 'json' }) {
     const [loading, setLoading] = React.useState(false);
-    const [mode, setMode] = React.useState<'form' | 'json'>('form');
+    const [mode, setMode] = React.useState<'form' | 'json'>(initialMode);
     const [jsonInput, setJsonInput] = React.useState('');
     const [formData, setFormData] = React.useState({
         first_name: '',
@@ -589,8 +589,12 @@ function CreateContactModal({ isOpen, onClose, onSubmit }: { isOpen: boolean; on
         email: '',
         phone: '',
         company: '',
-        status: 'draft'
+        status: 'published'
     });
+
+    React.useEffect(() => {
+        if (isOpen) setMode(initialMode);
+    }, [isOpen, initialMode]);
 
     if (!isOpen) return null;
 
@@ -599,41 +603,34 @@ function CreateContactModal({ isOpen, onClose, onSubmit }: { isOpen: boolean; on
         setLoading(true);
         try {
             if (mode === 'json') {
-                // Debug JSON Mode
                 let parsed;
                 try {
                     parsed = JSON.parse(jsonInput);
                 } catch (e) {
-                    alert('Invalid JSON');
+                    alert('Chybný formát JSON');
                     setLoading(false);
                     return;
                 }
 
-                // Assume array if user inputs array, else wrap in array of 1
                 const payload = Array.isArray(parsed) ? parsed : [parsed];
-
-                // Dynamic import to use bulkCreateContacts directly (bypassing the parent onSubmit which expects single contact usually)
-                // But wait, the parent onSubmit might just call createContact.
-                // To properly test the BULK IMPORT logic, we must call bulkCreateContacts.
                 const { bulkCreateContacts } = await import('@/app/actions/contacts');
                 const res = await bulkCreateContacts(payload);
 
                 if (res.success) {
-                    alert(`JSON Import Success: ${res.count} created.`);
                     onClose();
                     window.location.reload();
                 } else {
-                    alert('JSON Import Failed: ' + res.error);
+                    alert('Import zlyhal: ' + res.error);
                 }
 
             } else {
-                // Standard Form Mode
                 await onSubmit(formData);
                 onClose();
+                window.location.reload();
             }
         } catch (error: any) {
             console.error(error);
-            alert('Error: ' + error.message);
+            alert('Chyba: ' + error.message);
         } finally {
             setLoading(false);
         }
@@ -658,7 +655,7 @@ function CreateContactModal({ isOpen, onClose, onSubmit }: { isOpen: boolean; on
                             onClick={() => setMode('json')}
                             className={`px-3 py-1.5 rounded-md transition-all ${mode === 'json' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
                         >
-                            JSON (Debug)
+                            JSON (Raw)
                         </button>
                     </div>
                 </div>
@@ -733,14 +730,14 @@ function CreateContactModal({ isOpen, onClose, onSubmit }: { isOpen: boolean; on
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Paste Raw JSON</label>
                             <div className="bg-slate-900 rounded-md p-3 mb-2">
-                                <code className="text-xs text-green-400 block mb-1">Target format (Bulk Import):</code>
+                                <code className="text-xs text-green-400 block mb-1">Target format:</code>
                                 <pre className="text-[10px] text-gray-400 font-mono overflow-x-auto">
                                     {`[
   {
     "name": "Full Name",
-    "email": ["email@example.com"],
-    "tel": ["+421900000000"],
-    "org": "Company Name"
+    "email": "email@example.com",
+    "phone": "+421900000000",
+    "company": "Company Name"
   }
 ]`}
                                 </pre>
@@ -760,14 +757,14 @@ function CreateContactModal({ isOpen, onClose, onSubmit }: { isOpen: boolean; on
                             onClick={onClose}
                             className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
                         >
-                            Cancel
+                            Zrušiť
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
                             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
                         >
-                            {loading ? 'Processing...' : (mode === 'json' ? 'Simulate Import' : 'Create Contact')}
+                            {loading ? 'Spracúvam...' : (mode === 'json' ? 'Importovať RAW' : 'Vytvoriť kontakt')}
                         </button>
                     </div>
                 </form>
@@ -781,6 +778,7 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
     const [grouping, setGrouping] = React.useState<GroupingState>(['status']);
     const [globalFilter, setGlobalFilter] = React.useState('');
     const [isModalOpen, setIsModalOpen] = React.useState(false);
+    const [modalMode, setModalMode] = React.useState<'form' | 'json'>('form');
     const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
     const [qrPhone, setQrPhone] = React.useState<string | null>(null);
     const [detailContact, setDetailContact] = React.useState<Lead | null>(null);
@@ -795,7 +793,10 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
         const handleOpenDetail = (e: any) => setDetailContact(e.detail);
         const handleOpenFullDetail = (e: any) => setFullDetailContact(e.detail);
         const handleOpenProjects = (e: any) => setProjectsContact(e.detail);
-        const handleOpenCreate = () => setIsModalOpen(true);
+        const handleOpenCreate = (e: any) => {
+            setModalMode(e.detail || 'form');
+            setIsModalOpen(true);
+        };
         const handleOpenImport = () => setIsImportModalOpen(true);
 
         window.addEventListener('open-qr', handleOpenQr);
@@ -852,6 +853,7 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
         <>
             <CreateContactModal
                 isOpen={isModalOpen}
+                initialMode={modalMode}
                 onClose={() => setIsModalOpen(false)}
                 onSubmit={async (data) => {
                     if (onCreate) await onCreate(data);

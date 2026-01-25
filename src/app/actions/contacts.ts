@@ -242,9 +242,14 @@ export async function bulkCreateContacts(contacts: any[]) {
         const { data: { user } } = await supabase.auth.getUser();
         let successCount = 0;
         for (const contact of contacts) {
-            const nameParts = (contact.name || 'Unknown').split(' ');
-            const lastName = nameParts.length > 1 ? nameParts.pop() : '';
+            const rawName = contact.name || contact.first_name || 'Neznámy';
+            const nameParts = String(rawName).split(' ');
+            const lastName = nameParts.length > 1 ? nameParts.pop() : (contact.last_name || '');
             const firstName = nameParts.join(' ');
+
+            const email = Array.isArray(contact.email) ? contact.email[0] : (contact.email || '');
+            const phone = Array.isArray(contact.phone || contact.tel) ? (contact.phone || contact.tel)[0] : (contact.phone || contact.tel || '');
+            const company = contact.company || contact.org || '';
 
             // Save to Directus
             try {
@@ -252,9 +257,9 @@ export async function bulkCreateContacts(contacts: any[]) {
                 await directus.request(createItem('contacts', {
                     first_name: firstName,
                     last_name: lastName || '',
-                    email: contact.email || '',
-                    phone: contact.phone || '',
-                    company: contact.company || '',
+                    email: String(email),
+                    phone: String(phone),
+                    company: String(company),
                     status: 'published'
                 }));
             } catch (e) { }
@@ -262,9 +267,9 @@ export async function bulkCreateContacts(contacts: any[]) {
             const { error } = await supabase.from('contacts').insert({
                 first_name: firstName,
                 last_name: lastName || '',
-                company: contact.company || '',
-                email: contact.email || null,
-                phone: contact.phone || null,
+                company: String(company),
+                email: email ? String(email) : null,
+                phone: phone ? String(phone) : null,
                 status: 'published',
                 owner_id: user?.id
             });
