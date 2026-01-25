@@ -9,11 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.18",
     "@directus/sdk": "^21.0.0",
     "@stripe/stripe-js": "^8.6.3",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.91.0",
     "@tanstack/react-table": "^8.21.3",
+    "ai": "^6.0.49",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "googleapis": "^170.1.0",
@@ -25,7 +27,8 @@
     "react-dom": "19.2.3",
     "sonner": "^2.0.7",
     "stripe": "^20.2.0",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
