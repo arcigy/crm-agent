@@ -297,11 +297,15 @@ export async function uploadVCard(vcardContent: string) {
                 failCount++;
             } else {
                 successCount++;
-                // Sync to Google if we have user
+                successCount++;
+                // Sync to Google logic removed to prevent timeouts on large vCard files.
+                // These contacts are likely already on the phone/device.
+                /*
                 if (user && data) {
-                    // Fire and forget
-                    createGoogleContact(data.id, payload, user.id);
+                     // Fire and forget
+                     createGoogleContact(data.id, payload, user.id);
                 }
+                */
             }
         }
 
