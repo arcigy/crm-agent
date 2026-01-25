@@ -4,7 +4,7 @@
 import { createClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
 import directus from '@/lib/directus';
-import { createItem } from '@directus/sdk';
+import { createItem, updateItem } from '@directus/sdk';
 
 export async function createContact(data: any) {
     try {
@@ -42,7 +42,7 @@ export async function createContact(data: any) {
 
         // --- TRIGGER GOOGLE SYNC (EMAILS) ---
         try {
-            if (user && newContact) {
+            if (user && directusId) {
                 const { data: tokens } = await supabase
                     .from('google_tokens')
                     .select('*')
@@ -100,12 +100,17 @@ export async function createContact(data: any) {
                         if (activities.length > 0) {
                             // Update Directus instead of Supabase
                             try {
-                                const { updateItem } = await import('@/lib/directus-helper').catch(() => ({ updateItem: (a: any, b: any, c: any) => ({}) }));
                                 // @ts-ignore
-                                await directus.request(createItem('audit_logs', { action: 'Gmail Sync', contact_id: directusId, details: `Synced ${activities.length} emails` }));
-                                // Note: In Directus we'd append to the JSON field if it exists
-                                // But for now we just log it or update if schema allows
-                            } catch (e) { }
+                                await directus.request(createItem('audit_logs', { action: 'Gmail Sync', contact_id: String(directusId), details: `Synced ${activities.length} emails` }));
+
+                                // Optional: Update the contact's activity timeline if schema supports it
+                                // @ts-ignore
+                                await directus.request(updateItem('contacts', directusId, {
+                                    last_sync: new Date().toISOString()
+                                }));
+                            } catch (e) {
+                                console.error('Failed to log Gmail sync to Directus:', e);
+                            }
                         }
                     }
                 }
