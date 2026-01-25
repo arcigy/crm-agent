@@ -11,10 +11,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.redirect(new URL('/dashboard/contacts?error=No file received', req.url));
         }
 
-        const text = await file.text();
-
         // Use our action logic
-        await uploadVCard(text);
+        await uploadVCard(formData);
 
         // Redirect back to dashboard with success query param
         return NextResponse.redirect(new URL('/dashboard/contacts?success_import=true', req.url));
