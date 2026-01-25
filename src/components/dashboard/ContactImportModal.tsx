@@ -83,31 +83,50 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
 
         setIsUploading(true);
         try {
-            // Use FormData to bypass message body limits (1MB default for JSON)
-            const formData = new FormData();
-            formData.append('file', file);
+            const text = await file.text();
 
-            // Dynamic import of the action
-            const { uploadVCard } = await import('@/app/actions/contacts');
+            // 1. Client-Side Parse
+            const { parseVCard, contactsToCSV } = await import('@/lib/vcard-client');
+            const parsedContacts = parseVCard(text);
 
-            // @ts-ignore - We are changing the signature to accept FormData in the next step
-            const result = await uploadVCard(formData);
+            if (parsedContacts.length === 0) {
+                toast.error('V súbore sa nenašli žiadne platné kontakty.');
+                setIsUploading(false);
+                return;
+            }
 
-            if (result.success) {
-                toast.success(`Importované: ${result.count}, Chyby: ${result.failed || 0}`);
+            // 2. Download CSV (User Request)
+            const csvContent = contactsToCSV(parsedContacts);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'converted_contacts.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            toast.success('CSV vytvorené a stiahnuté.');
+
+            // 3. Upload to CRM (using bulkCreateContacts which expects structured data)
+            // We use bulkCreateContacts instead of uploadVCard because we already did the work here!
+            const { bulkCreateContacts } = await import('@/app/actions/contacts');
+
+            // We might need to batch this if it's huge, but bulkCreateContacts handles array.
+            // Let's send it.
+            const res = await bulkCreateContacts(parsedContacts);
+
+            if (res.success) {
+                toast.success(`Importované do CRM: ${res.count} kontaktov.`);
                 onSuccess();
                 onClose();
             } else {
-                throw new Error(result.error || 'Upload failed');
+                throw new Error(res.error || 'Import failed');
             }
         } catch (error: any) {
             console.error('Import failed', error);
-            // Better error message for payload too large
-            if (error.message?.includes('413') || error.digest?.includes('413')) {
-                toast.error('Súbor je príliš veľký. Skúste menší súbor.');
-            } else {
-                toast.error('Chyba pri importe. Skúste to prosím znova.');
-            }
+            toast.error('Chyba: ' + (error.message || 'Unknown error'));
         } finally {
             setIsUploading(false);
         }
