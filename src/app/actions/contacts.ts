@@ -342,52 +342,62 @@ export async function bulkCreateContacts(contacts: any[]) {
 
         let successCount = 0;
         let failCount = 0;
+        const BATCH_SIZE = 50;
 
-        for (const contact of contacts) {
-            const nameParts = (contact.name || 'Unknown').split(' ');
-            const lastName = nameParts.length > 1 ? nameParts.pop() : '';
-            const firstName = nameParts.join(' ');
+        // Process in chunks
+        for (let i = 0; i < contacts.length; i += BATCH_SIZE) {
+            const chunk = contacts.slice(i, i + BATCH_SIZE);
+            const batchEmail: any[] = [];
+            const batchNoEmail: any[] = [];
 
-            const email = contact.email?.[0] || undefined; // Contacts API returns arrays
-            const phone = contact.tel?.[0] || undefined;
+            for (const contact of chunk) {
+                const nameParts = (contact.name || 'Unknown').split(' ');
+                const lastName = nameParts.length > 1 ? nameParts.pop() : '';
+                const firstName = nameParts.join(' ');
 
-            // If completely empty skip
-            if (!firstName && !email && !phone) continue;
+                const email = contact.email?.[0] || undefined;
+                const phone = contact.tel?.[0] || undefined;
+                const company = contact.org || ''; // Correctly map organization
 
-            const payload: any = {
-                first_name: firstName,
-                last_name: lastName || '',
-                company: '', // Native picker often doesn't give Org easily on all platforms
-                status: 'published',
-                source: 'native_import'
-            };
+                if (!firstName && !email && !phone) continue;
 
-            if (email) payload.email = email;
-            if (phone) payload.phone = phone;
+                const payload: any = {
+                    first_name: firstName,
+                    last_name: lastName || '',
+                    company: company,
+                    status: 'published',
+                    source: 'native_import'
+                };
 
-            // Attempt upsert
-            let error = null;
-            let data = null;
-
-            if (email) {
-                const { error: err, data: d } = await supabase.from('contacts').upsert(payload, { onConflict: 'email' }).select().single();
-                error = err;
-                data = d;
-            } else {
-                const { error: err, data: d } = await supabase.from('contacts').insert(payload).select().single();
-                error = err;
-                data = d;
+                if (email) {
+                    payload.email = email;
+                    batchEmail.push(payload);
+                } else {
+                    if (phone) payload.phone = phone;
+                    batchNoEmail.push(payload);
+                }
             }
 
-            if (error) {
-                console.warn('Bulk import warning:', error);
-                failCount++;
-            } else {
-                successCount++;
-                // Sync to Google if we have user
-                if (user && data) {
-                    // Fire and forget (or await if we want certainty)
-                    createGoogleContact(data.id, payload, user.id);
+            // Batch Execute
+            if (batchEmail.length > 0) {
+                const { error } = await supabase.from('contacts').upsert(batchEmail, { onConflict: 'email', ignoreDuplicates: true });
+                if (error) {
+                    console.error('Bulk Import Email Batch Error', error);
+                    failCount += batchEmail.length;
+                } else {
+                    successCount += batchEmail.length;
+                    // Note: We skip Google Sync for bulk imports to avoid huge delays/timeouts,
+                    // as discussed for vCard import. 
+                }
+            }
+
+            if (batchNoEmail.length > 0) {
+                const { error } = await supabase.from('contacts').insert(batchNoEmail);
+                if (error) {
+                    console.error('Bulk Import No-Email Batch Error', error);
+                    failCount += batchNoEmail.length;
+                } else {
+                    successCount += batchNoEmail.length;
                 }
             }
         }
