@@ -211,7 +211,6 @@ export async function updateContactComments(id: number, comments: string) {
 
 export async function uploadVCard(formData: FormData) {
     try {
-        ```
         const file = formData.get('file') as File;
         if (!file) throw new Error('No file provided');
 
@@ -369,12 +368,12 @@ export async function bulkCreateContacts(contacts: any[]) {
 
                 // Handle both array format (from vCard) and string format
                 const email = Array.isArray(contact.email) ? contact.email[0] : contact.email;
-                
+
                 let phone = contact.phone || contact.tel;
                 if (Array.isArray(phone)) {
                     phone = phone[0];
                 }
-                
+
                 const company = contact.org || contact.company || '';
 
                 if ((!firstName || firstName === 'Unknown') && !email && !phone) {
