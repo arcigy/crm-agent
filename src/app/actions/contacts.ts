@@ -407,7 +407,7 @@ export async function bulkCreateContacts(contacts: any[]) {
                 const { error } = await supabase.from('contacts').upsert(batchEmail, { onConflict: 'email', ignoreDuplicates: true });
                 if (error) {
                     console.error('Bulk Import Email Batch Error', error);
-                    debugLog.push(`Batch Email Error: ${ error.message } `);
+                    debugLog.push('Batch Email Error: ' + error.message);
                     failCount += batchEmail.length;
                 } else {
                     successCount += batchEmail.length;
@@ -420,7 +420,7 @@ export async function bulkCreateContacts(contacts: any[]) {
                 const { error } = await supabase.from('contacts').insert(batchNoEmail);
                 if (error) {
                     console.error('Bulk Import No-Email Batch Error', error);
-                    debugLog.push(`Batch No - Email Error: ${ error.message } `);
+                    debugLog.push('Batch No-Email Error: ' + error.message);
                     failCount += batchNoEmail.length;
                 } else {
                     successCount += batchNoEmail.length;
