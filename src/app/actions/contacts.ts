@@ -226,3 +226,58 @@ export async function uploadVCard(vcardContent: string) {
         return { success: false, error: error.message };
     }
 }
+
+export async function bulkCreateContacts(contacts: any[]) {
+    try {
+        const supabase = await createClient();
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const contact of contacts) {
+            const nameParts = (contact.name || 'Unknown').split(' ');
+            const lastName = nameParts.length > 1 ? nameParts.pop() : '';
+            const firstName = nameParts.join(' ');
+
+            const email = contact.email?.[0] || undefined; // Contacts API returns arrays
+            const phone = contact.tel?.[0] || undefined;
+
+            // If completely empty skip
+            if (!firstName && !email && !phone) continue;
+
+            const payload: any = {
+                first_name: firstName,
+                last_name: lastName || '',
+                company: '', // Native picker often doesn't give Org easily on all platforms
+                status: 'published',
+                source: 'native_import'
+            };
+
+            if (email) payload.email = email;
+            if (phone) payload.phone = phone;
+
+            // Attempt upsert
+            let error = null;
+            if (email) {
+                const { error: err } = await supabase.from('contacts').upsert(payload, { onConflict: 'email' });
+                error = err;
+            } else {
+                const { error: err } = await supabase.from('contacts').insert(payload);
+                error = err;
+            }
+
+            if (error) {
+                // Ignore duplicates if we decide so, but counting as fail for now to be safe
+                console.warn('Bulk import warning:', error);
+                failCount++;
+            } else {
+                successCount++;
+            }
+        }
+
+        revalidatePath('/dashboard/contacts');
+        return { success: true, count: successCount, failed: failCount };
+    } catch (e: any) {
+        console.error('Bulk Create Error', e);
+        return { success: false, error: e.message };
+    }
+}

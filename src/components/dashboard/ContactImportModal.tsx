@@ -125,6 +125,53 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
                         </div>
                     )}
 
+                    {/* Native Contact Picker Button (Mobile Only Support usually) */}
+                    <div className="mb-6">
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                try {
+                                    // Feature check
+                                    // @ts-ignore
+                                    if (!window.ContactsManager && !('contacts' in navigator && 'ContactsManager' in window)) {
+                                        toast.error('Váš prehliadač nepodporuje priamy výber kontaktov. Použite Import súboru.');
+                                        return;
+                                    }
+
+                                    const props = ['name', 'email', 'tel'];
+                                    const opts = { multiple: true };
+
+                                    // @ts-ignore
+                                    const contacts = await navigator.contacts.select(props, opts);
+
+                                    if (contacts && contacts.length > 0) {
+                                        setIsUploading(true);
+                                        const { bulkCreateContacts } = await import('@/app/actions/contacts');
+                                        const res = await bulkCreateContacts(contacts);
+                                        if (res.success) {
+                                            toast.success(`Importované: ${res.count} kontaktov.`);
+                                            onSuccess();
+                                            onClose();
+                                        } else {
+                                            toast.error('Chyba pri importe.');
+                                        }
+                                        setIsUploading(false);
+                                    }
+                                } catch (e) {
+                                    console.error(e);
+                                    // Silent fail or toast if user cancelled
+                                }
+                            }}
+                            className="w-full py-4 text-center rounded-xl font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 transition-colors flex flex-col items-center justify-center gap-2"
+                        >
+                            <span className="text-sm">📱 Otvoriť zoznam kontaktov v telefóne</span>
+                        </button>
+                        <div className="text-center my-4 overflow-hidden">
+                            <span className="text-xs text-gray-400 uppercase tracking-widest px-2 bg-white relative z-10">alebo nahrajte súbor</span>
+                            <div className="border-t border-gray-100 -mt-2.5"></div>
+                        </div>
+                    </div>
+
                     <div className="mt-6 flex items-start gap-3 p-3 bg-amber-50 text-amber-800 rounded-lg text-xs leading-relaxed border border-amber-100">
                         <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                         <p>
