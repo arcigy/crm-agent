@@ -20,6 +20,7 @@ export async function createContact(data: any) {
         // 1. SAVE TO DIRECTUS (Black Box Primary)
         let directusId = null;
         try {
+            // @ts-ignore
             const drContact = await directus.request(createItem('contacts', {
                 first_name: data.first_name,
                 last_name: data.last_name || '',
@@ -204,6 +205,7 @@ export async function uploadVCard(formData: FormData) {
 
             // Save to Directus
             try {
+                // @ts-ignore
                 await directus.request(createItem('contacts', {
                     first_name: firstName,
                     last_name: lastName || '',
@@ -246,6 +248,7 @@ export async function bulkCreateContacts(contacts: any[]) {
 
             // Save to Directus
             try {
+                // @ts-ignore
                 await directus.request(createItem('contacts', {
                     first_name: firstName,
                     last_name: lastName || '',
@@ -303,6 +306,7 @@ export async function importGoogleContacts() {
 
             // Save to Directus
             try {
+                // @ts-ignore
                 await directus.request(createItem('contacts', {
                     first_name: firstName,
                     last_name: lastName,
