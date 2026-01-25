@@ -41,28 +41,9 @@ export default async function ContactsPage() {
                     return { ...contact, projects: contactProjects };
                 });
             }
-        } catch (err) {
-            console.warn('Directus interaction failed, searching Supabase as secondary box...');
-            const { data: sbContacts } = await supabase
-                .from('contacts')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (sbContacts) {
-                const normalize = (s: string) => (s || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-                contacts = (sbContacts as any[]).map(contact => {
-                    const fName = contact.first_name || '';
-                    const lName = contact.last_name || '';
-                    const fullName = normalize(`${fName} ${lName}`);
-                    const contactProjects = (projectsData || [])?.filter(p => {
-                        const idMatch = String(p.contact_id) === String(contact.id);
-                        const projectContactName = normalize(p.contact_name || '');
-                        const nameMatch = projectContactName !== '' && projectContactName === fullName;
-                        return idMatch || nameMatch;
-                    });
-                    return { ...contact, projects: contactProjects };
-                });
-            }
+        } catch (err: any) {
+            console.error('Directus interaction failed:', err);
+            errorMsg = 'Nepodarilo sa načítať dáta z natívnej databázy: ' + err.message;
         }
 
     } catch (e: any) {

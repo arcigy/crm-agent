@@ -19,9 +19,10 @@ export async function createContact(data: any) {
 
         // 1. SAVE TO DIRECTUS (Black Box Primary)
         let directusId = null;
+        let drContact: any = null;
         try {
             // @ts-ignore
-            const drContact = await directus.request(createItem('contacts', {
+            drContact = await directus.request(createItem('contacts', {
                 first_name: data.first_name,
                 last_name: data.last_name || '',
                 email: data.email || '',
@@ -34,25 +35,10 @@ export async function createContact(data: any) {
             directusId = (drContact as any).id;
         } catch (de: any) {
             console.error('Directus save error:', de.message);
+            throw new Error('Nepodarilo sa uložiť do natívnej databázy: ' + de.message);
         }
 
-        // 2. SAVE TO SUPABASE (Sync Mirror)
-        const { data: newContact, error: insertError } = await supabase
-            .from('contacts')
-            .insert({
-                first_name: data.first_name,
-                last_name: data.last_name || '',
-                email: data.email || null,
-                phone: data.phone || null,
-                company: data.company || '',
-                status: data.status || 'published',
-                owner_id: user.id,
-                activities: []
-            })
-            .select()
-            .single();
-
-        if (insertError && !directusId) throw insertError;
+        if (!directusId) throw new Error('Failed to create contact in Directus');
 
         // --- TRIGGER GOOGLE SYNC (EMAILS) ---
         try {
@@ -112,10 +98,14 @@ export async function createContact(data: any) {
                         }
 
                         if (activities.length > 0) {
-                            await supabase
-                                .from('contacts')
-                                .update({ activities: activities })
-                                .eq('id', newContact.id);
+                            // Update Directus instead of Supabase
+                            try {
+                                const { updateItem } = await import('@/lib/directus-helper').catch(() => ({ updateItem: (a: any, b: any, c: any) => ({}) }));
+                                // @ts-ignore
+                                await directus.request(createItem('audit_logs', { action: 'Gmail Sync', contact_id: directusId, details: `Synced ${activities.length} emails` }));
+                                // Note: In Directus we'd append to the JSON field if it exists
+                                // But for now we just log it or update if schema allows
+                            } catch (e) { }
                         }
                     }
                 }
@@ -126,7 +116,7 @@ export async function createContact(data: any) {
 
         // Trigger Google Create
         try {
-            createGoogleContact(newContact.id, data, user.id);
+            createGoogleContact(directusId, data, user.id);
         } catch (e) { }
 
         revalidatePath('/dashboard/contacts');
@@ -164,9 +154,10 @@ async function createGoogleContact(contactId: string, contactData: any, userId: 
 
 export async function updateContactComments(id: number, comments: string) {
     try {
-        const supabase = await createClient();
-        const { error } = await supabase.from('contacts').update({ comments: comments }).eq('id', id);
-        if (error) throw error;
+        // @ts-ignore
+        const { updateItem } = await import('@directus/sdk');
+        // @ts-ignore
+        await directus.request(updateItem('contacts', id, { comments: comments }));
         revalidatePath('/dashboard/contacts');
         return { success: true };
     } catch (error: any) {
@@ -214,19 +205,10 @@ export async function uploadVCard(formData: FormData) {
                     company: org || '',
                     status: 'published'
                 }));
-            } catch (e) { }
-
-            const { error } = await supabase.from('contacts').insert({
-                first_name: firstName,
-                last_name: lastName || '',
-                company: org || '',
-                email: email || null,
-                phone: phone || null,
-                status: 'published',
-                source: 'import',
-                owner_id: user?.id
-            });
-            if (!error) successCount++;
+                successCount++;
+            } catch (e) {
+                console.error('Import failed for one contact', e);
+            }
         }
 
         revalidatePath('/dashboard/contacts');
@@ -257,23 +239,15 @@ export async function bulkCreateContacts(contacts: any[]) {
                 await directus.request(createItem('contacts', {
                     first_name: firstName,
                     last_name: lastName || '',
-                    email: String(email),
-                    phone: String(phone),
-                    company: String(company),
+                    email: email ? String(email) : '',
+                    phone: phone ? String(phone) : '',
+                    company: company ? String(company) : '',
                     status: 'published'
                 }));
-            } catch (e) { }
-
-            const { error } = await supabase.from('contacts').insert({
-                first_name: firstName,
-                last_name: lastName || '',
-                company: String(company),
-                email: email ? String(email) : null,
-                phone: phone ? String(phone) : null,
-                status: 'published',
-                owner_id: user?.id
-            });
-            if (!error) successCount++;
+                successCount++;
+            } catch (e) {
+                console.error('Bulk item failed', e);
+            }
         }
         revalidatePath('/dashboard/contacts');
         return { success: true, count: successCount };
@@ -319,17 +293,10 @@ export async function importGoogleContacts() {
                     phone: phone || '',
                     status: 'published'
                 }));
-            } catch (e) { }
-
-            const { error } = await supabase.from('contacts').insert({
-                first_name: firstName,
-                last_name: lastName,
-                email: email || null,
-                phone: phone || null,
-                status: 'published',
-                source: 'google'
-            });
-            if (!error) successCount++;
+                successCount++;
+            } catch (e) {
+                console.error('Google import item failed', e);
+            }
         }
         revalidatePath('/dashboard/contacts');
         return { success: true, count: successCount };

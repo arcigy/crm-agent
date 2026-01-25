@@ -7,16 +7,14 @@ Registry Pattern: Existuje jeden centrálny súbor src/tools/registry.ts, ktorý
 
 Shared Layout: Všetky tooly používajú spoločný ToolWrapper komponent, ktorý zabezpečuje responzivitu a kontrolu prístupu.
 
-💾 2. DATABÁZA: "Safety First" (Supabase)
-Chyby v databáze sa opravujú najťažšie. Držíme sa týchto pravidiel:
+💾 2. DATABÁZA: "Directus Native" (No Supabase)
+Držíme sa týchto pravidiel pre prácu s dátami v Directuse:
 
-Soft Deletes: Žiadny riadok sa nikdy reálne nemaže. Každá tabuľka má stĺpec deleted_at (timestamp).
+Soft Deletes: Žiadny riadok sa nikdy reálne nemaže. Každá tabuľka má stĺpec deleted_at (timestamp) alebo status 'archived'.
 
-RBAC (Role-Based Access Control): Prístupy sú riadené cez stĺpce role (admin, editor, viewer).
+Relácie: Každý tool má svoju tabuľku v Directuse, všetky sú prepojené na centrálnu tabuľku contacts cez contact_id.
 
-Relácie: Každý tool má svoju tabuľku, ale všetky sú prepojené na centrálnu tabuľku contacts cez contact_id.
-
-Audit Logs: Každá dôležitá zmena (zmena ceny, zmazanie kontaktu) sa loguje do tabuľky audit_logs.
+Audit Logs: Dôležité zmeny sa logujú buď cez Directus Revisions alebo do vlastnej tabuľky audit_logs.
 
 💳 3. PLATBY: "Stripe-Only" Workflow
 Nikdy neexperimentujeme s vlastnou platobnou logikou.
@@ -64,8 +62,6 @@ Export: Každý tool musí mať funkciu na export dát do CSV (kvôli slobode u�
 
 🤖 POKYNY PRE AI (Pri každom promte)
 Predtým, než napíšeš riadok kódu, navrhni štruktúru priečinkov.
-
-Ak navrhuješ zmenu v databáze, najprv mi napíš SQL príkaz pre Supabase.
 
 Pri Stripe integrácii vždy najprv vytvor Webhook handler, až potom frontend tlačidlo.
 
