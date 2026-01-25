@@ -1,28 +1,13 @@
-import { createClient } from '@/lib/supabase-server';
 import { tools } from '@/tools/registry';
-import { redirect } from 'next/navigation';
 import { ToolCard } from '@/components/dashboard/ToolCard';
 import { PaymentSuccessToast } from '@/components/dashboard/PaymentSuccessToast';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login');
-  }
-
-  // Fetch user access
-  const { data: accessData } = await supabase
-    .from('user_tool_access')
-    .select('tool_id, status')
-    .eq('user_id', user.id);
-
-  const activeTools = new Set(
-    accessData
-      ?.filter((access) => access.status === 'active' || access.status === 'trialing')
-      .map((access) => access.tool_id)
-  );
+  // For now, all tools are accessible (no auth required)
+  // TODO: Implement Directus-based access control
+  const activeTools = new Set(tools.map(t => t.id));
 
   return (
     <div>

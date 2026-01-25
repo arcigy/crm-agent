@@ -29,17 +29,11 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
             const res = await importGoogleContacts();
 
             if (res.success) {
-                toast.success(`Google Import: Stiahnutých ${res.count} kontaktov.`);
+                toast.success('Google Import: kontakty úspešne importované.');
                 onSuccess();
                 onClose();
-            } else if (res.error === 'no_tokens' || res.error === 'scope_missing') {
-                toast.error('Je potrebné prepojiť Google účet pre prístup ku kontaktom.');
-                // Fetch auth url
-                const authRes = await fetch('/api/google/auth');
-                const { authUrl } = await authRes.json();
-                if (authUrl) window.location.href = authUrl;
             } else {
-                toast.error('Chyba pri Google importe: ' + res.error);
+                toast.error('Google Contacts nie sú momentálne dostupné: ' + res.error);
             }
         } catch (e) {
             console.error(e);

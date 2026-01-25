@@ -297,8 +297,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
                     else if (action.tool === 'check_availability') {
                         const result = await agentCheckAvailability(action.parameters.time_range);
                         if (result.success) {
-                            const busyCount = result.busySlots?.length || 0;
-                            alert(`📅 Availability Check: Found ${busyCount} busy slots in the computed range.`);
+                            alert('📅 Calendar checked successfully.');
                         } else {
                             alert(`❌ Calendar Error: ${result.error}`);
                         }

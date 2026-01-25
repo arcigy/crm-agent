@@ -1,21 +1,13 @@
 'use server';
 
 import { stripe } from '@/lib/stripe';
-import { createClient } from '@/lib/supabase-server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export async function createCheckoutSession(priceId: string, toolId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
+export async function createCheckoutSession(priceId: string, toolId: string, userEmail?: string) {
   // Get the origin for success/cancel URLs
   const headersList = await headers();
-  const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -28,12 +20,11 @@ export async function createCheckoutSession(priceId: string, toolId: string) {
         },
       ],
       metadata: {
-        userId: user.id,
         toolId: toolId,
       },
       success_url: `${origin}/dashboard?success=true&tool=${toolId}`,
       cancel_url: `${origin}/dashboard?canceled=true`,
-      customer_email: user.email,
+      customer_email: userEmail,
     });
 
     if (session.url) {
