@@ -9,13 +9,19 @@ export async function GET(request: Request) {
     const code = searchParams.get('code');
     const state = searchParams.get('state') || '/dashboard';
 
+    // Determine base URL safely
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const redirectError = (msg: string) => NextResponse.redirect(`${baseUrl}/dashboard?error=${encodeURIComponent(msg)}`);
+
     if (!code) {
-        return NextResponse.json({ error: 'No code provided' }, { status: 400 });
+        return redirectError('No authorization code received.');
     }
 
     try {
+        console.log('🔄 Exchanging code for tokens...');
         // 1. Exchange code for tokens
         const tokens = await getTokensFromCode(code);
+        console.log('✅ Tokens received.');
 
         // 2. Get User Info (Email) to identify the user
         oauth2Client.setCredentials(tokens);
@@ -23,10 +29,12 @@ export async function GET(request: Request) {
         const userInfo = await oauth2.userinfo.get();
 
         if (!userInfo.data.email) {
-            throw new Error('No email found in Google Profile');
+            console.error('No email in user profile');
+            return redirectError('Could not retrieve email from Google Profile.');
         }
 
         const userEmail = userInfo.data.email;
+        console.log(`👤 Identifying user: ${userEmail}`);
 
         // 3. Save/Update tokens in Directus
         // Check if token entry exists for this email
@@ -39,39 +47,50 @@ export async function GET(request: Request) {
         const tokenData = {
             user_email: userEmail,
             access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token, // Might be undefined if re-auth without prompt, but we force prompt='consent'
-            scope: tokens.scope,
+            refresh_token: tokens.refresh_token, // Might be undefined if re-auth without prompt
+            scope: typeof tokens.scope === 'string' ? tokens.scope : JSON.stringify(tokens.scope),
             expiry_date: tokens.expiry_date, // Timestamp
             date_updated: new Date().toISOString()
         };
 
         if (existingTokens && existingTokens.length > 0) {
+            console.log('🔄 Updating existing token entry...');
             // Update
-            // If refresh_token is missing in new response (it happens on re-auth), keep the old one
             if (!tokenData.refresh_token) {
                 delete tokenData.refresh_token;
             }
             // @ts-ignore
             await directus.request(updateItem('google_tokens', existingTokens[0].id, tokenData));
         } else {
+            console.log('✨ Creating new token entry...');
             // Create
             if (!tokenData.refresh_token) {
-                console.warn('Warning: No refresh token received for new user. Future refreshes will fail.');
+                console.warn('⚠️ Warning: No refresh token received for new user.');
             }
             // @ts-ignore
             await directus.request(createItem('google_tokens', tokenData));
         }
 
-        // 4. Redirect back to app
-        const redirectUrl = decodeURIComponent(state);
-        // Ensure successful redirect
-        const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
-        const finalUrl = `${baseUrl}${redirectUrl.startsWith('/') ? redirectUrl : '/dashboard'}`;
+        console.log('✅ Google Auth complete. Redirecting...');
 
-        return NextResponse.redirect(`${finalUrl}?google_connected=true`);
+        // 4. Redirect back to app
+        const redirectPath = decodeURIComponent(state);
+        // Ensure we don't redirect to external sites
+        const finalPath = redirectPath.startsWith('/') ? redirectPath : '/dashboard';
+
+        return NextResponse.redirect(`${baseUrl}${finalPath}?google_connected=true`);
 
     } catch (error: any) {
-        console.error('Google Callback Error:', error);
-        return NextResponse.json({ error: error.message || 'Authentication failed' }, { status: 500 });
+        console.error('🚨 Google Callback Error:', error);
+
+        // Safe error message for user
+        let userMsg = 'Authentication failed.';
+        if (error.message?.includes('redirect_uri_mismatch')) {
+            userMsg = 'Configuration Error: Redirect URI mismatch. Please check Railway variables.';
+        } else if (error.message?.includes('invalid_grant')) {
+            userMsg = 'Invalid code or session expired. Please try again.';
+        }
+
+        return redirectError(userMsg);
     }
 }
