@@ -578,9 +578,11 @@ function ContactProjectsModal({ contact, onClose }: { contact: Lead | null; onCl
     );
 }
 
-// Simple Modal Component
+// Simple Modal Component with JSON Debug Mode
 function CreateContactModal({ isOpen, onClose, onSubmit }: { isOpen: boolean; onClose: () => void; onSubmit: (data: any) => Promise<void> }) {
     const [loading, setLoading] = React.useState(false);
+    const [mode, setMode] = React.useState<'form' | 'json'>('form');
+    const [jsonInput, setJsonInput] = React.useState('');
     const [formData, setFormData] = React.useState({
         first_name: '',
         last_name: '',
@@ -596,10 +598,42 @@ function CreateContactModal({ isOpen, onClose, onSubmit }: { isOpen: boolean; on
         e.preventDefault();
         setLoading(true);
         try {
-            await onSubmit(formData);
-            onClose();
-        } catch (error) {
+            if (mode === 'json') {
+                // Debug JSON Mode
+                let parsed;
+                try {
+                    parsed = JSON.parse(jsonInput);
+                } catch (e) {
+                    alert('Invalid JSON');
+                    setLoading(false);
+                    return;
+                }
+
+                // Assume array if user inputs array, else wrap in array of 1
+                const payload = Array.isArray(parsed) ? parsed : [parsed];
+
+                // Dynamic import to use bulkCreateContacts directly (bypassing the parent onSubmit which expects single contact usually)
+                // But wait, the parent onSubmit might just call createContact.
+                // To properly test the BULK IMPORT logic, we must call bulkCreateContacts.
+                const { bulkCreateContacts } = await import('@/app/actions/contacts');
+                const res = await bulkCreateContacts(payload);
+
+                if (res.success) {
+                    alert(`JSON Import Success: ${res.count} created.`);
+                    onClose();
+                    window.location.reload();
+                } else {
+                    alert('JSON Import Failed: ' + res.error);
+                }
+
+            } else {
+                // Standard Form Mode
+                await onSubmit(formData);
+                onClose();
+            }
+        } catch (error: any) {
             console.error(error);
+            alert('Error: ' + error.message);
         } finally {
             setLoading(false);
         }
@@ -611,70 +645,115 @@ function CreateContactModal({ isOpen, onClose, onSubmit }: { isOpen: boolean; on
             <div className="absolute inset-0 bg-black/40 pointer-events-auto" onClick={onClose}></div>
 
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative pointer-events-auto transform transition-all animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <h2 className="text-xl font-bold mb-4 text-gray-900">New Contact</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">First Name</label>
-                            <input
-                                type="text"
-                                required
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                value={formData.first_name}
-                                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                            <input
-                                type="text"
-                                required
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                value={formData.last_name}
-                                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Email</label>
-                        <input
-                            type="email"
-                            required
-                            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Phone</label>
-                        <input
-                            type="text"
-                            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                            placeholder="+421 900 000 000"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Company</label>
-                        <input
-                            type="text"
-                            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                            value={formData.company}
-                            onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Status</label>
-                        <select
-                            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                            value={formData.status}
-                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold text-gray-900">New Contact</h2>
+                    <div className="flex bg-gray-100 rounded-lg p-1 text-xs font-bold">
+                        <button
+                            onClick={() => setMode('form')}
+                            className={`px-3 py-1.5 rounded-md transition-all ${mode === 'form' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
                         >
-                            <option value="draft">Inactive (Draft)</option>
-                            <option value="published">Active (Published)</option>
-                        </select>
+                            Form
+                        </button>
+                        <button
+                            onClick={() => setMode('json')}
+                            className={`px-3 py-1.5 rounded-md transition-all ${mode === 'json' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
+                        >
+                            JSON (Debug)
+                        </button>
                     </div>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {mode === 'form' ? (
+                        <>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">First Name</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                        value={formData.first_name}
+                                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                        value={formData.last_name}
+                                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Email</label>
+                                <input
+                                    type="email"
+                                    required
+                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                                <input
+                                    type="text"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                    placeholder="+421 900 000 000"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Company</label>
+                                <input
+                                    type="text"
+                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                    value={formData.company}
+                                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Status</label>
+                                <select
+                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                    value={formData.status}
+                                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                >
+                                    <option value="draft">Inactive (Draft)</option>
+                                    <option value="published">Active (Published)</option>
+                                </select>
+                            </div>
+                        </>
+                    ) : (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Paste Raw JSON</label>
+                            <div className="bg-slate-900 rounded-md p-3 mb-2">
+                                <code className="text-xs text-green-400 block mb-1">Target format (Bulk Import):</code>
+                                <pre className="text-[10px] text-gray-400 font-mono overflow-x-auto">
+                                    {`[
+  {
+    "name": "Full Name",
+    "email": ["email@example.com"],
+    "tel": ["+421900000000"],
+    "org": "Company Name"
+  }
+]`}
+                                </pre>
+                            </div>
+                            <textarea
+                                className="w-full h-64 font-mono text-xs p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none"
+                                placeholder='Paste JSON here...'
+                                value={jsonInput}
+                                onChange={(e) => setJsonInput(e.target.value)}
+                            ></textarea>
+                        </div>
+                    )}
+
                     <div className="flex justify-end gap-2 mt-6">
                         <button
                             type="button"
@@ -688,7 +767,7 @@ function CreateContactModal({ isOpen, onClose, onSubmit }: { isOpen: boolean; on
                             disabled={loading}
                             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
                         >
-                            {loading ? 'Creating...' : 'Create Contact'}
+                            {loading ? 'Processing...' : (mode === 'json' ? 'Simulate Import' : 'Create Contact')}
                         </button>
                     </div>
                 </form>
