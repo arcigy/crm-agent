@@ -342,6 +342,9 @@ export async function bulkCreateContacts(contacts: any[]) {
 
         let successCount = 0;
         let failCount = 0;
+        let skippedCount = 0;
+        let debugLog: string[] = [];
+
         const BATCH_SIZE = 50;
 
         // Process in chunks
@@ -351,15 +354,26 @@ export async function bulkCreateContacts(contacts: any[]) {
             const batchNoEmail: any[] = [];
 
             for (const contact of chunk) {
+                // Defensive checks
+                if (!contact) {
+                    skippedCount++;
+                    continue;
+                }
+
                 const nameParts = (contact.name || 'Unknown').split(' ');
                 const lastName = nameParts.length > 1 ? nameParts.pop() : '';
                 const firstName = nameParts.join(' ');
 
-                const email = contact.email?.[0] || undefined;
-                const phone = contact.tel?.[0] || undefined;
-                const company = contact.org || ''; // Correctly map organization
+                // Handle both array format (from vCard) and string format (from native/other) just in case
+                const email = Array.isArray(contact.email) ? contact.email[0] : contact.email;
+                const phone = Array.isArray(contact.tel) ? contact.tel[0] : (Array.isArray(contact.phone) ? contact.phone[0] : contact.phone || contact.tel);
+                const company = contact.org || contact.company || '';
 
-                if (!firstName && !email && !phone) continue;
+                if ((!firstName || firstName === 'Unknown') && !email && !phone) {
+                    debugLog.push(`Skipped: Empty data for ${JSON.stringify(contact)}`);
+                    skippedCount++;
+                    continue;
+                }
 
                 const payload: any = {
                     first_name: firstName,
@@ -383,6 +397,7 @@ export async function bulkCreateContacts(contacts: any[]) {
                 const { error } = await supabase.from('contacts').upsert(batchEmail, { onConflict: 'email', ignoreDuplicates: true });
                 if (error) {
                     console.error('Bulk Import Email Batch Error', error);
+                    debugLog.push(`Batch Email Error: ${error.message}`);
                     failCount += batchEmail.length;
                 } else {
                     successCount += batchEmail.length;
@@ -395,6 +410,7 @@ export async function bulkCreateContacts(contacts: any[]) {
                 const { error } = await supabase.from('contacts').insert(batchNoEmail);
                 if (error) {
                     console.error('Bulk Import No-Email Batch Error', error);
+                    debugLog.push(`Batch No-Email Error: ${error.message}`);
                     failCount += batchNoEmail.length;
                 } else {
                     successCount += batchNoEmail.length;
@@ -403,7 +419,13 @@ export async function bulkCreateContacts(contacts: any[]) {
         }
 
         revalidatePath('/dashboard/contacts');
-        return { success: true, count: successCount, failed: failCount };
+        return {
+            success: true,
+            count: successCount,
+            failed: failCount,
+            skipped: skippedCount,
+            debug: debugLog.slice(0, 5) // Return first 5 errors to frontend
+        };
     } catch (e: any) {
         console.error('Bulk Create Error', e);
         return { success: false, error: e.message };
