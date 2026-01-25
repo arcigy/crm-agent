@@ -27,8 +27,23 @@ const navigation = [
     { name: 'Invoicing', href: '/dashboard/invoicing', icon: FileText },
 ];
 
+import { useEffect } from 'react';
+import { syncGoogleContacts } from '@/app/actions/contacts';
+
 export function Sidebar() {
     const pathname = usePathname();
+
+    useEffect(() => {
+        // Trigger background sync on mount
+        syncGoogleContacts();
+
+        // Optional: Sync every 5 minutes
+        const interval = setInterval(() => {
+            syncGoogleContacts();
+        }, 5 * 60 * 1000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <div className="flex h-screen w-64 flex-col fixed inset-y-0 z-50 bg-[#0F172A] text-white border-r border-[#1E293B]">

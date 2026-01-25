@@ -401,3 +401,16 @@ export async function importGoogleContacts() {
         return { success: false, error: e.message };
     }
 }
+
+export async function syncGoogleContacts() {
+    // Background sync version of importGoogleContacts
+    // We swallow errors to not disturb UI, but log them.
+    try {
+        const result = await importGoogleContacts();
+        console.log('Background Sync Result:', result);
+        return result;
+    } catch (e) {
+        console.error('Background Sync Failed', e);
+        return { success: false };
+    }
+}
