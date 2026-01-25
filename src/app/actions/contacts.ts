@@ -3,6 +3,8 @@
 
 import { createClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
+import directus from '@/lib/directus';
+import { createItem } from '@directus/sdk';
 
 export async function createContact(data: any) {
     try {
@@ -15,7 +17,25 @@ export async function createContact(data: any) {
             throw new Error('First name is required');
         }
 
-        // 1. SAVE TO SUPABASE (Primary source)
+        // 1. SAVE TO DIRECTUS (Black Box Primary)
+        let directusId = null;
+        try {
+            const drContact = await directus.request(createItem('contacts', {
+                first_name: data.first_name,
+                last_name: data.last_name || '',
+                email: data.email || '',
+                phone: data.phone || '',
+                company: data.company || '',
+                status: data.status || 'published',
+                activities: [],
+                deals: []
+            }));
+            directusId = (drContact as any).id;
+        } catch (de: any) {
+            console.error('Directus save error:', de.message);
+        }
+
+        // 2. SAVE TO SUPABASE (Sync Mirror)
         const { data: newContact, error: insertError } = await supabase
             .from('contacts')
             .insert({
@@ -31,7 +51,7 @@ export async function createContact(data: any) {
             .select()
             .single();
 
-        if (insertError) throw insertError;
+        if (insertError && !directusId) throw insertError;
 
         // --- TRIGGER GOOGLE SYNC (EMAILS) ---
         try {
@@ -182,6 +202,18 @@ export async function uploadVCard(formData: FormData) {
             const lastName = nameParts.length > 1 ? nameParts.pop() : '';
             const firstName = nameParts.join(' ');
 
+            // Save to Directus
+            try {
+                await directus.request(createItem('contacts', {
+                    first_name: firstName,
+                    last_name: lastName || '',
+                    email: email || '',
+                    phone: phone || '',
+                    company: org || '',
+                    status: 'published'
+                }));
+            } catch (e) { }
+
             const { error } = await supabase.from('contacts').insert({
                 first_name: firstName,
                 last_name: lastName || '',
@@ -211,6 +243,19 @@ export async function bulkCreateContacts(contacts: any[]) {
             const nameParts = (contact.name || 'Unknown').split(' ');
             const lastName = nameParts.length > 1 ? nameParts.pop() : '';
             const firstName = nameParts.join(' ');
+
+            // Save to Directus
+            try {
+                await directus.request(createItem('contacts', {
+                    first_name: firstName,
+                    last_name: lastName || '',
+                    email: contact.email || '',
+                    phone: contact.phone || '',
+                    company: contact.company || '',
+                    status: 'published'
+                }));
+            } catch (e) { }
+
             const { error } = await supabase.from('contacts').insert({
                 first_name: firstName,
                 last_name: lastName || '',
@@ -255,6 +300,17 @@ export async function importGoogleContacts() {
             const lastName = person.names?.[0]?.familyName || 'Import';
             const email = person.emailAddresses?.[0]?.value;
             const phone = person.phoneNumbers?.[0]?.value;
+
+            // Save to Directus
+            try {
+                await directus.request(createItem('contacts', {
+                    first_name: firstName,
+                    last_name: lastName,
+                    email: email || '',
+                    phone: phone || '',
+                    status: 'published'
+                }));
+            } catch (e) { }
 
             const { error } = await supabase.from('contacts').insert({
                 first_name: firstName,
