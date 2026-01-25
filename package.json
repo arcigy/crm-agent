@@ -1,6 +1,7 @@
 {
   "name": "temp_app",
-  "version": "0.1.0",
+  "description": "Agentic CRM v2 - Force Rebuild",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,7 +11,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.18",
-    "@chengsokdara/use-whisper": "^0.2.0",
+    "@chengsokdara/use-whisper": "^0.3.0",
     "@directus/sdk": "^21.0.0",
     "@stripe/stripe-js": "^8.6.3",
     "@supabase/ssr": "^0.8.0",
