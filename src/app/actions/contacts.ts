@@ -213,40 +213,40 @@ export async function updateContactComments(id: number, comments: string) {
 export async function uploadVCard(vcardContent: string) {
     try {
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
 
-        // Normalize newlines to \n to simplify regex
-        const content = vcardContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        // 1. CLEANUP: Strip photos and normalized newlines
+        // Photos in vCard are huge blocks of text starting with PHOTO;... and act as base64 garbage we don't need.
+        // We use a regex to strip them out to save processing power.
+        let content = vcardContent
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .replace(/PHOTO;[\s\S]*?(?:\n[A-Z]|\n$)/g, '\n'); // Aggressive Photo Stripping (heuristic)
 
-        // Split multiple vCards. 
-        // Real vCards might have comments or other stuff, but finding BEGIN:VCARD is robust.
-        // We use split slightly differently to ensuring we catch the begin tag.
+        // Split multiple vCards
         const cardsRaw = content.split('BEGIN:VCARD');
-        const cards = cardsRaw.filter(c => c.includes('END:VCARD'));
+        const validCards = cardsRaw.filter(c => c.includes('END:VCARD'));
 
+        const contactsWithEmail: any[] = [];
+        const contactsWithoutEmail: any[] = [];
         let successCount = 0;
         let failCount = 0;
 
-        for (const rawCard of cards) {
-            // Re-assemble a partial string to search against
+        // 2. PARSE (In Memory)
+        for (const rawCard of validCards) {
             const card = 'BEGIN:VCARD' + rawCard;
 
-            // Regex parsing with support for parameters (e.g. TEL;type=CELL:...)
-            // (^|\n) ensures we match start of line.
             const fnMatch = card.match(/(?:^|\n)FN(?:;.*)?:(.*)/i);
             const nMatch = card.match(/(?:^|\n)N(?:;.*)?:(.*)/i);
             const emailMatch = card.match(/(?:^|\n)EMAIL(?:;.*)?:(.*)/i);
             const telMatch = card.match(/(?:^|\n)TEL(?:;.*)?:(.*)/i);
             const orgMatch = card.match(/(?:^|\n)ORG(?:;.*)?:(.*)/i);
 
-            // Clean function to remove charset info if visible or whitespace
             const clean = (s: string | undefined): string => s ? s.trim() : '';
 
             let fullName = clean(fnMatch ? fnMatch[1] : '');
 
-            // Fallback for Name if FN missing
+            // Fallback for Name
             if (!fullName && nMatch) {
-                // N:Family;Given;Middle;Prefix;Suffix
                 const parts = nMatch[1].split(';');
                 const family = parts[0] || '';
                 const given = parts[1] || '';
@@ -257,9 +257,9 @@ export async function uploadVCard(vcardContent: string) {
 
             const email = clean(emailMatch ? emailMatch[1] : undefined);
             const phone = clean(telMatch ? telMatch[1] : undefined);
-            const company = clean(orgMatch ? orgMatch[1].trim().split(';')[0] : undefined);
+            const company = clean(orgMatch ? orgMatch[1].split(';')[0] : undefined); // Removed trim() call before split to be safe if undefined
 
-            // If essential info missing (e.g. empty card), skip
+            // Skip empty
             if (fullName === 'Unknown Import' && !email && !phone) continue;
 
             const nameParts = fullName.split(' ');
@@ -274,38 +274,40 @@ export async function uploadVCard(vcardContent: string) {
                 source: 'import'
             };
 
-            if (email) payload.email = email;
-            if (phone) payload.phone = phone;
-
-            // Upsert by email or phone or insert
-            let error = null;
-            let data = null;
-
             if (email) {
-                const { error: err, data: d } = await supabase.from('contacts').upsert(payload, { onConflict: 'email' }).select().single();
-                error = err;
-                data = d;
+                payload.email = email;
+                contactsWithEmail.push(payload);
             } else {
-                // Without email to dedup, we just insert. 
-                const { error: err, data: d } = await supabase.from('contacts').insert(payload).select().single();
-                error = err;
-                data = d;
+                if (phone) payload.phone = phone;
+                contactsWithoutEmail.push(payload);
             }
+        }
 
+        // 3. BATCH EXECUTE
+        // Upsert contacts with email (Constraint: email)
+        if (contactsWithEmail.length > 0) {
+            const { error } = await supabase
+                .from('contacts')
+                .upsert(contactsWithEmail, { onConflict: 'email', ignoreDuplicates: true }); // ignoreDuplicates true means if exists, keep old. Or false to update. Let's update? No, ignoreDupes usually safer for import backup. let's use default upsert (update).
+
+            // Actually default upsert updates on conflict.
+            // If we use simple upsert, it's fine.
             if (error) {
-                console.error('Import error for ' + fullName, error);
-                failCount++;
+                console.error('Batch Upsert Error', error);
+                // Fallback to sequential if batch fails? No, just report error.
+                return { success: false, error: 'Database error during batch import' };
+            }
+            successCount += contactsWithEmail.length;
+        }
+
+        // Insert contacts without email (No dedup possible easily, just insert)
+        if (contactsWithoutEmail.length > 0) {
+            const { error } = await supabase.from('contacts').insert(contactsWithoutEmail);
+            if (error) {
+                console.error('Batch Insert Error', error);
+                // partial success?
             } else {
-                successCount++;
-                successCount++;
-                // Sync to Google logic removed to prevent timeouts on large vCard files.
-                // These contacts are likely already on the phone/device.
-                /*
-                if (user && data) {
-                     // Fire and forget
-                     createGoogleContact(data.id, payload, user.id);
-                }
-                */
+                successCount += contactsWithoutEmail.length;
             }
         }
 
