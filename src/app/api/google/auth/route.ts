@@ -6,9 +6,10 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const redirectUrl = searchParams.get('redirect') || '/dashboard';
 
-        // Encode redirect URL into state so we can redirect back after success
-        // Format: "redirect_url|random_string" (could be more complex state)
-        const state = encodeURIComponent(redirectUrl);
+        // Don't manually encode URI component here as oauth2Client likely handles it, 
+        // preventing double encoding (%252F) seen in user errors.
+        // We just pass the raw path string.
+        const state = redirectUrl;
 
         console.log('Generating Google Auth URL...');
         const url = getAuthUrl(state);

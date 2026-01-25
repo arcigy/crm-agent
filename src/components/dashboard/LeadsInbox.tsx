@@ -27,6 +27,7 @@ import {
     UserPlus,
     Calendar
 } from 'lucide-react';
+import { VoiceInput } from '@/components/VoiceInput';
 import { GmailMessage, GmailAttachment } from '@/types/gmail';
 import { AndroidLog } from '@/types/android';
 import { EmailClassification } from '@/types/ai';
@@ -685,9 +686,12 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
                                                                                 value={customPrompt}
                                                                                 onChange={(e) => setCustomPrompt(e.target.value)}
                                                                                 placeholder="Napr: Zisti či mám voľno v utorok a navrhni termín..."
-                                                                                className="w-full h-full bg-transparent border-none outline-none text-sm text-gray-700 font-medium resize-none placeholder:text-gray-300"
+                                                                                className="w-full h-full bg-transparent border-none outline-none text-sm text-gray-700 font-medium resize-none placeholder:text-gray-300 pr-10"
                                                                                 autoFocus
                                                                             />
+                                                                            <div className="absolute right-4 bottom-4">
+                                                                                <VoiceInput onTranscription={(text) => setCustomPrompt(prev => (prev + " " + text).trim())} />
+                                                                            </div>
                                                                         </div>
                                                                         <div className="p-3 border-t border-gray-100 bg-gray-50 flex justify-end">
                                                                             <button
