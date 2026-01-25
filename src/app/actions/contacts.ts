@@ -162,33 +162,57 @@ export async function updateContactComments(id: number, comments: string) {
     }
 }
 
+
 export async function uploadVCard(vcardContent: string) {
     try {
         const supabase = await createClient();
 
-        // Split multiple vCards in one file if present. 
-        // VCards start with BEGIN:VCARD and end with END:VCARD
-        const cards = vcardContent.split('BEGIN:VCARD').filter(c => c.trim().length > 0);
+        // Normalize newlines to \n to simplify regex
+        const content = vcardContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+        // Split multiple vCards. 
+        // Real vCards might have comments or other stuff, but finding BEGIN:VCARD is robust.
+        // We use split slightly differently to ensuring we catch the begin tag.
+        const cardsRaw = content.split('BEGIN:VCARD');
+        const cards = cardsRaw.filter(c => c.includes('END:VCARD'));
 
         let successCount = 0;
         let failCount = 0;
 
         for (const rawCard of cards) {
-            const card = 'BEGIN:VCARD' + rawCard; // Re-add header if split removed it (except first might have issue if strict split, but usually ok)
+            // Re-assemble a partial string to search against
+            const card = 'BEGIN:VCARD' + rawCard;
 
-            // Regex parse
-            const fnMatch = card.match(/FN:(.*)/);
-            const emailMatch = card.match(/EMAIL.*:(.*)/);
-            const telMatch = card.match(/TEL.*:(.*)/);
-            const orgMatch = card.match(/ORG:(.*)/);
+            // Regex parsing with support for parameters (e.g. TEL;type=CELL:...)
+            // (^|\n) ensures we match start of line.
+            const fnMatch = card.match(/(?:^|\n)FN(?:;.*)?:(.*)/i);
+            const nMatch = card.match(/(?:^|\n)N(?:;.*)?:(.*)/i);
+            const emailMatch = card.match(/(?:^|\n)EMAIL(?:;.*)?:(.*)/i);
+            const telMatch = card.match(/(?:^|\n)TEL(?:;.*)?:(.*)/i);
+            const orgMatch = card.match(/(?:^|\n)ORG(?:;.*)?:(.*)/i);
 
-            // If essential info missing (e.g. just garbage text), skip
-            if (!fnMatch && !emailMatch && !telMatch) continue;
+            // Clean function to remove charset info if visible or whitespace
+            const clean = (s: string) => s ? s.trim() : '';
 
-            const fullName = fnMatch ? fnMatch[1].trim() : 'Imported Contact';
-            const email = emailMatch ? emailMatch[1].trim() : undefined;
-            const phone = telMatch ? telMatch[1].trim() : undefined;
-            const company = orgMatch ? orgMatch[1].trim().split(';')[0] : undefined;
+            let fullName = clean(fnMatch ? fnMatch[1] : '');
+
+            // Fallback for Name if FN missing
+            if (!fullName && nMatch) {
+                // N:Family;Given;Middle;Prefix;Suffix
+                const parts = nMatch[1].split(';');
+                const family = parts[0] || '';
+                const given = parts[1] || '';
+                fullName = (given + ' ' + family).trim();
+            }
+
+            if (!fullName) fullName = 'Unknown Import';
+
+            const email = clean(emailMatch ? emailMatch[1] : undefined);
+            const phone = clean(telMatch ? telMatch[1] : undefined);
+            const company = clean(orgMatch ? orgMatch[1].trim().split(';')[0] : undefined);
+
+            // If essential info missing (e.g. empty card), skip
+            if (fullName === 'Unknown Import' && !email && !phone) continue;
 
             const nameParts = fullName.split(' ');
             const lastName = nameParts.length > 1 ? nameParts.pop() : '';
@@ -201,17 +225,17 @@ export async function uploadVCard(vcardContent: string) {
                 status: 'published',
                 source: 'import'
             };
+
             if (email) payload.email = email;
             if (phone) payload.phone = phone;
 
-            // Attempt upsert
+            // Upsert by email or phone or insert
             let error = null;
             if (email) {
                 const { error: err } = await supabase.from('contacts').upsert(payload, { onConflict: 'email' });
                 error = err;
             } else {
-                // If no email, just insert. Potentially duplicate if run twice. 
-                // Could check phone dedupe but email is primary key usually.
+                // Without email to dedup, we just insert. 
                 const { error: err } = await supabase.from('contacts').insert(payload);
                 error = err;
             }
