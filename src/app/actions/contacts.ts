@@ -367,13 +367,19 @@ export async function bulkCreateContacts(contacts: any[]) {
                 const lastName = nameParts.length > 1 ? nameParts.pop() : '';
                 const firstName = nameParts.join(' ');
 
-                // Handle both array format (from vCard) and string format (from native/other) just in case
+                // Handle both array format (from vCard) and string format
                 const email = Array.isArray(contact.email) ? contact.email[0] : contact.email;
-                const phone = Array.isArray(contact.tel) ? contact.tel[0] : (Array.isArray(contact.phone) ? contact.phone[0] : contact.phone || contact.tel);
+                
+                let phone = contact.phone || contact.tel;
+                if (Array.isArray(phone)) {
+                    phone = phone[0];
+                }
+                
                 const company = contact.org || contact.company || '';
 
                 if ((!firstName || firstName === 'Unknown') && !email && !phone) {
-                    debugLog.push(`Skipped: Empty data for ${ JSON.stringify(contact) }`);
+                    const debugStr = JSON.stringify(contact);
+                    debugLog.push('Skipped: Empty data for ' + debugStr);
                     skippedCount++;
                     continue;
                 }
