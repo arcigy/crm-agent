@@ -211,11 +211,13 @@ export async function updateContactComments(id: number, comments: string) {
 
 export async function uploadVCard(formData: FormData) {
     try {
+        ```
         const file = formData.get('file') as File;
         if (!file) throw new Error('No file provided');
 
         const vcardContent = await file.text();
         const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
         // Split raw cards
         // Normalize newlines first
@@ -284,7 +286,8 @@ export async function uploadVCard(formData: FormData) {
                     last_name: lastName || '',
                     company: finalOrg || '',
                     status: 'published',
-                    source: 'import'
+                    source: 'import',
+                    owner_id: user?.id
                 };
 
                 if (finalEmail) {
@@ -370,7 +373,7 @@ export async function bulkCreateContacts(contacts: any[]) {
                 const company = contact.org || contact.company || '';
 
                 if ((!firstName || firstName === 'Unknown') && !email && !phone) {
-                    debugLog.push(`Skipped: Empty data for ${JSON.stringify(contact)}`);
+                    debugLog.push(`Skipped: Empty data for ${ JSON.stringify(contact) }`);
                     skippedCount++;
                     continue;
                 }
@@ -380,7 +383,8 @@ export async function bulkCreateContacts(contacts: any[]) {
                     last_name: lastName || '',
                     company: company,
                     status: 'published',
-                    source: 'native_import'
+                    source: 'native_import',
+                    owner_id: user?.id // Assign ownership!
                 };
 
                 if (email) {
@@ -397,7 +401,7 @@ export async function bulkCreateContacts(contacts: any[]) {
                 const { error } = await supabase.from('contacts').upsert(batchEmail, { onConflict: 'email', ignoreDuplicates: true });
                 if (error) {
                     console.error('Bulk Import Email Batch Error', error);
-                    debugLog.push(`Batch Email Error: ${error.message}`);
+                    debugLog.push(`Batch Email Error: ${ error.message } `);
                     failCount += batchEmail.length;
                 } else {
                     successCount += batchEmail.length;
@@ -410,7 +414,7 @@ export async function bulkCreateContacts(contacts: any[]) {
                 const { error } = await supabase.from('contacts').insert(batchNoEmail);
                 if (error) {
                     console.error('Bulk Import No-Email Batch Error', error);
-                    debugLog.push(`Batch No-Email Error: ${error.message}`);
+                    debugLog.push(`Batch No - Email Error: ${ error.message } `);
                     failCount += batchNoEmail.length;
                 } else {
                     successCount += batchNoEmail.length;
