@@ -3,8 +3,6 @@ import { ContactsTable } from '@/components/dashboard/ContactsTable';
 import { createContact } from '@/app/actions/contacts';
 import { Lead } from '@/types/contact';
 import { getProjects } from '@/app/actions/projects';
-import directus from '@/lib/directus';
-import { readItems } from '@directus/sdk';
 
 export default async function ContactsPage() {
     let contacts: Lead[] = [];
@@ -12,89 +10,80 @@ export default async function ContactsPage() {
 
     try {
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) throw new Error('Not authenticated');
-
-        // Fetch projects from Supabase
+        // 1. Načítame projekty pre prepojenie s kontaktmi
         let { data: projectsData } = await getProjects();
 
-        // Fetch contacts from DIRECTUS
-        try {
-            // @ts-ignore
-            const rawItems = await directus.request(readItems('contacts'));
-            if (rawItems && rawItems.length > 0) {
-                const normalize = (s: string) => (s || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+        // 2. Načítame VŠETKY kontakty priamo zo Supabase (naša hlavná DB)
+        // Odstraňujeme filter na owner_id, aby ste videli aj staršie importy (ako Peter Svoboda)
+        const { data: rawContacts, error: contactsError } = await supabase
+            .from('contacts')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-                contacts = (rawItems as any[]).map(contact => {
-                    const fName = contact.first_name || '';
-                    const lName = contact.last_name || '';
-                    const fullName = normalize(`${fName} ${lName}`);
+        if (contactsError) throw contactsError;
 
-                    const contactProjects = (projectsData || [])?.filter(p => {
-                        const idMatch = String(p.contact_id) === String(contact.id);
-                        const projectContactName = normalize(p.contact_name || '');
-                        const nameMatch = projectContactName !== '' && projectContactName === fullName;
-                        return idMatch || nameMatch;
-                    });
+        if (rawContacts) {
+            const normalize = (s: string) => (s || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
-                    return { ...contact, projects: contactProjects };
+            contacts = (rawContacts as any[]).map(contact => {
+                const fName = contact.first_name || '';
+                const lName = contact.last_name || '';
+                const fullName = normalize(`${fName} ${lName}`);
+
+                // Priradíme projekty ku kontaktom podľa mena alebo ID
+                const contactProjects = (projectsData || [])?.filter(p => {
+                    const idMatch = String(p.contact_id) === String(contact.id);
+                    const projectContactName = normalize(p.contact_name || '');
+                    const nameMatch = projectContactName !== '' && projectContactName === fullName;
+                    return idMatch || nameMatch;
                 });
-            }
-        } catch (directusError: any) {
-            console.warn('Directus fetch failed, using Supabase fallback:', directusError.message);
 
-            // Fallback to Supabase
-            const { data: sbContacts } = await supabase
-                .from('contacts')
-                .select('*')
-                .or(`owner_id.eq.${user.id},owner_id.is.null`);
-
-            if (sbContacts) {
-                const normalize = (s: string) => (s || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-                contacts = (sbContacts as any[]).map(contact => {
-                    const fName = contact.first_name || '';
-                    const lName = contact.last_name || '';
-                    const fullName = normalize(`${fName} ${lName}`);
-                    const contactProjects = (projectsData || [])?.filter(p => {
-                        const idMatch = String(p.contact_id) === String(contact.id);
-                        const nameMatch = normalize(p.contact_name || '') === fullName;
-                        return idMatch || nameMatch;
-                    });
-                    return { ...contact, projects: contactProjects };
-                });
-            }
+                return {
+                    ...contact,
+                    projects: contactProjects
+                };
+            });
         }
 
     } catch (e: any) {
-        console.error('Contacts page error:', e);
-        errorMsg = e.message;
+        console.error('CRM Error:', e);
+        errorMsg = 'Interná chyba CRM: ' + e.message;
     }
 
     return (
-        <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">Contacts Management</h1>
-                    <span className="text-gray-400 text-sm mt-1">Real-time sync</span>
+        <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col pt-4">
+            <div className="flex items-center justify-between px-6 mb-2">
+                <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-black tracking-tight text-gray-900 uppercase italic">CRM / Kontakty</h1>
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 rounded-md border border-green-100">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-[10px] font-bold text-green-700 uppercase tracking-widest leading-none">Powered by Supabase</span>
+                    </div>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden px-6">
                 {errorMsg ? (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-                        <strong className="font-bold">Error!</strong>
-                        <span className="block sm:inline"> {errorMsg}</span>
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex flex-col gap-2">
+                        <strong className="font-bold border-b border-red-200 pb-1 uppercase text-xs">Upozornenie systému</strong>
+                        <span className="text-sm italic"> {errorMsg}</span>
                     </div>
                 ) : contacts.length === 0 ? (
-                    <div className="bg-white shadow rounded-lg p-10 text-center text-gray-500">
-                        <p className="text-lg">No contacts found in CRM.</p>
+                    <div className="h-full flex flex-col items-center justify-center bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200 p-12 text-center">
+                        <div className="w-20 h-20 bg-white shadow-xl rounded-full flex items-center justify-center mb-6 border border-gray-100">
+                            <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Vaša databáza je prázdna</h3>
+                        <p className="text-gray-500 max-w-sm mb-8 italic">Importujte kontakty cez Google, vCard alebo ich pridajte manuálne.</p>
                     </div>
                 ) : (
-                    <ContactsTable
-                        data={contacts}
-                        onCreate={createContact}
-                    />
+                    <div className="h-full bg-white rounded-t-3xl shadow-2xl shadow-gray-100 border-x border-t border-gray-100 overflow-hidden">
+                        <ContactsTable
+                            data={contacts}
+                            onCreate={createContact}
+                        />
+                    </div>
                 )}
             </div>
         </div>

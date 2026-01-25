@@ -22,25 +22,7 @@ export async function createContact(data: any) {
             throw new Error('First name is required');
         }
 
-        // 1. SAVE TO DIRECTUS
-        let directusId = null;
-        try {
-            const drContact = await directus.request(createItem('contacts', {
-                first_name: data.first_name,
-                last_name: data.last_name || '',
-                email: data.email || '',
-                phone: data.phone || '',
-                company: data.company || '',
-                status: data.status || 'published',
-                activities: [],
-                deals: []
-            }));
-            directusId = (drContact as any).id;
-        } catch (de: any) {
-            console.error('Directus save error:', de.message);
-        }
-
-        // 2. SAVE TO SUPABASE
+        // 1. SAVE TO SUPABASE (Primary source in Option B)
         const { data: newContact, error: insertError } = await supabase
             .from('contacts')
             .insert({
@@ -56,13 +38,29 @@ export async function createContact(data: any) {
             .select()
             .single();
 
-        if (insertError && !directusId) throw insertError;
+        if (insertError) throw insertError;
+
+        // 2. OPTIONAL DIRECTUS SYNC (Fire and forget, only if configured)
+        const DIRECTUS_URL = process.env.NEXT_PUBLIC_DIRECTUS_URL;
+        if (DIRECTUS_URL && !DIRECTUS_URL.includes('localhost')) {
+            try {
+                await directus.request(createItem('contacts', {
+                    first_name: data.first_name,
+                    last_name: data.last_name || '',
+                    email: data.email || '',
+                    phone: data.phone || '',
+                    company: data.company || '',
+                    status: data.status || 'published',
+                    activities: [],
+                    deals: []
+                }));
+            } catch (de) {
+                console.warn('Directus sync skipped (off or down)');
+            }
+        }
 
         // --- TRIGGER GOOGLE SYNC (EMAILS) ---
-        // We do this in the background (or await it if fast enough)
-        // Ideally checking for user's connected Google Account
         try {
-            const { data: { user } } = await supabase.auth.getUser();
             if (user && newContact) {
                 // Fetch tokens
                 const { data: tokens } = await supabase
@@ -311,16 +309,28 @@ export async function uploadVCard(formData: FormData) {
                 }
             }
 
-            // Execute Batch DB Ops
+            // Execute Batch DB Ops - Supabase
             if (batchEmailDetails.length > 0) {
                 const { error } = await supabase.from('contacts').upsert(batchEmailDetails, { onConflict: 'email', ignoreDuplicates: true });
                 if (error) {
                     console.error('Batch error (email)', error);
-                    // Don't throw, try next batch. But count as fail? 
-                    // Can't count individual fails easily in batch, so assume all failed.
                     failCount += batchEmailDetails.length;
                 } else {
                     successCount += batchEmailDetails.length;
+                }
+
+                // --- DIRECTUS SYNC (Partial Batch) ---
+                for (const contact of batchEmailDetails) {
+                    try {
+                        await directus.request(createItem('contacts', {
+                            first_name: contact.first_name,
+                            last_name: contact.last_name,
+                            email: contact.email || '',
+                            phone: contact.phone || '',
+                            company: contact.company || '',
+                            status: 'published'
+                        }));
+                    } catch (de) { }
                 }
             }
 
@@ -331,6 +341,20 @@ export async function uploadVCard(formData: FormData) {
                     failCount += batchNoEmailDetails.length;
                 } else {
                     successCount += batchNoEmailDetails.length;
+                }
+
+                // --- DIRECTUS SYNC ---
+                for (const contact of batchNoEmailDetails) {
+                    try {
+                        await directus.request(createItem('contacts', {
+                            first_name: contact.first_name,
+                            last_name: contact.last_name,
+                            email: '',
+                            phone: contact.phone || '',
+                            company: contact.company || '',
+                            status: 'published'
+                        }));
+                    } catch (de) { }
                 }
             }
         }
@@ -412,9 +436,24 @@ export async function bulkCreateContacts(contacts: any[]) {
                     if (phone) payload.phone = phone;
                     batchNoEmail.push(payload);
                 }
+
+                // --- DIRECTUS SYNC (Individual for simplicity in bulk for now, or we could batch it) ---
+                // We'll try to create it in Directus too
+                try {
+                    await directus.request(createItem('contacts', {
+                        first_name: firstName,
+                        last_name: lastName || '',
+                        email: email || '',
+                        phone: phone || '',
+                        company: company || '',
+                        status: 'published'
+                    }));
+                } catch (de) {
+                    // Silently fail Directus sync in bulk to prevent stopping the whole process
+                }
             }
 
-            // Batch Execute
+            // Batch Execute Supabase
             if (batchEmail.length > 0) {
                 const { error } = await supabase.from('contacts').upsert(batchEmail, { onConflict: 'email', ignoreDuplicates: true });
                 if (error) {
@@ -423,8 +462,6 @@ export async function bulkCreateContacts(contacts: any[]) {
                     failCount += batchEmail.length;
                 } else {
                     successCount += batchEmail.length;
-                    // Note: We skip Google Sync for bulk imports to avoid huge delays/timeouts,
-                    // as discussed for vCard import. 
                 }
             }
 
@@ -518,7 +555,7 @@ export async function importGoogleContacts() {
             if (email) payload.email = email;
             if (phone) payload.phone = phone;
 
-            // Upsert
+            // Upsert Supabase
             let error = null;
             if (email) {
                 const { error: err } = await supabase.from('contacts').upsert(payload, { onConflict: 'email' });
@@ -526,6 +563,20 @@ export async function importGoogleContacts() {
             } else {
                 const { error: err } = await supabase.from('contacts').insert(payload);
                 error = err;
+            }
+
+            // --- DIRECTUS SYNC ---
+            try {
+                await directus.request(createItem('contacts', {
+                    first_name: firstName,
+                    last_name: lastName || '',
+                    email: email || '',
+                    phone: phone || '',
+                    company: company || '',
+                    status: 'published'
+                }));
+            } catch (de) {
+                console.warn('Directus Google sync failed for one item');
             }
 
             if (error) failCount++;
