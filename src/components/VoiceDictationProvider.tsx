@@ -8,6 +8,8 @@ export function VoiceDictationProvider({ children }: { children: React.ReactNode
     const [activeInput, setActiveInput] = useState<HTMLElement | null>(null);
     const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
     const buttonRef = useRef<HTMLButtonElement>(null);
+    // Keep track if we are interacting with the mic to prevent hiding
+    const isInteractingWithMic = useRef(false);
 
     // Whisper Logic
     const {
@@ -27,79 +29,78 @@ export function VoiceDictationProvider({ children }: { children: React.ReactNode
         removeSilence: true,
     });
 
-    // 1. Listen for focus events application-wide
+    const updatePosition = (target: HTMLElement) => {
+        const rect = target.getBoundingClientRect();
+        // Recalculate position relative to viewport + scroll
+        setButtonPosition({
+            top: rect.top + window.scrollY + (rect.height / 2) - 16,
+            left: rect.right + window.scrollX + 8
+        });
+    };
+
     useEffect(() => {
         const handleFocus = (e: FocusEvent) => {
             const target = e.target as HTMLElement;
-            // Ignore if not input/textarea or if it's read-only/disabled
+
+            // Filter eligible inputs
             if (!target ||
                 (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') ||
                 (target as HTMLInputElement).readOnly ||
                 (target as HTMLInputElement).disabled ||
                 (target as HTMLInputElement).type === 'password' ||
-                (target as HTMLInputElement).type === 'file'
+                (target as HTMLInputElement).type === 'hidden' ||
+                target.getAttribute('aria-hidden') === 'true'
             ) {
-                // Keep active if we are clicking the mic button itself
-                if (buttonRef.current && buttonRef.current.contains(e.relatedTarget as Node)) {
-                    return;
-                }
-                // Don't hide immediately to allow clicking the button
-                // Let the blur handler decide or click handler
                 return;
             }
 
-            // Position the button
-            const rect = target.getBoundingClientRect();
-            setButtonPosition({
-                top: rect.top + window.scrollY + (rect.height / 2) - 16, // Vertically centered
-                left: rect.right + window.scrollX + 8 // 8px to the right
-            });
+            console.log('🎙️ Dictation available for:', target.tagName);
+            updatePosition(target);
             setActiveInput(target);
         };
 
         const handleBlur = (e: FocusEvent) => {
-            // If we click the mic button, don't hide
-            if (buttonRef.current && buttonRef.current.contains(e.relatedTarget as Node)) {
-                return;
-            }
-            // Small delay to allow interaction
+            // If the blur was caused by clicking our mic button, IGNORE IT.
+            // But usually relatedTarget is null on specific browsers if clicking non-focusable elements.
+            // relies on isInteractingWithMic ref
+
             setTimeout(() => {
-                if (!recording) { // Don't hide while recording
-                    setActiveInput(null);
+                if (isInteractingWithMic.current || recording) {
+                    console.log('🎙️ Retaining focus due to interaction/recording');
+                    return;
                 }
-            }, 200);
+                setActiveInput(null);
+            }, 300); // verify logic
         };
 
-        document.addEventListener('focusin', handleFocus);
-        document.addEventListener('focusout', handleBlur);
+        // Also handle scrolling to update position
+        const handleScroll = () => {
+            if (activeInput) updatePosition(activeInput);
+        };
+
+        window.addEventListener('focusin', handleFocus);
+        window.addEventListener('focusout', handleBlur); // focusout bubbles, blur doesn't
+        window.addEventListener('scroll', handleScroll, true);
 
         return () => {
-            document.removeEventListener('focusin', handleFocus);
-            document.removeEventListener('focusout', handleBlur);
+            window.removeEventListener('focusin', handleFocus);
+            window.removeEventListener('focusout', handleBlur);
+            window.removeEventListener('scroll', handleScroll, true);
         };
-    }, [recording]);
+    }, [recording, activeInput]);
 
-    // 2. Insert text when transcription is ready
+    // Insert text
     useEffect(() => {
         if (transcript && transcript.text && activeInput) {
             const input = activeInput as HTMLInputElement | HTMLTextAreaElement;
-
-            // Insert at cursor position or append
             const start = input.selectionStart || input.value.length;
             const end = input.selectionEnd || input.value.length;
+            const text = " " + transcript.text; // Add space
 
-            const text = transcript.text;
             const newValue = input.value.substring(0, start) + text + input.value.substring(end);
 
-            // Set native value setter for React to detect change
-            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                window.HTMLInputElement.prototype,
-                "value"
-            )?.set;
-            const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(
-                window.HTMLTextAreaElement.prototype,
-                "value"
-            )?.set;
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+            const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
 
             if (input.tagName === 'INPUT' && nativeInputValueSetter) {
                 nativeInputValueSetter.call(input, newValue);
@@ -109,35 +110,51 @@ export function VoiceDictationProvider({ children }: { children: React.ReactNode
                 input.value = newValue;
             }
 
-            // Dispatch input event so React state updates
             input.dispatchEvent(new Event('input', { bubbles: true }));
-
-            // Move cursor end
-            const newCursorPos = start + text.length;
-            input.setSelectionRange(newCursorPos, newCursorPos);
+            // Keep focus?
+            input.focus();
+            // input.setSelectionRange(start + text.length, start + text.length);
         }
     }, [transcript, activeInput]);
 
     return (
         <>
             {children}
+            {/* Render Overlay Button using Portal-like fixed positioning */}
             {activeInput && (
                 <button
                     ref={buttonRef}
                     type="button"
-                    // Prevent stealing focus from input
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => recording ? stopRecording() : startRecording()}
+                    onMouseEnter={() => { isInteractingWithMic.current = true; }}
+                    onMouseLeave={() => { isInteractingWithMic.current = false; }}
+                    onMouseDown={(e) => {
+                        e.preventDefault(); // CRITICAL: Prevents input blur
+                        isInteractingWithMic.current = true;
+                    }}
+                    onClick={() => {
+                        // Toggle recording
+                        if (recording) stopRecording();
+                        else {
+                            startRecording();
+                            // Keep input focused so user sees the context
+                            activeInput.focus();
+                        }
+                    }}
                     style={{
                         position: 'absolute',
                         top: buttonPosition.top,
                         left: buttonPosition.left,
-                        zIndex: 9999
+                        zIndex: 100000, // Top of everything
+                        transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
                     }}
-                    className={`p-1.5 rounded-full shadow-md transition-all border ${recording
-                            ? 'bg-red-600 text-white border-red-700 animate-pulse scale-110'
-                            : 'bg-white text-gray-400 border-gray-200 hover:text-blue-600 hover:border-blue-300'
-                        }`}
+                    className={`
+                        flex items-center justify-center
+                        w-8 h-8 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.1)] border 
+                        ${recording
+                            ? 'bg-red-500 text-white border-red-600 scale-110 shadow-red-200'
+                            : 'bg-white text-gray-400 border-gray-100 hover:text-indigo-600 hover:border-indigo-200 hover:shadow-indigo-100 hover:scale-105'
+                        }
+                    `}
                 >
                     {transcribing ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
