@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, X, FileText, Check, AlertCircle } from 'lucide-react';
+import { Upload, X, FileText, Check, AlertCircle, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ContactImportModalProps {
@@ -14,9 +14,41 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
     const [isDragging, setIsDragging] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [googleStatus, setGoogleStatus] = useState<'idle' | 'loading'>('idle');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     if (!isOpen) return null;
+
+    // ... existing drag handlers ...
+
+    const handleGoogleImport = async () => {
+        setGoogleStatus('loading');
+        try {
+            // Dynamic import to call server action
+            const { importGoogleContacts } = await import('@/app/actions/contacts');
+            const res = await importGoogleContacts();
+
+            if (res.success) {
+                toast.success(`Google Import: Stiahnutých ${res.count} kontaktov.`);
+                onSuccess();
+                onClose();
+            } else if (res.error === 'no_tokens' || res.error === 'scope_missing') {
+                toast.error('Je potrebné prepojiť Google účet pre prístup ku kontaktom.');
+                // Fetch auth url
+                const authRes = await fetch('/api/google/auth');
+                const { authUrl } = await authRes.json();
+                if (authUrl) window.location.href = authUrl;
+            } else {
+                toast.error('Chyba pri Google importe: ' + res.error);
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error('Chyba komunikácie so serverom.');
+        } finally {
+            setGoogleStatus('idle');
+        }
+    };
+
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -87,6 +119,34 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
 
                 {/* Content */}
                 <div className="p-8">
+                    {/* Google Import Button */}
+                    <div className="mb-4">
+                        <button
+                            type="button"
+                            onClick={handleGoogleImport}
+                            disabled={googleStatus === 'loading'}
+                            className="w-full py-3 px-4 rounded-xl font-bold bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-3 shadow-sm active:scale-95 disabled:opacity-50"
+                        >
+                            {googleStatus === 'loading' ? (
+                                <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></span>
+                            ) : (
+                                <Cloud className="w-5 h-5 text-blue-500" />
+                            )}
+                            <span>Importovať z Google účtu</span>
+                        </button>
+                        <p className="text-[10px] text-gray-400 text-center mt-2 px-4">
+                            Stiahne kontakty z vášho pripojeného Google/Gmail účtu.
+                        </p>
+                    </div>
+
+                    <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div className="w-full border-t border-gray-200"></div>
+                        </div>
+                        <div className="relative flex justify-center">
+                            <span className="px-2 bg-white text-xs font-medium text-gray-500 uppercase tracking-wider">Alebo</span>
+                        </div>
+                    </div>
                     {!file ? (
                         <div
                             className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center text-center transition-colors cursor-pointer

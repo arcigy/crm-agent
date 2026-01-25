@@ -14,6 +14,7 @@ const SCOPES = [
     'https://www.googleapis.com/auth/calendar',
     'https://www.googleapis.com/auth/calendar.events',
     'https://www.googleapis.com/auth/gmail.modify', // Čítanie a správa e-mailov
+    'https://www.googleapis.com/auth/contacts.readonly', // Import kontaktov
 ];
 
 // Generuj OAuth URL pre autorizáciu
@@ -50,6 +51,16 @@ export function getGmailClient(accessToken: string, refreshToken?: string) {
     });
 
     return google.gmail({ version: 'v1', auth: oauth2Client });
+}
+
+// Nastav credentials a vráť people klienta (kontakty)
+export function getPeopleClient(accessToken: string, refreshToken?: string) {
+    oauth2Client.setCredentials({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+    });
+
+    return google.people({ version: 'v1', auth: oauth2Client });
 }
 
 // Refresh access token

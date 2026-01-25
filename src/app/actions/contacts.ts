@@ -1,7 +1,13 @@
 'use server';
 
+
 import { createClient } from '@/lib/supabase-server';
 import { revalidatePath } from 'next/cache';
+
+// NOTE: We need to import getPeopleClient dynamically or ensure it exists
+// But server actions need top level imports usually. 
+// We will rely on dynamic import inside the function to avoid breaking if google lib has issues
+
 
 export async function createContact(data: any) {
     try {
@@ -278,6 +284,96 @@ export async function bulkCreateContacts(contacts: any[]) {
         return { success: true, count: successCount, failed: failCount };
     } catch (e: any) {
         console.error('Bulk Create Error', e);
+        return { success: false, error: e.message };
+    }
+}
+
+export async function importGoogleContacts() {
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) throw new Error('Unauthorized');
+
+        // Fetch tokens
+        const { data: tokens } = await supabase
+            .from('google_tokens')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+        if (!tokens) {
+            return { success: false, error: 'no_tokens' };
+        }
+
+        const { getPeopleClient, refreshAccessToken } = await import('@/lib/google');
+
+        let accessToken = tokens.access_token;
+        if (tokens.expiry_date && tokens.expiry_date < Date.now() && tokens.refresh_token) {
+            const newTokens = await refreshAccessToken(tokens.refresh_token);
+            accessToken = newTokens.access_token;
+            await supabase.from('google_tokens').update({
+                access_token: accessToken,
+                expiry_date: newTokens.expiry_date
+            }).eq('user_id', user.id);
+        }
+
+        const people = getPeopleClient(accessToken, tokens.refresh_token);
+
+        // Fetch connections
+        const connections = await people.people.connections.list({
+            resourceName: 'people/me',
+            pageSize: 1000,
+            personFields: 'names,emailAddresses,phoneNumbers,organizations',
+        });
+
+        const contacts = connections.data.connections || [];
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const person of contacts) {
+            const name = person.names?.[0]?.displayName || 'Unknown';
+            const firstName = person.names?.[0]?.givenName || name.split(' ')[0];
+            const lastName = person.names?.[0]?.familyName || name.split(' ').slice(1).join(' ');
+            const email = person.emailAddresses?.[0]?.value;
+            const phone = person.phoneNumbers?.[0]?.value;
+            const company = person.organizations?.[0]?.name;
+
+            if (!email && !phone && name === 'Unknown') continue;
+
+            const payload: any = {
+                first_name: firstName,
+                last_name: lastName || '',
+                company: company || '',
+                status: 'published',
+                source: 'google_import'
+            };
+
+            if (email) payload.email = email;
+            if (phone) payload.phone = phone;
+
+            // Upsert
+            let error = null;
+            if (email) {
+                const { error: err } = await supabase.from('contacts').upsert(payload, { onConflict: 'email' });
+                error = err;
+            } else {
+                const { error: err } = await supabase.from('contacts').insert(payload);
+                error = err;
+            }
+
+            if (error) failCount++;
+            else successCount++;
+        }
+
+        revalidatePath('/dashboard/contacts');
+        return { success: true, count: successCount, failed: failCount };
+
+    } catch (e: any) {
+        console.error('Google Import Error', e);
+        if (e.message?.includes('insufficient authentication scopes') || e.code === 403) {
+            return { success: false, error: 'scope_missing' };
+        }
         return { success: false, error: e.message };
     }
 }
