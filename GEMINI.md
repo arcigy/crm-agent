@@ -66,3 +66,43 @@ Predtým, než napíšeš riadok kódu, navrhni štruktúru priečinkov.
 Pri Stripe integrácii vždy najprv vytvor Webhook handler, až potom frontend tlačidlo.
 
 NIKDY neprepisuj existujúce súbory tak, že z nich vymažeš dôležitú logiku, aby si "ušetril miesto". Ak je súbor príliš dlhý, rozdeľ ho.
+
+💻 7. RUNTIME PROSTREDIE
+Vývojové prostredie používa Windows s PowerShell.
+
+PowerShell Syntax: Nepoužívaj bash/curl syntax. Používaj Invoke-RestMethod alebo Invoke-WebRequest.
+Príklad správneho API volania:
+```powershell
+Invoke-RestMethod -Uri "https://url.com/api" -Headers @{"Authorization"="Bearer TOKEN"}
+```
+
+🚀 8. RAILWAY & DIRECTUS KONFIGURÁCIA
+Produkčná URL CRM: https://crm-agent-production-d1eb.up.railway.app
+Directus URL: https://directus-production-fd17.up.railway.app
+Directus Token: btH0JAXIC6e8rlUR-hLmSXf0-_vgdTnk (static token pre API)
+Directus Admin: arcigyback@gmail.com / Automatizacie#2025
+
+Kolekcie v Directuse:
+- contacts (id, first_name, last_name, email, phone, company, status, comments, date_created, date_updated, deleted_at)
+- projects (id, project_type, contact_id, contact_name, stage, end_date, date_created, date_updated, deleted_at)
+- deals (id, name, value, contact_id, paid, invoice_date, description, date_created, date_updated, deleted_at)
+- activities (id, type, contact_id, subject, content, duration, activity_date, date_created)
+- crm_users (id, email, password_hash, first_name, last_name, role, status, date_created, date_updated)
+
+Dôležité: Pred každou prácou s Directus API overiť, či služba beží na Railway.
+
+🚫 9. SUPABASE: NEPOUŽÍVAŤ
+Supabase sa v tomto projekte NEPOUŽÍVA pre dáta.
+Všetky kontakty, projekty, deals a iné CRM dáta sú výhradne v Directus.
+Supabase kód treba postupne odstrániť a nahradiť Directus volaniami.
+
+🚀 10. GITHUB & DEPLOYMENT
+GitHub repo: https://github.com/arcigy/crm-agent
+Po KAŽDEJ zmene v kóde MUSÍŠ pushnúť na GitHub:
+```powershell
+git add .
+git commit -m "popis zmeny"
+git push origin main
+```
+Railway automaticky deployuje z main branch.
+NIKDY netestuj len lokálne - vždy deploy na produkciu!
