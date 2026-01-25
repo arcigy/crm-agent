@@ -209,119 +209,129 @@ export async function updateContactComments(id: number, comments: string) {
     }
 }
 
-
 export async function uploadVCard(formData: FormData) {
     try {
         const file = formData.get('file') as File;
         if (!file) throw new Error('No file provided');
 
         const vcardContent = await file.text();
-
         const supabase = await createClient();
 
-        // 1. CLEANUP: Strip photos and normalized newlines
-        // Photos in vCard are huge blocks of text starting with PHOTO;... and act as base64 garbage we don't need.
-        // We use a regex to strip them out to save processing power.
-        let content = vcardContent
-            .replace(/\r\n/g, '\n')
-            .replace(/\r/g, '\n')
-            .replace(/PHOTO;[\s\S]*?(?:\n[A-Z]|\n$)/g, '\n'); // Aggressive Photo Stripping (heuristic)
+        // Split raw cards
+        // Normalize newlines first
+        const contentNodes = vcardContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-        // Split multiple vCards
-        const cardsRaw = content.split('BEGIN:VCARD');
-        const validCards = cardsRaw.filter(c => c.includes('END:VCARD'));
+        // Robust split: handle potential empty strings
+        const rawCards = contentNodes.split('BEGIN:VCARD').filter(c => c.trim().length > 0 && c.includes('END:VCARD'));
 
-        const contactsWithEmail: any[] = [];
-        const contactsWithoutEmail: any[] = [];
+        const BATCH_SIZE = 50;
         let successCount = 0;
         let failCount = 0;
 
-        // 2. PARSE (In Memory)
-        for (const rawCard of validCards) {
-            const card = 'BEGIN:VCARD' + rawCard;
+        // Process in chunks
+        for (let i = 0; i < rawCards.length; i += BATCH_SIZE) {
+            const chunk = rawCards.slice(i, i + BATCH_SIZE);
+            const batchEmailDetails: any[] = [];
+            const batchNoEmailDetails: any[] = [];
 
-            const fnMatch = card.match(/(?:^|\n)FN(?:;.*)?:(.*)/i);
-            const nMatch = card.match(/(?:^|\n)N(?:;.*)?:(.*)/i);
-            const emailMatch = card.match(/(?:^|\n)EMAIL(?:;.*)?:(.*)/i);
-            const telMatch = card.match(/(?:^|\n)TEL(?:;.*)?:(.*)/i);
-            const orgMatch = card.match(/(?:^|\n)ORG(?:;.*)?:(.*)/i);
+            // Process each card in the chunk
+            for (const rawCard of chunk) {
+                // Line-based parsing (Safer than Regex on full block)
+                const lines = rawCard.split('\n');
+                let fn = '';
+                let n = '';
+                let email = '';
+                let phone = '';
+                let org = '';
 
-            const clean = (s: string | undefined): string => s ? s.trim() : '';
+                // Simple parser state
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line.startsWith('FN:') || line.startsWith('FN;')) fn = line.split(':')[1];
+                    else if (line.startsWith('N:') || line.startsWith('N;')) n = line.split(':')[1];
+                    else if ((line.startsWith('EMAIL:') || line.startsWith('EMAIL;')) && !email) email = line.split(':')[1]; // Take first email
+                    else if ((line.startsWith('TEL:') || line.startsWith('TEL;')) && !phone) phone = line.split(':')[1]; // Take first phone
+                    else if ((line.startsWith('ORG:') || line.startsWith('ORG;')) && !org) org = line.split(':')[1];
+                }
 
-            let fullName = clean(fnMatch ? fnMatch[1] : '');
+                // Cleanup
+                const clean = (s: string) => s ? s.trim() : '';
+                let fullName = clean(fn);
 
-            // Fallback for Name
-            if (!fullName && nMatch) {
-                const parts = nMatch[1].split(';');
-                const family = parts[0] || '';
-                const given = parts[1] || '';
-                fullName = (given + ' ' + family).trim();
+                // Fallback name
+                if (!fullName && n) {
+                    const parts = n.split(';');
+                    // N:Family;Given;Middle;Prefix;Suffix
+                    const family = parts[0] || '';
+                    const given = parts[1] || '';
+                    fullName = (given + ' ' + family).trim();
+                }
+
+                if (!fullName) fullName = 'Unknown Import';
+
+                const finalEmail = clean(email);
+                const finalPhone = clean(phone);
+                const finalOrg = clean(org ? org.split(';')[0] : '');
+
+                if (fullName === 'Unknown Import' && !finalEmail && !finalPhone) continue;
+
+                const nameParts = fullName.split(' ');
+                const lastName = nameParts.length > 1 ? nameParts.pop() : '';
+                const firstName = nameParts.join(' ');
+
+                const payload: any = {
+                    first_name: firstName,
+                    last_name: lastName || '',
+                    company: finalOrg || '',
+                    status: 'published',
+                    source: 'import'
+                };
+
+                if (finalEmail) {
+                    payload.email = finalEmail;
+                    batchEmailDetails.push(payload);
+                } else {
+                    if (finalPhone) payload.phone = finalPhone;
+                    batchNoEmailDetails.push(payload);
+                }
             }
 
-            if (!fullName) fullName = 'Unknown Import';
-
-            const email = clean(emailMatch ? emailMatch[1] : undefined);
-            const phone = clean(telMatch ? telMatch[1] : undefined);
-            const company = clean(orgMatch ? orgMatch[1].split(';')[0] : undefined); // Removed trim() call before split to be safe if undefined
-
-            // Skip empty
-            if (fullName === 'Unknown Import' && !email && !phone) continue;
-
-            const nameParts = fullName.split(' ');
-            const lastName = nameParts.length > 1 ? nameParts.pop() : '';
-            const firstName = nameParts.join(' ');
-
-            const payload: any = {
-                first_name: firstName,
-                last_name: lastName || '',
-                company: company || '',
-                status: 'published',
-                source: 'import'
-            };
-
-            if (email) {
-                payload.email = email;
-                contactsWithEmail.push(payload);
-            } else {
-                if (phone) payload.phone = phone;
-                contactsWithoutEmail.push(payload);
+            // Execute Batch DB Ops
+            if (batchEmailDetails.length > 0) {
+                const { error } = await supabase.from('contacts').upsert(batchEmailDetails, { onConflict: 'email', ignoreDuplicates: true });
+                if (error) {
+                    console.error('Batch error (email)', error);
+                    // Don't throw, try next batch. But count as fail? 
+                    // Can't count individual fails easily in batch, so assume all failed.
+                    failCount += batchEmailDetails.length;
+                } else {
+                    successCount += batchEmailDetails.length;
+                }
             }
-        }
 
-        // 3. BATCH EXECUTE
-        // Upsert contacts with email (Constraint: email)
-        if (contactsWithEmail.length > 0) {
-            const { error } = await supabase
-                .from('contacts')
-                .upsert(contactsWithEmail, { onConflict: 'email', ignoreDuplicates: true }); // ignoreDuplicates true means if exists, keep old. Or false to update. Let's update? No, ignoreDupes usually safer for import backup. let's use default upsert (update).
-
-            // Actually default upsert updates on conflict.
-            // If we use simple upsert, it's fine.
-            if (error) {
-                console.error('Batch Upsert Error', error);
-                // Fallback to sequential if batch fails? No, just report error.
-                return { success: false, error: 'Database error during batch import' };
-            }
-            successCount += contactsWithEmail.length;
-        }
-
-        // Insert contacts without email (No dedup possible easily, just insert)
-        if (contactsWithoutEmail.length > 0) {
-            const { error } = await supabase.from('contacts').insert(contactsWithoutEmail);
-            if (error) {
-                console.error('Batch Insert Error', error);
-                // partial success?
-            } else {
-                successCount += contactsWithoutEmail.length;
+            if (batchNoEmailDetails.length > 0) {
+                const { error } = await supabase.from('contacts').insert(batchNoEmailDetails);
+                if (error) {
+                    console.error('Batch error (no email)', error);
+                    failCount += batchNoEmailDetails.length;
+                } else {
+                    successCount += batchNoEmailDetails.length;
+                }
             }
         }
 
         revalidatePath('/dashboard/contacts');
+        // If everything failed, throw error to show toast
+        if (successCount === 0 && failCount > 0 && rawCards.length > 0) {
+            throw new Error('Database rejected all imports. Check data format.');
+        }
+
         return { success: true, count: successCount, failed: failCount };
 
     } catch (error: any) {
         console.error('VCard import failed:', error);
-        return { success: false, error: error.message };
+        // Ensure error message is string
+        return { success: false, error: error.message || 'Unknown server error' };
     }
 }
 
