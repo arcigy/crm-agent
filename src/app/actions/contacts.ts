@@ -12,33 +12,42 @@ import { revalidatePath } from 'next/cache';
 export async function createContact(data: any) {
     try {
         const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-        // Basic validation
-        if (!data.first_name || !data.email) {
-            throw new Error('First name and email are required');
+        if (!user) throw new Error('Unauthorized');
+
+        // Basic validation - First Name is enough for a contact
+        if (!data.first_name) {
+            throw new Error('First name is required');
         }
 
-        // First check if email already exists
-        const { data: existing } = await supabase
-            .from('contacts')
-            .select('id')
-            .eq('email', data.email)
-            .single();
+        // If email is provided, check for global uniqueness or just ignore if it belongs to someone else?
+        // Rules say: Central contacts, one source of truth.
+        // But for now, let's just avoid duplicate emails for the SAME user to keep it simple.
+        if (data.email) {
+            const { data: existing } = await supabase
+                .from('contacts')
+                .select('id')
+                .eq('email', data.email)
+                .eq('owner_id', user.id)
+                .single();
 
-        if (existing) {
-            return { success: false, error: 'A contact with this email already exists.' };
+            if (existing) {
+                return { success: false, error: 'A contact with this email already exists in your workspace.' };
+            }
         }
 
         const { data: newContact, error: insertError } = await supabase
             .from('contacts')
             .insert({
                 first_name: data.first_name,
-                last_name: data.last_name,
-                email: data.email,
-                phone: data.phone,
-                company: data.company,
-                status: data.status,
-                activities: [] // Initialize empty activities
+                last_name: data.last_name || '',
+                email: data.email || null,
+                phone: data.phone || null,
+                company: data.company || '',
+                status: data.status || 'published',
+                owner_id: user.id, // Linking to user
+                activities: []
             })
             .select()
             .single();
