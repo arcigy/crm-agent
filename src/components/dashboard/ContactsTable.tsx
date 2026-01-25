@@ -602,175 +602,195 @@ function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'form' }:
         e.preventDefault();
         setLoading(true);
         try {
-            if (mode === 'json') {
-                let parsed;
-                try {
-                    parsed = JSON.parse(jsonInput);
-                } catch (e) {
-                    alert('Chybný formát JSON');
-                    setLoading(false);
-                    return;
+            let parsed: any[] = [];
+            try {
+                // Try JSON first
+                const possibleJson = JSON.parse(jsonInput);
+                parsed = Array.isArray(possibleJson) ? possibleJson : [possibleJson];
+            } catch (e) {
+                // Fallback to "NV" / Line-by-line parser
+                // Formats: "Name: John Doe, Email: john@doe.com" OR multiple lines
+                const lines = jsonInput.split('\n').filter(l => l.trim());
+                if (lines.length > 0) {
+                    const entry: any = {};
+                    lines.forEach(line => {
+                        const [key, ...valParts] = line.split(':');
+                        if (valParts.length > 0) {
+                            const k = key.trim().toLowerCase();
+                            const v = valParts.join(':').trim();
+                            if (k.includes('name')) entry.name = v;
+                            if (k.includes('email')) entry.email = v;
+                            if (k.includes('phone') || k.includes('tel')) entry.phone = v;
+                            if (k.includes('company') || k.includes('org')) entry.company = v;
+                        }
+                    });
+                    if (Object.keys(entry).length > 0) parsed = [entry];
                 }
+            }
 
-                const payload = Array.isArray(parsed) ? parsed : [parsed];
-                const { bulkCreateContacts } = await import('@/app/actions/contacts');
-                const res = await bulkCreateContacts(payload);
+            if (parsed.length === 0) {
+                alert('Nepodarilo sa rozpoznať formát (JSON ani Text)');
+                setLoading(false);
+                return;
+            }
 
-                if (res.success) {
-                    onClose();
-                    window.location.reload();
-                } else {
-                    alert('Import zlyhal: ' + res.error);
-                }
+            const { bulkCreateContacts } = await import('@/app/actions/contacts');
+            const res = await bulkCreateContacts(parsed);
 
-            } else {
-                await onSubmit(formData);
+            if (res.success) {
                 onClose();
                 window.location.reload();
+            } else {
+                alert('Import zlyhal: ' + res.error);
             }
-        } catch (error: any) {
-            console.error(error);
-            alert('Chyba: ' + error.message);
-        } finally {
-            setLoading(false);
+
+        } else {
+            await onSubmit(formData);
+            onClose();
+            window.location.reload();
         }
-    };
+    } catch (error: any) {
+        console.error(error);
+        alert('Chyba: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+};
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-sm pointer-events-none">
-            {/* Background overlay that handles click-to-close */}
-            <div className="absolute inset-0 bg-black/40 pointer-events-auto" onClick={onClose}></div>
+return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-sm pointer-events-none">
+        {/* Background overlay that handles click-to-close */}
+        <div className="absolute inset-0 bg-black/40 pointer-events-auto" onClick={onClose}></div>
 
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative pointer-events-auto transform transition-all animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-gray-900">New Contact</h2>
-                    <div className="flex bg-gray-100 rounded-lg p-1 text-xs font-bold">
-                        <button
-                            onClick={() => setMode('form')}
-                            className={`px-3 py-1.5 rounded-md transition-all ${mode === 'form' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
-                        >
-                            Form
-                        </button>
-                        <button
-                            onClick={() => setMode('json')}
-                            className={`px-3 py-1.5 rounded-md transition-all ${mode === 'json' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
-                        >
-                            JSON (Raw)
-                        </button>
-                    </div>
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative pointer-events-auto transform transition-all animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Nový kontakt</h2>
+                <div className="flex bg-gray-100 rounded-lg p-1 text-xs font-bold">
+                    <button
+                        onClick={() => setMode('form')}
+                        className={`px-3 py-1.5 rounded-md transition-all ${mode === 'form' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
+                    >
+                        Formulár
+                    </button>
+                    <button
+                        onClick={() => setMode('json')}
+                        className={`px-3 py-1.5 rounded-md transition-all ${mode === 'json' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
+                    >
+                        RAW Extrakcia
+                    </button>
                 </div>
+            </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {mode === 'form' ? (
-                        <>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">First Name</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                        value={formData.first_name}
-                                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                        value={formData.last_name}
-                                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                                    />
-                                </div>
-                            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                {mode === 'form' ? (
+                    <>
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Email</label>
+                                <label className="block text-sm font-medium text-gray-700">Meno</label>
                                 <input
-                                    type="email"
+                                    type="text"
                                     required
                                     className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    value={formData.first_name}
+                                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                                <label className="block text-sm font-medium text-gray-700">Priezvisko</label>
                                 <input
                                     type="text"
+                                    required
                                     className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                    placeholder="+421 900 000 000"
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    value={formData.last_name}
+                                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Company</label>
-                                <input
-                                    type="text"
-                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                    value={formData.company}
-                                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Status</label>
-                                <select
-                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                    value={formData.status}
-                                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                >
-                                    <option value="draft">Inactive (Draft)</option>
-                                    <option value="published">Active (Published)</option>
-                                </select>
-                            </div>
-                        </>
-                    ) : (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Paste Raw JSON</label>
-                            <div className="bg-slate-900 rounded-md p-3 mb-2">
-                                <code className="text-xs text-green-400 block mb-1">Target format:</code>
-                                <pre className="text-[10px] text-gray-400 font-mono overflow-x-auto">
-                                    {`[
-  {
-    "name": "Full Name",
-    "email": "email@example.com",
-    "phone": "+421900000000",
-    "company": "Company Name"
-  }
-]`}
-                                </pre>
-                            </div>
-                            <textarea
-                                className="w-full h-64 font-mono text-xs p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none"
-                                placeholder='Paste JSON here...'
-                                value={jsonInput}
-                                onChange={(e) => setJsonInput(e.target.value)}
-                            ></textarea>
                         </div>
-                    )}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Email</label>
+                            <input
+                                type="email"
+                                required
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Telefón</label>
+                            <input
+                                type="text"
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                placeholder="+421 900 000 000"
+                                value={formData.phone}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Firma / Account</label>
+                            <input
+                                type="text"
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                value={formData.company}
+                                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Status</label>
+                            <select
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                value={formData.status}
+                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                            >
+                                <option value="draft">Neaktívny (Draft)</option>
+                                <option value="published">Aktívny (Published)</option>
+                            </select>
+                        </div>
+                    </>
+                ) : (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Vložte RAW dáta (JSON alebo Text)</label>
+                        <div className="bg-slate-900 rounded-md p-3 mb-2">
+                            <code className="text-xs text-green-400 block mb-1">Príklady formátov:</code>
+                            <pre className="text-[10px] text-gray-400 font-mono overflow-x-auto">
+                                {`// JSON formát
+[{"name": "Ján", "email": "jan@mail.sk"}]
 
-                    <div className="flex justify-end gap-2 mt-6">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
-                        >
-                            Zrušiť
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
-                        >
-                            {loading ? 'Spracúvam...' : (mode === 'json' ? 'Importovať RAW' : 'Vytvoriť kontakt')}
-                        </button>
+// NV formát (Text)
+Name: Peter Pan
+Email: peter@neverland.sk
+Tel: +421 900 111 222`}
+                            </pre>
+                        </div>
+                        <textarea
+                            className="w-full h-64 font-mono text-xs p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none"
+                            placeholder='Vložte JSON alebo textové riadky...'
+                            value={jsonInput}
+                            onChange={(e) => setJsonInput(e.target.value)}
+                        ></textarea>
                     </div>
-                </form>
-            </div>
+                )}
+
+                <div className="flex justify-end gap-2 mt-6">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+                    >
+                        Zrušiť
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
+                    >
+                        {loading ? 'Spracúvam...' : (mode === 'json' ? 'Importovať RAW' : 'Vytvoriť kontakt')}
+                    </button>
+                </div>
+            </form>
         </div>
-    );
+    </div>
+);
 }
 
 export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (data: any) => Promise<any> }) {

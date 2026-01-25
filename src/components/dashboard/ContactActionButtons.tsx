@@ -29,7 +29,7 @@ export function ContactActionButtons() {
                 className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-gray-200 active:scale-95 group"
             >
                 <Plus className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-45' : ''}`} />
-                New
+                Pridať
                 <ChevronDown className={`w-3 h-3 ml-1 opacity-50 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
@@ -43,8 +43,8 @@ export function ContactActionButtons() {
                             <UserPlus className="w-4 h-4" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">Manual Form</span>
-                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Standard entry</span>
+                            <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">Manuálny formulár</span>
+                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Štandardný zápis</span>
                         </div>
                     </button>
 
@@ -56,8 +56,8 @@ export function ContactActionButtons() {
                             <Code className="w-4 h-4" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">Raw JSON</span>
-                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Bulk Extraction</span>
+                            <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">RAW Extrakcia</span>
+                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">JSON / Text / NV</span>
                         </div>
                     </button>
 
@@ -71,8 +71,8 @@ export function ContactActionButtons() {
                             <Download className="w-4 h-4" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">Import File</span>
-                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">vCard / CSV</span>
+                            <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">Import súboru</span>
+                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">vCard / CSV / Excel</span>
                         </div>
                     </button>
                 </div>
@@ -85,7 +85,7 @@ export function EmptyStateActions() {
     return (
         <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10">
             <ContactActionButtons />
-            <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] italic">Or select automated source</p>
+            <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] italic">Alebo vyberte automatizovaný zdroj</p>
         </div>
     );
 }
