@@ -3,6 +3,14 @@ import Google from "next-auth/providers/google"
 import directus from "@/lib/directus"
 import { readItems, createItem, updateItem } from "@directus/sdk"
 
+// --- RAILWAY FIX ---
+// Force NextAuth to use the Public URL instead of "localhost:8080"
+if (!process.env.AUTH_URL && process.env.NEXT_PUBLIC_APP_URL) {
+    process.env.AUTH_URL = process.env.NEXT_PUBLIC_APP_URL;
+    console.log("🔧 Forced AUTH_URL to:", process.env.AUTH_URL);
+}
+// -------------------
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
     debug: true,
     providers: [
@@ -61,9 +69,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return true;
         },
         async redirect({ url, baseUrl }) {
+            // Force redirect to dashboard with query param
+            // Ensure baseUrl honors the AUTH_URL we forced
             return `${baseUrl}/dashboard?google_connected=true`;
         }
     },
     useSecureCookies: process.env.NODE_ENV === "production",
-    trustHost: true, // Fix for Railway UntrustedHost error
+    trustHost: true, // Fix for Railway Proxy
 })
