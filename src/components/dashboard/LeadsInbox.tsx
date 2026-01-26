@@ -28,6 +28,7 @@ import {
     Calendar
 } from 'lucide-react';
 import { VoiceInput } from '@/components/VoiceInput';
+import { toast } from 'sonner';
 import { GmailMessage, GmailAttachment } from '@/types/gmail';
 import { AndroidLog } from '@/types/android';
 import { EmailClassification } from '@/types/ai';

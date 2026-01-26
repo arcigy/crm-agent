@@ -4,23 +4,24 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 45; // Increase timeout for AI
 
 export async function POST(req: Request) {
     try {
         const { content, messageId } = await req.json();
 
-        console.log(`[AI Classify] Received request for msg: ${messageId}, content length: ${content?.length || 0}`);
+        console.log(`[AI Classify] Request for: ${messageId} | Length: ${content?.length}`);
 
         if (!process.env.OPENAI_API_KEY) {
-            console.error('[AI Classify] CRITICAL ERROR: OPENAI_API_KEY is missing in environment variables!');
+            console.error('[AI Classify] MISSING API KEY');
             return NextResponse.json({
                 success: false,
-                error: 'Server nemá nastavený OpenAI API Key. Pridajte kľúč do Railway Environment Variables.'
-            });
+                error: 'Chýba OpenAI API kľúč v nastaveniach Railway (Environment Variables).'
+            }, { status: 500 });
         }
 
         if (!content || content.length < 5) {
-            return NextResponse.json({ success: false, error: 'Chýba obsah na analýzu alebo je príliš krátky' });
+            return NextResponse.json({ success: false, error: 'Email je príliš krátky na analýzu.' });
         }
 
         const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -34,32 +35,25 @@ export async function POST(req: Request) {
                 service_category: z.string(),
                 estimated_budget: z.string(),
                 next_step: z.string(),
-                summary: z.string(),
-                deadline: z.string().optional(),
+                summary: z.string()
             }),
-            prompt: `
-                Analyzuj nasledujúci text emailu a extrahuj kľúčové informácie pre CRM agenta.
-                Odpovedaj v slovenskom jazyku. 
-                
-                Kritériá:
-                - intent: Čo odosielateľ chce? (dopyt, otazka, problem, faktura, spam, ine)
-                - priority: Aké je to súrne? (vysoka, stredna, nizka)
-                - sentiment: Aká je nálada? (pozitivny, neutralny, negativny)
-                - service_category: Akého typu služby sa to týka? (napr. Web Design, SEO, Konzultácia...) - ak nevieš, daj "—"
-                - estimated_budget: Ak sa spomínajú peniaze, extrahuj sumu. Inak "Neznámy".
-                - next_step: Čo by mal užívateľ urobiť ako ďalšie?
-                - summary: Stručné zhrnutie (1-2 vety).
-                
-                Text emailu:
-                """
-                ${content}
-                """
-            `,
+            prompt: `Analyzuj email a vráť štruktúrované JSON dáta v slovenčine. 
+            Zámer: dopyt, otazka, problem, faktura, spam, ine.
+            Priorita: vysoka, stredna, nizka.
+            Kategória: napr. Montáž, Revízia, Servis...
+            Rozpočet: Suma ak je, inak "Neznámy".
+            
+            Obsah: ${content.substring(0, 4000)}`,
         });
 
+        console.log('[AI Classify] Success:', object.intent);
         return NextResponse.json({ success: true, classification: object });
+
     } catch (error: any) {
-        console.error('AI Classification Error:', error);
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+        console.error('[AI Classify] Error:', error);
+        return NextResponse.json({
+            success: false,
+            error: error.message || 'Chyba pri komunikácii s AI.'
+        }, { status: 500 });
     }
 }
