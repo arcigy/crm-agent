@@ -9,8 +9,8 @@ const getBaseUrl = () => {
 };
 
 const getRedirectUrl = () => {
-    // TROJAN HORSE STRATEGY: Use the working 'status' endpoint for auth callback too
-    return `${getBaseUrl().replace(/\/$/, '')}/api/google/status`;
+    // FRONTEND-FIRST STRATEGY: Redirect to a visible page, then POST to API
+    return `${getBaseUrl().replace(/\/$/, '')}/oauth-callback`;
 };
 
 // Funkcia na vytvorenie novej inštancie klienta
