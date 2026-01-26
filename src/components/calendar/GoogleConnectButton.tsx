@@ -1,20 +1,25 @@
 'use client';
 
 import { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+import { toast } from 'sonner';
 
 export function GoogleConnectButton() {
     const [isLoading, setIsLoading] = useState(false);
+    const { user, isLoaded } = useUser();
 
     const handleConnect = async () => {
+        if (!isLoaded || !user) return;
         setIsLoading(true);
         try {
-            const res = await fetch('/api/google/auth');
-            const { authUrl } = await res.json();
-            if (authUrl) {
-                window.location.href = authUrl;
-            }
-        } catch (error) {
-            console.error('Failed to get auth URL:', error);
+            // Clerk Link Account Logic for Calendar Scopes
+            await user.createExternalAccount({
+                provider: 'google',
+                redirectUrl: window.location.href,
+            });
+        } catch (error: any) {
+            console.error('Failed to connect Google Calendar via Clerk:', error);
+            toast.error('Nepodarilo sa prepojiť s Google');
             setIsLoading(false);
         }
     };
@@ -36,7 +41,7 @@ export function GoogleConnectButton() {
                     <path fill="none" d="M0 0h48v48H0z" />
                 </svg>
             )}
-            <span>Synchronizovať s Google Kalendárom</span>
+            <span>Prepojiť cez Clerk</span>
         </button>
     );
 }

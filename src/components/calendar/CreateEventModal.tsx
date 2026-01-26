@@ -4,7 +4,6 @@ import * as React from 'react';
 import { X, Calendar as CalendarIcon, Clock, MapPin, AlignLeft, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { createCalendarEvent } from '@/app/actions/calendar';
 
 interface CreateEventModalProps {
     isOpen: boolean;
@@ -42,13 +41,19 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, initialDate }: Cr
         const endDateTime = new Date(`${formData.endDate}T${formData.endTime}:00`).toISOString();
 
         try {
-            const result = await createCalendarEvent({
-                summary: formData.summary,
-                description: formData.description,
-                location: formData.location,
-                start: startDateTime,
-                end: endDateTime,
+            const res = await fetch('/api/google/calendar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    summary: formData.summary,
+                    description: formData.description,
+                    location: formData.location,
+                    start: startDateTime,
+                    end: endDateTime,
+                }),
             });
+
+            const result = await res.json();
 
             if (result.success) {
                 toast.success('Udalosť bola vytvorená');
