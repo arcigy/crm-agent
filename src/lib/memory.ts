@@ -2,9 +2,15 @@ import { OpenAI } from 'openai';
 import directus from '@/lib/directus';
 import { createItem, readItems, deleteItem } from '@directus/sdk';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// REMOVE global initialization to fix build failure
+// const openai = new OpenAI({...}); 
+
+// Helper to get client securely
+function getOpenAI() {
+    return new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+    });
+}
 
 /**
  * Získa všetky spomienky pre daného užívateľa vo formáte stringu pre System Prompt
@@ -54,6 +60,8 @@ export async function saveNewMemories(userEmail: string, lastUserMessage: string
         Existing Memories:
         ${currentContext}
         `;
+
+        const openai = getOpenAI(); // Init here
 
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini", // Stačí menší model pre extrakciu

@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Move initialization inside handler to prevent build-time errors if env vars are missing
+// const openai = new OpenAI({...}); <--- BAD for build time
 
 export async function POST(request: Request) {
     try {
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            throw new Error('OPENAI_API_KEY is not set');
+        }
+
+        const openai = new OpenAI({
+            apiKey: apiKey,
+        });
+
         const formData = await request.formData();
         const file = formData.get('file') as File;
 
@@ -15,14 +23,10 @@ export async function POST(request: Request) {
         }
 
         // OpenAI library needs specific object format or File object
-        // Since we are in Node environment (server), we pass the file directly if standard Request is used,
-        // but typically OpenAI SDK accepts ReadStream or File-like object.
-        // In Next.js 13+, FormData entry is a Blob/File which is compatible.
-
         const response = await openai.audio.transcriptions.create({
             file: file,
             model: 'whisper-1',
-            language: 'sk', // Default to Slovak based on user language, or 'en'
+            language: 'sk',
         });
 
         return NextResponse.json({ text: response.text });

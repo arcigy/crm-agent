@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool as aiTool } from 'ai';
 import { z } from 'zod';
 import { getMemories, saveNewMemories } from '@/lib/memory';
@@ -7,6 +7,8 @@ import {
     agentCreateDeal
 } from '@/app/actions/agent';
 
+// Force dynamic needed to prevent build-time execution of OpenAI client check
+export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow 60 seconds for execution
 
 const contactParams = z.object({
@@ -34,6 +36,12 @@ export async function POST(req: Request) {
         return new Response('User email required for memory', { status: 400 });
     }
 
+    // Initialize OpenAI client inside the handler 
+    // or use a custom instance if needed to avoid top-level issues
+    const openai = createOpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+    });
+
     // 1. Load Long-Term Memory
     const memoryContext = await getMemories(userEmail);
 
@@ -58,7 +66,6 @@ export async function POST(req: Request) {
             create_contact: aiTool({
                 description: 'Create a new contact in CRM',
                 parameters: contactParams,
-                // @ts-ignore - TS issue with ai sdk tool overload match
                 execute: async (params) => {
                     const res = await agentCreateContact(params);
                     return res.success ? `Contact created: ${res.contact?.id}` : `Error: ${res.error}`;
@@ -67,7 +74,6 @@ export async function POST(req: Request) {
             create_deal: aiTool({
                 description: 'Create a new deal/project in CRM',
                 parameters: dealParams,
-                // @ts-ignore - TS issue with ai sdk tool overload match
                 execute: async (params) => {
                     const res = await agentCreateDeal(params);
                     return res.success ? `Deal created: ${res.deal?.id}` : `Error: ${res.error}`;
@@ -76,22 +82,17 @@ export async function POST(req: Request) {
             check_availability: aiTool({
                 description: 'Check calendar availability',
                 parameters: availabilityParams,
-                // @ts-ignore - TS issue with ai sdk tool overload match
                 execute: async (params) => "Calendar check temporarily disabled during migration."
             })
         },
         onFinish: async ({ text }) => {
             // 3. The "Memorize" Step (Background)
-            // We take the last user message and the AI's full response
             const lastUserMsg = messages[messages.length - 1];
             if (lastUserMsg.role === 'user') {
-                // Fire and forget memory update
                 saveNewMemories(userEmail, lastUserMsg.content, text).catch(err => console.error('Memory saving error:', err));
             }
         }
     });
 
-    // Cast result to any to bypass TS error about missing method, 
-    // though it exists in AI SDK 4.x/3.x latest
     return (result as any).toDataStreamResponse();
 }
