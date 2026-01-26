@@ -31,6 +31,7 @@ export async function POST(req: Request) {
     ${memoryContext}
     
     If you need to know about the user's schedule, call 'check_availability'.
+    If the user asks about files or documents, you can view them via Google Drive tools.
     `;
 
     const result = streamText({

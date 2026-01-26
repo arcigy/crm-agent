@@ -26,8 +26,9 @@ import {
 import Link from 'next/link';
 import { Project, PROJECT_STAGES, PROJECT_TYPES, ProjectStage } from '@/types/project';
 import { createProject, updateProjectStage, deleteProject } from '@/app/actions/projects';
-import { ContactDetailModal } from './ContactDetailModal';
+import { ProjectDriveModal } from './ProjectDriveModal';
 import { Lead } from '@/types/contact';
+import { HardDrive } from 'lucide-react';
 
 const columnHelper = createColumnHelper<Project>();
 
@@ -249,6 +250,7 @@ export function ProjectsTable({ data, contacts }: ProjectsTableProps) {
     const [isModalOpen, setIsModalOpen] = React.useState(false);
     const [projects, setProjects] = React.useState(data);
     const [fullDetailContact, setFullDetailContact] = React.useState<Lead | null>(null);
+    const [driveProject, setDriveProject] = React.useState<{ id: number, name: string } | null>(null);
 
     React.useEffect(() => {
         setProjects(data);
@@ -365,6 +367,22 @@ export function ProjectsTable({ data, contacts }: ProjectsTableProps) {
                 );
             },
         }),
+        columnHelper.display({
+            id: 'drive',
+            header: 'Súbory',
+            cell: (info) => (
+                <button
+                    onClick={() => setDriveProject({
+                        id: info.row.original.id,
+                        name: `${info.row.original.project_type} - ${info.row.original.contact_name}`
+                    })}
+                    className="p-1.5 bg-gray-50 hover:bg-blue-600 hover:text-white rounded-lg transition-all text-gray-400 border border-gray-100"
+                    title="Google Drive"
+                >
+                    <HardDrive className="w-3.5 h-3.5" />
+                </button>
+            ),
+        }),
     ];
 
     const table = useReactTable({
@@ -383,6 +401,13 @@ export function ProjectsTable({ data, contacts }: ProjectsTableProps) {
                 onClose={() => setIsModalOpen(false)}
                 onSubmit={handleCreate}
                 contacts={contacts}
+            />
+
+            <ProjectDriveModal
+                isOpen={!!driveProject}
+                onClose={() => setDriveProject(null)}
+                projectId={driveProject?.id || 0}
+                projectName={driveProject?.name || ''}
             />
 
             <ContactDetailModal
