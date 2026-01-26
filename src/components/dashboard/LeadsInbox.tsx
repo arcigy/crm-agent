@@ -33,6 +33,7 @@ import { AndroidLog } from '@/types/android';
 import { EmailClassification } from '@/types/ai';
 import { format } from 'date-fns';
 import { sk } from 'date-fns/locale';
+import { useUser } from '@clerk/nextjs';
 import {
     agentCreateContact,
     agentCreateDeal,
@@ -46,6 +47,7 @@ interface LeadsInboxProps {
 }
 
 export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
+    const { user, isLoaded } = useUser();
     const [messages, setMessages] = React.useState<GmailMessage[]>(initialMessages);
     const [androidLogs, setAndroidLogs] = React.useState<AndroidLog[]>([]);
     const [loading, setLoading] = React.useState(true);
@@ -100,15 +102,17 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
     };
 
     const handleConnect = async () => {
+        if (!isLoaded || !user) return;
         setLoading(true);
         try {
-            const res = await fetch('/api/google/auth');
-            const { authUrl } = await res.json();
-            if (authUrl) {
-                window.location.href = authUrl;
-            }
-        } catch (error) {
-            console.error('Failed to get auth URL:', error);
+            // Clerk Link Account Logic
+            // This will redirect to Google for consent with the scopes defined in Clerk Dashboard
+            await user.createExternalAccount({
+                provider: 'google',
+                redirectUrl: window.location.href,
+            });
+        } catch (error: any) {
+            console.error('Failed to connect Google via Clerk:', error);
             setLoading(false);
         }
     };
