@@ -9,8 +9,8 @@ const getBaseUrl = () => {
 };
 
 const getRedirectUrl = () => {
-    // NEW ROUTE to bypass 404 issues
-    return `${getBaseUrl().replace(/\/$/, '')}/api/oauth/google`;
+    // TROJAN HORSE STRATEGY: Use the working 'status' endpoint for auth callback too
+    return `${getBaseUrl().replace(/\/$/, '')}/api/google/status`;
 };
 
 // Funkcia na vytvorenie novej inštancie klienta
