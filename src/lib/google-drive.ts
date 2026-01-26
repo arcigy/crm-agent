@@ -34,3 +34,23 @@ export async function createFolder(token: string, name: string, parentId?: strin
 
     return res.data.id;
 }
+
+export async function createFile(token: string, name: string, mimeType: string, content: string | Buffer, parentId?: string) {
+    const drive = await getDriveClient(token);
+    const fileMetadata = {
+        name,
+        parents: parentId ? [parentId] : undefined,
+    };
+    const media = {
+        mimeType,
+        body: content,
+    };
+
+    const res = await drive.files.create({
+        requestBody: fileMetadata,
+        media: media,
+        fields: 'id, webViewLink',
+    });
+
+    return res.data;
+}

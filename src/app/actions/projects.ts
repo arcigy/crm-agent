@@ -27,10 +27,10 @@ export async function createProject(projectData: {
     contact_id?: number | null;
     stage?: ProjectStage;
     end_date?: string | null;
-}): Promise<{ success: boolean; error?: string }> {
+}): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
         // @ts-ignore
-        await directus.request(createItem('projects', {
+        const newProject = await directus.request(createItem('projects', {
             project_type: projectData.project_type,
             contact_id: projectData.contact_id || null,
             stage: projectData.stage || 'planning',
@@ -39,7 +39,7 @@ export async function createProject(projectData: {
         }));
 
         revalidatePath('/dashboard/projects');
-        return { success: true };
+        return { success: true, data: newProject };
     } catch (e: any) {
         console.error('Failed to create project:', e);
         return { success: false, error: e.message };
