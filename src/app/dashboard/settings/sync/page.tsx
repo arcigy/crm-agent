@@ -3,10 +3,10 @@
 import * as React from 'react';
 import { Smartphone, Check, Copy, Apple, ArrowRight } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { useSession } from 'next-auth/react'; // Use NextAuth
+import { useUser } from '@clerk/nextjs'; // Use Clerk
 
 export default function MobileSyncPage() {
-    const { data: session } = useSession(); // Access session
+    const { user, isLoaded } = useUser(); // Access Clerk user
     const [copied, setCopied] = React.useState(false);
 
     const [origin, setOrigin] = React.useState('');
@@ -16,10 +16,10 @@ export default function MobileSyncPage() {
     React.useEffect(() => {
         setOrigin(window.location.origin);
 
-        if (session?.user?.email) {
-            setUsername(session.user.email);
+        if (isLoaded && user?.primaryEmailAddress?.emailAddress) {
+            setUsername(user.primaryEmailAddress.emailAddress);
         }
-    }, [session]);
+    }, [isLoaded, user]);
 
     const serverUrl = origin ? `${origin}/api/dav` : '';
     const password = 'heslo'; // Simplifying based on user interaction (POC)

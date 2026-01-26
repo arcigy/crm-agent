@@ -2,14 +2,14 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool as aiTool } from 'ai';
 import { z } from 'zod';
 import { getMemories, saveNewMemories } from '@/lib/memory';
+import { currentUser } from '@clerk/nextjs/server'; // Clerk Server-side
 import {
     agentCreateContact,
     agentCreateDeal
 } from '@/app/actions/agent';
 
-// Force dynamic needed to prevent build-time execution of OpenAI client check
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // Allow 60 seconds for execution
+export const maxDuration = 60;
 
 const contactParams = z.object({
     name: z.string(),
@@ -30,14 +30,16 @@ const availabilityParams = z.object({
 });
 
 export async function POST(req: Request) {
-    const { messages, userEmail } = await req.json();
+    const { messages } = await req.json();
+
+    // Get User from Clerk
+    const user = await currentUser();
+    const userEmail = user?.emailAddresses[0]?.emailAddress;
 
     if (!userEmail) {
-        return new Response('User email required for memory', { status: 400 });
+        return new Response('Unauthorized - User email required', { status: 401 });
     }
 
-    // Initialize OpenAI client inside the handler 
-    // or use a custom instance if needed to avoid top-level issues
     const openai = createOpenAI({
         apiKey: process.env.OPENAI_API_KEY,
     });
@@ -48,13 +50,14 @@ export async function POST(req: Request) {
     const systemPrompt = `
     You are an advanced CRM AI Assistant. Use the available tools to help the user manage their business.
     
+    Current User: ${userEmail}
+    
     ${memoryContext}
     
     Instructions:
-    - If the user asks to do something (create contact, schedule meeting), CALL THE TOOL. Do not just say you will do it.
-    - Be proactive. If you see a deal opportunity in an email draft, suggest creating a Deal.
-    - Keep responses professional but conversational.
-    - If you learn something new about the user (e.g. they tell you their role, or preference), acknowledge it subtly.
+    - If the user asks to do something, CALL THE TOOL.
+    - Be proactive.
+    - If you learn something new about the user, acknowledge it.
     `;
 
     // 2. Main Agent Execution
@@ -86,7 +89,7 @@ export async function POST(req: Request) {
             })
         },
         onFinish: async ({ text }) => {
-            // 3. The "Memorize" Step (Background)
+            // 3. The "Memorize" Step
             const lastUserMsg = messages[messages.length - 1];
             if (lastUserMsg.role === 'user') {
                 saveNewMemories(userEmail, lastUserMsg.content, text).catch(err => console.error('Memory saving error:', err));

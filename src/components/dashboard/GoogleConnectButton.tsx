@@ -3,36 +3,41 @@
 import { useState, useEffect } from 'react';
 import { Cloud, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useSearchParams } from 'next/navigation';
-// We import signIn from next-auth/react for client side
-import { signIn } from "next-auth/react"
+import { useUser, useSignIn } from '@clerk/nextjs';
 
 export function GoogleConnectButton({ className = "" }: { className?: string }) {
+    const { user, isLoaded } = useUser();
+    const { signIn } = useSignIn();
     const [isLoading, setIsLoading] = useState(false);
-    const [isConnected, setIsConnected] = useState(false);
-    const searchParams = useSearchParams();
 
-    useEffect(() => {
-        if (searchParams.get('google_connected') === 'true') {
-            setIsConnected(true);
-            toast.success('Google účet prepojený (NextAuth)!');
-            const newUrl = window.location.pathname;
-            window.history.replaceState({}, '', newUrl);
-        }
-    }, [searchParams]);
+    const isConnected = user?.externalAccounts.some(acc => acc.provider === 'google');
 
     const handleConnect = async () => {
+        if (!isLoaded) return;
         setIsLoading(true);
         try {
-            // NextAuth Magic
-            await signIn("google", { callbackUrl: "/dashboard?google_connected=true" });
-            // Note: signIn redirects, so code below might not run immediately
+            // Clerk Link Account Logic
+            // If they are logged in with email, we add Google as an account
+            // This will trigger the Google Login/Consent screen
+            const googleAccount = user?.externalAccounts.find(acc => acc.provider === 'google');
+
+            if (!googleAccount) {
+                // This will redirect out of the app to Clerk's Google Auth
+                // Make sure "Google" is enabled in Clerk dashboard!
+                await user?.createExternalAccount({
+                    provider: 'google',
+                    redirectUrl: window.location.href,
+                });
+            }
         } catch (e: any) {
             console.error(e);
-            toast.error('Chyba Auth', { description: e.message });
+            toast.error('Chyba prepojenia', { description: e.message || 'Skontrolujte nastavenia v Clerk' });
+        } finally {
             setIsLoading(false);
         }
     };
+
+    if (!isLoaded) return <Loader2 className="w-4 h-4 animate-spin" />;
 
     if (isConnected) {
         return (
@@ -41,7 +46,7 @@ export function GoogleConnectButton({ className = "" }: { className?: string }) 
                 className={`flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-sm font-bold text-green-700 shadow-sm cursor-default ${className}`}
             >
                 <Check className="w-4 h-4" />
-                <span>Google Pripojený</span>
+                <span>Google Prepojený (Clerk)</span>
             </button>
         );
     }
@@ -52,8 +57,8 @@ export function GoogleConnectButton({ className = "" }: { className?: string }) 
             disabled={isLoading}
             className={`flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm ${className}`}
         >
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4 text-blue-500" />}
-            <span>Prepojiť Google (NextAuth)</span>
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4 text-orange-500" />}
+            <span>Prepojiť Google (Clerk)</span>
         </button>
     );
 }
