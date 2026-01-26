@@ -9,7 +9,8 @@ const getBaseUrl = () => {
 };
 
 const getRedirectUrl = () => {
-    return `${getBaseUrl().replace(/\/$/, '')}/api/google/callback`;
+    // NEW ROUTE to bypass 404 issues
+    return `${getBaseUrl().replace(/\/$/, '')}/api/oauth/google`;
 };
 
 // Funkcia na vytvorenie novej inštancie klienta
