@@ -883,36 +883,67 @@ function EmailDetailView({ email, onClose }: { email: GmailMessage; onClose: () 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden bg-white">
                 {viewMode === 'html' && email.bodyHtml ? (
-                    <iframe
-                        srcDoc={`
+                    <div className="w-full h-full bg-white relative">
+                        <iframe
+                            srcDoc={`
+                                <!DOCTYPE html>
                                 <html>
                                     <head>
+                                        <meta charset="utf-8">
                                         <style>
+                                            * { box-sizing: border-box; }
                                             body { 
                                                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-                                                font-size: 14px; 
+                                                font-size: 15px; 
                                                 line-height: 1.6; 
-                                                color: #111827;
-                                                margin: 40px;
-                                                max-width: 800px;
+                                                color: #1f2937;
+                                                margin: 0;
+                                                padding: 40px;
+                                                max-width: 900px;
                                                 margin-left: auto;
                                                 margin-right: auto;
+                                                background-color: #ffffff;
+                                                word-wrap: break-word;
+                                                overflow-wrap: break-word;
                                             }
-                                            img { max-width: 100%; height: auto; border-radius: 8px; }
-                                            a { color: #2563eb; text-decoration: none; }
+                                            img { 
+                                                max-width: 100% !important; 
+                                                height: auto !important; 
+                                                border-radius: 12px;
+                                                box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                                                margin: 1rem 0;
+                                            }
+                                            a { color: #2563eb; text-decoration: none; font-weight: 600; }
                                             a:hover { text-decoration: underline; }
+                                            table { max-width: 100% !important; border-collapse: collapse; }
+                                            blockquote {
+                                                border-left: 4px solid #e5e7eb;
+                                                margin: 1.5rem 0;
+                                                padding-left: 1.5rem;
+                                                color: #6b7280;
+                                                font-style: italic;
+                                            }
+                                            /* Fix for some emails with huge font sizes */
+                                            @media only screen and (max-width: 600px) {
+                                                body { padding: 20px; }
+                                            }
                                         </style>
                                     </head>
                                     <body>${email.bodyHtml}</body>
                                 </html>
                             `}
-                        className="w-full h-full border-none"
-                        title="Email Content"
-                        sandbox="allow-popups allow-popups-to-escape-sandbox"
-                    />
+                            className="w-full h-full border-none"
+                            title="Email Content"
+                            sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
+                        />
+                    </div>
                 ) : (
-                    <div className="h-full overflow-y-auto p-12 max-w-4xl mx-auto text-sm text-gray-800 leading-relaxed whitespace-pre-wrap select-text">
-                        {email.body}
+                    <div className="h-full overflow-y-auto bg-gray-50/30">
+                        <div className="max-w-4xl mx-auto p-12 bg-white min-h-full shadow-sm border-x border-gray-100/50">
+                            <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap select-text font-mono opacity-90">
+                                {email.body}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
