@@ -3,8 +3,10 @@
 import * as React from 'react';
 import { Smartphone, Check, Copy, Apple, ArrowRight } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useSession } from 'next-auth/react'; // Use NextAuth
 
 export default function MobileSyncPage() {
+    const { data: session } = useSession(); // Access session
     const [copied, setCopied] = React.useState(false);
 
     const [origin, setOrigin] = React.useState('');
@@ -14,23 +16,10 @@ export default function MobileSyncPage() {
     React.useEffect(() => {
         setOrigin(window.location.origin);
 
-        const fetchUser = async () => {
-            try {
-                const { createBrowserClient } = await import('@supabase/ssr');
-                const supabase = createBrowserClient(
-                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-                );
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user?.email) {
-                    setUsername(user.email);
-                }
-            } catch (e) {
-                console.error('Failed to fetch user', e);
-            }
-        };
-        fetchUser();
-    }, []);
+        if (session?.user?.email) {
+            setUsername(session.user.email);
+        }
+    }, [session]);
 
     const serverUrl = origin ? `${origin}/api/dav` : '';
     const password = 'heslo'; // Simplifying based on user interaction (POC)

@@ -15,7 +15,7 @@ import {
     Mail,
     Smartphone
 } from 'lucide-react';
-import LogoutButton from './LogoutButton';
+import { LogoutButton } from './LogoutButton'; // Fixed import
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },

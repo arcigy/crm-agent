@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase-server';
 import { ContactsTable } from '@/components/dashboard/ContactsTable';
 import { createContact } from '@/app/actions/contacts';
 import { Lead } from '@/types/contact';
@@ -16,8 +15,6 @@ export default async function ContactsPage() {
     let isBlackBox = false;
 
     try {
-        const supabase = await createClient();
-
         // 1. Fetch Projects for linking
         let { data: projectsData } = await getProjects();
 

@@ -4,6 +4,20 @@ import { revalidatePath } from 'next/cache';
 import directus from '@/lib/directus';
 import { createItem, updateItem, readItems } from '@directus/sdk';
 
+export async function getContacts() {
+    try {
+        // @ts-ignore
+        const contacts = await directus.request(readItems('contacts', {
+            sort: ['-date_created'],
+            limit: 100
+        }));
+        return { success: true, data: contacts };
+    } catch (error: any) {
+        console.error('Failed to fetch contacts:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 export async function createContact(data: any) {
     try {
         if (!data.first_name) {

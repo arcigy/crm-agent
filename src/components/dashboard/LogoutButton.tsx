@@ -1,26 +1,23 @@
 'use client'
 
-import { createClient } from '@/lib/supabase-browser'
-import { useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react' // Use NextAuth signOut
 import { LogOut } from 'lucide-react'
 
-export default function LogoutButton({ className }: { className?: string }) {
-  const router = useRouter()
-  const supabase = createClient()
-
+export function LogoutButton({ className }: { className?: string }) {
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.refresh()
-    router.replace('/login')
+    // NextAuth signout
+    await signOut({ callbackUrl: '/login' });
   }
+
+  const defaultClass = "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-auto";
 
   return (
     <button
       onClick={handleLogout}
-      className={className || "inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"}
+      className={className || defaultClass}
     >
-      <LogOut className="h-4 w-4" />
-      Sign out
+      <LogOut className="w-4 h-4" />
+      <span>Odhlásiť sa</span>
     </button>
   )
 }
