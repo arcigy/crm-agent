@@ -184,18 +184,30 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
 
         try {
             const plainText = msg.body.replace(/<[^>]*>?/gm, '').trim();
+            if (!plainText || plainText.length < 5) {
+                toast.error('Obsah emailu je príliš krátky na analýzu.');
+                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnalyzing: false } : m));
+                return;
+            }
+
             const res = await fetch('/api/ai/classify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: plainText.substring(0, 1500), messageId: msg.id })
+                body: JSON.stringify({ content: plainText.substring(0, 2000), messageId: msg.id })
             });
             const data = await res.json();
 
             if (data.success) {
                 setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, classification: data.classification, isAnalyzing: false } : m));
+                setActiveActionId(msg.id); // Auto-open the analysis panel
+                toast.success('Analýza dokončená');
+            } else {
+                toast.error(`Chyba: ${data.error || 'Neznáma chyba'}`);
+                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnalyzing: false } : m));
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Manual Analysis Error:', error);
+            toast.error('Nepodarilo sa spojiť s AI serverom.');
             setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnalyzing: false } : m));
         }
     };
