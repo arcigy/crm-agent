@@ -27,6 +27,7 @@ const navigation = [
     { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
     { name: 'To Do', href: '/dashboard/todo', icon: CheckSquare },
     { name: 'Notes', href: '/dashboard/notes', icon: FileText },
+    { name: 'Files', href: '/dashboard/files', icon: HardDrive },
     { name: 'Invoicing', href: '/dashboard/invoicing', icon: FileText },
 ];
 

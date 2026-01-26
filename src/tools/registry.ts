@@ -1,4 +1,4 @@
-import { LucideIcon, Zap, FolderKanban, Calendar, Mail, CheckSquare, FileText } from 'lucide-react';
+import { LucideIcon, Zap, FolderKanban, Calendar, Mail, CheckSquare, FileText, HardDrive } from 'lucide-react';
 
 export interface Tool {
   id: string;
@@ -57,6 +57,14 @@ export const tools: Tool[] = [
     icon: FileText,
     stripePriceId: 'price_notes_premium',
     path: '/dashboard/notes',
+  },
+  {
+    id: 'files',
+    name: 'Moje Súbory',
+    description: 'Správa všetkých firemných súborov cez Google Drive.',
+    icon: HardDrive,
+    stripePriceId: 'price_files_premium',
+    path: '/dashboard/files',
   },
   {
     id: 'dummy-tool',
