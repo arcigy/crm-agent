@@ -5,27 +5,54 @@ import { createItem, readItems, updateItem } from '@directus/sdk';
 import { google } from 'googleapis';
 
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const code = searchParams.get('code');
-    const state = searchParams.get('state') || '/dashboard';
-
-    // Determine base URL safely
+    // Determine base URL safely at the very beginning
     const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
-    const redirectError = (msg: string) => NextResponse.redirect(`${baseUrl}/dashboard?error=${encodeURIComponent(msg)}`);
 
-    if (!code) {
-        return redirectError('No authorization code received.');
-    }
+    // Explicitly log everything to catch what fails
+    const redirectError = (msg: string, details?: string) => {
+        const errParam = encodeURIComponent(msg);
+        const detailParam = details ? `&details=${encodeURIComponent(details)}` : '';
+        return NextResponse.redirect(`${baseUrl}/dashboard?error=${errParam}${detailParam}`);
+    };
 
     try {
+        const { searchParams } = new URL(request.url);
+        const code = searchParams.get('code');
+        const state = searchParams.get('state') || '/dashboard';
+        const error = searchParams.get('error');
+
+        if (error) {
+            return redirectError('Google Error Received', error);
+        }
+
+        if (!code) {
+            return redirectError('No authorization code received.');
+        }
+
         console.log('🔄 Exchanging code for tokens...');
+
         // 1. Exchange code for tokens
-        const tokens = await getTokensFromCode(code);
+        // This function handles the OAuth client creation internally ensuring redirect URI matches
+        let tokens;
+        try {
+            tokens = await getTokensFromCode(code);
+        } catch (tokenErr: any) {
+            console.error('Token Exchange Failed:', tokenErr);
+            return redirectError('Token Exchange Failed', tokenErr.message);
+        }
+
         console.log('✅ Tokens received.');
 
         // 2. Get User Info (Email) to identify the user
-        oauth2Client.setCredentials(tokens);
-        const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+        // Create a FRESH client to avoid any singleton state issues
+        const auth = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET
+            // Redirect URI not strictly needed for just using tokens, but good practice
+        );
+        auth.setCredentials(tokens);
+
+        const oauth2 = google.oauth2({ version: 'v2', auth });
         const userInfo = await oauth2.userinfo.get();
 
         if (!userInfo.data.email) {
@@ -47,9 +74,9 @@ export async function GET(request: Request) {
         const tokenData = {
             user_email: userEmail,
             access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token, // Might be undefined if re-auth without prompt
+            refresh_token: tokens.refresh_token,
             scope: typeof tokens.scope === 'string' ? tokens.scope : JSON.stringify(tokens.scope),
-            expiry_date: tokens.expiry_date, // Timestamp
+            expiry_date: tokens.expiry_date,
             date_updated: new Date().toISOString()
         };
 
@@ -57,7 +84,7 @@ export async function GET(request: Request) {
             console.log('🔄 Updating existing token entry...');
             // Update
             if (!tokenData.refresh_token) {
-                delete tokenData.refresh_token;
+                delete tokenData.refresh_token; // Don't overwrite if undefined
             }
             // @ts-ignore
             await directus.request(updateItem('google_tokens', existingTokens[0].id, tokenData));
@@ -81,16 +108,7 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${baseUrl}${finalPath}?google_connected=true`);
 
     } catch (error: any) {
-        console.error('🚨 Google Callback Error:', error);
-
-        // Safe error message for user
-        let userMsg = 'Authentication failed.';
-        if (error.message?.includes('redirect_uri_mismatch')) {
-            userMsg = 'Configuration Error: Redirect URI mismatch. Please check Railway variables.';
-        } else if (error.message?.includes('invalid_grant')) {
-            userMsg = 'Invalid code or session expired. Please try again.';
-        }
-
-        return redirectError(userMsg);
+        console.error('🚨 Google Callback Crash:', error);
+        return redirectError('Authentication Crashed', error.message || String(error));
     }
 }
