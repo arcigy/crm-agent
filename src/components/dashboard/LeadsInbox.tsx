@@ -210,7 +210,11 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             const res = await fetch('/api/ai/classify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: textToAnalyze.substring(0, 3000), messageId: msg.id })
+                body: JSON.stringify({
+                    content: textToAnalyze.substring(0, 3000),
+                    messageId: msg.id,
+                    sender: msg.from
+                })
             });
 
             if (!res.ok) {
@@ -502,9 +506,9 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
                                     let borderColor = 'border-transparent border-b-gray-50'; // Default border
 
                                     if (isSpam) {
-                                        // Gray/Zinc Radial for Spam
-                                        priorityColor = 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-200 via-gray-100/50 to-transparent shadow-[inset_0_0_40px_rgba(107,114,128,0.1)] grayscale opacity-80';
-                                        borderColor = 'border border-gray-300/50';
+                                        // Solid Gray for Spam
+                                        priorityColor = 'bg-gray-100/80 grayscale opacity-60 hover:opacity-100 hover:bg-gray-200/50 transition-all';
+                                        borderColor = 'border border-gray-200';
                                     } else if (msg.classification?.priority === 'vysoka') {
                                         // Maximum Intensity Red Radial - High
                                         priorityColor = 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-300 via-red-200/60 to-transparent shadow-[inset_0_0_40px_rgba(239,68,68,0.25)]';

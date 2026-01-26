@@ -8,9 +8,9 @@ export const maxDuration = 45; // Increase timeout for AI
 
 export async function POST(req: Request) {
     try {
-        const { content, messageId } = await req.json();
+        const { content, messageId, sender } = await req.json();
 
-        console.log(`[AI Classify] Request for: ${messageId} | Length: ${content?.length}`);
+        console.log(`[AI Classify] Request for: ${messageId} | Length: ${content?.length} | Sender: ${sender}`);
 
         if (!process.env.OPENAI_API_KEY) {
             console.error('[AI Classify] MISSING API KEY');
@@ -26,8 +26,11 @@ export async function POST(req: Request) {
 
         const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-        // Pre-classification for obvious automated emails
-        const isNoReply = /no-reply|noreply|notification|alert/i.test(content) || /no-reply|accounts\.google\.com/i.test(messageId || '');
+        // Pre-classification for obvious automated emails using SENDER address
+        // Check both content keywords AND sender address patterns
+        const isNoReply =
+            /no-reply|noreply|notification|alert|newsletter|unsubscribe/i.test(content) ||
+            /no-reply|noreply|notification|alert|info@|support@|accounts\.google\.com|calendar-notification|facebookmail/i.test(sender || '');
 
         const { object } = await generateObject({
             model: openai('gpt-4o-mini'),
@@ -61,8 +64,9 @@ export async function POST(req: Request) {
             `,
         });
 
-        // Manual override if AI fails to see obvious noreply patterns as low priority
-        if (isNoReply && object.priority === 'vysoka') {
+        // Manual override if AI fails to see obvious automated patterns
+        if (isNoReply) {
+            object.intent = 'spam';
             object.priority = 'nizka';
         }
 
