@@ -26,7 +26,7 @@ export async function checkEmailStatus(email: string) {
         }
 
         // If no password hash, it's a first time login (invited)
-        if (!user.password_hash) {
+        if (!user.password_hash || user.password_hash === "") {
             return { status: 'FIRST_TIME', name: user.first_name };
         }
 
@@ -95,7 +95,7 @@ export async function completeOnboarding(email: string, newPassword: string) {
         const user = users[0];
 
         // Security check: Only allow setting password if it's empty
-        if (user.password_hash) {
+        if (user.password_hash && user.password_hash !== "") {
             return { success: false, error: 'Account already set up. Please login normally.' };
         }
 
