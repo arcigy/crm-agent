@@ -1,5 +1,7 @@
 'use client';
 
+import * as React from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -18,6 +20,7 @@ import {
     HardDrive
 } from 'lucide-react';
 import { LogoutButton } from './LogoutButton';
+import { syncGoogleContacts } from '@/app/actions/contacts';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -32,10 +35,7 @@ const navigation = [
     { name: 'Invoicing', href: '/dashboard/invoicing', icon: FileText },
 ];
 
-import { useEffect } from 'react';
-import { syncGoogleContacts } from '@/app/actions/contacts';
-
-export function Sidebar() {
+export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
 
     useEffect(() => {
@@ -51,7 +51,7 @@ export function Sidebar() {
     }, []);
 
     return (
-        <div className="flex h-screen w-64 flex-col fixed inset-y-0 z-50 bg-[#0F172A] text-white border-r border-[#1E293B]">
+        <div className={`flex h-screen flex-col bg-[#0F172A] text-white border-r border-[#1E293B] shrink-0 ${className}`}>
             {/* Logo Area */}
             <div className="flex h-16 shrink-0 items-center px-6 border-b border-[#1E293B]">
                 <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
@@ -63,7 +63,7 @@ export function Sidebar() {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+            <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 custom-scrollbar">
                 {navigation.map((item) => {
                     const isActive = pathname === item.href;
                     const Icon = item.icon;
@@ -72,14 +72,14 @@ export function Sidebar() {
                             key={item.name}
                             href={item.href}
                             className={`
-                group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200
-                ${isActive
+                                group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200
+                                ${isActive
                                     ? 'bg-blue-600 text-white shadow-md'
                                     : 'text-gray-400 hover:bg-[#1E293B] hover:text-white'
                                 }
-              `}
+                            `}
                         >
-                            <Icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-white'}`} />
+                            {Icon && <Icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-white'}`} />}
                             {item.name}
                         </Link>
                     );

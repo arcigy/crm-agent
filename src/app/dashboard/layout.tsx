@@ -17,11 +17,11 @@ export default async function DashboardLayout({
 
     return (
         <div className="flex h-screen bg-gray-50/50">
-            <Sidebar className="w-64 border-r border-gray-200 hidden md:flex flex-col bg-white" />
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-                <VoiceDictationProvider>
+            <Sidebar className="w-64" />
+            <main className="flex-1 flex flex-col min-w-0 overflow-y-auto relative bg-white">
+                <div className="p-8">
                     {children}
-                </VoiceDictationProvider>
+                </div>
             </main>
         </div>
     );
