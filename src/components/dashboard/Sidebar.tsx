@@ -9,13 +9,14 @@ import {
     Target,
     FolderKanban,
     Calendar,
-    FileText, // For Invoicing
+    FileText,
     LogOut,
     Settings,
     Mail,
-    Smartphone
+    Smartphone,
+    CheckSquare
 } from 'lucide-react';
-import { LogoutButton } from './LogoutButton'; // Fixed import
+import { LogoutButton } from './LogoutButton';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -24,6 +25,8 @@ const navigation = [
     { name: 'Deals', href: '/dashboard/deals', icon: Briefcase },
     { name: 'Projects', href: '/dashboard/projects', icon: FolderKanban },
     { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
+    { name: 'To Do', href: '/dashboard/todo', icon: CheckSquare },
+    { name: 'Notes', href: '/dashboard/notes', icon: FileText },
     { name: 'Invoicing', href: '/dashboard/invoicing', icon: FileText },
 ];
 
