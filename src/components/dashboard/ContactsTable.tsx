@@ -42,6 +42,7 @@ import Link from 'next/link';
 import { updateContactComments } from '@/app/actions/contacts';
 import { ContactDetailModal } from './ContactDetailModal';
 import { ContactImportModal } from './ContactImportModal';
+import { GoogleImportModal } from './GoogleImportModal';
 import { Lead, Activity, Deal } from '@/types/contact';
 
 const columnHelper = createColumnHelper<Lead>();
@@ -805,6 +806,7 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
     const [detailContact, setDetailContact] = React.useState<Lead | null>(null);
     const [fullDetailContact, setFullDetailContact] = React.useState<Lead | null>(null);
     const [projectsContact, setProjectsContact] = React.useState<Lead | null>(null);
+    const [isGoogleImportOpen, setIsGoogleImportOpen] = React.useState(false);
     const [isMounted, setIsMounted] = React.useState(false);
 
     React.useEffect(() => {
@@ -819,6 +821,7 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
             setIsModalOpen(true);
         };
         const handleOpenImport = () => setIsImportModalOpen(true);
+        const handleOpenGoogleImport = () => setIsGoogleImportOpen(true);
 
         window.addEventListener('open-qr', handleOpenQr);
         window.addEventListener('open-activity-detail', handleOpenDetail);
@@ -826,6 +829,7 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
         window.addEventListener('open-project-detail', handleOpenProjects);
         window.addEventListener('open-create-contact', handleOpenCreate);
         window.addEventListener('open-import-contact', handleOpenImport);
+        window.addEventListener('open-import-google', handleOpenGoogleImport);
 
         return () => {
             window.removeEventListener('open-qr', handleOpenQr);
@@ -834,6 +838,7 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
             window.removeEventListener('open-project-detail', handleOpenProjects);
             window.removeEventListener('open-create-contact', handleOpenCreate);
             window.removeEventListener('open-import-contact', handleOpenImport);
+            window.removeEventListener('open-import-google', handleOpenGoogleImport);
         };
     }, []);
 
@@ -890,6 +895,11 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
                     // For now simple close is enough, Next.js should handle RSC update.
                     window.location.reload(); // Simple brute force to ensure table updates immediately
                 }}
+            />
+
+            <GoogleImportModal
+                isOpen={isGoogleImportOpen}
+                onClose={() => setIsGoogleImportOpen(false)}
             />
 
             <PhoneQrModal phone={qrPhone} onClose={() => setQrPhone(null)} />

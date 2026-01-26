@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, Download, UserPlus, Code, FileText, ChevronDown } from 'lucide-react';
+import { Plus, Download, UserPlus, Code, FileText, ChevronDown, RefreshCcw } from 'lucide-react';
 
 export function ContactActionButtons() {
     const [isOpen, setIsOpen] = React.useState(false);
@@ -73,6 +73,19 @@ export function ContactActionButtons() {
                         <div className="flex flex-col">
                             <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">Import súboru</span>
                             <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">vCard / CSV / Excel</span>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() => trigger('open-import-google')}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-blue-50 transition-colors group border-t border-gray-50 mt-1"
+                    >
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            <RefreshCcw className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">Google Sync</span>
+                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Automatický import</span>
                         </div>
                     </button>
                 </div>

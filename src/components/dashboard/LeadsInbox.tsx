@@ -232,25 +232,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         }
     };
 
-    if (!isConnected && !loading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-12 text-center text-gray-700 font-medium">
-                <div className="w-20 h-20 bg-blue-600 text-white rounded-3xl flex items-center justify-center mb-6 shadow-xl shadow-blue-100 rotate-3">
-                    <Mail className="w-10 h-10" />
-                </div>
-                <h2 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">Synchronizujte svoj Gmail</h2>
-                <p className="text-gray-500 max-w-sm mb-8">
-                    Premeňte svoju doručenú poštu na stroj na zákazky. Synchronizujte e-maily a spravujte leady priamo tu.
-                </p>
-                <button
-                    onClick={handleConnect}
-                    className="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center gap-3"
-                >
-                    <Mail className="w-5 h-5" /> Autorizovať prístup
-                </button>
-            </div>
-        );
-    }
+
 
     const handleExecuteCustomCommand = async () => {
         if (!customPrompt.trim() || !selectedEmail) return;
@@ -423,7 +405,17 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             <div className="flex-1 flex flex-col h-full overflow-hidden bg-white">
                 {/* Header/Toolbar */}
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                    <h1 className="text-xl font-black text-gray-900 tracking-tight">Doručená pošta</h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-xl font-black text-gray-900 tracking-tight">Doručená pošta</h1>
+                        {!isConnected && !loading && (
+                            <button
+                                onClick={handleConnect}
+                                className="flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 transition-all"
+                            >
+                                <Sparkles className="w-3 h-3" /> Povoliť Gmail
+                            </button>
+                        )}
+                    </div>
                     <div className="flex items-center gap-3">
                         <div className="relative w-64">
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
