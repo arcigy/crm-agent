@@ -35,6 +35,14 @@ export const tools: Tool[] = [
     path: '/dashboard/leads',
   },
   {
+    id: 'booking',
+    name: 'Booking System',
+    description: 'Vlastný scheduler typu Cal.com pre automatizované plánovanie stretnutí.',
+    icon: Zap, // Will change if needed
+    stripePriceId: 'price_booking_premium',
+    path: '/dashboard/booking',
+  },
+  {
     id: 'dummy-tool',
     name: 'Dummy Tool',
     description: 'A test tool to verify access control and payments.',
