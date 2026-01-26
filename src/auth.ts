@@ -4,7 +4,7 @@ import directus from "@/lib/directus"
 import { readItems, createItem, updateItem } from "@directus/sdk"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-    debug: true, // Enable debug logs in Railway
+    debug: true,
     providers: [
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID,
@@ -26,7 +26,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     console.log("Saving Google Tokens to Directus...");
                     const userEmail = user.email;
 
-                    if (!userEmail) return true; // Allow login even without email logic
+                    if (!userEmail) return true;
 
                     // @ts-ignore
                     const existingTokens = await directus.request(readItems('google_tokens', {
@@ -55,7 +55,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     return true;
                 } catch (error) {
                     console.error("⚠️ NextAuth DB Save Failed (Non-fatal):", error);
-                    // Return TRUE to allow login success even if DB save fails
                     return true;
                 }
             }
@@ -66,4 +65,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
     },
     useSecureCookies: process.env.NODE_ENV === "production",
+    trustHost: true, // Fix for Railway UntrustedHost error
 })
