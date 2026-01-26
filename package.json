@@ -14,6 +14,8 @@
     "@chengsokdara/use-whisper": "^0.2.0",
     "@clerk/nextjs": "^6.36.10",
     "@directus/sdk": "^21.0.0",
+    "@mlightcad/cad-simple-viewer": "^1.4.5",
+    "@mlightcad/libredwg-converter": "^3.4.8",
     "@stripe/stripe-js": "^8.6.3",
     "@tanstack/react-table": "^8.21.3",
     "@types/bcryptjs": "^2.4.6",

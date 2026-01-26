@@ -14,7 +14,8 @@ import {
     Settings,
     Mail,
     Smartphone,
-    CheckSquare
+    CheckSquare,
+    HardDrive
 } from 'lucide-react';
 import { LogoutButton } from './LogoutButton';
 
