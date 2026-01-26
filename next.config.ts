@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   // Disable trailing slash handling to avoid redirects on API routes
   trailingSlash: false,
   // Ensure we are not statically exporting unless intentional
-  output: 'standalone',
+  // output: 'standalone',
 
   // Ignore typescript/eslint errors during build to ensuring deployment succeeds even with minor issues
   typescript: {
