@@ -9,8 +9,18 @@ export async function POST(req: Request) {
     try {
         const { content, messageId } = await req.json();
 
-        if (!content) {
-            return NextResponse.json({ success: false, error: 'Chýba obsah na analýzu' });
+        console.log(`[AI Classify] Received request for msg: ${messageId}, content length: ${content?.length || 0}`);
+
+        if (!process.env.OPENAI_API_KEY) {
+            console.error('[AI Classify] CRITICAL ERROR: OPENAI_API_KEY is missing in environment variables!');
+            return NextResponse.json({
+                success: false,
+                error: 'Server nemá nastavený OpenAI API Key. Pridajte kľúč do Railway Environment Variables.'
+            });
+        }
+
+        if (!content || content.length < 5) {
+            return NextResponse.json({ success: false, error: 'Chýba obsah na analýzu alebo je príliš krátky' });
         }
 
         const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });

@@ -75,9 +75,17 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
                 setMessages(prev => {
                     return gmailData.messages.map((newMsg: GmailMessage) => {
                         const existing = prev.find(p => p.id === newMsg.id);
-                        // Smart Merge: Keep existing classification if new one is missing (prevents flickering)
-                        if (existing?.classification && !newMsg.classification) {
-                            return { ...newMsg, classification: existing.classification };
+
+                        // Try to restore from localStorage if missing in state
+                        let classification = existing?.classification;
+                        if (!classification) {
+                            const saved = localStorage.getItem(`ai_classify_${newMsg.id}`);
+                            if (saved) classification = JSON.parse(saved);
+                        }
+
+                        // Smart Merge: Keep existing classification if new one is missing
+                        if (classification) {
+                            return { ...newMsg, classification };
                         }
                         return newMsg;
                     });
@@ -183,31 +191,49 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnalyzing: true } : m));
 
         try {
-            const plainText = msg.body.replace(/<[^>]*>?/gm, '').trim();
-            if (!plainText || plainText.length < 5) {
+            // Priority: Use HTML if body is too snippet-like/empty
+            let textToAnalyze = msg.body;
+            if ((!textToAnalyze || textToAnalyze.length < 50) && msg.bodyHtml) {
+                // Strip HTML tags roughly for AI context
+                textToAnalyze = msg.bodyHtml.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+            }
+
+            if (!textToAnalyze || textToAnalyze.length < 5) {
                 toast.error('Obsah emailu je príliš krátky na analýzu.');
                 setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnalyzing: false } : m));
                 return;
             }
 
+            console.log(`[Inbox UI] Analyzing message ${msg.id}. Text length: ${textToAnalyze.length}`);
+
             const res = await fetch('/api/ai/classify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: plainText.substring(0, 2000), messageId: msg.id })
+                body: JSON.stringify({ content: textToAnalyze.substring(0, 3000), messageId: msg.id })
             });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${res.status}`);
+            }
+
             const data = await res.json();
 
             if (data.success) {
+                // Persistent storage in localStorage so background sync doesn't wipe it
+                const storageKey = `ai_classify_${msg.id}`;
+                localStorage.setItem(storageKey, JSON.stringify(data.classification));
+
                 setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, classification: data.classification, isAnalyzing: false } : m));
-                setActiveActionId(msg.id); // Auto-open the analysis panel
+                setActiveActionId(msg.id);
                 toast.success('Analýza dokončená');
             } else {
-                toast.error(`Chyba: ${data.error || 'Neznáma chyba'}`);
+                toast.error(`Chyba AI: ${data.error || 'Neznáma chyba'}`);
                 setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnalyzing: false } : m));
             }
         } catch (error: any) {
             console.error('Manual Analysis Error:', error);
-            toast.error('Nepodarilo sa spojiť s AI serverom.');
+            toast.error(`Analýza zlyhala: ${error.message}`);
             setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnalyzing: false } : m));
         }
     };
