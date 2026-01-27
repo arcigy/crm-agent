@@ -69,6 +69,11 @@ Ak je správa vyhodnotená ako relevantná, vyplň nasledujúce body:
 * **Estimated Budget:** Ak je spomenutý, uveď sumu, inak \`—\`.
 * **Next Step:** Navrhni najbližší logický krok.
 * **Deadline:** Ak je v texte uvedený konkrétny termín, extrahuj ho.
+* **Entities:** Extrahuj kontaktné údaje v JSON objekte:
+    * **contact_name:** Meno odosielateľa/podpis (napr. "Ján Novák").
+    * **company_name:** Názov firmy (napr. "Novák s.r.o.").
+    * **phone:** Telefónne číslo v medzinárodnom formáte (napr. "+421 905 ...").
+    * **email:** Email z textu alebo hlavičky (ak je dostupný).
 
 ---
 
@@ -89,7 +94,13 @@ Sender: jan.novak@gmail.com
   "summary": "Klient Ján Novák má záujem o 10kW FVE systém pre rodinný dom v Nitre s orientáciou na juh. Požaduje realizáciu do konca leta.",
   "estimated_budget": "—",
   "next_step": "Pripraviť predbežnú cenovú ponuku a dohodnúť obhliadku.",
-  "deadline": "Koniec leta"
+  "deadline": "Koniec leta",
+  "entities": {
+      "contact_name": "Ján Novák",
+      "company_name": "—",
+      "phone": "—",
+      "email": "jan.novak@gmail.com"
+  }
 }
 
 ### Príklad 2: Spam / Newsletter
@@ -107,7 +118,13 @@ Sender: promo@tonery-lacno.sk
   "summary": "Filter: Spam/Newsletter",
   "estimated_budget": "—",
   "next_step": "—",
-  "deadline": "—"
+  "deadline": "—",
+  "entities": {
+      "contact_name": "—",
+      "company_name": "—",
+      "phone": "—",
+      "email": "promo@tonery-lacno.sk"
+  }
 }
 
 ---

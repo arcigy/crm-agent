@@ -191,41 +191,51 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
     const handleSaveContact = async (e: React.MouseEvent, msg: GmailMessage) => {
         e.stopPropagation();
 
-        // 1. Parse Name & Email from "From" header
-        // Format Usually: "John Doe <john@doe.com>"
-        let name = msg.from;
-        let email = '';
+        // 1. Initialize with AI Data (Priority)
+        const aiEntities = msg.classification?.entities;
+        let name = aiEntities?.contact_name && aiEntities.contact_name !== '—' ? aiEntities.contact_name : '';
+        let email = aiEntities?.email && aiEntities.email !== '—' ? aiEntities.email : '';
+        let phone = aiEntities?.phone && aiEntities.phone !== '—' ? aiEntities.phone : '';
+        let company = aiEntities?.company_name && aiEntities.company_name !== '—' ? aiEntities.company_name : '';
 
-        const emailMatch = msg.from.match(/<([^>]+)>/);
-        if (emailMatch) {
-            email = emailMatch[1];
-            name = msg.from.replace(/<[^>]+>/, '').trim().replace(/^"|"$/g, '');
-        } else {
-            // Fallback if no brackets (e.g. just "john@doe.com")
-            email = msg.from.trim();
-            name = email.split('@')[0]; // Use part before @ as name
+        // 2. Fallbacks (Header & Regex) if AI data missing
+
+        // Name & Email Fallback
+        if (!name || !email) {
+            const emailMatch = msg.from.match(/<([^>]+)>/);
+            if (emailMatch) {
+                if (!email) email = emailMatch[1];
+                if (!name) name = msg.from.replace(/<[^>]+>/, '').trim().replace(/^"|"$/g, '');
+            } else {
+                if (!email) email = msg.from.trim();
+                if (!name) name = email.split('@')[0];
+            }
         }
 
-        // 2. Try to find Phone in Body (Regex for SK/CZ/Int formats)
-        // Matches: +421 900 123 456, 0900 123 456, 0900123456
-        const phoneRegex = /(?:\+|00)(?:421|420|43|49)\s?\d{1,4}\s?\d{2,4}\s?\d{2,4}|(?<!\d)09\d{2}[\s.-]?\d{3}[\s.-]?\d{3}(?!\d)/g;
-        const textToSearch = msg.body || msg.snippet || '';
-        const phones = textToSearch.match(phoneRegex);
-        const uniquePhones = phones ? Array.from(new Set(phones.map(p => p.trim()))) : [];
-        let phone = uniquePhones.length > 0 ? uniquePhones[uniquePhones.length - 1].replace(/\s/g, '') : undefined;
+        // Phone Fallback (Regex)
+        if (!phone) {
+            const phoneRegex = /(?:\+|00)(?:421|420|43|49)\s?\d{1,4}\s?\d{2,4}\s?\d{2,4}|(?<!\d)09\d{2}[\s.-]?\d{3}[\s.-]?\d{3}(?!\d)/g;
+            const textToSearch = msg.body || msg.snippet || '';
+            const phones = textToSearch.match(phoneRegex);
+            const uniquePhones = phones ? Array.from(new Set(phones.map(p => p.trim()))) : [];
+
+            if (uniquePhones.length > 0) {
+                // Use the last found phone as it's often the signature
+                phone = uniquePhones[uniquePhones.length - 1].replace(/\s/g, '');
+            }
+        }
 
         // 3. Confirm & Save
-        let phoneDisplay = 'Nenašlo sa';
-        if (uniquePhones.length === 1) phoneDisplay = uniquePhones[0];
-        else if (uniquePhones.length > 1) phoneDisplay = `${uniquePhones[uniquePhones.length - 1]} (a ďalšie: ${uniquePhones.slice(0, -1).join(', ')})`;
+        const phoneDisplay = phone || 'Nenašlo sa';
+        const companyDisplay = company || 'Neznáma';
 
-        // 3. Confirm & Save
-        const confirmMsg = `Nájdené údaje:\n\nMeno: ${name}\nEmail: ${email}\nTel: ${phoneDisplay}\n\nUložiť kontakt?`;
+        const confirmMsg = `Nájdené údaje:\n\nMeno: ${name}\nFirma: ${companyDisplay}\nEmail: ${email}\nTel: ${phoneDisplay}\n\nUložiť kontakt?`;
 
         if (window.confirm(confirmMsg)) {
             const toastId = toast.loading('Ukladám kontakt...');
             try {
-                const res = await agentCreateContact({ name, email, phone });
+                // @ts-ignore - company is supported in agentCreateContact but might be missing in some interface defs
+                const res = await agentCreateContact({ name, email, phone, company });
                 if (res.success) {
                     toast.success('Kontakt úspešne vytvorený', { id: toastId });
                 } else {

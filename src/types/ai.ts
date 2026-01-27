@@ -8,6 +8,12 @@ export interface EmailClassification {
     draft_reply?: string;
     deadline?: string;
     summary: string;
+    entities?: {
+        contact_name?: string;
+        company_name?: string;
+        phone?: string;
+        email?: string;
+    };
 }
 
 
