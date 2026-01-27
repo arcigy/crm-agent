@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { ContactExtractionModal } from '@/components/dashboard/ContactExtractionModal';
 import {
     Mail,
     Search,
@@ -56,6 +57,11 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
     const [searchQuery, setSearchQuery] = React.useState('');
     const [selectedTab, setSelectedTab] = React.useState<'all' | 'unread' | 'leads' | 'sms' | 'calls'>('all');
     const [selectedEmail, setSelectedEmail] = React.useState<GmailMessage | null>(null);
+
+    // MODAL STATE
+    const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
+    const [contactModalData, setContactModalData] = React.useState<{ name: string, email: string, phone: string, company: string } | null>(null);
+    const [contactModalEmailBody, setContactModalEmailBody] = React.useState('');
 
     // NEW STATES
     const [activeActionId, setActiveActionId] = React.useState<string | null>(null);
@@ -225,26 +231,12 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             }
         }
 
-        // 3. Confirm & Save
-        const phoneDisplay = phone || 'Nenašlo sa';
-        const companyDisplay = company || 'Neznáma';
+        // 3. Open Modal instead of Confirm
+        const companyDisplay = company || ''; // Let modal handle empty display logic
 
-        const confirmMsg = `Nájdené údaje:\n\nMeno: ${name}\nFirma: ${companyDisplay}\nEmail: ${email}\nTel: ${phoneDisplay}\n\nUložiť kontakt?`;
-
-        if (window.confirm(confirmMsg)) {
-            const toastId = toast.loading('Ukladám kontakt...');
-            try {
-                // @ts-ignore - company is supported in agentCreateContact but might be missing in some interface defs
-                const res = await agentCreateContact({ name, email, phone, company });
-                if (res.success) {
-                    toast.success('Kontakt úspešne vytvorený', { id: toastId });
-                } else {
-                    toast.error(`Chyba: ${res.error}`, { id: toastId });
-                }
-            } catch (err) {
-                toast.error('Nepodarilo sa uložiť kontakt', { id: toastId });
-            }
-        }
+        setContactModalData({ name, email, phone, company: companyDisplay });
+        setContactModalEmailBody(msg.body || msg.snippet || '');
+        setIsContactModalOpen(true);
     };
 
     // AUTO-ANALYSIS SYSTEM
@@ -467,6 +459,30 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
 
     return (
         <div className="flex h-full gap-0 bg-white rounded-none relative">
+            {/* Contact Extraction Modal */}
+            {isContactModalOpen && contactModalData && (
+                <ContactExtractionModal
+                    isOpen={isContactModalOpen}
+                    onClose={() => setIsContactModalOpen(false)}
+                    emailBody={contactModalEmailBody}
+                    extractedData={contactModalData}
+                    onConfirm={async () => {
+                        const toastId = toast.loading('Ukladám kontakt...');
+                        try {
+                            // @ts-ignore
+                            const res = await agentCreateContact(contactModalData);
+                            if (res.success) {
+                                toast.success('Kontakt úspešne vytvorený', { id: toastId });
+                            } else {
+                                toast.error(`Chyba: ${res.error}`, { id: toastId });
+                            }
+                        } catch (err) {
+                            toast.error('Nepodarilo sa uložiť kontakt', { id: toastId });
+                        }
+                    }}
+                />
+            )}
+
             {/* Quick Composer Modal */}
             {draftingEmail && (
                 <QuickComposerModal
