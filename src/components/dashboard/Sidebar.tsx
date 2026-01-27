@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -17,85 +17,113 @@ import {
     Mail,
     Smartphone,
     CheckSquare,
-    HardDrive
+    HardDrive,
+    Menu,
+    X
 } from 'lucide-react';
 import { LogoutButton } from './LogoutButton';
 import { syncGoogleContacts } from '@/app/actions/contacts';
 
 const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Leads Inbox', href: '/dashboard/leads', icon: Mail },
-    { name: 'Contacts', href: '/dashboard/contacts', icon: Users },
-    { name: 'Deals', href: '/dashboard/deals', icon: Briefcase },
-    { name: 'Projects', href: '/dashboard/projects', icon: FolderKanban },
-    { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
-    { name: 'To Do', href: '/dashboard/todo', icon: CheckSquare },
-    { name: 'Notes', href: '/dashboard/notes', icon: FileText },
-    { name: 'Files', href: '/dashboard/files', icon: HardDrive },
-    { name: 'Invoicing', href: '/dashboard/invoicing', icon: FileText },
+    { name: 'Nástenka', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Doručená pošta', href: '/dashboard/leads', icon: Mail },
+    { name: 'Kontakty', href: '/dashboard/contacts', icon: Users },
+    { name: 'Obchody', href: '/dashboard/deals', icon: Briefcase },
+    { name: 'Projekty', href: '/dashboard/projects', icon: FolderKanban },
+    { name: 'Kalendár', href: '/dashboard/calendar', icon: Calendar },
+    { name: 'Úlohy', href: '/dashboard/todo', icon: CheckSquare },
+    { name: 'Poznámky', href: '/dashboard/notes', icon: FileText },
+    { name: 'Súbory', href: '/dashboard/files', icon: HardDrive },
+    { name: 'Fakturácia', href: '/dashboard/invoicing', icon: FileText },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
+    const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
-        // Trigger background sync on mount
         syncGoogleContacts();
-
-        // Optional: Sync every 5 minutes
         const interval = setInterval(() => {
             syncGoogleContacts();
         }, 5 * 60 * 1000);
-
         return () => clearInterval(interval);
     }, []);
 
+    // Close menu on navigation
+    useEffect(() => {
+        setIsOpen(false);
+    }, [pathname]);
+
     return (
-        <div className={`flex h-screen flex-col bg-[#0F172A] text-white border-r border-[#1E293B] shrink-0 ${className}`}>
-            {/* Logo Area */}
-            <div className="flex h-16 shrink-0 items-center px-6 border-b border-[#1E293B]">
-                <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <span className="text-white">C</span>
+        <>
+            {/* Mobile Toggle */}
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="lg:hidden fixed bottom-6 right-6 z-[200] w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-95 transition-all"
+            >
+                {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+
+            {/* Backdrop for mobile */}
+            {isOpen && (
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] lg:hidden"
+                    onClick={() => setIsOpen(false)}
+                />
+            )}
+
+            <div className={`
+                fixed inset-y-0 left-0 z-[100] w-64 flex flex-col bg-[#0F172A] text-white border-r border-[#1E293B]
+                transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
+                ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+                ${className}
+            `}>
+                {/* Logo Area */}
+                <div className="flex h-16 shrink-0 items-center px-6 border-b border-[#1E293B]">
+                    <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+                            <span className="text-white">C</span>
+                        </div>
+                        <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">CRM-IDE</span>
                     </div>
-                    <span>CRM-IDE</span>
+                </div>
+
+                {/* Navigation */}
+                <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-1 custom-scrollbar">
+                    {navigation.map((item) => {
+                        const isActive = pathname === item.href;
+                        const Icon = item.icon;
+                        return (
+                            <Link
+                                key={item.name}
+                                href={item.href}
+                                className={`
+                                    group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200
+                                    ${isActive
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 translate-x-1'
+                                        : 'text-gray-400 hover:bg-[#1E293B] hover:text-white hover:translate-x-1'
+                                    }
+                                `}
+                            >
+                                {Icon && <Icon className={`h-5 w-5 shrink-0 transition-colors ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-white'}`} />}
+                                {item.name}
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                {/* Bottom Actions */}
+                <div className="border-t border-[#1E293B] p-4 bg-[#0F172A]">
+                    <div className="flex flex-col gap-2">
+                        <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-gray-400 hover:bg-[#1E293B] hover:text-white w-full transition-all group">
+                            <Settings className="h-5 w-5 text-gray-500 group-hover:rotate-45 transition-transform" />
+                            Nastavenia
+                        </button>
+                        <LogoutButton className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-gray-400 hover:bg-red-500/10 hover:text-red-400 w-full transition-all justify-start" />
+                    </div>
                 </div>
             </div>
-
-            {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 custom-scrollbar">
-                {navigation.map((item) => {
-                    const isActive = pathname === item.href;
-                    const Icon = item.icon;
-                    return (
-                        <Link
-                            key={item.name}
-                            href={item.href}
-                            className={`
-                                group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200
-                                ${isActive
-                                    ? 'bg-blue-600 text-white shadow-md'
-                                    : 'text-gray-400 hover:bg-[#1E293B] hover:text-white'
-                                }
-                            `}
-                        >
-                            {Icon && <Icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-white'}`} />}
-                            {item.name}
-                        </Link>
-                    );
-                })}
-            </nav>
-
-            {/* Bottom Actions */}
-            <div className="border-t border-[#1E293B] p-4 bg-[#0F172A]">
-                <div className="flex flex-col gap-2">
-                    <button className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-400 hover:bg-[#1E293B] hover:text-white w-full transition-colors">
-                        <Settings className="h-5 w-5 text-gray-500" />
-                        Settings
-                    </button>
-                    <LogoutButton className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-400 hover:bg-red-500/10 hover:text-red-400 w-full transition-colors justify-start" />
-                </div>
-            </div>
-        </div>
+        </>
     );
 }
+
