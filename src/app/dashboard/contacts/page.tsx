@@ -45,9 +45,13 @@ async function ContactsListing() {
                 return { ...contact, projects: contactProjects };
             });
         } else if (contactsRes.status === 'rejected') {
-            console.error('Directus fetch failed:', contactsRes.reason);
-            // Default to empty if DB fails completely
-            contacts = [];
+            const reason = (contactsRes.reason as any)?.message || '';
+            console.error('Directus fetch failed:', reason);
+            if (reason.includes('Timeout')) {
+                errorMsg = 'Databáza neodpovedá (Timeout). Skontrolujte, či Directus beží na Railway.';
+            } else {
+                errorMsg = 'Chyba spojenia s databázou: ' + reason;
+            }
         }
 
     } catch (e: any) {

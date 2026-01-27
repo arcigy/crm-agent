@@ -57,10 +57,17 @@ export async function GET() {
         // 2. Fetch CRM Projects (The "CRM Calendar")
         let projectEvents: any[] = [];
         try {
+            const withTimeout = (promise: Promise<any>, timeoutMs: number) =>
+                Promise.race([
+                    promise,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
+                ]);
+
             // @ts-ignore
-            const projects = await directus.request(readItems('projects', {
+            const projects = await withTimeout(directus.request(readItems('projects', {
                 filter: { deleted_at: { _null: true } },
-            }));
+                limit: 100
+            })), 3000);
 
             if (projects) {
                 // @ts-ignore
@@ -76,7 +83,8 @@ export async function GET() {
                 }));
             }
         } catch (e) {
-            console.error('Directus project fetch failed:', e);
+            console.error('Directus project fetch failed or timed out:', e);
+            // Non-blocking: continue with google events even if CRM fails
         }
 
         return NextResponse.json({
