@@ -1,13 +1,5 @@
 import * as React from 'react';
 import { X, Check, User, Building2, Phone, Mail, Loader2 } from 'lucide-react';
-import { Dialog } from '@/components/ui/dialog'; // Assuming we might have a dialog primitive, but I'll build a raw modal to be safe and dependency-free if needed.
-import { cn } from '@/lib/utils'; // Assuming this exists or I'll inline it.
-
-// Mocking cn if it doesn't exist efficiently in prompt context, 
-// but typically shadcn projects have it. I'll use a safe inline version if I'm not sure.
-function safeCn(...classes: (string | undefined | null | false)[]) {
-    return classes.filter(Boolean).join(' ');
-}
 
 interface ContactExtractionModaProps {
     isOpen: boolean;
@@ -34,7 +26,6 @@ export function ContactExtractionModal({
 
     React.useEffect(() => {
         if (isOpen) {
-            // Trigger animation shortly after mount
             setTimeout(() => setAnimate(true), 100);
         } else {
             setAnimate(false);
@@ -54,31 +45,58 @@ export function ContactExtractionModal({
     const renderHighlightedText = () => {
         if (!emailBody) return "";
 
-        let parts = [{ text: emailBody, type: 'text' }];
+        let parts: { text: string, type: string, color?: string, border?: string }[] = [{ text: emailBody, type: 'text' }];
+
+        // Helper to escape regex special chars
+        const escapeRegExp = (string: string) => {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        };
+
+        // Create flexible regex for phone numbers (ignores spaces)
+        const createFlexiblePhoneRegex = (phone: string) => {
+            const cleanPhone = phone.replace(/\s/g, '');
+            // e.g. "0905" -> "0\s*9\s*0\s*5"
+            const pattern = cleanPhone.split('').map(char => escapeRegExp(char)).join('\\s*');
+            return new RegExp(`(${pattern})`, 'gi');
+        };
 
         const highlights = [
             { text: extractedData.name, color: 'text-red-600 bg-red-100', border: 'border-red-200', type: 'name' },
             { text: extractedData.email, color: 'text-green-600 bg-green-100', border: 'border-green-200', type: 'email' },
-            { text: extractedData.phone, color: 'text-blue-600 bg-blue-100', border: 'border-blue-200', type: 'phone' },
+            { text: extractedData.phone, color: 'text-blue-600 bg-blue-100', border: 'border-blue-200', type: 'phone', isPhone: true },
             { text: extractedData.company, color: 'text-orange-600 bg-orange-100', border: 'border-orange-200', type: 'company' },
         ].filter(h => h.text && h.text.length > 2 && h.text !== '—' && h.text !== 'Neznáma' && h.text !== 'Nenašlo sa');
 
         // Simple multipass replacement strategy
         highlights.forEach(h => {
-            const newParts: any[] = [];
+            const newParts: { text: string, type: string, color?: string, border?: string }[] = [];
+
             parts.forEach(part => {
                 if (part.type !== 'text') {
                     newParts.push(part);
                     return;
                 }
 
-                // Case insensitive match
-                const regex = new RegExp(`(${h.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                let regex;
+                if (h.isPhone) {
+                    regex = createFlexiblePhoneRegex(h.text);
+                } else {
+                    regex = new RegExp(`(${escapeRegExp(h.text)})`, 'gi');
+                }
+
                 const split = part.text.split(regex);
 
                 split.forEach((s) => {
                     if (!s) return;
-                    if (s.toLowerCase() === h.text.toLowerCase()) {
+
+                    let isMatch = false;
+                    if (h.isPhone) {
+                        isMatch = s.replace(/\s/g, '').toLowerCase() === h.text.replace(/\s/g, '').toLowerCase();
+                    } else {
+                        isMatch = s.toLowerCase() === h.text.toLowerCase();
+                    }
+
+                    if (isMatch) {
                         newParts.push({ text: s, type: 'highlight', color: h.color, border: h.border });
                     } else {
                         newParts.push({ text: s, type: 'text' });
@@ -103,26 +121,18 @@ export function ContactExtractionModal({
                     </span>
                 );
             }
-            // Limit text length for viewing comfort
             return <span key={i} className="text-gray-500">{part.text}</span>;
         });
     };
 
-    // Limit body preview
-    const truncatedBody = emailBody.length > 500 ? emailBody.substring(0, 500) + '...' : emailBody;
-
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
             />
-
-            {/* Modal Content */}
             <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
 
-                {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                     <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
                         <User className="w-5 h-5 text-indigo-600" />
@@ -134,10 +144,8 @@ export function ContactExtractionModal({
                 </div>
 
                 <div className="p-6 overflow-y-auto">
-
-                    {/* 1. Fields Visualizer */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                        {/* Name - Red */}
+                        {/* Name */}
                         <div className={`p-4 rounded-xl border-2 transition-all duration-700 delay-100 ${animate ? 'border-red-100 bg-red-50/50 translate-x-0 opacity-100' : 'border-transparent bg-transparent -translate-x-4 opacity-0'}`}>
                             <div className="text-[10px] uppercase font-bold text-red-400 mb-1 flex items-center gap-1">
                                 <User className="w-3 h-3" /> Meno
@@ -147,7 +155,7 @@ export function ContactExtractionModal({
                             </div>
                         </div>
 
-                        {/* Company - Orange */}
+                        {/* Company */}
                         <div className={`p-4 rounded-xl border-2 transition-all duration-700 delay-200 ${animate ? 'border-orange-100 bg-orange-50/50 translate-x-0 opacity-100' : 'border-transparent bg-transparent translate-x-4 opacity-0'}`}>
                             <div className="text-[10px] uppercase font-bold text-orange-400 mb-1 flex items-center gap-1">
                                 <Building2 className="w-3 h-3" /> Spoločnosť
@@ -157,7 +165,7 @@ export function ContactExtractionModal({
                             </div>
                         </div>
 
-                        {/* Email - Green */}
+                        {/* Email */}
                         <div className={`p-4 rounded-xl border-2 transition-all duration-700 delay-300 ${animate ? 'border-green-100 bg-green-50/50 translate-x-0 opacity-100' : 'border-transparent bg-transparent -translate-x-4 opacity-0'}`}>
                             <div className="text-[10px] uppercase font-bold text-green-500 mb-1 flex items-center gap-1">
                                 <Mail className="w-3 h-3" /> E-mail
@@ -167,18 +175,17 @@ export function ContactExtractionModal({
                             </div>
                         </div>
 
-                        {/* Phone - Blue */}
+                        {/* Phone */}
                         <div className={`p-4 rounded-xl border-2 transition-all duration-700 delay-400 ${animate ? 'border-blue-100 bg-blue-50/50 translate-x-0 opacity-100' : 'border-transparent bg-transparent translate-x-4 opacity-0'}`}>
                             <div className="text-[10px] uppercase font-bold text-blue-400 mb-1 flex items-center gap-1">
                                 <Phone className="w-3 h-3" /> Telefón
                             </div>
                             <div className="text-lg font-bold text-gray-900 truncate">
-                                {extractedData.phone && extractedData.phone !== '—' ? extractedData.phone : <span className="text-gray-300 italic">Nenašlo sa</span>}
+                                {extractedData.phone && extractedData.phone !== '—' ? extractedData.phone.replace(/\s+/g, '') : <span className="text-gray-300 italic">Nenašlo sa</span>}
                             </div>
                         </div>
                     </div>
 
-                    {/* 2. Source Context - Visual Connection */}
                     <div className="relative">
                         <div className="absolute -top-3 left-4 bg-white px-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
                             Zdroj informácií
@@ -189,7 +196,6 @@ export function ContactExtractionModal({
                     </div>
                 </div>
 
-                {/* Footer */}
                 <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
                     <button
                         onClick={onClose}

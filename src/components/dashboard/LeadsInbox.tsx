@@ -201,7 +201,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         const aiEntities = msg.classification?.entities;
         let name = aiEntities?.contact_name && aiEntities.contact_name !== '—' ? aiEntities.contact_name : '';
         let email = aiEntities?.email && aiEntities.email !== '—' ? aiEntities.email : '';
-        let phone = aiEntities?.phone && aiEntities.phone !== '—' ? aiEntities.phone : '';
+        let phone = aiEntities?.phone && aiEntities.phone !== '—' ? aiEntities.phone.replace(/\s/g, '') : '';
         let company = aiEntities?.company_name && aiEntities.company_name !== '—' ? aiEntities.company_name : '';
 
         // 2. Fallbacks (Header & Regex) if AI data missing
