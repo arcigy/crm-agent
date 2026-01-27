@@ -20,6 +20,7 @@ export interface GmailMessage {
     isRead: boolean;
     labels: string[];
     classification?: EmailClassification;
+    isAnalyzing?: boolean;
 }
 
 export interface GmailInboxResponse {

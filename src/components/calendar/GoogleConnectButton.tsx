@@ -14,7 +14,7 @@ export function GoogleConnectButton() {
         try {
             // Clerk Link Account Logic for Calendar Scopes
             await user.createExternalAccount({
-                provider: 'google',
+                strategy: 'oauth_google',
                 redirectUrl: window.location.href,
             });
         } catch (error: any) {

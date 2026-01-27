@@ -12,6 +12,7 @@ function CallbackContent() {
     const processedRef = useRef(false);
 
     useEffect(() => {
+        if (!searchParams) return;
         const code = searchParams.get('code');
         const error = searchParams.get('error');
 

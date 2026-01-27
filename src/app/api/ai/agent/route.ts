@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, tool as aiTool } from 'ai';
+import { streamText, tool } from 'ai';
 import { z } from 'zod';
 import { getMemories, saveNewMemories } from '@/lib/memory';
 import { currentUser, clerkClient } from '@clerk/nextjs/server';
@@ -15,14 +15,18 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
     const { messages } = await req.json();
     const user = await currentUser();
-    const userEmail = user?.emailAddresses[0]?.emailAddress;
 
-    if (!userEmail || !user) {
+    if (!user) {
         return new Response('Unauthorized', { status: 401 });
     }
 
-    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const memoryContext = await getMemories(userEmail);
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+    if (!userEmail) {
+        return new Response('User email not found', { status: 401 });
+    }
+
+    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
+    const memoryContext = await getMemories(userEmail).catch(() => '');
 
     const systemPrompt = `
     You are an advanced CRM AI Assistant. Use the available tools to help the user manage their business.
@@ -39,10 +43,10 @@ export async function POST(req: Request) {
         system: systemPrompt,
         messages: messages,
         tools: {
-            check_availability: aiTool({
+            check_availability: tool({
                 description: 'Check user calendar for busy/free times',
                 parameters: z.object({ days: z.number().default(1) }),
-                execute: async ({ days }) => {
+                execute: async ({ days }: { days: number }) => {
                     try {
                         const client = await clerkClient();
                         const response = await client.users.getUserOauthAccessToken(user.id, 'oauth_google');
@@ -73,27 +77,41 @@ export async function POST(req: Request) {
                         return `Error checking calendar: ${err.message}`;
                     }
                 }
-            }),
-            create_contact: aiTool({
+            } as any),
+            create_contact: tool({
                 description: 'Create a new contact in CRM',
-                parameters: z.object({ name: z.string(), email: z.string(), phone: z.string().optional() }),
-                execute: async (p) => {
+                parameters: z.object({
+                    name: z.string(),
+                    email: z.string(),
+                    phone: z.string().optional(),
+                    company: z.string().optional(),
+                    website: z.string().optional()
+                }),
+                execute: async (p: { name: string; email: string; phone?: string; company?: string; website?: string }) => {
                     const res = await agentCreateContact(p);
+                    // @ts-ignore
                     return res.success ? `Contact created: ${res.contact?.id}` : `Error: ${res.error}`;
                 }
-            }),
-            create_deal: aiTool({
+            } as any),
+            create_deal: tool({
                 description: 'Create a new deal',
                 parameters: z.object({ name: z.string(), value: z.number(), stage: z.string() }),
-                execute: async (p) => {
-                    const res = await agentCreateDeal(p);
-                    return res.success ? `Deal created: ${res.deal?.id}` : `Error: ${res.error}`;
+                execute: async (p: { name: string; value: number; stage: string }) => {
+                    const res = await agentCreateDeal({
+                        name: p.name,
+                        value: p.value,
+                        stage: p.stage,
+                        contact_email: userEmail
+                    });
+                    return res.success ? `Deal created` : `Error: ${res.error}`;
                 }
-            })
+            } as any)
         },
         onFinish: async ({ text }) => {
             const lastMsg = messages[messages.length - 1];
-            if (lastMsg.role === 'user') saveNewMemories(userEmail, lastMsg.content, text).catch(e => console.error(e));
+            if (lastMsg && lastMsg.role === 'user') {
+                saveNewMemories(userEmail, lastMsg.content, text).catch(e => console.error(e));
+            }
         }
     });
 

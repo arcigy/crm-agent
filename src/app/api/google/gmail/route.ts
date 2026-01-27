@@ -133,8 +133,10 @@ export async function PATCH(req: Request) {
 
         await gmail.users.messages.batchModify({
             userId: 'me',
-            ids: [messageId],
-            removeLabelIds: ['UNREAD']
+            requestBody: {
+                ids: [messageId],
+                removeLabelIds: ['UNREAD']
+            }
         });
 
         return NextResponse.json({ success: true });

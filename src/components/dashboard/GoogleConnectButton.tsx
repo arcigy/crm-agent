@@ -25,7 +25,7 @@ export function GoogleConnectButton({ className = "" }: { className?: string }) 
                 // This will redirect out of the app to Clerk's Google Auth
                 // Make sure "Google" is enabled in Clerk dashboard!
                 await user?.createExternalAccount({
-                    provider: 'google',
+                    strategy: 'oauth_google',
                     redirectUrl: window.location.href,
                 });
             }

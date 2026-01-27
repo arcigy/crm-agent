@@ -24,9 +24,11 @@ import {
     Download,
 } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { Project, PROJECT_STAGES, PROJECT_TYPES, ProjectStage } from '@/types/project';
 import { createProject, updateProjectStage, deleteProject } from '@/app/actions/projects';
 import { ProjectDriveModal } from './ProjectDriveModal';
+import { ContactDetailModal } from './ContactDetailModal';
 import { Lead } from '@/types/contact';
 import { HardDrive } from 'lucide-react';
 

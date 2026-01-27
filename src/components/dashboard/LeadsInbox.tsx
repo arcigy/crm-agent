@@ -123,7 +123,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             // Clerk Link Account Logic
             // This will redirect to Google for consent with the scopes defined in Clerk Dashboard
             await user.createExternalAccount({
-                provider: 'google',
+                strategy: 'oauth_google',
                 redirectUrl: window.location.href,
             });
         } catch (error: any) {
