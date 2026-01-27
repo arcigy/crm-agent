@@ -47,7 +47,7 @@ export function Sidebar({ className }: { className?: string }) {
             {/* Mobile Toggle Button (only visible on mobile) */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="lg:hidden fixed bottom-6 left-6 z-[1001] w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-95 transition-all"
+                className="lg:hidden fixed bottom-6 left-6 z-[1100] w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-95 transition-all"
             >
                 {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -55,15 +55,15 @@ export function Sidebar({ className }: { className?: string }) {
             {/* Backdrop (mobile only) */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[998] lg:hidden"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] lg:hidden"
                     onClick={() => setIsOpen(false)}
                 />
             )}
 
             {/* Sidebar Sidebar container */}
-            <div className={`
-                fixed inset-y-0 left-0 z-[999] w-64 flex flex-col bg-[#0F172A] text-white border-r border-[#1E293B]
-                transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static
+            <aside className={`
+                fixed inset-y-0 left-0 z-[1050] w-64 flex flex-col bg-[#0F172A] text-white border-r border-[#1E293B]
+                transition-transform duration-300 ease-in-out lg:translate-x-0 lg:relative lg:flex-shrink-0
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'}
                 ${className}
             `}>
@@ -78,7 +78,7 @@ export function Sidebar({ className }: { className?: string }) {
                 </div>
 
                 {/* Navigation Navigation Links */}
-                <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-1 custom-scrollbar">
+                <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-1 scrollbar-hide">
                     {navigation.map((item) => {
                         const isActive = pathname === item.href;
                         const Icon = item.icon;
@@ -86,11 +86,12 @@ export function Sidebar({ className }: { className?: string }) {
                             <Link
                                 key={item.name}
                                 href={item.href}
+                                prefetch={false}
                                 className={`
-                                    group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 w-full relative z-10
+                                    group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 w-full relative z-10 block
                                     ${isActive
-                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 translate-x-1'
-                                        : 'text-gray-400 hover:bg-[#1E293B] hover:text-white hover:translate-x-1'
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                                        : 'text-gray-400 hover:bg-[#1E293B] hover:text-white'
                                     }
                                 `}
                             >
@@ -102,16 +103,16 @@ export function Sidebar({ className }: { className?: string }) {
                 </nav>
 
                 {/* Bottom Actions Bottom Sidebar Area */}
-                <div className="border-t border-[#1E293B] p-4 bg-[#0F172A]">
+                <div className="border-t border-[#1E293B] p-4 bg-[#0F172A] mt-auto">
                     <div className="flex flex-col gap-2">
-                        <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-gray-400 hover:bg-[#1E293B] hover:text-white w-full transition-all group">
-                            <Settings className="h-5 w-5 text-gray-500 group-hover:rotate-45 transition-transform" />
+                        <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-gray-400 hover:bg-[#1E293B] hover:text-white w-full transition-all group text-left">
+                            <Settings className="h-5 w-5 text-gray-400 group-hover:rotate-45 transition-transform" />
                             Nastavenia
                         </button>
                         <LogoutButton className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-gray-400 hover:bg-red-500/10 hover:text-red-400 w-full transition-all justify-start" />
                     </div>
                 </div>
-            </div>
+            </aside>
         </>
     );
 }

@@ -8,18 +8,13 @@ export default async function DashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const session = await getSession();
-
-    // Protect the route
-    if (!session) {
-        redirect("/login");
-    }
+    // Relying on Clerk middleware for protection in src/middleware.ts
 
     return (
-        <div className="flex h-screen bg-gray-50/50">
-            <Sidebar className="w-64" />
-            <main className="flex-1 flex flex-col min-w-0 overflow-y-auto relative bg-white">
-                <div className="p-8">
+        <div className="flex h-screen w-full bg-gray-50/50 overflow-hidden">
+            <Sidebar />
+            <main className="flex-1 min-w-0 h-full overflow-y-auto bg-white">
+                <div className="p-4 md:p-8">
                     {children}
                 </div>
             </main>
