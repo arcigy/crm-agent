@@ -7,6 +7,8 @@ import { Lead } from '@/types/contact';
 
 import { MOCK_PROJECTS, MOCK_CONTACTS } from '@/types/mockData';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProjectsPage() {
     let projects: Project[] = MOCK_PROJECTS;
     let contacts: Lead[] = MOCK_CONTACTS;
