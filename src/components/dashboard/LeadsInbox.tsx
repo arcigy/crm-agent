@@ -232,18 +232,36 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             }
         }
 
-        // Website Fallback (Regex)
-        if (!website) {
-            const websiteRegex = /(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.[a-z.]{2,6})(?:\/[^\s]*)?/gi;
-            const textToSearch = msg.body || msg.snippet || '';
-            const websites = textToSearch.match(websiteRegex);
+        // Website Fallback (Regex - Prioritizing strictly for common TLDs: .sk, .cz, .com, etc.)
+        if (!website || website === '—') {
+            const commonTlds = ['sk', 'cz', 'com', 'eu', 'net', 'org', 'info', 'biz', 'at', 'de', 'hu'];
+            const tldPattern = commonTlds.join('|');
 
-            if (websites && websites.length > 0) {
-                // Heuristic: Pick the one that looks most like a corporate website 
-                // (usually the last one in signature, avoiding common tracking domains if possible)
-                const filtered = websites.filter(w => !w.includes('schema.org') && !w.includes('w3.org'));
-                if (filtered.length > 0) {
-                    website = filtered[filtered.length - 1].toLowerCase();
+            // Regex to find things like www.example.sk, example.com, http://example.cz
+            const websiteRegex = new RegExp(`(?:https?:\\/\\/)?(?:www\\.)?([a-zA-Z0-9-]+\\.(?:${tldPattern}))(?:\\/[^\\s]*)?`, 'gi');
+
+            const textToSearch = (msg.body || msg.snippet || '').substring(0, 5000);
+
+            // Remove emails from search text to avoid false positives (e.g. jan@novak.sk -> picking up novak.sk)
+            const textWithoutEmails = textToSearch.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, ' ');
+
+            const matches = textWithoutEmails.match(websiteRegex);
+
+            if (matches && matches.length > 0) {
+                // Filter out common technical domains and pick the last one (usually signature)
+                const candidates = matches
+                    .map(m => m.trim().toLowerCase())
+                    .filter(m => {
+                        const domain = m.replace(/^https?:\/\//, '').replace(/^www\./, '');
+                        return domain.length > 3 &&
+                            !domain.includes('schema.org') &&
+                            !domain.includes('w3.org') &&
+                            !domain.includes('google.') &&
+                            !domain.includes('microsoft.');
+                    });
+
+                if (candidates.length > 0) {
+                    website = candidates[candidates.length - 1];
                 }
             }
         }
