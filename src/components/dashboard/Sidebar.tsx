@@ -8,21 +8,17 @@ import {
     LayoutDashboard,
     Users,
     Briefcase,
-    Target,
     FolderKanban,
     Calendar,
     FileText,
-    LogOut,
     Settings,
     Mail,
-    Smartphone,
     CheckSquare,
     HardDrive,
     Menu,
     X
 } from 'lucide-react';
 import { LogoutButton } from './LogoutButton';
-import { syncGoogleContacts } from '@/app/actions/contacts';
 
 const navigation = [
     { name: 'Nástenka', href: '/dashboard', icon: LayoutDashboard },
@@ -41,14 +37,6 @@ export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
 
-    useEffect(() => {
-        syncGoogleContacts();
-        const interval = setInterval(() => {
-            syncGoogleContacts();
-        }, 5 * 60 * 1000);
-        return () => clearInterval(interval);
-    }, []);
-
     // Close menu on navigation
     useEffect(() => {
         setIsOpen(false);
@@ -56,25 +44,26 @@ export function Sidebar({ className }: { className?: string }) {
 
     return (
         <>
-            {/* Mobile Toggle */}
+            {/* Mobile Toggle Button (only visible on mobile) */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="lg:hidden fixed bottom-6 right-6 z-[200] w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-95 transition-all"
+                className="lg:hidden fixed bottom-6 left-6 z-[1001] w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-95 transition-all"
             >
                 {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
-            {/* Backdrop for mobile */}
+            {/* Backdrop (mobile only) */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] lg:hidden"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[998] lg:hidden"
                     onClick={() => setIsOpen(false)}
                 />
             )}
 
+            {/* Sidebar Sidebar container */}
             <div className={`
-                fixed inset-y-0 left-0 z-[100] w-64 flex flex-col bg-[#0F172A] text-white border-r border-[#1E293B]
-                transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
+                fixed inset-y-0 left-0 z-[999] w-64 flex flex-col bg-[#0F172A] text-white border-r border-[#1E293B]
+                transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'}
                 ${className}
             `}>
@@ -88,7 +77,7 @@ export function Sidebar({ className }: { className?: string }) {
                     </div>
                 </div>
 
-                {/* Navigation */}
+                {/* Navigation Navigation Links */}
                 <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-1 custom-scrollbar">
                     {navigation.map((item) => {
                         const isActive = pathname === item.href;
@@ -98,7 +87,7 @@ export function Sidebar({ className }: { className?: string }) {
                                 key={item.name}
                                 href={item.href}
                                 className={`
-                                    group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200
+                                    group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 w-full relative z-10
                                     ${isActive
                                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 translate-x-1'
                                         : 'text-gray-400 hover:bg-[#1E293B] hover:text-white hover:translate-x-1'
@@ -106,13 +95,13 @@ export function Sidebar({ className }: { className?: string }) {
                                 `}
                             >
                                 {Icon && <Icon className={`h-5 w-5 shrink-0 transition-colors ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-white'}`} />}
-                                {item.name}
+                                <span>{item.name}</span>
                             </Link>
                         );
                     })}
                 </nav>
 
-                {/* Bottom Actions */}
+                {/* Bottom Actions Bottom Sidebar Area */}
                 <div className="border-t border-[#1E293B] p-4 bg-[#0F172A]">
                     <div className="flex flex-col gap-2">
                         <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-gray-400 hover:bg-[#1E293B] hover:text-white w-full transition-all group">
@@ -126,4 +115,5 @@ export function Sidebar({ className }: { className?: string }) {
         </>
     );
 }
+
 
