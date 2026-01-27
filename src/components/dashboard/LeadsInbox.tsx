@@ -187,6 +187,56 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         return dateB - dateA;
     });
 
+    // NON-AI Extractions
+    const handleSaveContact = async (e: React.MouseEvent, msg: GmailMessage) => {
+        e.stopPropagation();
+
+        // 1. Parse Name & Email from "From" header
+        // Format Usually: "John Doe <john@doe.com>"
+        let name = msg.from;
+        let email = '';
+
+        const emailMatch = msg.from.match(/<([^>]+)>/);
+        if (emailMatch) {
+            email = emailMatch[1];
+            name = msg.from.replace(/<[^>]+>/, '').trim().replace(/^"|"$/g, '');
+        } else {
+            // Fallback if no brackets (e.g. just "john@doe.com")
+            email = msg.from.trim();
+            name = email.split('@')[0]; // Use part before @ as name
+        }
+
+        // 2. Try to find Phone in Body (Regex for SK/CZ/Int formats)
+        // Matches: +421 900 123 456, 0900 123 456, 0900123456
+        const phoneRegex = /(?:\+|00)(?:421|420|43|49)\s?\d{1,4}\s?\d{2,4}\s?\d{2,4}|(?<!\d)09\d{2}[\s.-]?\d{3}[\s.-]?\d{3}(?!\d)/g;
+        const textToSearch = msg.body || msg.snippet || '';
+        const phones = textToSearch.match(phoneRegex);
+        const uniquePhones = phones ? Array.from(new Set(phones.map(p => p.trim()))) : [];
+        let phone = uniquePhones.length > 0 ? uniquePhones[uniquePhones.length - 1].replace(/\s/g, '') : undefined;
+
+        // 3. Confirm & Save
+        let phoneDisplay = 'Nenašlo sa';
+        if (uniquePhones.length === 1) phoneDisplay = uniquePhones[0];
+        else if (uniquePhones.length > 1) phoneDisplay = `${uniquePhones[uniquePhones.length - 1]} (a ďalšie: ${uniquePhones.slice(0, -1).join(', ')})`;
+
+        // 3. Confirm & Save
+        const confirmMsg = `Nájdené údaje:\n\nMeno: ${name}\nEmail: ${email}\nTel: ${phoneDisplay}\n\nUložiť kontakt?`;
+
+        if (window.confirm(confirmMsg)) {
+            const toastId = toast.loading('Ukladám kontakt...');
+            try {
+                const res = await agentCreateContact({ name, email, phone });
+                if (res.success) {
+                    toast.success('Kontakt úspešne vytvorený', { id: toastId });
+                } else {
+                    toast.error(`Chyba: ${res.error}`, { id: toastId });
+                }
+            } catch (err) {
+                toast.error('Nepodarilo sa uložiť kontakt', { id: toastId });
+            }
+        }
+    };
+
     const handleManualAnalyze = async (e: React.MouseEvent, msg: GmailMessage) => {
         e.stopPropagation();
         setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnalyzing: true } : m));
@@ -653,7 +703,10 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
                                                                 </div>
 
                                                                 <div className="mt-4 pt-4 border-t border-gray-100/50 flex items-center gap-4">
-                                                                    <button className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors">
+                                                                    <button
+                                                                        onClick={(e) => handleSaveContact(e, msg)}
+                                                                        className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors"
+                                                                    >
                                                                         <UserPlus className="w-3.5 h-3.5" /> Uložiť kontakt
                                                                     </button>
                                                                     <div className="w-px h-3 bg-gray-300/50"></div>

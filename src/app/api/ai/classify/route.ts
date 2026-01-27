@@ -1,7 +1,6 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
-import { z } from 'zod';
 import { NextResponse } from 'next/server';
+import { currentUser } from '@clerk/nextjs/server';
+import { classifyEmail } from '@/app/actions/ai';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 45; // Increase timeout for AI
@@ -9,8 +8,10 @@ export const maxDuration = 45; // Increase timeout for AI
 export async function POST(req: Request) {
     try {
         const { content, messageId, sender } = await req.json();
+        const user = await currentUser();
+        const userEmail = user?.emailAddresses[0]?.emailAddress;
 
-        console.log(`[AI Classify] Request for: ${messageId} | Length: ${content?.length} | Sender: ${sender}`);
+        console.log(`[AI Classify] Request for: ${messageId} | Length: ${content?.length} | Sender: ${sender} | User: ${userEmail}`);
 
         if (!process.env.OPENAI_API_KEY) {
             console.error('[AI Classify] MISSING API KEY');
@@ -24,54 +25,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: 'Email je príliš krátky na analýzu.' });
         }
 
-        const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        // Call the centralized action which handles dynamic system prompts
+        // We pass sender. Subject is not usually in this lightweight payload but we can treat it as part of content if needed, 
+        // or just pass undefined for now.
+        const classification = await classifyEmail(content, userEmail || undefined, sender);
 
-        // Pre-classification for obvious automated emails using SENDER address
-        // Check both content keywords AND sender address patterns
-        const isNoReply =
-            /no-reply|noreply|notification|alert|newsletter|unsubscribe/i.test(content) ||
-            /no-reply|noreply|notification|alert|info@|support@|accounts\.google\.com|calendar-notification|facebookmail/i.test(sender || '');
-
-        const { object } = await generateObject({
-            model: openai('gpt-4o-mini'),
-            schema: z.object({
-                intent: z.enum(['dopyt', 'otazka', 'problem', 'faktura', 'spam', 'ine']),
-                priority: z.enum(['vysoka', 'stredna', 'nizka']),
-                sentiment: z.enum(['pozitivny', 'neutralny', 'negativny']),
-                service_category: z.string(),
-                estimated_budget: z.string(),
-                next_step: z.string(),
-                summary: z.string()
-            }),
-            prompt: `
-                Úloha: Klasifikuj prichádzajúci email pre CRM systém. 
-                BUĎ VEĽMI PRÍSNY PRI URČOVANÍ PRIORITY.
-                
-                PRAVIDLÁ PRIORITY:
-                - VYSOKÁ (vysoka): Len vtedy, ak píše SKUTOČNÝ ŽIVÝ KLIENT, ktorý má jasný záujem o službu, pýta sa na cenovú ponuku alebo má urgentný biznis problém.
-                - STREDNÁ (stredna): Bežné otázky od známych kontaktov, faktúry na úhradu.
-                - NÍZKA (nizka): Automatické správy, bezpečnostné upozornenia (Google, banka), potvrdenia o registrácii, informačné maily.
-                - SPAM (spam): Reklamy, newslettery, nevyžiadané ponuky, maily z noreply adries, ktoré nevyžadujú akciu.
-                
-                ŠPECIÁLNY POKYN: 
-                - Ak je odosielateľ Google, Facebook alebo iná služba a ide o "Bezpečnostné upozornenie" alebo "Prístup k údajom", klasifikuj to ako intent 'ine' a prioritu 'nizka' alebo 'spam'. Nikdy nie vysoká!
-                - Ak zistíš, že ide o SPAM, zhrnutie (summary) napíš veľmi krátko.
-                
-                Obsah emailu na analýzu:
-                """
-                ${content.substring(0, 4000)}
-                """
-            `,
-        });
-
-        // Manual override if AI fails to see obvious automated patterns
-        if (isNoReply) {
-            object.intent = 'spam';
-            object.priority = 'nizka';
+        if (!classification) {
+            return NextResponse.json({ success: false, error: 'AI analýza zlyhala.' }, { status: 500 });
         }
 
-        console.log('[AI Classify] Success:', object.intent, '| Priority:', object.priority);
-        return NextResponse.json({ success: true, classification: object });
+        console.log('[AI Classify] Success:', classification.intent, '| Priority:', classification.priority);
+        return NextResponse.json({ success: true, classification });
 
     } catch (error: any) {
         console.error('[AI Classify] Error:', error);

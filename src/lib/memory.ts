@@ -19,8 +19,11 @@ export async function getMemories(userEmail: string): Promise<string> {
     try {
         // @ts-ignore
         const memories = await directus.request(readItems('ai_memories', {
-            filter: { user_email: { _eq: userEmail } },
-            sort: ['-date_created'], // Najnovšie prvé, ale pre prompt možno lepšie logické
+            filter: {
+                user_email: { _eq: userEmail },
+                category: { _neq: 'system_prompt' } // Exclude system prompts from general memory context
+            },
+            sort: ['-date_created'],
             limit: 50
         }));
 
@@ -32,6 +35,48 @@ export async function getMemories(userEmail: string): Promise<string> {
     } catch (error) {
         console.error('Failed to fetch memories:', error);
         return "";
+    }
+}
+
+/**
+ * Získa špecifický System Prompt z pamäte (ak existuje), inak vráti null
+ */
+export async function getSystemPrompt(userEmail: string, promptType: string = 'email_analysis'): Promise<string | null> {
+    try {
+        // @ts-ignore
+        const prompts = await directus.request(readItems('ai_memories', {
+            filter: {
+                user_email: { _eq: userEmail },
+                category: { _eq: 'system_prompt' },
+                fact: { _contains: `[${promptType}]` } // Convention: "[type] Prompt content..." or we check a 'tags' field if available
+            },
+            limit: 1
+        }));
+
+        // Fallback: Check for just the category if we use 'fact' content to store the whole prompt
+        // Better Convention: Use 'fact' to store the prompt content, and maybe rely on a specific format or just fetch all system prompts and filter in code?
+        // Let's assume the USER will save it as: "SYSTEM_PROMPT_EMAIL: You are an analyzer..."
+        // Or simpler: We just fetch items with category 'system_prompt_email' if the user allows that category string.
+
+        // Let's try fetching by category 'system_prompt_email' directly if schema allows loose strings
+        // @ts-ignore
+        const specificPrompts = await directus.request(readItems('ai_memories', {
+            filter: {
+                user_email: { _eq: userEmail },
+                category: { _eq: `prompt_${promptType}` }
+            },
+            limit: 1
+        }));
+
+        if (specificPrompts && specificPrompts.length > 0) {
+            return specificPrompts[0].fact;
+        }
+
+        return null;
+
+    } catch (error) {
+        console.error('Failed to fetch system prompt:', error);
+        return null;
     }
 }
 

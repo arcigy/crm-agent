@@ -70,16 +70,22 @@ NIKDY neprepisuj existujúce súbory tak, že z nich vymažeš dôležitú logik
 💻 7. RUNTIME PROSTREDIE
 Vývojové prostredie používa Windows s PowerShell.
 
-PowerShell Syntax: Nepoužívaj bash/curl syntax. Používaj Invoke-RestMethod alebo Invoke-WebRequest.
-Príklad správneho API volania:
-```powershell
-Invoke-RestMethod -Uri "https://url.com/api" -Headers @{"Authorization"="Bearer TOKEN"}
-```
+PowerShell Syntax (CRITICAL):
+NEPOUŽÍVAŤ bash/curl syntax.
+VŽDY používať `Invoke-RestMethod` alebo `Invoke-WebRequest`.
+
+❌ ZLE (Bash):
+`curl -X POST ...`
+`export VAR=...`
+
+✅ DOBRE (PowerShell):
+`Invoke-RestMethod -Uri "https://url.com/api" -Method Post -Body ...`
+`$env:VAR = ...`
 
 🚀 8. RAILWAY & DIRECTUS KONFIGURÁCIA
 Produkčná URL CRM: https://crm-agent-production-d1eb.up.railway.app
-Directus URL: https://directus-production-fd17.up.railway.app
-Directus Token: btH0JAXIC6e8rlUR-hLmSXf0-_vgdTnk (static token pre API)
+Directus URL: https://directus-production-58c1.up.railway.app
+Directus Token: fZWEmYZ14ysG16WTfTIFTOBtuxFCumm6
 Directus Admin: arcigyback@gmail.com / Automatizacie#2025
 
 Kolekcie v Directuse:
@@ -90,6 +96,7 @@ Kolekcie v Directuse:
 - crm_users (id, email, password_hash, first_name, last_name, role, status, date_created, date_updated)
 
 Dôležité: Pred každou prácou s Directus API overiť, či služba beží na Railway.
+
 
 🚫 9. SUPABASE: NEPOUŽÍVAŤ
 Supabase sa v tomto projekte NEPOUŽÍVA pre dáta.
