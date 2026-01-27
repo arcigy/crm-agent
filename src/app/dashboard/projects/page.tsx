@@ -16,7 +16,15 @@ export default async function ProjectsPage() {
 
     // Pokúsiť sa načítať skutočné dáta z databázy
     try {
-        const { data, error } = await getProjects();
+        const withTimeout = (promise: Promise<any>, timeoutMs: number) =>
+            Promise.race([
+                promise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Request Timeout')), timeoutMs))
+            ]);
+
+        const projectsResult = await withTimeout(getProjects(), 5000).catch(() => ({ data: [], error: 'timeout' }));
+        const { data, error } = projectsResult;
+
         if (!error && data && data.length > 0) {
             let realProjects = data;
             usingMockData = false;
@@ -24,7 +32,8 @@ export default async function ProjectsPage() {
             // Načítať kontakty z Directus
             try {
                 // @ts-ignore
-                const rawContacts = await directus.request(readItems('contacts'));
+                const rawContacts = await withTimeout(directus.request(readItems('contacts')), 5000).catch(() => []);
+
                 if (rawContacts && rawContacts.length > 0) {
                     const uniqueContactsMap = new Map();
                     (rawContacts as any[]).forEach(contact => {
