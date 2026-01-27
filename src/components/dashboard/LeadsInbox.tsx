@@ -701,21 +701,11 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
                                                             {/* LEFT: INTELLIGENCE CARD */}
                                                             <div className="flex-1 bg-white/60 backdrop-blur-sm rounded-2xl p-5 border border-white/50 shadow-sm flex flex-col justify-between">
                                                                 <div>
-                                                                    <div className="flex items-center justify-between mb-3">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${panelTheme.iconBg}`}>
-                                                                                <Brain className="w-3.5 h-3.5" />
-                                                                            </div>
-                                                                            <span className={`text-[10px] font-black uppercase tracking-widest ${panelTheme.text} opacity-70`}>Analýza Situácie</span>
+                                                                    <div className="flex items-center gap-2 mb-3">
+                                                                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${panelTheme.iconBg}`}>
+                                                                            <Brain className="w-3.5 h-3.5" />
                                                                         </div>
-                                                                        <button
-                                                                            onClick={(e) => handleManualAnalyze(e, msg)}
-                                                                            disabled={msg.isAnalyzing}
-                                                                            className={`p-1.5 rounded-lg hover:bg-black/5 text-gray-400 hover:text-indigo-600 transition-all ${msg.isAnalyzing ? 'animate-spin text-indigo-600' : ''}`}
-                                                                            title="Znova analyzovať (Refresh AI)"
-                                                                        >
-                                                                            <RefreshCcw className="w-3.5 h-3.5" />
-                                                                        </button>
+                                                                        <span className={`text-[10px] font-black uppercase tracking-widest ${panelTheme.text} opacity-70`}>Analýza Situácie</span>
                                                                     </div>
                                                                     <p className={`text-sm font-medium leading-relaxed ${panelTheme.text}`}>
                                                                         {msg.classification.summary}
