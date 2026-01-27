@@ -247,25 +247,29 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         }
     };
 
-    const handleManualAnalyze = async (e: React.MouseEvent, msg: GmailMessage) => {
-        e.stopPropagation();
+    // AUTO-ANALYSIS SYSTEM
+    const analyzedIds = React.useRef<Set<string>>(new Set());
+
+    const analyzeEmail = async (msg: GmailMessage) => {
+        // Prevent double trigger
+        if (analyzedIds.current.has(msg.id)) return;
+        analyzedIds.current.add(msg.id);
+
+        console.log(`[Auto-Analyze] Starting for: ${msg.id}`);
         setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnalyzing: true } : m));
 
         try {
             // Priority: Use HTML if body is too snippet-like/empty
             let textToAnalyze = msg.body;
             if ((!textToAnalyze || textToAnalyze.length < 50) && msg.bodyHtml) {
-                // Strip HTML tags roughly for AI context
                 textToAnalyze = msg.bodyHtml.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
             }
 
             if (!textToAnalyze || textToAnalyze.length < 5) {
-                toast.error('Obsah emailu je príliš krátky na analýzu.');
+                console.warn(`[Auto-Analyze] Skipped ${msg.id}: content too short`);
                 setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnalyzing: false } : m));
                 return;
             }
-
-            console.log(`[Inbox UI] Analyzing message ${msg.id}. Text length: ${textToAnalyze.length}`);
 
             const res = await fetch('/api/ai/classify', {
                 method: 'POST',
@@ -278,29 +282,46 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             });
 
             if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.error || `HTTP ${res.status}`);
+                throw new Error(`HTTP ${res.status}`);
             }
 
             const data = await res.json();
 
             if (data.success) {
-                // Persistent storage in localStorage so background sync doesn't wipe it
                 const storageKey = `ai_classify_${msg.id}`;
                 localStorage.setItem(storageKey, JSON.stringify(data.classification));
 
-                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, classification: data.classification, isAnalyzing: false } : m));
-                setActiveActionId(msg.id);
-                toast.success('Analýza dokončená');
+                setMessages(prev => prev.map(m => m.id === msg.id ? {
+                    ...m,
+                    classification: data.classification,
+                    isAnalyzing: false
+                } : m));
+
+                // Optional: Notify user discreetly
+                // toast.success(`Analyzovaná správa od: ${msg.from}`);
             } else {
-                toast.error(`Chyba AI: ${data.error || 'Neznáma chyba'}`);
-                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnalyzing: false } : m));
+                throw new Error(data.error);
             }
         } catch (error: any) {
-            console.error('Manual Analysis Error:', error);
-            toast.error(`Analýza zlyhala: ${error.message}`);
+            console.error(`[Auto-Analyze] Error for ${msg.id}:`, error);
             setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isAnalyzing: false } : m));
         }
+    };
+
+    // Effect to trigger analysis for unclassified stats
+    React.useEffect(() => {
+        messages.forEach(msg => {
+            if (!msg.classification && !msg.isAnalyzing && !analyzedIds.current.has(msg.id)) {
+                // Determine if we should analyze (e.g. ignore really old ones if needed, but for now analyze all loaded)
+                analyzeEmail(msg);
+            }
+        });
+    }, [messages]);
+
+    const handleManualAnalyze = async (e: React.MouseEvent, msg: GmailMessage) => {
+        e.stopPropagation();
+        analyzedIds.current.delete(msg.id); // Reset lock to allow manual retry
+        analyzeEmail(msg);
     };
 
     // NEW HANDLERS
