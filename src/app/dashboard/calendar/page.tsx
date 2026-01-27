@@ -34,12 +34,16 @@ function CalendarContent() {
     const fetchEvents = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch('/api/google/calendar');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+            const res = await fetch('/api/google/calendar', { signal: controller.signal });
+            clearTimeout(timeoutId);
             const data = await res.json();
 
             if (data.isConnected) {
                 setIsConnected(true);
-                const formattedEvents = data.events.map((e: any) => ({
+                const formattedEvents = (data.events || []).map((e: any) => ({
                     ...e,
                     start: new Date(e.start),
                     end: new Date(e.end)
@@ -48,9 +52,14 @@ function CalendarContent() {
             } else {
                 setIsConnected(false);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching events:', error);
-            toast.error('Nepodarilo sa načítať udalosti');
+            if (error.name === 'AbortError') {
+                toast.error('Načítanie kalendára trvá príliš dlho');
+            } else {
+                toast.error('Nepodarilo sa načítať udalosti');
+            }
+            setIsConnected(false);
         } finally {
             setIsLoading(false);
         }

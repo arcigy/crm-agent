@@ -120,6 +120,7 @@ export default function ContactsPage() {
             <div className="px-10 pb-4 flex items-center justify-between text-[9px] font-black uppercase tracking-[0.4em] text-gray-400">
                 <div className="flex items-center gap-8">
                     <span className="flex items-center gap-3"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div> SYSTEM_CORE: ONLINE</span>
+                    <span className="opacity-40">DB: {process.env.NEXT_PUBLIC_DIRECTUS_URL || 'DEFAULT'}</span>
                 </div>
                 <div className="flex items-center gap-4 opacity-40 italic">
                     <span className="hidden sm:inline">DIRECTUS_ENGINE: v11.3.1</span>
