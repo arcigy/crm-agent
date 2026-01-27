@@ -74,7 +74,7 @@ Ak je správa vyhodnotená ako relevantná, vyplň nasledujúce body:
     * **company_name:** Názov firmy (napr. "Novák s.r.o.").
     * **phone:** Telefónne číslo v medzinárodnom formáte (napr. "+421 905 ...").
     * **email:** Email z textu alebo hlavičky (ak je dostupný).
-    * **website:** Webová stránka (URL), ak sa nachádza v texte alebo podpise (napr. "www.firma.sk").
+    * **website:** Webová stránka/doména firmy (napr. "www.firma.sk", "firma.sk", "https://..."). Hľadaj hlavne v podpise alebo pri kontaktných údajoch. Ak je ich viac, vyber hlavnú firemnú stránku.
 
 ---
 

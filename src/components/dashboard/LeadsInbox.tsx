@@ -232,6 +232,22 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             }
         }
 
+        // Website Fallback (Regex)
+        if (!website) {
+            const websiteRegex = /(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.[a-z.]{2,6})(?:\/[^\s]*)?/gi;
+            const textToSearch = msg.body || msg.snippet || '';
+            const websites = textToSearch.match(websiteRegex);
+
+            if (websites && websites.length > 0) {
+                // Heuristic: Pick the one that looks most like a corporate website 
+                // (usually the last one in signature, avoiding common tracking domains if possible)
+                const filtered = websites.filter(w => !w.includes('schema.org') && !w.includes('w3.org'));
+                if (filtered.length > 0) {
+                    website = filtered[filtered.length - 1].toLowerCase();
+                }
+            }
+        }
+
         // 3. Open Modal instead of Confirm
         const companyDisplay = company || ''; // Let modal handle empty display logic
 
