@@ -74,6 +74,7 @@ Ak je správa vyhodnotená ako relevantná, vyplň nasledujúce body:
     * **company_name:** Názov firmy (napr. "Novák s.r.o.").
     * **phone:** Telefónne číslo v medzinárodnom formáte (napr. "+421 905 ...").
     * **email:** Email z textu alebo hlavičky (ak je dostupný).
+    * **website:** Webová stránka (URL), ak sa nachádza v texte alebo podpise (napr. "www.firma.sk").
 
 ---
 
@@ -99,7 +100,8 @@ Sender: jan.novak@gmail.com
       "contact_name": "Ján Novák",
       "company_name": "—",
       "phone": "—",
-      "email": "jan.novak@gmail.com"
+      "email": "jan.novak@gmail.com",
+      "website": "—"
   }
 }
 
@@ -123,7 +125,8 @@ Sender: promo@tonery-lacno.sk
       "contact_name": "—",
       "company_name": "—",
       "phone": "—",
-      "email": "promo@tonery-lacno.sk"
+      "email": "promo@tonery-lacno.sk",
+      "website": "—"
   }
 }
 

@@ -9,7 +9,7 @@ import { revalidatePath } from 'next/cache';
 // 1. CRM ACTIONS (Directus)
 // ==========================================
 
-export async function agentCreateContact(data: { name: string; email: string; company?: string; phone?: string }) {
+export async function agentCreateContact(data: { name: string; email: string; company?: string; phone?: string; website?: string }) {
     try {
         // Split name
         const parts = data.name.trim().split(' ');
@@ -34,6 +34,7 @@ export async function agentCreateContact(data: { name: string; email: string; co
             email: data.email,
             company: data.company || null,
             phone: data.phone || null,
+            comments: data.website ? `Website: ${data.website}` : null,
             status: 'lead',
         }));
 

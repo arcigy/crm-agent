@@ -60,7 +60,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
 
     // MODAL STATE
     const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
-    const [contactModalData, setContactModalData] = React.useState<{ name: string, email: string, phone: string, company: string } | null>(null);
+    const [contactModalData, setContactModalData] = React.useState<{ name: string, email: string, phone: string, company: string, website: string } | null>(null);
     const [contactModalEmailBody, setContactModalEmailBody] = React.useState('');
 
     // NEW STATES
@@ -203,6 +203,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         let email = aiEntities?.email && aiEntities.email !== '—' ? aiEntities.email : '';
         let phone = aiEntities?.phone && aiEntities.phone !== '—' ? aiEntities.phone.replace(/\s/g, '') : '';
         let company = aiEntities?.company_name && aiEntities.company_name !== '—' ? aiEntities.company_name : '';
+        let website = aiEntities?.website && aiEntities.website !== '—' ? aiEntities.website : '';
 
         // 2. Fallbacks (Header & Regex) if AI data missing
 
@@ -234,7 +235,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         // 3. Open Modal instead of Confirm
         const companyDisplay = company || ''; // Let modal handle empty display logic
 
-        setContactModalData({ name, email, phone, company: companyDisplay });
+        setContactModalData({ name, email, phone, company: companyDisplay, website });
         setContactModalEmailBody(msg.body || msg.snippet || '');
         setIsContactModalOpen(true);
     };

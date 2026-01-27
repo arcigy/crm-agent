@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { X, Check, User, Building2, Phone, Mail, Loader2 } from 'lucide-react';
+import { X, Check, User, Building2, Phone, Mail, Loader2, Globe } from 'lucide-react';
 
 interface ContactExtractionModaProps {
     isOpen: boolean;
@@ -11,6 +11,7 @@ interface ContactExtractionModaProps {
         email: string;
         phone: string;
         company: string;
+        website: string;
     };
 }
 
@@ -65,6 +66,7 @@ export function ContactExtractionModal({
             { text: extractedData.email, color: 'text-green-600 bg-green-100', border: 'border-green-200', type: 'email' },
             { text: extractedData.phone, color: 'text-blue-600 bg-blue-100', border: 'border-blue-200', type: 'phone', isPhone: true },
             { text: extractedData.company, color: 'text-orange-600 bg-orange-100', border: 'border-orange-200', type: 'company' },
+            { text: extractedData.website, color: 'text-purple-600 bg-purple-100', border: 'border-purple-200', type: 'website' },
         ].filter(h => h.text && h.text.length > 2 && h.text !== '—' && h.text !== 'Neznáma' && h.text !== 'Nenašlo sa');
 
         // Simple multipass replacement strategy
@@ -182,6 +184,20 @@ export function ContactExtractionModal({
                             </div>
                             <div className="text-lg font-bold text-gray-900 truncate">
                                 {extractedData.phone && extractedData.phone !== '—' ? extractedData.phone.replace(/\s+/g, '') : <span className="text-gray-300 italic">Nenašlo sa</span>}
+                            </div>
+                        </div>
+
+                        {/* Website */}
+                        <div className={`p-4 rounded-xl border-2 transition-all duration-700 delay-500 ${animate ? 'border-purple-100 bg-purple-50/50 translate-x-0 opacity-100' : 'border-transparent bg-transparent -translate-x-4 opacity-0'}`}>
+                            <div className="text-[10px] uppercase font-bold text-purple-500 mb-1 flex items-center gap-1">
+                                <Globe className="w-3 h-3" /> Web
+                            </div>
+                            <div className="text-lg font-bold text-gray-900 truncate">
+                                {extractedData.website && extractedData.website !== '—' ? (
+                                    <a href={extractedData.website.startsWith('http') ? extractedData.website : `https://${extractedData.website}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                        {extractedData.website}
+                                    </a>
+                                ) : <span className="text-gray-300 italic">Nenašlo sa</span>}
                             </div>
                         </div>
                     </div>
