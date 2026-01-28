@@ -18,6 +18,7 @@ export function useDriveFiles(
   projectId: number,
   projectName: string,
   folderId?: string,
+  subfolderName?: string,
 ) {
   const [files, setFiles] = React.useState<DriveFile[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -37,6 +38,10 @@ export function useDriveFiles(
         let url = idToFetch
           ? `/api/google/drive?folderId=${idToFetch}`
           : `/api/google/drive?projectName=${encodeURIComponent(projectName)}`;
+
+        if (subfolderName) {
+          url += `&subfolderName=${encodeURIComponent(subfolderName)}`;
+        }
 
         const res = await fetch(url);
         const data = await res.json();

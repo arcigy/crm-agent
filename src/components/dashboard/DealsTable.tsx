@@ -19,10 +19,12 @@ import {
   ExternalLink,
   Banknote,
   FileText,
+  HardDrive,
 } from "lucide-react";
 import { format, isAfter, isBefore, addDays } from "date-fns";
 import { sk } from "date-fns/locale";
 import { toast } from "sonner";
+import { ProjectDriveModal } from "./ProjectDriveModal";
 
 import { Deal } from "@/types/deal";
 import { Project, PROJECT_STAGES } from "@/types/project";
@@ -44,6 +46,11 @@ export function DealsTable({
   projects: Project[];
 }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [driveProject, setDriveProject] = React.useState<{
+    id: number;
+    name: string;
+    folderId?: string;
+  } | null>(null);
 
   // Merge projects and deals
   // For each project, find its deal. If no deal found, create a "virtual" one from project data
@@ -72,15 +79,14 @@ export function DealsTable({
       header: "Projekt / Obchod",
       cell: (info) => (
         <div className="flex flex-col">
-          <span className="font-black text-foreground text-sm tracking-tight">
-            {info.getValue()}
+          <span className="font-black text-foreground text-[11px] uppercase tracking-tighter italic">
+            {info.row.original.project?.name || info.getValue()}
           </span>
-          <span className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {format(new Date(info.row.original.date_created), "d. MMMM yyyy", {
-              locale: sk,
-            })}
-          </span>
+          <div className="flex items-center gap-1 opacity-50">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+              {info.row.original.project?.project_type || "Obchod"}
+            </span>
+          </div>
         </div>
       ),
     }),
@@ -251,6 +257,21 @@ export function DealsTable({
             <button className="p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground">
               <MoreHorizontal className="w-4 h-4" />
             </button>
+            {deal.project?.drive_folder_id && (
+              <button
+                onClick={() =>
+                  setDriveProject({
+                    id: deal.project!.id,
+                    name: deal.project!.name,
+                    folderId: deal.project!.drive_folder_id,
+                  })
+                }
+                className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500 transition-all hover:text-white shadow-lg shadow-blue-500/5 group"
+                title="Otvoriť Zmluvy a Faktúry"
+              >
+                <HardDrive className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              </button>
+            )}
           </div>
         );
       },
@@ -267,7 +288,16 @@ export function DealsTable({
   });
 
   return (
-    <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden transition-colors duration-300">
+    <>
+      <ProjectDriveModal
+        isOpen={!!driveProject}
+        onClose={() => setDriveProject(null)}
+        projectId={driveProject?.id || 0}
+        projectName={driveProject?.name || ""}
+        folderId={driveProject?.folderId}
+        subfolderName="01_Zmluvy_a_Faktury"
+      />
+      <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden transition-colors duration-300">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead className="bg-[#020617]/50 backdrop-blur-md sticky top-0 z-10 border-b border-border">
@@ -313,7 +343,7 @@ export function DealsTable({
             Žiadne obchody ani projekty na zobrazenie
           </p>
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }

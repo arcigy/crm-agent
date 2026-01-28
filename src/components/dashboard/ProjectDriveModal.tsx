@@ -23,6 +23,7 @@ interface ProjectDriveModalProps {
   projectId: number;
   projectName: string;
   folderId?: string;
+  subfolderName?: string;
 }
 
 export function ProjectDriveModal({
@@ -31,6 +32,7 @@ export function ProjectDriveModal({
   projectId,
   projectName,
   folderId,
+  subfolderName,
 }: ProjectDriveModalProps) {
   const {
     files,
@@ -45,7 +47,7 @@ export function ProjectDriveModal({
     deleteFile,
     renameFile,
     performClipboardAction,
-  } = useDriveFiles(projectId, projectName, folderId);
+  } = useDriveFiles(projectId, projectName, folderId, subfolderName);
 
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("list");
@@ -115,9 +117,10 @@ export function ProjectDriveModal({
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300"
         onClick={onClose}
       />
-      <div className="bg-white w-full max-w-4xl h-[80vh] rounded-[3rem] shadow-2xl relative z-10 flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 border border-white/20">
+      <div className="bg-card w-full max-w-4xl h-[80vh] rounded-[3rem] shadow-2xl relative z-10 flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 border border-border">
         <Header
           projectName={projectName}
+          subfolderName={subfolderName}
           folderHistory={folderHistory}
           onBack={() => {
             const newHistory = [...folderHistory];
@@ -187,9 +190,9 @@ export function ProjectDriveModal({
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm">
+            <div className="bg-card rounded-[2rem] border border-border overflow-hidden shadow-sm">
               <table className="w-full text-left">
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-border/50">
                   {filtered.map((file, idx) => (
                     <FileItem
                       key={file.id}
@@ -290,25 +293,36 @@ export function ProjectDriveModal({
   );
 }
 
-function Header({ projectName, folderHistory, onBack, onClose }: any) {
+function Header({
+  projectName,
+  subfolderName,
+  folderHistory,
+  onBack,
+  onClose,
+}: any) {
   return (
-    <div className="p-8 border-b border-gray-50 flex items-center justify-between bg-gradient-to-r from-gray-50/50 to-white">
+    <div className="p-8 border-b border-border flex items-center justify-between bg-gradient-to-r from-muted/50 to-card">
       <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center shadow-xl shadow-blue-100">
+        <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center shadow-xl shadow-blue-500/20">
           <HardDrive className="w-7 h-7 text-white" />
         </div>
         <div>
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2">
             {folderHistory.length > 0 && (
               <button
                 onClick={onBack}
-                className="p-1 hover:bg-gray-100 rounded-lg mr-1"
+                className="p-1 hover:bg-muted rounded-lg mr-1"
               >
-                <ArrowLeft className="w-5 h-5 text-gray-500" />
+                <ArrowLeft className="w-5 h-5 text-muted-foreground" />
               </button>
             )}
-            {projectName} <span className="text-gray-300 mx-2">/</span>{" "}
-            <span className="text-blue-600">Dokumenty</span>
+            {projectName}{" "}
+            <span className="text-muted-foreground/30 mx-2">/</span>{" "}
+            <span className="text-blue-600">
+              {subfolderName
+                ? subfolderName.replace(/^\d+_/, "").replace(/_/g, " ")
+                : "Dokumenty"}
+            </span>
           </h2>
         </div>
       </div>
@@ -332,15 +346,15 @@ function Toolbar({
   setViewMode,
 }: any) {
   return (
-    <div className="px-8 py-4 border-b border-gray-50 bg-white flex items-center gap-4">
+    <div className="px-8 py-4 border-b border-border bg-card flex items-center gap-4">
       <div className="relative flex-1">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           type="text"
           placeholder="Hľadať v súboroch..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-6 py-3 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none transition-all"
+          className="w-full pl-12 pr-6 py-3 bg-muted/50 border border-border rounded-2xl text-sm font-bold focus:bg-card focus:border-blue-500 outline-none transition-all text-foreground"
         />
       </div>
       <button
@@ -397,8 +411,8 @@ function EmptyState() {
 }
 function Footer({ count }: any) {
   return (
-    <div className="p-6 border-t border-gray-50 bg-gray-50/50 flex justify-between items-center px-10">
-      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+    <div className="p-6 border-t border-border bg-muted/30 flex justify-between items-center px-10">
+      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
         {count} objektov
       </span>
       <button className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2 hover:underline">

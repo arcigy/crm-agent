@@ -1,114 +1,176 @@
-import { NextResponse } from 'next/server';
-import { currentUser, clerkClient } from '@clerk/nextjs/server';
-import { listFiles, createFolder, deleteFile, renameFile, copyFile, moveFile } from '@/lib/google-drive';
+import { NextResponse } from "next/server";
+import { currentUser, clerkClient } from "@clerk/nextjs/server";
+import {
+  listFiles,
+  createFolder,
+  findFolder,
+  deleteFile,
+  renameFile,
+  copyFile,
+  moveFile,
+} from "@/lib/google-drive";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-    try {
-        const { searchParams } = new URL(req.url);
-        const folderId = searchParams.get('folderId') || undefined;
-        const projectName = searchParams.get('projectName');
+  try {
+    const { searchParams } = new URL(req.url);
+    const folderId = searchParams.get("folderId") || undefined;
+    const projectName = searchParams.get("projectName");
 
-        const user = await currentUser();
-        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const user = await currentUser();
+    if (!user)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const client = await clerkClient();
-        const response = await client.users.getUserOauthAccessToken(user.id, 'oauth_google');
-        const token = response.data[0]?.token;
+    const client = await clerkClient();
+    const response = await client.users.getUserOauthAccessToken(
+      user.id,
+      "oauth_google",
+    );
+    const token = response.data[0]?.token;
 
-        if (!token) {
-            return NextResponse.json({ isConnected: false, error: 'Google account not linked' });
-        }
-
-        // If no folderId provided but projectName exists, we might want to "Find or Create" a folder
-        // For now, let's just list the root or a specific folder
-        const files = await listFiles(token, folderId);
-
-        return NextResponse.json({ isConnected: true, files });
-
-    } catch (error: any) {
-        console.error('Drive API Error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!token) {
+      return NextResponse.json({
+        isConnected: false,
+        error: "Google account not linked",
+      });
     }
+
+    let targetFolderId = folderId;
+    const subfolderName = searchParams.get("subfolderName");
+
+    // If subfolderName is provided, we look for it inside the parent (folderId)
+    if (subfolderName && targetFolderId) {
+      const subfolder = await findFolder(token, subfolderName, targetFolderId);
+      if (subfolder) targetFolderId = subfolder.id!;
+      else {
+        // If subfolder not found, return empty list to avoid showing parent files
+        return NextResponse.json({
+          isConnected: true,
+          files: [],
+          message: `Subfolder ${subfolderName} not found`,
+        });
+      }
+    }
+
+    const files = await listFiles(token, targetFolderId);
+    return NextResponse.json({ isConnected: true, files });
+  } catch (error: any) {
+    console.error("Drive API Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
-    try {
-        const user = await currentUser();
-        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  try {
+    const user = await currentUser();
+    if (!user)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const client = await clerkClient();
-        const response = await client.users.getUserOauthAccessToken(user.id, 'oauth_google');
-        const token = response.data[0]?.token;
+    const client = await clerkClient();
+    const response = await client.users.getUserOauthAccessToken(
+      user.id,
+      "oauth_google",
+    );
+    const token = response.data[0]?.token;
 
-        if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 400 });
+    if (!token)
+      return NextResponse.json(
+        { error: "Google not connected" },
+        { status: 400 },
+      );
 
-        const { action, name, parentId, fileId, copyFileId } = await req.json();
+    const { action, name, parentId, fileId, copyFileId } = await req.json();
 
-        if (action === 'copy') {
-            if (!copyFileId || !parentId) return NextResponse.json({ error: 'Missing parameters for copy' }, { status: 400 });
-            const file = await copyFile(token, copyFileId, parentId, name);
-            return NextResponse.json({ success: true, file });
-        }
-
-        const folderId = await createFolder(token, name, parentId);
-
-        return NextResponse.json({ success: true, folderId });
-
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    if (action === "copy") {
+      if (!copyFileId || !parentId)
+        return NextResponse.json(
+          { error: "Missing parameters for copy" },
+          { status: 400 },
+        );
+      const file = await copyFile(token, copyFileId, parentId, name);
+      return NextResponse.json({ success: true, file });
     }
+
+    const folderId = await createFolder(token, name, parentId);
+
+    return NextResponse.json({ success: true, folderId });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 export async function DELETE(req: Request) {
-    try {
-        const { searchParams } = new URL(req.url);
-        const fileId = searchParams.get('fileId');
+  try {
+    const { searchParams } = new URL(req.url);
+    const fileId = searchParams.get("fileId");
 
-        const user = await currentUser();
-        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const user = await currentUser();
+    if (!user)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const client = await clerkClient();
-        const response = await client.users.getUserOauthAccessToken(user.id, 'oauth_google');
-        const token = response.data[0]?.token;
+    const client = await clerkClient();
+    const response = await client.users.getUserOauthAccessToken(
+      user.id,
+      "oauth_google",
+    );
+    const token = response.data[0]?.token;
 
-        if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 400 });
+    if (!token)
+      return NextResponse.json(
+        { error: "Google not connected" },
+        { status: 400 },
+      );
 
-        if (!fileId) return NextResponse.json({ error: 'Missing fileId' }, { status: 400 });
+    if (!fileId)
+      return NextResponse.json({ error: "Missing fileId" }, { status: 400 });
 
-        await deleteFile(token, fileId);
-        return NextResponse.json({ success: true });
-
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    await deleteFile(token, fileId);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: Request) {
-    try {
-        const user = await currentUser();
-        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  try {
+    const user = await currentUser();
+    if (!user)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const client = await clerkClient();
-        const response = await client.users.getUserOauthAccessToken(user.id, 'oauth_google');
-        const token = response.data[0]?.token;
+    const client = await clerkClient();
+    const response = await client.users.getUserOauthAccessToken(
+      user.id,
+      "oauth_google",
+    );
+    const token = response.data[0]?.token;
 
-        if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 400 });
+    if (!token)
+      return NextResponse.json(
+        { error: "Google not connected" },
+        { status: 400 },
+      );
 
-        const { action, fileId, name, destinationId } = await req.json();
+    const { action, fileId, name, destinationId } = await req.json();
 
-        if (action === 'move') {
-            if (!fileId || !destinationId) return NextResponse.json({ error: 'Missing parameters for move' }, { status: 400 });
-            await moveFile(token, fileId, destinationId);
-            return NextResponse.json({ success: true });
-        }
-
-        if (!fileId || !name) return NextResponse.json({ error: 'Missing fileId or name' }, { status: 400 });
-
-        await renameFile(token, fileId, name);
-        return NextResponse.json({ success: true });
-
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    if (action === "move") {
+      if (!fileId || !destinationId)
+        return NextResponse.json(
+          { error: "Missing parameters for move" },
+          { status: 400 },
+        );
+      await moveFile(token, fileId, destinationId);
+      return NextResponse.json({ success: true });
     }
+
+    if (!fileId || !name)
+      return NextResponse.json(
+        { error: "Missing fileId or name" },
+        { status: 400 },
+      );
+
+    await renameFile(token, fileId, name);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
