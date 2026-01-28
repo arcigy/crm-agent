@@ -35,7 +35,7 @@ export default function FilesTool() {
     const [files, setFiles] = React.useState<DriveFile[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [searchQuery, setSearchQuery] = React.useState('');
-    const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list');
     const [path, setPath] = React.useState<{ id: string; name: string }[]>([]);
 
     // Multi-select state

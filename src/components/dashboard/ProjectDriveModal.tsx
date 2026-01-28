@@ -41,7 +41,7 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
     const [clipboard, setClipboard] = React.useState<{ op: 'copy' | 'cut', file: DriveFile } | null>(null);
     const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
     const [lastSelectedId, setLastSelectedId] = React.useState<string | null>(null);
-    const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list');
 
     // Close context menu on global click
     React.useEffect(() => {
