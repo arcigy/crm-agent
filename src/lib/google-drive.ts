@@ -8,7 +8,7 @@ export async function getDriveClient(token: string) {
 
 export async function findFolder(token: string, name: string, parentId?: string) {
     const drive = await getDriveClient(token);
-    let q = `name = '${name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+    let q = `name = '${name.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
     if (parentId) {
         q += ` and '${parentId}' in parents`;
     }
@@ -67,7 +67,7 @@ export async function createFolder(token: string, name: string, parentId?: strin
 
 /**
  * Creates the full project hierarchy:
- * CRM Root -> Year -> Project Folder -> [Subfolders]
+ * CRM Root -> Year -> Project Folder -> Deep Subfolders
  */
 export async function setupProjectStructure(token: string, data: {
     projectName: string,
@@ -75,27 +75,32 @@ export async function setupProjectStructure(token: string, data: {
     year: string,
     contactName: string
 }) {
-    // 1. Ensure Main Root
+    // 1. Ensure Main Root (ArciGy CRM Files)
     const rootId = await ensureFolder(token, 'ArciGy CRM Files');
 
-    // 2. Ensure Year Folder
+    // 2. Ensure Year Folder (e.g., 2025)
     const yearId = await ensureFolder(token, data.year, rootId);
 
     // 3. Create Project Folder (001_Project_Name)
     const folderName = `${data.projectNumber}_${data.projectName.replace(/\s+/g, '_')}`;
     const projectId = await createFolder(token, folderName, yearId, `Client: ${data.contactName}`);
 
-    // 4. Create Subfolders
-    const subfolders = [
-        '01_Zmluvy_a_Faktury',
-        '02_Podklady_od_Klienta',
-        '03_Pracovna_Zlozka',
-        '04_Finalne_Vystupy'
-    ];
+    // 4. Create Deep Subfolders Structure
+    // 01_Zmluvy_a_Faktury
+    const f01 = await createFolder(token, '01_Zmluvy_a_Faktury', projectId);
+    await createFolder(token, 'Zmluvy', f01);
+    await createFolder(token, 'Faktury', f01);
 
-    for (const sub of subfolders) {
-        await createFolder(token, sub, projectId);
-    }
+    // 02_Podklady_od_Klienta
+    await createFolder(token, '02_Podklady_od_Klienta', projectId);
+
+    // 03_Pracovna_Zlozka
+    const f03 = await createFolder(token, '03_Pracovna_Zlozka', projectId);
+    await createFolder(token, 'Docasne_Slozka', f03);
+    await createFolder(token, 'Trvale_Slozka', f03);
+
+    // 04_Finalne_Vystupy
+    await createFolder(token, '04_Finalne_Vystupy', projectId);
 
     return projectId;
 }
