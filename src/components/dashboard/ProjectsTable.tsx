@@ -465,18 +465,27 @@ export function ProjectsTable({ data, contacts }: ProjectsTableProps) {
         columnHelper.display({
             id: 'drive',
             header: 'Súbory',
-            cell: (info) => (
-                <button
-                    onClick={() => setDriveProject({
-                        id: info.row.original.id,
-                        name: `${info.row.original.project_type} - ${info.row.original.contact_name}`
-                    })}
-                    className="p-1.5 bg-gray-50 hover:bg-blue-600 hover:text-white rounded-lg transition-all text-gray-400 border border-gray-100"
-                    title="Google Drive"
-                >
-                    <HardDrive className="w-3.5 h-3.5" />
-                </button>
-            ),
+            cell: (info) => {
+                const folderId = info.row.original.drive_folder_id;
+                return (
+                    <button
+                        onClick={() => {
+                            if (folderId) {
+                                window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank');
+                            } else {
+                                setDriveProject({
+                                    id: info.row.original.id,
+                                    name: `${info.row.original.project_type} - ${info.row.original.contact_name}`
+                                });
+                            }
+                        }}
+                        className={`p-1.5 rounded-lg transition-all border border-gray-100 ${folderId ? 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white' : 'bg-gray-50 text-gray-400 hover:bg-gray-200'}`}
+                        title={folderId ? "Otvoriť na Google Drive" : "Google Drive (Neprepojené)"}
+                    >
+                        <HardDrive className="w-3.5 h-3.5" />
+                    </button>
+                );
+            },
         }),
     ];
 
