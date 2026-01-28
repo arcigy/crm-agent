@@ -447,7 +447,9 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                                         key={file.id}
                                         onClick={(e) => handleFileClick(e, file, index)}
                                         onDoubleClick={(e) => {
+                                            e.preventDefault();
                                             e.stopPropagation();
+                                            window.getSelection()?.removeAllRanges();
                                             isFolder ? handleFolderClick(file) : window.open(file.webViewLink, '_blank');
                                         }}
                                         onContextMenu={(e) => {
@@ -458,7 +460,7 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                                             }
                                             handleContextMenu(e, file);
                                         }}
-                                        className={`cursor-pointer group bg-white p-6 rounded-[2.5rem] border hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100 transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden ${isSelected ? 'border-blue-500 ring-4 ring-blue-50' : 'border-gray-100'}`}
+                                        className={`cursor-pointer group bg-white p-6 rounded-[2.5rem] border hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100 transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden select-none ${isSelected ? 'border-blue-500 ring-4 ring-blue-50' : 'border-gray-100'}`}
                                     >
                                         <div className={`absolute top-0 left-0 w-full h-1 ${isSelected ? 'bg-blue-500 opacity-100' : 'bg-blue-600 opacity-0 group-hover:opacity-100'} transition-opacity`}></div>
                                         <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-transform group-hover:scale-110 ${isFolder ? 'bg-amber-50' : 'bg-blue-50'} overflow-hidden`}>
@@ -501,7 +503,9 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                                                 key={file.id}
                                                 onClick={(e) => handleFileClick(e, file, index)}
                                                 onDoubleClick={(e) => {
+                                                    e.preventDefault();
                                                     e.stopPropagation();
+                                                    window.getSelection()?.removeAllRanges();
                                                     isFolder ? handleFolderClick(file) : window.open(file.webViewLink, '_blank');
                                                 }}
                                                 onContextMenu={(e) => {
@@ -512,7 +516,7 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                                                     }
                                                     handleContextMenu(e, file);
                                                 }}
-                                                className={`transition-colors cursor-pointer group ${isSelected ? 'bg-blue-50' : 'hover:bg-blue-50/50'}`}
+                                                className={`transition-colors cursor-pointer group select-none ${isSelected ? 'bg-blue-50' : 'hover:bg-blue-50/50'}`}
                                             >
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
