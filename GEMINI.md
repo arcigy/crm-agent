@@ -84,9 +84,14 @@ VŽDY používať `Invoke-RestMethod` alebo `Invoke-WebRequest`.
 
 🚀 8. RAILWAY & DIRECTUS KONFIGURÁCIA
 Produkčná URL CRM: https://crm-agent-production-d1eb.up.railway.app
-Directus URL: https://directus-production-58c1.up.railway.app
-Directus Token: fZWEmYZ14ysG16WTfTIFTOBtuxFCumm6
+Directus Public URL: https://directus-buk1-production.up.railway.app
+Directus Private URL: http://directus-buk1.railway.internal:8055
+Directus Token: 3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE
 Directus Admin: arcigyback@gmail.com / Automatizacie#2025
+
+Private Networking: CRM sa pripája na Directus cez private network pre rýchlejšiu komunikáciu.
+- Server-side (DIRECTUS_URL): http://directus-buk1.railway.internal:8055
+- Client-side (NEXT_PUBLIC_DIRECTUS_URL): https://directus-buk1-production.up.railway.app
 
 Kolekcie v Directuse:
 - contacts (id, first_name, last_name, email, phone, company, status, comments, date_created, date_updated, deleted_at)
@@ -94,6 +99,9 @@ Kolekcie v Directuse:
 - deals (id, name, value, contact_id, paid, invoice_date, description, date_created, date_updated, deleted_at)
 - activities (id, type, contact_id, subject, content, duration, activity_date, date_created)
 - crm_users (id, email, password_hash, first_name, last_name, role, status, date_created, date_updated)
+- google_tokens (id, user_id, access_token, refresh_token, expiry_date, date_created, date_updated, deleted_at)
+- email_analysis (message_id, intent, priority, sentiment, service_category, estimated_budget, next_step, summary, date_created, date_updated)
+- android_logs (id, type, direction, phone_number, body, duration, timestamp, extra_data, contact_id, deleted_at, date_created)
 
 Dôležité: Pred každou prácou s Directus API overiť, či služba beží na Railway.
 
