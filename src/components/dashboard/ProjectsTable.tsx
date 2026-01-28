@@ -321,7 +321,7 @@ export function ProjectsTable({ data, contacts }: ProjectsTableProps) {
     const [isModalOpen, setIsModalOpen] = React.useState(false);
     const [projects, setProjects] = React.useState(data);
     const [fullDetailContact, setFullDetailContact] = React.useState<Lead | null>(null);
-    const [driveProject, setDriveProject] = React.useState<{ id: number, name: string } | null>(null);
+    const [driveProject, setDriveProject] = React.useState<{ id: number, name: string, folderId?: string } | null>(null);
 
     const [modalMode, setModalMode] = React.useState<'form' | 'json'>('form');
 
@@ -470,17 +470,14 @@ export function ProjectsTable({ data, contacts }: ProjectsTableProps) {
                 return (
                     <button
                         onClick={() => {
-                            if (folderId) {
-                                window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank');
-                            } else {
-                                setDriveProject({
-                                    id: info.row.original.id,
-                                    name: `${info.row.original.project_type} - ${info.row.original.contact_name}`
-                                });
-                            }
+                            setDriveProject({
+                                id: info.row.original.id,
+                                name: `${info.row.original.project_type} - ${info.row.original.contact_name}`,
+                                folderId: folderId
+                            });
                         }}
                         className={`p-1.5 rounded-lg transition-all border border-gray-100 ${folderId ? 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white' : 'bg-gray-50 text-gray-400 hover:bg-gray-200'}`}
-                        title={folderId ? "Otvoriť na Google Drive" : "Google Drive (Neprepojené)"}
+                        title={folderId ? "Zobraziť súbory v CRM" : "Google Drive (Neprepojené)"}
                     >
                         <HardDrive className="w-3.5 h-3.5" />
                     </button>
@@ -513,6 +510,7 @@ export function ProjectsTable({ data, contacts }: ProjectsTableProps) {
                 onClose={() => setDriveProject(null)}
                 projectId={driveProject?.id || 0}
                 projectName={driveProject?.name || ''}
+                folderId={driveProject?.folderId}
             />
 
             <ContactDetailModal

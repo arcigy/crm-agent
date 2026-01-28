@@ -17,9 +17,10 @@ interface ProjectDriveModalProps {
     onClose: () => void;
     projectId: number;
     projectName: string;
+    folderId?: string;
 }
 
-export function ProjectDriveModal({ isOpen, onClose, projectId, projectName }: ProjectDriveModalProps) {
+export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, folderId }: ProjectDriveModalProps) {
     const [files, setFiles] = React.useState<DriveFile[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -27,8 +28,10 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName }: P
     const fetchFiles = async () => {
         setLoading(true);
         try {
-            // We search for a folder named "Project #[ID] - [Name]" or list root
-            const res = await fetch(`/api/google/drive?projectName=${encodeURIComponent(projectName)}`);
+            const url = folderId
+                ? `/api/google/drive?folderId=${folderId}`
+                : `/api/google/drive?projectName=${encodeURIComponent(projectName)}`;
+            const res = await fetch(url);
             const data = await res.json();
 
             if (data.isConnected) {
