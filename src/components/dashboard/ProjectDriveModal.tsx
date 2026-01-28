@@ -9,7 +9,9 @@ interface DriveFile {
     name: string;
     mimeType: string;
     webViewLink: string;
+    webViewLink: string;
     iconLink: string;
+    thumbnailLink?: string;
 }
 
 interface ProjectDriveModalProps {
@@ -168,9 +170,11 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                                         className="cursor-pointer group bg-white p-6 rounded-[2.5rem] border border-gray-100 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100 transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden"
                                     >
                                         <div className="absolute top-0 left-0 w-full h-1 bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                        <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-transform group-hover:scale-110 ${isFolder ? 'bg-amber-50' : 'bg-blue-50'}`}>
+                                        <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-transform group-hover:scale-110 ${isFolder ? 'bg-amber-50' : 'bg-blue-50'} overflow-hidden`}>
                                             {isFolder ? (
                                                 <Folder className="w-8 h-8 text-amber-500 fill-amber-500/20" />
+                                            ) : file.thumbnailLink ? (
+                                                <img src={file.thumbnailLink} alt="" className="w-full h-full object-cover" />
                                             ) : (
                                                 <img src={file.iconLink} alt="" className="w-8 h-8" />
                                             )}
