@@ -255,17 +255,31 @@ function CreateProjectModal({
 
                             <div className="space-y-2">
                                 <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Kontakt z CRM</label>
-                                <select
-                                    required
-                                    className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-indigo-500 focus:bg-white transition-all outline-none"
-                                    value={formData.contact_id}
-                                    onChange={(e) => setFormData({ ...formData, contact_id: e.target.value })}
-                                >
-                                    <option value="">-- Vyberte kontakt --</option>
-                                    {contacts.map((c) => (
-                                        <option key={c.id} value={c.id}>{c.first_name} {c.last_name} ({c.company || 'Osobné'})</option>
-                                    ))}
-                                </select>
+                                <div className="relative">
+                                    <input
+                                        required
+                                        list="contacts-list"
+                                        type="text"
+                                        className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-indigo-500 focus:bg-white transition-all outline-none"
+                                        placeholder="Začnite písať meno..."
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const selected = contacts.find(c =>
+                                                `${c.first_name} ${c.last_name} (${c.company || 'Osobné'})` === val ||
+                                                `${c.first_name} ${c.last_name}` === val
+                                            );
+                                            setFormData({
+                                                ...formData,
+                                                contact_id: selected ? selected.id.toString() : ''
+                                            });
+                                        }}
+                                    />
+                                    <datalist id="contacts-list">
+                                        {contacts.map((c) => (
+                                            <option key={c.id} value={`${c.first_name} ${c.last_name} (${c.company || 'Osobné'})`} />
+                                        ))}
+                                    </datalist>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
