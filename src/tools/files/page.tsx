@@ -53,16 +53,74 @@ export default function FilesTool() {
     // Clipboard state
     const [clipboard, setClipboard] = React.useState<{ op: 'copy' | 'cut', files: DriveFile[] } | null>(null);
 
+    // Cache for prefetched folders
+    const cacheRef = React.useRef<Map<string, DriveFile[]>>(new Map());
+
+    // Prefetch subfolders in background
+    const prefetchSubfolders = React.useCallback(async (parentFiles: DriveFile[]) => {
+        const folders = parentFiles.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+
+        // Prefetch each folder in parallel (limit to 5 concurrent)
+        const batchSize = 5;
+        for (let i = 0; i < folders.length; i += batchSize) {
+            const batch = folders.slice(i, i + batchSize);
+            await Promise.all(batch.map(async (folder) => {
+                if (cacheRef.current.has(folder.id)) return; // Already cached
+
+                try {
+                    const res = await fetch(`/api/google/drive?folderId=${folder.id}`);
+                    const data = await res.json();
+                    if (data.isConnected && data.files) {
+                        cacheRef.current.set(folder.id, data.files);
+                    }
+                } catch (e) {
+                    // Silent fail for prefetch
+                }
+            }));
+        }
+    }, []);
+
     const fetchFiles = async (folderId?: string) => {
-        setLoading(true);
+        const cacheKey = folderId || 'root';
         setSelectedIds(new Set());
+
+        // Check cache first
+        if (cacheRef.current.has(cacheKey)) {
+            const cached = cacheRef.current.get(cacheKey)!;
+            setFiles(cached);
+            setLoading(false);
+
+            // Prefetch subfolders in background
+            prefetchSubfolders(cached);
+
+            // Refresh in background (stale-while-revalidate)
+            fetch(folderId ? `/api/google/drive?folderId=${folderId}` : '/api/google/drive')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.isConnected && data.files) {
+                        cacheRef.current.set(cacheKey, data.files);
+                        setFiles(data.files);
+                        prefetchSubfolders(data.files);
+                    }
+                })
+                .catch(() => { });
+            return;
+        }
+
+        // Not in cache - fetch with loading state
+        setLoading(true);
         try {
             const url = folderId ? `/api/google/drive?folderId=${folderId}` : '/api/google/drive';
             const res = await fetch(url);
             const data = await res.json();
 
             if (data.isConnected) {
-                setFiles(data.files || []);
+                const fetchedFiles = data.files || [];
+                setFiles(fetchedFiles);
+                cacheRef.current.set(cacheKey, fetchedFiles);
+
+                // Prefetch subfolders
+                prefetchSubfolders(fetchedFiles);
             } else {
                 toast.error('Google Drive nie je prepojený');
             }
