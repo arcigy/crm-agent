@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { ContactsTable } from '@/components/dashboard/ContactsTable';
-import { createContact } from '@/app/actions/contacts';
+import { createContact, getContacts } from '@/app/actions/contacts';
 import { Lead } from '@/types/contact';
 import { getProjects } from '@/app/actions/projects';
 import directus from '@/lib/directus';
@@ -25,17 +25,16 @@ async function ContactsListing() {
         // Parallel fetch for speed
         const [projectsRes, contactsRes] = await Promise.allSettled([
             withTimeout(getProjects(), 3000),
-            // @ts-ignore
-            withTimeout(directus.request(readItems('contacts', { limit: 100 })), 3000)
+            withTimeout(getContacts(), 3000)
         ]);
 
         const projectsData = projectsRes.status === 'fulfilled' ? (projectsRes.value.data || []) : [];
-        const rawItems = contactsRes.status === 'fulfilled' ? contactsRes.value : null;
+        const contactsResult = contactsRes.status === 'fulfilled' ? contactsRes.value : null;
 
-        if (rawItems) {
+        if (contactsResult && contactsResult.success && contactsResult.data) {
             isBlackBox = true;
             const normalize = (s: string) => (s || '').toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-            contacts = (rawItems as any[]).map(contact => {
+            contacts = (contactsResult.data as any[]).map(contact => {
                 const fn = contact.first_name || '';
                 const ln = contact.last_name || '';
                 const fullName = normalize(`${fn} ${ln}`);
@@ -44,8 +43,8 @@ async function ContactsListing() {
                 });
                 return { ...contact, projects: contactProjects };
             });
-        } else if (contactsRes.status === 'rejected') {
-            const reason = (contactsRes.reason as any)?.message || '';
+        } else if (contactsRes.status === 'rejected' || (contactsResult && !contactsResult.success)) {
+            const reason = contactsRes.status === 'rejected' ? (contactsRes.reason as any)?.message : contactsResult?.error;
             console.error('Directus fetch failed:', reason);
             if (reason.includes('Timeout')) {
                 errorMsg = 'Databáza neodpovedá (Timeout). Skontrolujte, či Directus beží na Railway.';

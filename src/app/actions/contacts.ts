@@ -8,6 +8,9 @@ export async function getContacts() {
     try {
         // @ts-ignore
         const contacts = await directus.request(readItems('contacts', {
+            filter: {
+                deleted_at: { _null: true }
+            },
             sort: ['-date_created'],
             limit: 100
         }));

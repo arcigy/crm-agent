@@ -330,7 +330,7 @@ function ActivityDetailModal({ contact, onClose }: { contact: Lead | null, onClo
     const activities = [...(contact.activities || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return (
-        <div className="fixed inset-0 z-[70] flex justify-end bg-black/40 backdrop-blur-[2px] p-0 sm:p-4">
+        <div className="fixed inset-0 z-[240] flex justify-end bg-black/40 backdrop-blur-[2px] p-0 sm:p-4 animate-in fade-in duration-300">
             <div
                 className="absolute inset-0"
                 onClick={onClose}
@@ -449,8 +449,9 @@ function PhoneQrModal({ phone, onClose }: { phone: string | null, onClose: () =>
     if (!phone) return null;
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
+            <div className="absolute inset-0" onClick={onClose} />
+            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xs overflow-hidden relative transform transition-all animate-in zoom-in-95 duration-500 border border-gray-100">
                 <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                     <h3 className="font-bold text-gray-900 flex items-center gap-2">
                         <Phone className="w-4 h-4 text-blue-500" /> Call Contact
@@ -486,8 +487,9 @@ function ContactProjectsModal({ contact, onClose }: { contact: Lead | null; onCl
     const projects = contact.projects || [];
 
     return (
-        <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4">
-            <div className="bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden transform transition-all animate-in slide-in-from-bottom duration-300 border border-gray-100">
+        <div className="fixed inset-0 z-[260] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-md p-0 sm:p-4 animate-in fade-in duration-300">
+            <div className="absolute inset-0" onClick={onClose} />
+            <div className="bg-white rounded-t-[3rem] sm:rounded-[3rem] shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden relative transform transition-all animate-in slide-in-from-bottom-10 duration-500 border border-gray-100">
                 {/* Header */}
                 <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
                     <div className="flex items-center gap-4">
@@ -660,133 +662,146 @@ function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'form' }:
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-sm pointer-events-none">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
             {/* Background overlay that handles click-to-close */}
-            <div className="absolute inset-0 bg-black/40 pointer-events-auto" onClick={onClose}></div>
+            <div className="absolute inset-0" onClick={onClose}></div>
 
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative pointer-events-auto transform transition-all animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-gray-900">Nový kontakt</h2>
-                    <div className="flex bg-gray-100 rounded-lg p-1 text-xs font-bold">
+            <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-xl p-10 relative transform transition-all animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 border border-gray-100">
+                <button
+                    onClick={onClose}
+                    className="absolute top-8 right-8 p-2 text-gray-300 hover:text-gray-900 transition-colors"
+                >
+                    <X className="w-6 h-6" />
+                </button>
+
+                <div className="flex items-center justify-between mb-10">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl shadow-blue-100">
+                            <Plus className="w-8 h-8" />
+                        </div>
+                        <div>
+                            <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">Nový kontakt</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1 opacity-60">Add talent to your workspace</p>
+                        </div>
+                    </div>
+
+                    <div className="flex bg-gray-50 rounded-2xl p-1 text-[10px] font-black uppercase tracking-widest border border-gray-100">
                         <button
                             onClick={() => setMode('form')}
-                            className={`px-3 py-1.5 rounded-md transition-all ${mode === 'form' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
+                            className={`px-6 py-3 rounded-xl transition-all ${mode === 'form' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-900'}`}
                         >
                             Formulár
                         </button>
                         <button
                             onClick={() => setMode('json')}
-                            className={`px-3 py-1.5 rounded-md transition-all ${mode === 'json' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
+                            className={`px-6 py-3 rounded-xl transition-all ${mode === 'json' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-900'}`}
                         >
-                            RAW Extrakcia
+                            RAW
                         </button>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-6">
                     {mode === 'form' ? (
                         <>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Meno</label>
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Meno</label>
                                     <input
                                         type="text"
                                         required
-                                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                        autoFocus
+                                        className="w-full h-16 bg-gray-50 border-2 border-gray-50 rounded-2xl px-6 text-lg font-bold focus:border-blue-500 focus:bg-white transition-all outline-none"
                                         value={formData.first_name}
                                         onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Priezvisko</label>
+                                <div className="space-y-2">
+                                    <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Priezvisko</label>
                                     <input
                                         type="text"
                                         required
-                                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                        className="w-full h-16 bg-gray-50 border-2 border-gray-50 rounded-2xl px-6 text-lg font-bold focus:border-blue-500 focus:bg-white transition-all outline-none"
                                         value={formData.last_name}
                                         onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Email</label>
-                                <input
-                                    type="email"
-                                    required
-                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                />
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Email</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        className="w-full h-14 bg-gray-50 border-2 border-gray-50 rounded-2xl px-5 font-bold text-sm focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Telefón</label>
+                                    <input
+                                        type="text"
+                                        className="w-full h-14 bg-gray-50 border-2 border-gray-50 rounded-2xl px-5 font-bold text-sm focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                        placeholder="+421 9xx xxx xxx"
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Telefón</label>
+
+                            <div className="space-y-2">
+                                <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Firma / Account</label>
                                 <input
                                     type="text"
-                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                    placeholder="+421 900 000 000"
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Firma / Account</label>
-                                <input
-                                    type="text"
-                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                    className="w-full h-14 bg-gray-50 border-2 border-gray-50 rounded-2xl px-5 font-bold text-sm focus:border-blue-500 focus:bg-white transition-all outline-none"
                                     value={formData.company}
                                     onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Status</label>
+
+                            <div className="space-y-2">
+                                <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Status kontaktu</label>
                                 <select
-                                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                                    className="w-full h-14 bg-gray-50 border-2 border-gray-50 rounded-2xl px-5 font-bold text-sm focus:border-blue-500 focus:bg-white transition-all outline-none appearance-none"
                                     value={formData.status}
                                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                 >
-                                    <option value="draft">Neaktívny (Draft)</option>
-                                    <option value="published">Aktívny (Published)</option>
+                                    <option value="published">🟢 Aktívny (Published)</option>
+                                    <option value="draft">🟡 Neaktívny (Draft)</option>
                                 </select>
                             </div>
                         </>
                     ) : (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Vložte RAW dáta (JSON alebo Text)</label>
-                            <div className="bg-slate-900 rounded-md p-3 mb-2">
-                                <code className="text-xs text-green-400 block mb-1">Príklady formátov:</code>
-                                <pre className="text-[10px] text-gray-400 font-mono overflow-x-auto">
-                                    {`// JSON formát
-[{"name": "Ján", "email": "jan@mail.sk"}]
-
-// NV formát (Text)
+                        <div className="space-y-4">
+                            <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Vložte RAW dáta (JSON alebo Text)</label>
+                            <div className="bg-gray-900 rounded-[2rem] p-6 mb-2 border border-blue-500/20 shadow-2xl overflow-hidden relative group/code">
+                                <code className="text-[10px] text-blue-400 font-black uppercase tracking-widest block mb-4 italic opacity-60">Engine Protocol Input:</code>
+                                <pre className="text-[11px] text-gray-400 font-mono leading-relaxed">
+                                    {`// JSON: [{"name": "Ján", "email": "jan@mail.sk"}]
+// Text line-by-line:
 Name: Peter Pan
 Email: peter@neverland.sk
 Tel: +421 900 111 222`}
                                 </pre>
                             </div>
                             <textarea
-                                className="w-full h-64 font-mono text-xs p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none"
-                                placeholder='Vložte JSON alebo textové riadky...'
+                                className="w-full h-72 font-mono text-xs p-6 bg-gray-50 border-2 border-gray-50 rounded-[2rem] focus:border-blue-500 focus:bg-white transition-all outline-none resize-none shadow-inner"
+                                placeholder='Insert system memory...'
                                 value={jsonInput}
                                 onChange={(e) => setJsonInput(e.target.value)}
                             ></textarea>
                         </div>
                     )}
 
-                    <div className="flex justify-end gap-2 mt-6">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
-                        >
-                            Zrušiť
-                        </button>
+                    <div className="pt-6">
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
+                            className="w-full h-20 bg-gray-900 text-white rounded-[2rem] text-sm font-black uppercase tracking-[0.4em] flex items-center justify-center gap-3 shadow-2xl shadow-gray-200 hover:bg-black transition-all active:scale-95 disabled:opacity-50"
                         >
-                            {loading ? 'Spracúvam...' : (mode === 'json' ? 'Importovať RAW' : 'Vytvoriť kontakt')}
+                            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (mode === 'json' ? 'Importovať Protokol' : 'Vytvoriť Záznam')}
                         </button>
                     </div>
                 </form>
@@ -1053,7 +1068,7 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
                             onClick={() => setIsModalOpen(true)}
                         >
                             <Plus className="w-4 h-4 group-hover:scale-125 transition-transform" />
-                            <span>Double click to add a new contact...</span>
+                            <span>Click to add a new contact...</span>
                         </div>
                     </div>
                 </div>

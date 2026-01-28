@@ -44,10 +44,10 @@ export function ContactDetailModal({ contact, isOpen, onClose }: ContactDetailMo
     const totalDealValue = contact.deals?.reduce((sum, d) => sum + (d.value || 0), 0) || 0;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
+        <div className="fixed inset-0 z-[270] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
 
-            <div className="bg-white w-full max-w-[95vw] sm:max-w-6xl h-[95vh] sm:rounded-3xl shadow-2xl relative flex overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-white w-full max-w-[95vw] sm:max-w-6xl h-[95vh] sm:rounded-[3rem] shadow-2xl relative flex overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 border border-white/20">
 
                 {/* CONTACT PROFILE SIDEBAR (Only visible when NOT in Email/SMS Mode or on wider screens) */}
                 <div className={`w-80 lg:w-96 bg-gray-50/80 border-r border-gray-200 flex flex-col shrink-0 overflow-y-auto transition-all duration-300 ${emailMode ? 'hidden lg:flex w-64 opacity-50 pointer-events-none' : ''} ${smsMode ? 'hidden' : ''}`}>

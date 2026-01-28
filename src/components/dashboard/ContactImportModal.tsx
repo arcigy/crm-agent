@@ -157,8 +157,9 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className={`bg-white w-full ${step === 'map' ? 'max-w-4xl' : 'max-w-md'} rounded-3xl shadow-2xl overflow-hidden flex flex-col transform transition-all animate-in zoom-in-95 duration-200 border border-gray-100`}>
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
+            <div className="absolute inset-0" onClick={onClose}></div>
+            <div className={`bg-white w-full ${step === 'map' ? 'max-w-4xl' : 'max-w-xl'} rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative transform transition-all animate-in zoom-in-95 duration-500 border border-gray-100`}>
 
                 {/* Header */}
                 <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">

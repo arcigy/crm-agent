@@ -181,15 +181,25 @@ function CreateProjectModal({
     };
 
     return (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-transparent backdrop-blur-md pointer-events-none">
-            <div className="absolute inset-0 bg-black/40 pointer-events-auto" onClick={onClose} />
-            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-300 pointer-events-auto border border-gray-100">
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                            <Plus className="w-6 h-6 text-white" />
+        <div className="fixed inset-0 z-[230] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
+            <div className="absolute inset-0" onClick={onClose} />
+            <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-xl p-10 relative transform transition-all animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 border border-gray-100">
+                <button
+                    onClick={onClose}
+                    className="absolute top-8 right-8 p-2 text-gray-300 hover:text-gray-900 transition-colors"
+                >
+                    <X className="w-6 h-6" />
+                </button>
+
+                <div className="flex items-center justify-between mb-10">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl shadow-indigo-100">
+                            <Plus className="w-8 h-8" />
                         </div>
-                        <h2 className="text-2xl font-black text-gray-900 tracking-tight">Pridať Deal</h2>
+                        <div>
+                            <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">Pridať Deal</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1 opacity-60">Accelerate your pipeline</p>
+                        </div>
                     </div>
                     <div className="flex bg-gray-100 rounded-xl p-1 text-[10px] font-black uppercase tracking-widest">
                         <button
@@ -264,10 +274,15 @@ function CreateProjectModal({
                         </>
                     ) : (
                         <div className="space-y-4">
-                            <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">RAW JSON Input</label>
+                            <div className="bg-gray-900 rounded-[2rem] p-6 mb-2 border border-indigo-500/20 shadow-2xl overflow-hidden relative group/code">
+                                <code className="text-[10px] text-indigo-400 font-black uppercase tracking-widest block mb-4 italic opacity-60">Accelerated Protocol Input:</code>
+                                <pre className="text-[11px] text-gray-400 font-mono leading-relaxed">
+                                    {`// JSON: [{"type": "Web Design", "contact_id": 1}]`}
+                                </pre>
+                            </div>
                             <textarea
-                                className="w-full h-64 bg-slate-900 text-green-400 font-mono p-5 rounded-3xl text-xs outline-none focus:ring-2 focus:ring-indigo-500"
-                                placeholder='[{"type": "Web Design", "contact_id": 1, "stage": "planning"}]'
+                                className="w-full h-64 font-mono text-xs p-6 bg-gray-50 border-2 border-gray-100 rounded-[2rem] focus:border-indigo-500 focus:bg-white transition-all outline-none resize-none shadow-inner"
+                                placeholder='Insert system memory...'
                                 value={jsonInput}
                                 onChange={(e) => setJsonInput(e.target.value)}
                             />
@@ -308,9 +323,25 @@ export function ProjectsTable({ data, contacts }: ProjectsTableProps) {
     const [fullDetailContact, setFullDetailContact] = React.useState<Lead | null>(null);
     const [driveProject, setDriveProject] = React.useState<{ id: number, name: string } | null>(null);
 
+    const [modalMode, setModalMode] = React.useState<'form' | 'json'>('form');
+
     React.useEffect(() => {
         setProjects(data);
-    }, [data]);
+
+        const handleOpenCreate = (e: any) => {
+            setModalMode(e.detail || 'form');
+            setIsModalOpen(true);
+        };
+        const handleExport = () => exportToCSV(projects);
+
+        window.addEventListener('open-create-project', handleOpenCreate);
+        window.addEventListener('export-projects-csv', handleExport);
+
+        return () => {
+            window.removeEventListener('open-create-project', handleOpenCreate);
+            window.removeEventListener('export-projects-csv', handleExport);
+        };
+    }, [data, projects]);
 
     const handleStageChange = async (projectId: number, newStage: ProjectStage) => {
         // Optimistic update
@@ -467,6 +498,7 @@ export function ProjectsTable({ data, contacts }: ProjectsTableProps) {
         <>
             <CreateProjectModal
                 isOpen={isModalOpen}
+                initialMode={modalMode}
                 onClose={() => setIsModalOpen(false)}
                 onSubmit={handleCreate}
                 contacts={contacts}

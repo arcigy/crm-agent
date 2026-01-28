@@ -85,10 +85,10 @@ export function GoogleImportModal({ isOpen, onClose }: { isOpen: boolean; onClos
     );
 
     return (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-transparent backdrop-blur-md pointer-events-none">
-            <div className="absolute inset-0 bg-black/40 pointer-events-auto" onClick={onClose}></div>
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
+            <div className="absolute inset-0" onClick={onClose}></div>
 
-            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden pointer-events-auto transform transition-all animate-in zoom-in-95 duration-200 border border-gray-100">
+            <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden relative transform transition-all animate-in zoom-in-95 duration-500 border border-gray-100">
                 {/* Header */}
                 <div className="p-8 border-b border-gray-100 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 flex items-center justify-between">
                     <div className="flex items-center gap-4">
