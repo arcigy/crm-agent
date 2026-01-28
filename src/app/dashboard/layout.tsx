@@ -1,7 +1,8 @@
 import { getSession } from "@/lib/auth-service";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/dashboard/Sidebar";
-import { VoiceDictationProvider } from "@/components/VoiceDictationProvider";
+// VoiceDictationProvider temporarily disabled due to @ffmpeg/ffmpeg module issue
+// import { VoiceDictationProvider } from "@/components/VoiceDictationProvider";
 
 export default async function DashboardLayout({
     children,
