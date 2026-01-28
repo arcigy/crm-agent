@@ -17,6 +17,7 @@ import {
   HardDrive,
   Menu,
   X,
+  Receipt,
 } from "lucide-react";
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
@@ -31,7 +32,7 @@ const navigation = [
   { name: "Úlohy", href: "/dashboard/todo", icon: CheckSquare },
   { name: "Poznámky", href: "/dashboard/notes", icon: FileText },
   { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
-  { name: "Fakturácia", href: "/dashboard/invoicing", icon: FileText },
+  { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
@@ -85,15 +86,17 @@ export function Sidebar({ className }: { className?: string }) {
         {/* Navigation Links */}
         <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-1 scrollbar-hide">
           {navigation.map((item) => {
-            const isActive = pathname === item.href;
+            // Support sub-paths by checking startWith if necessary, but exact match for now
+            const isActive =
+              pathname === item.href || pathname?.startsWith(item.href + "/");
             const Icon = item.icon;
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                prefetch={false}
+                prefetch={true}
                 className={`
-                                    group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 w-full relative z-10 block
+                                    group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 w-full relative z-10
                                     ${
                                       isActive
                                         ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"

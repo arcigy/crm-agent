@@ -61,7 +61,7 @@ async function ContactsListing() {
     if (errorMsg) return <ErrorState errorMsg={errorMsg} />;
 
     return (
-        <div className="h-full bg-white rounded-t-[4rem] shadow-xl border-x border-t border-gray-100 overflow-hidden ring-1 ring-black/5 relative">
+        <div className="h-full bg-card rounded-t-[4rem] shadow-xl border-x border-t border-border overflow-hidden ring-1 ring-black/5 relative transition-colors">
             <ContactsTable data={contacts} onCreate={createContact} />
         </div>
     );
@@ -69,25 +69,24 @@ async function ContactsListing() {
 
 function ContactLoader() {
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-white rounded-[4rem] border border-gray-100 shadow-sm">
+        <div className="h-full w-full flex flex-col items-center justify-center bg-card rounded-[4rem] border border-border shadow-sm">
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] animate-pulse">Syncing with Directus Cloud...</p>
         </div>
     );
 }
 
-export default function ContactsPage() {
     return (
-        <div className="space-y-6 h-screen flex flex-col pt-6 bg-[#fcfcfd]">
+        <div className="space-y-6 h-screen flex flex-col pt-6 bg-background transition-colors duration-300">
             {/* TOP HEADER SECTION */}
             <div className="flex items-center justify-between px-8 mb-4">
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-black tracking-tighter text-gray-900 uppercase italic leading-none underline decoration-blue-500 decoration-8 underline-offset-12">
+                        <h1 className="text-3xl font-black tracking-tighter text-foreground uppercase italic leading-none underline decoration-blue-500 decoration-8 underline-offset-12">
                             Agent / <span className="text-blue-600">Kontakty</span>
                         </h1>
                     </div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.3em] pl-1 opacity-60">Intelligence & Contact Hub</p>
+                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.3em] pl-1 opacity-60">Intelligence & Contact Hub</p>
                 </div>
 
                 <div className="flex items-center gap-4">
