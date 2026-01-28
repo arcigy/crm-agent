@@ -28,6 +28,9 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
         phone: '',
         company: ''
     });
+    const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+    const [globalStatus, setGlobalStatus] = useState<'published' | 'draft'>('published');
+    const [processedRows, setProcessedRows] = useState<any[]>([]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -89,6 +92,9 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
                         if (low.includes('company') || low.includes('firm') || low.includes('org')) newMapping.company = h;
                     });
                     setMapping(newMapping);
+                    // Initialize selection and processed rows
+                    setSelectedRows(new Set(results.data.map((_, i) => i)));
+                    setProcessedRows(results.data);
                 }
             });
         } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
@@ -102,6 +108,8 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
                 setPreviewRows(data.slice(0, 5));
                 setFile(selectedFile);
                 setStep('map');
+                setSelectedRows(new Set(data.map((_, i) => i)));
+                setProcessedRows(data);
             }
         } else {
             toast.error('Nepodporovaný formát súboru');
@@ -128,13 +136,17 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
                     rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                 }
 
-                contactsToUpload = rawData.map(row => ({
-                    first_name: row[mapping.first_name] || '',
-                    last_name: row[mapping.last_name] || '',
-                    email: row[mapping.email] || '',
-                    phone: row[mapping.phone] || '',
-                    company: row[mapping.company] || ''
-                }));
+                contactsToUpload = Array.from(selectedRows).map(index => {
+                    const row = processedRows[index];
+                    return {
+                        first_name: row[mapping.first_name] || '',
+                        last_name: row[mapping.last_name] || '',
+                        email: row[mapping.email] || '',
+                        phone: row[mapping.phone] || '',
+                        company: row[mapping.company] || '',
+                        status: globalStatus
+                    };
+                });
             } else {
                 contactsToUpload = previewRows;
             }
@@ -228,10 +240,23 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
                         <div className="p-8">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 <div className="space-y-6">
-                                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 mb-6">Priradenie polí</h4>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">Priradenie polí</h4>
+                                        <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-2xl border border-gray-100">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Importovať ako:</span>
+                                            <select
+                                                value={globalStatus}
+                                                onChange={(e) => setGlobalStatus(e.target.value as any)}
+                                                className="bg-white border-2 border-gray-100 rounded-xl px-3 py-1 text-[10px] font-black uppercase tracking-widest outline-none focus:border-blue-500"
+                                            >
+                                                <option value="published">🟢 Active</option>
+                                                <option value="draft">🟡 Inactive</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                     {Object.keys(mapping).map((field) => (
                                         <div key={field} className="space-y-2">
-                                            <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 ml-1">
+                                            <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 ml-1">
                                                 {field.replace('_', ' ')}
                                             </label>
                                             <select
@@ -247,28 +272,53 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
                                 </div>
 
                                 <div className="space-y-6">
-                                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 mb-6">Náhľad dát (prvých 5)</h4>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">Výber a náhľad ({selectedRows.size}/{processedRows.length})</h4>
+                                        <button
+                                            onClick={() => {
+                                                if (selectedRows.size === processedRows.length) setSelectedRows(new Set());
+                                                else setSelectedRows(new Set(processedRows.map((_, i) => i)));
+                                            }}
+                                            className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-800"
+                                        >
+                                            {selectedRows.size === processedRows.length ? 'Odznačiť všetko' : 'Označiť všetko'}
+                                        </button>
+                                    </div>
                                     <div className="bg-gray-900 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden border border-white/10">
-                                        <div className="overflow-x-auto">
+                                        <div className="overflow-x-auto max-h-[400px]">
                                             <table className="w-full text-left">
-                                                <thead>
+                                                <thead className="sticky top-0 bg-gray-900 z-10">
                                                     <tr>
-                                                        {headers.slice(0, 3).map(h => (
+                                                        <th className="pb-4 w-10"></th>
+                                                        {headers.slice(0, 4).map(h => (
                                                             <th key={h} className="pb-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">{h}</th>
                                                         ))}
                                                     </tr>
                                                 </thead>
-                                                <tbody>
-                                                    {previewRows.map((row, i) => (
-                                                        <tr key={i} className="border-b border-white/5 last:border-0">
-                                                            {headers.slice(0, 3).map(h => (
-                                                                <td key={h} className="py-3 text-[10px] text-gray-300 font-mono truncate max-w-[100px]">{row[h]}</td>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {processedRows.slice(0, 50).map((row, i) => (
+                                                        <tr key={i} className={`group hover:bg-white/5 transition-colors cursor-pointer ${selectedRows.has(i) ? 'bg-blue-500/5' : ''}`} onClick={() => {
+                                                            const newSet = new Set(selectedRows);
+                                                            if (newSet.has(i)) newSet.delete(i);
+                                                            else newSet.add(i);
+                                                            setSelectedRows(newSet);
+                                                        }}>
+                                                            <td className="py-3 pr-2">
+                                                                <div className={`w-4 h-4 rounded-md border-2 transition-all flex items-center justify-center ${selectedRows.has(i) ? 'bg-blue-500 border-blue-500' : 'border-white/10 group-hover:border-white/30'}`}>
+                                                                    {selectedRows.has(i) && <Check className="w-3 h-3 text-white" />}
+                                                                </div>
+                                                            </td>
+                                                            {headers.slice(0, 4).map(h => (
+                                                                <td key={h} className="py-3 text-[10px] text-gray-300 font-mono truncate max-w-[120px]">{row[h]}</td>
                                                             ))}
                                                         </tr>
                                                     ))}
                                                 </tbody>
                                             </table>
                                         </div>
+                                        {processedRows.length > 50 && (
+                                            <p className="mt-4 text-[9px] text-center font-bold text-gray-500 uppercase tracking-widest italic">+ {processedRows.length - 50} ďalších riadkov...</p>
+                                        )}
                                         <div className="mt-4 pt-4 border-t border-white/5 text-center">
                                             <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest flex items-center justify-center gap-2">
                                                 {file?.name} • {(file?.size || 0 / 1024).toFixed(1)} KB

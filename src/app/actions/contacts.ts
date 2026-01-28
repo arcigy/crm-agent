@@ -143,7 +143,8 @@ export async function bulkCreateContacts(contacts: any[]) {
                     email: email ? String(email) : '',
                     phone: phone ? String(phone) : '',
                     company: company ? String(company) : '',
-                    status: 'lead'
+                    status: contact.status || 'lead',
+                    ...contact
                 }));
                 successCount++;
                 if (normalizedEmail) existingEmails.add(normalizedEmail);
