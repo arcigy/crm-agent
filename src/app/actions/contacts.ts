@@ -33,7 +33,7 @@ export async function createContact(data: any) {
             first_name: data.first_name,
             last_name: data.last_name || '',
             email: data.email || '',
-            phone: data.phone || '',
+            phone: (data.phone || '').replace(/\s/g, ''),
             company: data.company || '',
             status: data.status || 'lead',
             comments: data.comments || ''
@@ -44,6 +44,18 @@ export async function createContact(data: any) {
     } catch (error: any) {
         console.error('Failed to create contact:', error);
         return { success: false, error: error.message || 'Failed to create contact' };
+    }
+}
+
+export async function updateContact(id: number | string, data: any) {
+    try {
+        // @ts-ignore
+        await directus.request(updateItem('contacts', id, data));
+        revalidatePath('/dashboard/contacts');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Failed to update contact:', error);
+        return { success: false, error: error.message };
     }
 }
 
@@ -91,7 +103,7 @@ export async function uploadVCard(formData: FormData) {
                     first_name: firstName,
                     last_name: lastName || '',
                     email: email || '',
-                    phone: phone || '',
+                    phone: (phone || '').replace(/\s/g, ''),
                     company: org || '',
                     status: 'lead'
                 }));
@@ -141,7 +153,7 @@ export async function bulkCreateContacts(contacts: any[]) {
                     first_name: firstName,
                     last_name: lastName || '',
                     email: email ? String(email) : '',
-                    phone: phone ? String(phone) : '',
+                    phone: phone ? String(phone).replace(/\s/g, '') : '',
                     company: company ? String(company) : '',
                     status: contact.status || 'lead',
                     ...contact
