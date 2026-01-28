@@ -1,7 +1,7 @@
 {
   "name": "temp_app",
   "description": "Agentic CRM v2 - Force Rebuild",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
