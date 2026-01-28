@@ -28,6 +28,8 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
     const [searchQuery, setSearchQuery] = React.useState('');
     const [currentFolderId, setCurrentFolderId] = React.useState<string | undefined>(folderId);
     const [folderHistory, setFolderHistory] = React.useState<{ id: string, name: string }[]>([]);
+    const [isUploading, setIsUploading] = React.useState(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
         if (isOpen) {
@@ -80,6 +82,52 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
         const prev = newHistory.pop();
         setFolderHistory(newHistory);
         setCurrentFolderId(prev?.id === 'root' ? (folderId) : prev?.id);
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+
+        setIsUploading(true);
+        const files = Array.from(e.target.files);
+        let successCount = 0;
+
+        try {
+            // We need a target folder. If currentFolderId is missing, falling back to root is risky but acceptable if handled.
+            // Ideally, we fetch the project root ID if currentFolderId is undefined.
+            // But currentFolderId updates on open.
+            const targetId = currentFolderId || folderId;
+
+            if (!targetId) {
+                toast.error('Nie je vybraný žiadny priečinok na nahrávanie');
+                return;
+            }
+
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('folderId', targetId);
+
+                const res = await fetch('/api/google/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (res.ok) successCount++;
+            }
+
+            if (successCount > 0) {
+                toast.success(`Nahratých ${successCount} súborov`);
+                fetchFiles(targetId);
+            } else {
+                toast.error('Nepodarilo sa nahrať súbory');
+            }
+        } catch (error) {
+            console.error('Upload failed', error);
+            toast.error('Chyba pri nahrávaní');
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
     };
 
     if (!isOpen) return null;
@@ -136,8 +184,20 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                             className="w-full pl-12 pr-6 py-3 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none transition-all"
                         />
                     </div>
-                    <button className="bg-gray-900 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-black transition-all shadow-lg active:scale-95">
-                        <Plus className="w-4 h-4" /> Nahrať súbor
+                    <input
+                        type="file"
+                        multiple
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                    />
+                    <button
+                        disabled={isUploading || loading}
+                        onClick={() => fileInputRef.current?.click()}
+                        className="bg-gray-900 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-black transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                        {isUploading ? 'Nahrávam...' : 'Nahrať súbor'}
                     </button>
                 </div>
 
