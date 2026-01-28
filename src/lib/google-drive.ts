@@ -124,3 +124,18 @@ export async function createFile(token: string, name: string, mimeType: string, 
 
     return res.data;
 }
+
+export async function deleteFile(token: string, fileId: string) {
+    const drive = await getDriveClient(token);
+    await drive.files.delete({ fileId });
+    return true;
+}
+
+export async function renameFile(token: string, fileId: string, newName: string) {
+    const drive = await getDriveClient(token);
+    await drive.files.update({
+        fileId,
+        requestBody: { name: newName }
+    });
+    return true;
+}

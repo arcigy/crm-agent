@@ -30,6 +30,19 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
     const [folderHistory, setFolderHistory] = React.useState<{ id: string, name: string }[]>([]);
     const [isUploading, setIsUploading] = React.useState(false);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const [contextMenu, setContextMenu] = React.useState<{ visible: boolean, x: number, y: number, file: DriveFile | null }>({
+        visible: false,
+        x: 0,
+        y: 0,
+        file: null
+    });
+
+    // Close context menu on global click
+    React.useEffect(() => {
+        const handleClick = () => setContextMenu({ ...contextMenu, visible: false });
+        window.addEventListener('click', handleClick);
+        return () => window.removeEventListener('click', handleClick);
+    }, [contextMenu]);
 
     React.useEffect(() => {
         if (isOpen) {
@@ -130,6 +143,56 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
         }
     };
 
+    const handleContextMenu = (e: React.MouseEvent, file: DriveFile) => {
+        e.preventDefault();
+        setContextMenu({
+            visible: true,
+            x: e.clientX,
+            y: e.clientY,
+            file
+        });
+    };
+
+    const handleDelete = async (file: DriveFile) => {
+        if (!confirm(`Naozaj chcete vymazať ${file.name}?`)) return;
+
+        const toastId = toast.loading('Vymazávam...');
+        try {
+            const res = await fetch(`/api/google/drive?fileId=${file.id}`, { method: 'DELETE' });
+            if (res.ok) {
+                toast.success('Súbor vymazaný', { id: toastId });
+                fetchFiles(currentFolderId);
+            } else {
+                throw new Error('Failed to delete');
+            }
+        } catch (e) {
+            toast.error('Chyba pri mazaní', { id: toastId });
+        }
+    };
+
+    const handleRename = async (file: DriveFile) => {
+        const newName = prompt('Zadajte nový názov:', file.name);
+        if (!newName || newName === file.name) return;
+
+        const toastId = toast.loading('Premenovávam...');
+        try {
+            const res = await fetch(`/api/google/drive`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fileId: file.id, name: newName })
+            });
+
+            if (res.ok) {
+                toast.success('Súbor premenovaný', { id: toastId });
+                fetchFiles(currentFolderId);
+            } else {
+                throw new Error('Failed to rename');
+            }
+        } catch (e) {
+            toast.error('Chyba pri premenovávaní', { id: toastId });
+        }
+    };
+
     if (!isOpen) return null;
 
     const filtered = files.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -227,6 +290,7 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                                                 window.open(file.webViewLink, '_blank');
                                             }
                                         }}
+                                        onContextMenu={(e) => handleContextMenu(e, file)}
                                         className="cursor-pointer group bg-white p-6 rounded-[2.5rem] border border-gray-100 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100 transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden"
                                     >
                                         <div className="absolute top-0 left-0 w-full h-1 bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -262,6 +326,68 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                     </button>
                 </div>
             </div>
+
+            {/* Context Menu */}
+            {contextMenu.visible && contextMenu.file && (
+                <div
+                    className="fixed bg-white rounded-xl shadow-2xl border border-gray-100 p-2 z-[200] min-w-[220px] animate-in fade-in zoom-in-95 duration-200"
+                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 py-2 border-b border-gray-50 mb-1 truncate max-w-[200px] flex items-center gap-2">
+                        {contextMenu.file.mimeType === 'application/vnd.google-apps.folder' ? <Folder className="w-3 h-3" /> : <File className="w-3 h-3" />}
+                        <span className="truncate">{contextMenu.file.name}</span>
+                    </div>
+
+                    <button
+                        onClick={() => {
+                            if (contextMenu.file?.mimeType === 'application/vnd.google-apps.folder') {
+                                handleFolderClick(contextMenu.file);
+                            } else {
+                                window.open(contextMenu.file?.webViewLink, '_blank');
+                            }
+                            setContextMenu({ ...contextMenu, visible: false });
+                        }}
+                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                    >
+                        <ExternalLink className="w-4 h-4 text-gray-400" /> Otvoriť
+                    </button>
+
+                    <button
+                        onClick={() => {
+                            window.open(contextMenu.file?.webViewLink, '_blank');
+                            setContextMenu({ ...contextMenu, visible: false });
+                        }}
+                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                    >
+                        <Cloud className="w-4 h-4 text-gray-400" /> Otvoriť na Drive
+                    </button>
+
+                    <div className="h-px bg-gray-100 my-1" />
+
+                    <button
+                        onClick={() => {
+                            handleRename(contextMenu.file!);
+                            setContextMenu({ ...contextMenu, visible: false });
+                        }}
+                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                    >
+                        <File className="w-4 h-4 text-gray-400" /> Premenovať
+                    </button>
+
+                    <div className="h-px bg-gray-100 my-1" />
+
+                    <button
+                        onClick={() => {
+                            handleDelete(contextMenu.file!);
+                            setContextMenu({ ...contextMenu, visible: false });
+                        }}
+                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-3"
+                    >
+                        <X className="w-4 h-4 text-red-400" /> Vymazať
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
