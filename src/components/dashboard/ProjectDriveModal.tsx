@@ -12,6 +12,7 @@ interface DriveFile {
     iconLink: string;
     thumbnailLink?: string;
     webContentLink?: string;
+    modifiedTime?: string;
 }
 
 interface ProjectDriveModalProps {
@@ -57,11 +58,67 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
         }
     }, [isOpen, folderId]);
 
+    // Cache for prefetched folders
+    const cacheRef = React.useRef<Map<string, DriveFile[]>>(new Map());
+
+    // Prefetch subfolders in background
+    const prefetchSubfolders = React.useCallback(async (parentFiles: DriveFile[]) => {
+        const folders = parentFiles.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
+
+        // Prefetch each folder in parallel (limit to 5 concurrent)
+        const batchSize = 5;
+        for (let i = 0; i < folders.length; i += batchSize) {
+            const batch = folders.slice(i, i + batchSize);
+            await Promise.all(batch.map(async (folder) => {
+                if (cacheRef.current.has(folder.id)) return; // Already cached
+
+                try {
+                    const res = await fetch(`/api/google/drive?folderId=${folder.id}`);
+                    const data = await res.json();
+                    if (data.isConnected && data.files) {
+                        cacheRef.current.set(folder.id, data.files);
+                    }
+                } catch (e) {
+                    // Silent fail
+                }
+            }));
+        }
+    }, []);
+
     const fetchFiles = async (targetId?: string) => {
+        // Determine cache key
+        const idToFetch = targetId || currentFolderId;
+        const cacheKey = idToFetch || `project:${projectName}`;
+
+        // Check cache first
+        if (cacheRef.current.has(cacheKey)) {
+            const cached = cacheRef.current.get(cacheKey)!;
+            setFiles(cached);
+            setLoading(false);
+
+            // Prefetch subfolders from cache
+            prefetchSubfolders(cached);
+
+            // Refresh in background (stale-while-revalidate)
+            let url = idToFetch
+                ? `/api/google/drive?folderId=${idToFetch}`
+                : `/api/google/drive?projectName=${encodeURIComponent(projectName)}`;
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.isConnected && data.files) {
+                        cacheRef.current.set(cacheKey, data.files);
+                        setFiles(data.files);
+                        prefetchSubfolders(data.files);
+                    }
+                })
+                .catch(() => { });
+            return;
+        }
+
         setLoading(true);
         try {
-            // Priority: targetId -> currentFolderId -> folderId -> name search
-            const idToFetch = targetId || currentFolderId;
             let url = '';
 
             if (idToFetch) {
@@ -74,7 +131,12 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
             const data = await res.json();
 
             if (data.isConnected) {
-                setFiles(data.files || []);
+                const fetchedFiles = data.files || [];
+                setFiles(fetchedFiles);
+                cacheRef.current.set(cacheKey, fetchedFiles);
+
+                // Prefetch subfolders
+                prefetchSubfolders(fetchedFiles);
             } else {
                 toast.error('Google Drive nie je prepojený');
             }
@@ -491,6 +553,7 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                                     <tr>
                                         <th className="px-6 py-4">Názov</th>
                                         <th className="px-6 py-4">Typ</th>
+                                        <th className="px-6 py-4">Upravené</th>
                                         <th className="px-6 py-4 text-right">Akcie</th>
                                     </tr>
                                 </thead>
@@ -526,6 +589,9 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                                                 </td>
                                                 <td className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 tracking-widest italic">
                                                     {isFolder ? 'Priečinok' : 'Súbor'}
+                                                </td>
+                                                <td className="px-6 py-4 text-xs font-medium text-gray-400">
+                                                    {file.modifiedTime ? new Date(file.modifiedTime).toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '--'}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <button
