@@ -26,6 +26,8 @@ export function ContactDetailModal({ contact, isOpen, onClose }: ContactDetailMo
     const [showQr, setShowQr] = React.useState(false);
     const [draftBody, setDraftBody] = React.useState('');
     const [subject, setSubject] = React.useState('');
+    const [projectFiles, setProjectFiles] = React.useState<Record<number, any[]>>({});
+    const [isLoadingFiles, setIsLoadingFiles] = React.useState(false);
 
     // Reset when modal opens/closes
     React.useEffect(() => {
@@ -35,8 +37,34 @@ export function ContactDetailModal({ contact, isOpen, onClose }: ContactDetailMo
             setShowQr(false);
             setDraftBody('');
             setSubject('');
+
+            // Fetch files for each project
+            const fetchAllFiles = async () => {
+                if (!contact.projects || contact.projects.length === 0) return;
+                setIsLoadingFiles(true);
+                const filesMap: Record<number, any[]> = {};
+
+                try {
+                    await Promise.all(contact.projects.map(async (p) => {
+                        if (p.drive_folder_id) {
+                            const res = await fetch(`/api/google/drive?folderId=${p.drive_folder_id}`);
+                            const result = await res.json();
+                            if (result.isConnected && result.files) {
+                                filesMap[p.id] = result.files;
+                            }
+                        }
+                    }));
+                    setProjectFiles(filesMap);
+                } catch (err) {
+                    console.error('Failed to fetch project files:', err);
+                } finally {
+                    setIsLoadingFiles(false);
+                }
+            };
+
+            fetchAllFiles();
         }
-    }, [isOpen]);
+    }, [isOpen, contact]);
 
     if (!isOpen || !contact) return null;
 
@@ -492,26 +520,82 @@ export function ContactDetailModal({ contact, isOpen, onClose }: ContactDetailMo
                                         </section>
 
                                         <section className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-                                            <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4">Files</h3>
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
-                                                    <div className="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center">
-                                                        <span className="text-[9px] font-black uppercase">PDF</span>
+                                            <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4">Projekty & Súbory</h3>
+                                            <div className="space-y-6">
+                                                {isLoadingFiles && (
+                                                    <div className="flex flex-col items-center py-8 gap-2">
+                                                        <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                                        <span className="text-[9px] font-bold text-gray-400 animate-pulse">Načítam Drive...</span>
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-bold text-gray-700 truncate">Contract_2026.pdf</p>
-                                                        <p className="text-[9px] text-gray-400">1.2 MB • 2 days ago</p>
+                                                )}
+
+                                                {contact.projects?.map((p) => (
+                                                    <div key={p.id} className="space-y-2">
+                                                        <div className="flex items-center justify-between border-b border-gray-50 pb-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-900 truncate max-w-[150px]">
+                                                                    {p.project_type}
+                                                                </p>
+                                                            </div>
+                                                            {p.drive_folder_id && (
+                                                                <a
+                                                                    href={`https://drive.google.com/drive/folders/${p.drive_folder_id}`}
+                                                                    target="_blank"
+                                                                    className="p-1 hover:bg-blue-50 rounded transition-colors text-blue-600"
+                                                                    title="Otvoriť na Drive"
+                                                                >
+                                                                    <ExternalLink className="w-3 h-3" />
+                                                                </a>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="space-y-1.5 pl-2">
+                                                            {projectFiles[p.id]?.length > 0 ? (
+                                                                projectFiles[p.id].map((file: any) => (
+                                                                    <div
+                                                                        key={file.id}
+                                                                        className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors group/file"
+                                                                        onClick={() => window.open(file.webViewLink, '_blank')}
+                                                                    >
+                                                                        <div className={`w-8 h-8 rounded shrink-0 flex items-center justify-center
+                                                                            ${file.mimeType.includes('pdf') ? 'bg-red-50 text-red-600' :
+                                                                                file.mimeType.includes('image') ? 'bg-orange-50 text-orange-600' :
+                                                                                    file.mimeType.includes('folder') ? 'bg-blue-50 text-blue-600' :
+                                                                                        'bg-gray-100 text-gray-400'}
+                                                                        `}>
+                                                                            {file.mimeType.includes('folder') ? (
+                                                                                <FolderKanban className="w-4 h-4" />
+                                                                            ) : (
+                                                                                <span className="text-[8px] font-black uppercase text-center leading-none">
+                                                                                    {file.name.split('.').pop() || 'FILE'}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <p className="text-[10px] font-bold text-gray-700 truncate group-hover/file:text-blue-600">
+                                                                                {file.name}
+                                                                            </p>
+                                                                            <p className="text-[9px] text-gray-400">
+                                                                                {file.size ? `${(parseInt(file.size) / (1024 * 1024)).toFixed(1)} MB` : 'Folder'}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                ))
+                                                            ) : !isLoadingFiles && (
+                                                                <p className="text-[9px] text-gray-400 italic pl-1">
+                                                                    {p.drive_folder_id ? 'Priečinok je prázdny' : 'Drive nie je napojený'}
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
-                                                    <div className="w-8 h-8 rounded bg-orange-50 text-orange-600 flex items-center justify-center">
-                                                        <span className="text-[9px] font-black uppercase">JPG</span>
+                                                ))}
+
+                                                {(!contact.projects || contact.projects.length === 0) && (
+                                                    <div className="text-center py-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Žiadne projekty</p>
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-bold text-gray-700 truncate">Office_Visit.jpg</p>
-                                                        <p className="text-[9px] text-gray-400">4.5 MB • 1 week ago</p>
-                                                    </div>
-                                                </div>
+                                                )}
                                             </div>
                                         </section>
                                     </div>

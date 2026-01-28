@@ -6,25 +6,39 @@ export async function getDriveClient(token: string) {
     return google.drive({ version: 'v3', auth });
 }
 
+export async function findFolder(token: string, name: string, parentId?: string) {
+    const drive = await getDriveClient(token);
+    let q = `name = '${name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+    if (parentId) {
+        q += ` and '${parentId}' in parents`;
+    }
+
+    const res = await drive.files.list({
+        q,
+        fields: 'files(id, name)',
+        spaces: 'drive'
+    });
+
+    return res.data.files?.[0] || null;
+}
+
+export async function ensureFolder(token: string, name: string, parentId?: string) {
+    const existing = await findFolder(token, name, parentId);
+    if (existing) return existing.id!;
+    return await createFolder(token, name, parentId);
+}
+
 export async function listFiles(token: string, folderId?: string) {
     const drive = await getDriveClient(token);
-
-    // If no folderId, list files in 'root'. 
-    // drive.file scope only shows files created by this app.
-    // drive.readonly or drive scope is needed for the full drive.
     const q = folderId ? `'${folderId}' in parents and trashed = false` : "'root' in parents and trashed = false";
 
     try {
-        console.log(`[Drive Lib] Querying Drive with q: ${q}`);
         const res = await drive.files.list({
             q,
             fields: 'files(id, name, mimeType, webViewLink, iconLink, thumbnailLink, size)',
             orderBy: 'folder, name',
             pageSize: 100
         });
-
-        console.log(`[Drive Lib] API Response status: ${res.status}`);
-        console.log(`[Drive Lib] Found ${res.data.files?.length || 0} files. User might need broader scopes if they expect to see existing files.`);
         return res.data.files || [];
     } catch (err: any) {
         console.error('[Drive Lib] listFiles failed:', err.response?.data || err.message);
@@ -32,20 +46,58 @@ export async function listFiles(token: string, folderId?: string) {
     }
 }
 
-export async function createFolder(token: string, name: string, parentId?: string) {
+export async function createFolder(token: string, name: string, parentId?: string, description?: string) {
     const drive = await getDriveClient(token);
-    const fileMetadata = {
+    const fileMetadata: any = {
         name,
         mimeType: 'application/vnd.google-apps.folder',
         parents: parentId ? [parentId] : undefined,
     };
+    if (description) {
+        fileMetadata.description = description;
+    }
 
     const res = await drive.files.create({
         requestBody: fileMetadata,
         fields: 'id',
     });
 
-    return res.data.id;
+    return res.data.id!;
+}
+
+/**
+ * Creates the full project hierarchy:
+ * CRM Root -> Year -> Project Folder -> [Subfolders]
+ */
+export async function setupProjectStructure(token: string, data: {
+    projectName: string,
+    projectNumber: string,
+    year: string,
+    contactName: string
+}) {
+    // 1. Ensure Main Root
+    const rootId = await ensureFolder(token, 'ArciGy CRM Files');
+
+    // 2. Ensure Year Folder
+    const yearId = await ensureFolder(token, data.year, rootId);
+
+    // 3. Create Project Folder (001_Project_Name)
+    const folderName = `${data.projectNumber}_${data.projectName.replace(/\s+/g, '_')}`;
+    const projectId = await createFolder(token, folderName, yearId, `Client: ${data.contactName}`);
+
+    // 4. Create Subfolders
+    const subfolders = [
+        '01_Zmluvy_a_Faktury',
+        '02_Podklady_od_Klienta',
+        '03_Pracovna_Zlozka',
+        '04_Finalne_Vystupy'
+    ];
+
+    for (const sub of subfolders) {
+        await createFolder(token, sub, projectId);
+    }
+
+    return projectId;
 }
 
 export async function createFile(token: string, name: string, mimeType: string, content: string | Buffer, parentId?: string) {

@@ -10,6 +10,7 @@ export interface Project {
     deleted_at: string | null;
     created_at: string;
     updated_at: string;
+    drive_folder_id?: string;
 }
 
 export type ProjectStage =
