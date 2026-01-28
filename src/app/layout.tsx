@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from 'sonner';
+import { Toaster } from "sonner";
 import "./globals.css";
-import { ClerkProvider } from '@clerk/nextjs'
+import { ClerkProvider } from "@clerk/nextjs";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,6 +22,8 @@ export const metadata: Metadata = {
 // VoiceDictationProvider temporarily disabled due to @ffmpeg/ffmpeg module issue
 // import { VoiceDictationProvider } from '@/components/VoiceDictationProvider';
 
+import { ThemeProvider } from "@/components/ThemeProvider";
+
 export default function RootLayout({
   children,
 }: {
@@ -29,12 +31,18 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider>
-      <html lang="sk">
+      <html lang="sk" suppressHydrationWarning>
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          className={`${geistSans.variable} ${geistMono.variable} antialiased transition-colors duration-300`}
         >
-          {children}
-          <Toaster richColors position="top-right" />
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+          >
+            {children}
+            <Toaster richColors position="top-right" />
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

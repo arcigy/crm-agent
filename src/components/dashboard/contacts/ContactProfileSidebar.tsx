@@ -35,7 +35,7 @@ export function ContactProfileSidebar({
 
   return (
     <div
-      className={`w-80 lg:w-96 bg-gray-50/80 border-r border-gray-200 flex flex-col shrink-0 overflow-y-auto transition-all duration-300 ${emailMode ? "hidden lg:flex w-64 opacity-50 pointer-events-none" : ""}`}
+      className={`w-80 lg:w-96 bg-sidebar border-r border-border flex flex-col shrink-0 overflow-y-auto transition-all duration-300 ${emailMode ? "hidden lg:flex w-64 opacity-50 pointer-events-none" : ""}`}
     >
       <div className="h-32 bg-gradient-to-br from-slate-800 to-slate-900 relative">
         <button
@@ -47,14 +47,14 @@ export function ContactProfileSidebar({
       </div>
 
       <div className="px-6 relative">
-        <div className="-mt-12 mb-4 w-24 h-24 rounded-3xl bg-white p-1.5 shadow-xl">
+        <div className="-mt-12 mb-4 w-24 h-24 rounded-3xl bg-card p-1.5 shadow-xl transition-colors">
           <div className="w-full h-full rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-3xl">
             {initials.toUpperCase()}
           </div>
         </div>
 
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 leading-tight mb-1">
+          <h2 className="text-2xl font-bold text-foreground leading-tight mb-1">
             {contact.first_name} {contact.last_name}
           </h2>
           <p className="text-sm font-medium text-gray-500 flex items-center gap-1.5">
@@ -73,14 +73,14 @@ export function ContactProfileSidebar({
               <span className="text-xs font-bold">Call</span>
             </button>
             {showQr && contact.phone && (
-              <div className="absolute top-full left-0 mt-2 z-50 bg-white p-4 rounded-xl shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-200 w-48 flex flex-col items-center">
+              <div className="absolute top-full left-0 mt-2 z-50 bg-card p-4 rounded-xl shadow-2xl border border-border animate-in fade-in zoom-in duration-200 w-48 flex flex-col items-center transition-colors">
                 <div className="bg-white p-2 rounded-lg border border-gray-100 mb-2">
                   <QRCodeSVG value={`tel:${contact.phone}`} size={120} />
                 </div>
                 <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">
                   Scan to Call
                 </p>
-                <p className="text-xs font-black text-gray-900">
+                <p className="text-xs font-black text-foreground">
                   {contact.phone}
                 </p>
               </div>
@@ -88,14 +88,14 @@ export function ContactProfileSidebar({
           </div>
           <button
             onClick={() => setEmailMode(true)}
-            className="flex items-center justify-center gap-2 p-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl shadow-sm"
+            className="flex items-center justify-center gap-2 p-2.5 bg-card border border-border hover:bg-slate-50 dark:hover:bg-slate-800 text-foreground rounded-xl shadow-sm transition-colors"
           >
             <Mail className="w-4 h-4" />{" "}
             <span className="text-xs font-bold">Email</span>
           </button>
           <button
             onClick={() => setSmsMode(true)}
-            className="col-span-2 flex items-center justify-center gap-2 p-2.5 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 text-emerald-700 rounded-xl shadow-sm transition-all"
+            className="col-span-2 flex items-center justify-center gap-2 p-2.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl shadow-sm transition-all"
           >
             <MessageSquare className="w-4 h-4" />{" "}
             <span className="text-xs font-bold">Draft SMS to QR</span>
@@ -124,7 +124,7 @@ export function ContactProfileSidebar({
             icon={<Globe />}
             label="Website"
             value="www.example.com"
-            valueClass="text-blue-600 hover:underline cursor-pointer"
+            valueClass="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
           />
         </div>
       </div>
@@ -135,7 +135,7 @@ export function ContactProfileSidebar({
 function InfoRow({ icon, label, value, copyable, valueClass }: any) {
   return (
     <div className="flex items-center gap-3 group">
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 bg-white border border-gray-100 shadow-sm shrink-0">
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 bg-card border border-border shadow-sm shrink-0 transition-colors">
         {React.cloneElement(icon, { className: "w-3.5 h-3.5" })}
       </div>
       <div className="min-w-0 flex-1">
@@ -143,7 +143,7 @@ function InfoRow({ icon, label, value, copyable, valueClass }: any) {
           {label}
         </p>
         <p
-          className={`text-xs font-semibold text-gray-900 truncate ${valueClass || ""}`}
+          className={`text-xs font-semibold text-foreground truncate ${valueClass || ""}`}
         >
           {value || "—"}
         </p>
@@ -151,7 +151,7 @@ function InfoRow({ icon, label, value, copyable, valueClass }: any) {
       {copyable && value && (
         <button
           onClick={() => navigator.clipboard.writeText(value)}
-          className="opacity-0 group-hover:opacity-100 p-1.5 text-xs text-gray-400 hover:text-gray-900"
+          className="opacity-0 group-hover:opacity-100 p-1.5 text-xs text-gray-400 hover:text-foreground transition-all"
         >
           Copy
         </button>

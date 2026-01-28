@@ -47,14 +47,14 @@ export function StageBadge({
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-20 min-w-[160px]">
+          <div className="absolute top-full left-0 mt-1 bg-card rounded-xl shadow-xl border border-border py-2 z-20 min-w-[160px] transition-colors duration-300">
             {PROJECT_STAGES.map((s) => (
               <button
                 key={s.value}
                 onClick={() => handleChange(s.value)}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 ${stage === s.value ? "font-bold" : ""}`}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800 flex items-center gap-2 text-foreground ${stage === s.value ? "font-bold text-blue-600" : ""}`}
               >
-                <span
+                <div
                   className={`w-2 h-2 rounded-full ${s.color.split(" ")[0]}`}
                 />
                 {s.label}

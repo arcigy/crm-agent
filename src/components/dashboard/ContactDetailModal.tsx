@@ -41,7 +41,7 @@ export function ContactDetailModal({
         onClick={onClose}
       />
 
-      <div className="bg-white w-full max-w-[95vw] sm:max-w-6xl h-[95vh] sm:rounded-[3rem] shadow-2xl relative flex overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 border border-white/20">
+      <div className="bg-background w-full max-w-[95vw] sm:max-w-6xl h-[95vh] sm:rounded-[3rem] shadow-2xl relative flex overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 border border-border dark:border-white/10 transition-colors duration-300">
         <ContactProfileSidebar
           contact={contact}
           onClose={onClose}
@@ -50,7 +50,7 @@ export function ContactDetailModal({
           emailMode={emailMode}
         />
 
-        <div className="flex-1 flex flex-col bg-white overflow-hidden relative">
+        <div className="flex-1 flex flex-col bg-background overflow-hidden relative transition-colors">
           {emailMode ? (
             <EmailComposerView
               contact={contact}

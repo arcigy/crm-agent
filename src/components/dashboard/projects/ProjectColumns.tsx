@@ -27,7 +27,7 @@ export const getProjectColumns = (
           className="flex items-center gap-1.5 text-xs group hover:text-blue-600 transition-colors"
         >
           <Calendar className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-400" />
-          <span className="font-medium text-gray-700 group-hover:text-blue-700 hover:underline">
+          <span className="font-medium text-foreground group-hover:text-blue-700 dark:group-hover:text-blue-400 hover:underline">
             {d.toLocaleDateString("sk-SK", { day: "numeric", month: "short" })}
           </span>
         </Link>
@@ -38,12 +38,12 @@ export const getProjectColumns = (
     header: "Projekt / Typ",
     cell: (info) => (
       <div className="flex flex-col">
-        <span className="font-black text-gray-900 text-[11px] uppercase tracking-tight italic">
+        <span className="font-black text-foreground text-[11px] uppercase tracking-tight italic">
           {info.getValue() || info.row.original.project_type}
         </span>
         <div className="flex items-center gap-1 opacity-50">
-          <FolderKanban className="w-2.5 h-2.5" />
-          <span className="text-[9px] font-bold uppercase tracking-widest">
+          <FolderKanban className="w-2.5 h-2.5 text-gray-400" />
+          <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400">
             {info.row.original.project_type}
           </span>
         </div>
@@ -54,7 +54,12 @@ export const getProjectColumns = (
     header: "Kontakt",
     cell: (info) => {
       const name = info.getValue();
-      if (!name) return <span className="text-gray-300 text-sm italic">—</span>;
+      if (!name)
+        return (
+          <span className="text-gray-300 dark:text-gray-600 text-sm italic">
+            —
+          </span>
+        );
       const initials = name
         .split(" ")
         .map((n) => n[0])
@@ -70,10 +75,10 @@ export const getProjectColumns = (
             if (c) onContactClick(c);
           }}
         >
-          <div className="w-6 h-6 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-700">
+          <div className="w-6 h-6 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300">
             {initials}
           </div>
-          <span className="text-xs font-bold text-gray-700 group-hover:text-blue-600 transition-colors">
+          <span className="text-xs font-bold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
             {name}
           </span>
         </div>
@@ -94,13 +99,18 @@ export const getProjectColumns = (
     header: "Dátum ukončenia",
     cell: (info) => {
       const val = info.getValue();
-      if (!val) return <span className="text-gray-300 text-sm italic">—</span>;
+      if (!val)
+        return (
+          <span className="text-gray-300 dark:text-gray-600 text-sm italic">
+            —
+          </span>
+        );
       const d = new Date(val);
       const isOverdue =
         d < new Date() && info.row.original.stage !== "completed";
       return (
         <div
-          className={`flex items-center gap-2 text-sm ${isOverdue ? "text-red-600" : "text-gray-700"}`}
+          className={`flex items-center gap-2 text-sm ${isOverdue ? "text-red-500" : "text-foreground"}`}
         >
           <Calendar
             className={`w-4 h-4 ${isOverdue ? "text-red-400" : "text-gray-400"}`}
@@ -121,7 +131,7 @@ export const getProjectColumns = (
     cell: (info) => (
       <button
         onClick={() => onDriveClick(info.row.original)}
-        className={`p-1.5 rounded-lg border border-gray-100 ${info.row.original.drive_folder_id ? "bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white" : "bg-gray-50 text-gray-400 hover:bg-gray-200"}`}
+        className={`p-1.5 rounded-lg border border-border transition-colors ${info.row.original.drive_folder_id ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white" : "bg-gray-50 dark:bg-slate-800 text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700"}`}
       >
         <HardDrive className="w-3.5 h-3.5" />
       </button>

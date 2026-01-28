@@ -143,8 +143,8 @@ export function ProjectsTable({
         onClose={() => setFullDetailContact(null)}
       />
 
-      <div className="flex flex-col h-full bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+      <div className="flex flex-col h-full bg-card rounded-2xl shadow-sm border border-border overflow-hidden transition-colors duration-300">
+        <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-gray-50 to-white dark:from-slate-900 dark:to-card">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsModalOpen(true)}
@@ -157,7 +157,7 @@ export function ProjectsTable({
               <input
                 type="text"
                 placeholder="Hľadať projekty..."
-                className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm outline-none w-64 focus:border-blue-500"
+                className="pl-9 pr-4 py-2 border border-border bg-background dark:bg-slate-900 rounded-xl text-sm outline-none w-64 focus:border-blue-500 text-foreground"
               />
             </div>
           </div>
@@ -166,15 +166,15 @@ export function ProjectsTable({
           </div>
         </div>
 
-        <div className="overflow-auto flex-1">
+        <div className="overflow-auto flex-1 custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[900px]">
-            <thead className="bg-gray-50/80 sticky top-0 z-10 border-b border-gray-100">
+            <thead className="bg-gray-50/80 dark:bg-slate-900/80 sticky top-0 z-10 border-b border-border">
               {table.getHeaderGroups().map((hg) => (
                 <tr key={hg.id}>
                   {hg.headers.map((h) => (
                     <th
                       key={h.id}
-                      className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800"
                       onClick={h.column.getToggleSortingHandler()}
                     >
                       <div className="flex items-center gap-1.5">
@@ -187,14 +187,14 @@ export function ProjectsTable({
                 </tr>
               ))}
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-border">
               {table.getRowModel().rows.length === 0 ? (
                 <tr>
                   <td
                     colSpan={columns.length + 1}
                     className="text-center py-20"
                   >
-                    <FolderKanban className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+                    <FolderKanban className="w-12 h-12 text-gray-200 dark:text-gray-800 mx-auto mb-4" />
                     <p className="text-gray-400 font-medium">Žiadne projekty</p>
                   </td>
                 </tr>
@@ -202,10 +202,13 @@ export function ProjectsTable({
                 table.getRowModel().rows.map((row) => (
                   <tr
                     key={row.id}
-                    className="hover:bg-blue-50/30 transition-colors group"
+                    className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-1.5 text-xs">
+                      <td
+                        key={cell.id}
+                        className="px-4 py-1.5 text-xs text-foreground"
+                      >
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
@@ -213,7 +216,7 @@ export function ProjectsTable({
                       </td>
                     ))}
                     <td className="px-4 py-1.5 text-right">
-                      <button className="p-1 hover:bg-gray-100 rounded-md opacity-0 group-hover:opacity-100">
+                      <button className="p-1 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md opacity-0 group-hover:opacity-100">
                         <MoreHorizontal className="w-3.5 h-3.5 text-gray-400" />
                       </button>
                     </td>
