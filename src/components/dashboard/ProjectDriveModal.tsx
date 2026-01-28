@@ -462,12 +462,14 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
 
                     <div className="h-px bg-gray-100 my-1" />
 
-                    <button
-                        onClick={() => handleCopy(contextMenu.file!)}
-                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
-                    >
-                        <Copy className="w-4 h-4 text-gray-400" /> Kopírovať
-                    </button>
+                    {contextMenu.file.mimeType !== 'application/vnd.google-apps.folder' && (
+                        <button
+                            onClick={() => handleCopy(contextMenu.file!)}
+                            className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                        >
+                            <Copy className="w-4 h-4 text-gray-400" /> Kopírovať
+                        </button>
+                    )}
 
                     <button
                         onClick={() => handleCut(contextMenu.file!)}
