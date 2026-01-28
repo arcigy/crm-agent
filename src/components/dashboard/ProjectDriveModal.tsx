@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { X, Folder, File, ExternalLink, Loader2, Plus, HardDrive, Search } from 'lucide-react';
+import { X, Folder, File, ExternalLink, Loader2, Plus, HardDrive, Search, ArrowLeft, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DriveFile {
@@ -24,13 +24,29 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
     const [files, setFiles] = React.useState<DriveFile[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [searchQuery, setSearchQuery] = React.useState('');
+    const [currentFolderId, setCurrentFolderId] = React.useState<string | undefined>(folderId);
+    const [folderHistory, setFolderHistory] = React.useState<{ id: string, name: string }[]>([]);
 
-    const fetchFiles = async () => {
+    React.useEffect(() => {
+        if (isOpen) {
+            setCurrentFolderId(folderId);
+            setFolderHistory([]);
+        }
+    }, [isOpen, folderId]);
+
+    const fetchFiles = async (targetId?: string) => {
         setLoading(true);
         try {
-            const url = folderId
-                ? `/api/google/drive?folderId=${folderId}`
-                : `/api/google/drive?projectName=${encodeURIComponent(projectName)}`;
+            // Priority: targetId -> currentFolderId -> folderId -> name search
+            const idToFetch = targetId || currentFolderId;
+            let url = '';
+
+            if (idToFetch) {
+                url = `/api/google/drive?folderId=${idToFetch}`;
+            } else {
+                url = `/api/google/drive?projectName=${encodeURIComponent(projectName)}`;
+            }
+
             const res = await fetch(url);
             const data = await res.json();
 
@@ -47,8 +63,22 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
     };
 
     React.useEffect(() => {
-        if (isOpen) fetchFiles();
-    }, [isOpen]);
+        if (isOpen) fetchFiles(currentFolderId);
+    }, [isOpen, currentFolderId]);
+
+    const handleFolderClick = (file: DriveFile) => {
+        setFolderHistory(prev => [...prev, { id: currentFolderId || 'root', name: '...' }]); // Name could be improved if we tracked it
+        setCurrentFolderId(file.id);
+        setSearchQuery('');
+    };
+
+    const handleBack = () => {
+        if (folderHistory.length === 0) return;
+        const newHistory = [...folderHistory];
+        const prev = newHistory.pop();
+        setFolderHistory(newHistory);
+        setCurrentFolderId(prev?.id === 'root' ? (folderId) : prev?.id);
+    };
 
     if (!isOpen) return null;
 
@@ -66,8 +96,25 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                             <HardDrive className="w-7 h-7 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-gray-900 tracking-tight">{projectName} <span className="text-gray-300 mx-2">/</span> <span className="text-blue-600">Dokumenty</span></h2>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Súbory synchronizované s Google Drive</p>
+                            <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                                {folderHistory.length > 0 && (
+                                    <button onClick={handleBack} className="max-md:hidden p-1 hover:bg-gray-100 rounded-lg -ml-2 mr-1 transition-colors">
+                                        <ArrowLeft className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                )}
+                                {projectName}
+                                <span className="text-gray-300 mx-2">/</span>
+                                <span className="text-blue-600">Dokumenty</span>
+                            </h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1 flex items-center gap-2">
+                                {folderHistory.length > 0 ? (
+                                    <button onClick={handleBack} className="hover:text-blue-600 flex items-center gap-1 transition-colors">
+                                        <ArrowLeft className="w-3 h-3" /> Späť
+                                    </button>
+                                ) : (
+                                    'Súbory synchronizované s Google Drive'
+                                )}
+                            </p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-3 hover:bg-gray-100 rounded-2xl transition-all">
@@ -109,11 +156,16 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                             {filtered.map(file => {
                                 const isFolder = file.mimeType === 'application/vnd.google-apps.folder';
                                 return (
-                                    <a
+                                    <div
                                         key={file.id}
-                                        href={file.webViewLink}
-                                        target="_blank"
-                                        className="group bg-white p-6 rounded-[2.5rem] border border-gray-100 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100 transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden"
+                                        onClick={() => {
+                                            if (isFolder) {
+                                                handleFolderClick(file);
+                                            } else {
+                                                window.open(file.webViewLink, '_blank');
+                                            }
+                                        }}
+                                        className="cursor-pointer group bg-white p-6 rounded-[2.5rem] border border-gray-100 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100 transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden"
                                     >
                                         <div className="absolute top-0 left-0 w-full h-1 bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                         <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-transform group-hover:scale-110 ${isFolder ? 'bg-amber-50' : 'bg-blue-50'}`}>
@@ -128,8 +180,10 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                                                 {file.name}
                                             </span>
                                         </div>
-                                        <ExternalLink className="absolute bottom-4 right-4 w-3.5 h-3.5 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </a>
+                                        {!isFolder && (
+                                            <ExternalLink className="absolute bottom-4 right-4 w-3.5 h-3.5 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        )}
+                                    </div>
                                 );
                             })}
                         </div>
