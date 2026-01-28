@@ -60,20 +60,6 @@ async function ContactsListing() {
 
     if (errorMsg) return <ErrorState errorMsg={errorMsg} />;
 
-    if (contacts.length === 0) {
-        return (
-            <div className="h-full flex flex-col items-center justify-center bg-white rounded-[4rem] border border-gray-100 p-24 text-center shadow-sm relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600"></div>
-                <div className="w-24 h-24 bg-gray-50 rounded-3xl flex items-center justify-center mb-8 border border-white relative z-10 transition-all group-hover:bg-blue-600 shadow-sm">
-                    <svg className="w-12 h-12 text-gray-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                </div>
-                <h3 className="text-3xl font-black text-gray-900 mb-4 uppercase italic tracking-tight">V databáze nie sú žiadne kontakty</h3>
-                <p className="text-gray-400 max-w-sm mb-12 text-[10px] font-black uppercase tracking-[0.2em] leading-relaxed">Agenti sú v pohotovosti. Načítajte dáta manuálne alebo cez synchronizáciu.</p>
-                <EmptyStateActions />
-            </div>
-        );
-    }
-
     return (
         <div className="h-full bg-white rounded-t-[4rem] shadow-xl border-x border-t border-gray-100 overflow-hidden ring-1 ring-black/5 relative">
             <ContactsTable data={contacts} onCreate={createContact} />
