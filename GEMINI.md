@@ -102,6 +102,9 @@ Kolekcie v Directuse:
 - google_tokens (id, user_id, access_token, refresh_token, expiry_date, date_created, date_updated, deleted_at)
 - email_analysis (message_id, intent, priority, sentiment, service_category, estimated_budget, next_step, summary, date_created, date_updated)
 - android_logs (id, type, direction, phone_number, body, duration, timestamp, extra_data, contact_id, deleted_at, date_created)
+- ai_memories (id, user_email, fact, category, confidence, date_created, date_updated)
+- crm_tasks (id, title, completed, user_email, date_created)
+- crm_notes (id, title, content, user_email, date_created)
 
 Dôležité: Pred každou prácou s Directus API overiť, či služba beží na Railway.
 
