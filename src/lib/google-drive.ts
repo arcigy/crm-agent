@@ -35,7 +35,7 @@ export async function listFiles(token: string, folderId?: string) {
     try {
         const res = await drive.files.list({
             q,
-            fields: 'files(id, name, mimeType, webViewLink, iconLink, thumbnailLink, size)',
+            fields: 'files(id, name, mimeType, webViewLink, webContentLink, iconLink, thumbnailLink, size)',
             orderBy: 'folder, name',
             pageSize: 100
         });
@@ -171,6 +171,16 @@ export async function moveFile(token: string, fileId: string, destinationFolderI
         removeParents: previousParents,
         fields: 'id, parents'
     });
+
+    return res.data;
+}
+
+export async function downloadFile(token: string, fileId: string) {
+    const drive = await getDriveClient(token);
+    const res = await drive.files.get({
+        fileId,
+        alt: 'media'
+    }, { responseType: 'stream' });
 
     return res.data;
 }

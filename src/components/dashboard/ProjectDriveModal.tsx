@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { X, Folder, File, ExternalLink, Loader2, Plus, HardDrive, Search, ArrowLeft, Cloud, Scissors, Copy, Clipboard } from 'lucide-react';
+import { X, Folder, File, ExternalLink, Loader2, Plus, HardDrive, Search, ArrowLeft, Cloud, Scissors, Copy, Clipboard, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DriveFile {
@@ -11,6 +11,7 @@ interface DriveFile {
     webViewLink: string;
     iconLink: string;
     thumbnailLink?: string;
+    webContentLink?: string;
 }
 
 interface ProjectDriveModalProps {
@@ -251,6 +252,13 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
         setContextMenu({ ...contextMenu, visible: false });
     };
 
+    const handleDownload = (file: DriveFile) => {
+        const url = `/api/google/download?fileId=${file.id}&mimeType=${encodeURIComponent(file.mimeType)}&name=${encodeURIComponent(file.name)}`;
+        window.open(url, '_blank');
+        toast.success('Sťahovanie začalo...');
+        setContextMenu({ ...contextMenu, visible: false });
+    };
+
     // Keyboard Shortcuts
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -439,6 +447,15 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                         {contextMenu.file.mimeType === 'application/vnd.google-apps.folder' ? <Folder className="w-3 h-3" /> : <File className="w-3 h-3" />}
                         <span className="truncate">{contextMenu.file.name}</span>
                     </div>
+
+                    <button
+                        onClick={() => handleDownload(contextMenu.file!)}
+                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                    >
+                        <Download className="w-4 h-4 text-gray-400" /> Stiahnuť
+                    </button>
+
+                    <div className="h-px bg-gray-100 my-1" />
 
                     <button
                         onClick={() => {
