@@ -11,7 +11,7 @@ import {
     Loader2,
     ChevronRight,
     Grid,
-    List,
+    List as ListIcon,
     MoreVertical,
     Download,
     Copy,
@@ -290,7 +290,7 @@ export default function FilesTool() {
                         onClick={() => setViewMode('list')}
                         className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}
                     >
-                        <List className="w-4 h-4" />
+                        <ListIcon className="w-4 h-4" />
                     </button>
                 </div>
             </div>
