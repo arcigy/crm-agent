@@ -1,14 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import { X, Folder, File, ExternalLink, Loader2, Plus, HardDrive, Search, ArrowLeft, Cloud } from 'lucide-react';
+import { X, Folder, File, ExternalLink, Loader2, Plus, HardDrive, Search, ArrowLeft, Cloud, Scissors, Copy, Clipboard } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DriveFile {
     id: string;
     name: string;
     mimeType: string;
-    webViewLink: string;
     webViewLink: string;
     iconLink: string;
     thumbnailLink?: string;
@@ -30,12 +29,16 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
     const [folderHistory, setFolderHistory] = React.useState<{ id: string, name: string }[]>([]);
     const [isUploading, setIsUploading] = React.useState(false);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    // Context Menu & Clipboard State
     const [contextMenu, setContextMenu] = React.useState<{ visible: boolean, x: number, y: number, file: DriveFile | null }>({
         visible: false,
         x: 0,
         y: 0,
         file: null
     });
+    const [clipboard, setClipboard] = React.useState<{ op: 'copy' | 'cut', file: DriveFile } | null>(null);
+    const [selectedFileId, setSelectedFileId] = React.useState<string | null>(null);
 
     // Close context menu on global click
     React.useEffect(() => {
@@ -84,7 +87,7 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
     }, [isOpen, currentFolderId]);
 
     const handleFolderClick = (file: DriveFile) => {
-        setFolderHistory(prev => [...prev, { id: currentFolderId || 'root', name: '...' }]); // Name could be improved if we tracked it
+        setFolderHistory(prev => [...prev, { id: currentFolderId || 'root', name: '...' }]);
         setCurrentFolderId(file.id);
         setSearchQuery('');
     };
@@ -105,11 +108,7 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
         let successCount = 0;
 
         try {
-            // We need a target folder. If currentFolderId is missing, falling back to root is risky but acceptable if handled.
-            // Ideally, we fetch the project root ID if currentFolderId is undefined.
-            // But currentFolderId updates on open.
             const targetId = currentFolderId || folderId;
-
             if (!targetId) {
                 toast.error('Nie je vybraný žiadny priečinok na nahrávanie');
                 return;
@@ -143,7 +142,7 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
         }
     };
 
-    const handleContextMenu = (e: React.MouseEvent, file: DriveFile) => {
+    const handleContextMenu = (e: React.MouseEvent, file: DriveFile | null) => {
         e.preventDefault();
         setContextMenu({
             visible: true,
@@ -192,6 +191,88 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
             toast.error('Chyba pri premenovávaní', { id: toastId });
         }
     };
+
+    const handleCopy = (file: DriveFile) => {
+        setClipboard({ op: 'copy', file });
+        toast.success('Skopírované do schránky');
+        setContextMenu({ ...contextMenu, visible: false });
+    };
+
+    const handleCut = (file: DriveFile) => {
+        setClipboard({ op: 'cut', file });
+        toast.success('Vystrihnuté (pripravené na presun)');
+        setContextMenu({ ...contextMenu, visible: false });
+    };
+
+    const handlePaste = async () => {
+        if (!clipboard) return;
+
+        const targetId = currentFolderId || folderId;
+        if (!targetId) return;
+
+        const toastId = toast.loading(clipboard.op === 'cut' ? 'Presúvam...' : 'Kopírujem...');
+
+        try {
+            const body: any = {
+                action: clipboard.op === 'copy' ? 'copy' : 'move',
+            };
+
+            if (clipboard.op === 'copy') {
+                body.copyFileId = clipboard.file.id;
+                body.parentId = targetId;
+                body.name = `Kópia - ${clipboard.file.name}`;
+            } else {
+                body.fileId = clipboard.file.id;
+                body.destinationId = targetId;
+            }
+
+            const method = clipboard.op === 'copy' ? 'POST' : 'PATCH';
+
+            const res = await fetch('/api/google/drive', {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (res.ok) {
+                toast.success(clipboard.op === 'copy' ? 'Súbor skopírovaný' : 'Súbor presunutý', { id: toastId });
+                fetchFiles(targetId);
+                if (clipboard.op === 'cut') setClipboard(null);
+            } else {
+                throw new Error('Action failed');
+            }
+        } catch (error) {
+            toast.error('Chyba pri operácii', { id: toastId });
+        }
+        setContextMenu({ ...contextMenu, visible: false });
+    };
+
+    // Keyboard Shortcuts
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!isOpen) return;
+
+            // Ctrl+C
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selectedFileId) {
+                const file = files.find(f => f.id === selectedFileId);
+                if (file) handleCopy(file);
+            }
+
+            // Ctrl+X
+            if ((e.ctrlKey || e.metaKey) && e.key === 'x' && selectedFileId) {
+                const file = files.find(f => f.id === selectedFileId);
+                if (file) handleCut(file);
+            }
+
+            // Ctrl+V
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+                handlePaste();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, selectedFileId, clipboard, files, currentFolderId, folderId]);
 
     if (!isOpen) return null;
 
@@ -265,7 +346,18 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                 </div>
 
                 {/* File Grid/List */}
-                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <div
+                    className="flex-1 overflow-y-auto p-8 custom-scrollbar relative"
+                    onContextMenu={(e) => {
+                        if (e.target === e.currentTarget) {
+                            handleContextMenu(e, null);
+                        }
+                    }}
+                    onClick={() => {
+                        setSelectedFileId(null);
+                        setContextMenu({ ...contextMenu, visible: false });
+                    }}
+                >
                     {loading ? (
                         <div className="h-full flex flex-col items-center justify-center gap-4">
                             <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
@@ -283,17 +375,22 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                                 return (
                                     <div
                                         key={file.id}
-                                        onClick={() => {
-                                            if (isFolder) {
-                                                handleFolderClick(file);
-                                            } else {
-                                                window.open(file.webViewLink, '_blank');
-                                            }
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedFileId(file.id);
                                         }}
-                                        onContextMenu={(e) => handleContextMenu(e, file)}
-                                        className="cursor-pointer group bg-white p-6 rounded-[2.5rem] border border-gray-100 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100 transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden"
+                                        onDoubleClick={(e) => {
+                                            e.stopPropagation();
+                                            isFolder ? handleFolderClick(file) : window.open(file.webViewLink, '_blank');
+                                        }}
+                                        onContextMenu={(e) => {
+                                            e.stopPropagation();
+                                            handleContextMenu(e, file);
+                                            setSelectedFileId(file.id);
+                                        }}
+                                        className={`cursor-pointer group bg-white p-6 rounded-[2.5rem] border hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100 transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden ${selectedFileId === file.id ? 'border-blue-500 ring-4 ring-blue-50' : 'border-gray-100'}`}
                                     >
-                                        <div className="absolute top-0 left-0 w-full h-1 bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                        <div className={`absolute top-0 left-0 w-full h-1 ${selectedFileId === file.id ? 'bg-blue-500 opacity-100' : 'bg-blue-600 opacity-0 group-hover:opacity-100'} transition-opacity`}></div>
                                         <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-transform group-hover:scale-110 ${isFolder ? 'bg-amber-50' : 'bg-blue-50'} overflow-hidden`}>
                                             {isFolder ? (
                                                 <Folder className="w-8 h-8 text-amber-500 fill-amber-500/20" />
@@ -327,7 +424,7 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                 </div>
             </div>
 
-            {/* Context Menu */}
+            {/* Context Menu (File) */}
             {contextMenu.visible && contextMenu.file && (
                 <div
                     className="fixed bg-white rounded-xl shadow-2xl border border-gray-100 p-2 z-[200] min-w-[220px] animate-in fade-in zoom-in-95 duration-200"
@@ -366,6 +463,22 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                     <div className="h-px bg-gray-100 my-1" />
 
                     <button
+                        onClick={() => handleCopy(contextMenu.file!)}
+                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                    >
+                        <Copy className="w-4 h-4 text-gray-400" /> Kopírovať
+                    </button>
+
+                    <button
+                        onClick={() => handleCut(contextMenu.file!)}
+                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                    >
+                        <Scissors className="w-4 h-4 text-gray-400" /> Vystrihnúť
+                    </button>
+
+                    <div className="h-px bg-gray-100 my-1" />
+
+                    <button
                         onClick={() => {
                             handleRename(contextMenu.file!);
                             setContextMenu({ ...contextMenu, visible: false });
@@ -375,8 +488,6 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                         <File className="w-4 h-4 text-gray-400" /> Premenovať
                     </button>
 
-                    <div className="h-px bg-gray-100 my-1" />
-
                     <button
                         onClick={() => {
                             handleDelete(contextMenu.file!);
@@ -385,6 +496,24 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                         className="w-full text-left px-3 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-3"
                     >
                         <X className="w-4 h-4 text-red-400" /> Vymazať
+                    </button>
+                </div>
+            )}
+
+            {/* Context Menu (Background) */}
+            {contextMenu.visible && !contextMenu.file && (
+                <div
+                    className="fixed bg-white rounded-xl shadow-2xl border border-gray-100 p-2 z-[200] min-w-[220px] animate-in fade-in zoom-in-95 duration-200"
+                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <button
+                        onClick={handlePaste}
+                        disabled={!clipboard}
+                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Clipboard className="w-4 h-4 text-gray-400" /> Vložiť
+                        {clipboard && <span className="text-[9px] text-gray-400 ml-auto uppercase tracking-widest">{clipboard.op}</span>}
                     </button>
                 </div>
             )}

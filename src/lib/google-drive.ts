@@ -139,3 +139,38 @@ export async function renameFile(token: string, fileId: string, newName: string)
     });
     return true;
 }
+
+export async function copyFile(token: string, fileId: string, parentId: string, name?: string) {
+    const drive = await getDriveClient(token);
+    const res = await drive.files.copy({
+        fileId,
+        requestBody: {
+            name,
+            parents: [parentId]
+        },
+        fields: 'id, name, mimeType, webViewLink, iconLink, thumbnailLink'
+    });
+    return res.data;
+}
+
+export async function moveFile(token: string, fileId: string, destinationFolderId: string) {
+    const drive = await getDriveClient(token);
+
+    // 1. Get current parents to remove
+    const file = await drive.files.get({
+        fileId,
+        fields: 'parents'
+    });
+
+    const previousParents = file.data.parents?.join(',') || '';
+
+    // 2. Update with new parent
+    const res = await drive.files.update({
+        fileId,
+        addParents: destinationFolderId,
+        removeParents: previousParents,
+        fields: 'id, parents'
+    });
+
+    return res.data;
+}

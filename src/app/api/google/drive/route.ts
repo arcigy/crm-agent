@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { currentUser, clerkClient } from '@clerk/nextjs/server';
-import { listFiles, createFolder, deleteFile, renameFile } from '@/lib/google-drive';
+import { listFiles, createFolder, deleteFile, renameFile, copyFile, moveFile } from '@/lib/google-drive';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +44,14 @@ export async function POST(req: Request) {
 
         if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 400 });
 
-        const { name, parentId } = await req.json();
+        const { action, name, parentId, fileId, copyFileId } = await req.json();
+
+        if (action === 'copy') {
+            if (!copyFileId || !parentId) return NextResponse.json({ error: 'Missing parameters for copy' }, { status: 400 });
+            const file = await copyFile(token, copyFileId, parentId, name);
+            return NextResponse.json({ success: true, file });
+        }
+
         const folderId = await createFolder(token, name, parentId);
 
         return NextResponse.json({ success: true, folderId });
@@ -88,7 +95,13 @@ export async function PATCH(req: Request) {
 
         if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 400 });
 
-        const { fileId, name } = await req.json();
+        const { action, fileId, name, destinationId } = await req.json();
+
+        if (action === 'move') {
+            if (!fileId || !destinationId) return NextResponse.json({ error: 'Missing parameters for move' }, { status: 400 });
+            await moveFile(token, fileId, destinationId);
+            return NextResponse.json({ success: true });
+        }
 
         if (!fileId || !name) return NextResponse.json({ error: 'Missing fileId or name' }, { status: 400 });
 
