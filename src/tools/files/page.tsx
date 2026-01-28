@@ -245,7 +245,7 @@ export default function FilesTool() {
                     placeholder="Hľadať v cloude..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-16 pr-8 py-5 bg-white border border-gray-100 rounded-[2rem] text-lg font-bold text-gray-900 shadow-sm focus:border-blue-200 outline-none transition-all placeholder:text-gray-200"
+                    className="w-full pl-16 pr-8 py-5 bg-white border border-gray-100 rounded-[2rem] text-lg font-bold text-gray-900 shadow-sm focus:border-blue-200 outline-none transition-all placeholder:text-gray-200 select-none"
                 />
             </div>
 
@@ -260,12 +260,12 @@ export default function FilesTool() {
                 }}
             >
                 {loading ? (
-                    <div className="h-full flex flex-col items-center justify-center gap-4 py-20">
+                    <div className="h-full flex flex-col items-center justify-center gap-4 py-20 select-none">
                         <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
                         <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Sťahujem dáta z Google Drive...</span>
                     </div>
                 ) : filtered.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-20 opacity-20 italic">
+                    <div className="h-full flex flex-col items-center justify-center text-center p-20 opacity-20 italic select-none">
                         <HardDrive className="w-20 h-20 mb-4" />
                         <p className="text-xl font-black uppercase tracking-widest">Priečinok je prázdny</p>
                     </div>

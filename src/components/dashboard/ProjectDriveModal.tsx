@@ -380,7 +380,7 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                             placeholder="Hľadať v súboroch..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-6 py-3 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none transition-all"
+                            className="w-full pl-12 pr-6 py-3 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none transition-all select-none"
                         />
                     </div>
                     <input
@@ -428,12 +428,12 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                     }}
                 >
                     {loading ? (
-                        <div className="h-full flex flex-col items-center justify-center gap-4">
+                        <div className="h-full flex flex-col items-center justify-center gap-4 select-none">
                             <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Pripájam sa k Drive...</p>
                         </div>
                     ) : filtered.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-40">
+                        <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-40 select-none">
                             <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center italic text-4xl">📁</div>
                             <p className="text-sm font-black uppercase tracking-widest italic tracking-tighter">Tento priečinok je prázdny</p>
                         </div>
