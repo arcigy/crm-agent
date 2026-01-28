@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { X, Folder, File, ExternalLink, Loader2, Plus, HardDrive, Search, ArrowLeft, Cloud, Scissors, Copy, Clipboard, Download } from 'lucide-react';
+import { X, Folder, File, ExternalLink, Loader2, Plus, HardDrive, Search, ArrowLeft, Cloud, Scissors, Copy, Clipboard, Download, Grid, List } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DriveFile {
@@ -39,7 +39,9 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
         file: null
     });
     const [clipboard, setClipboard] = React.useState<{ op: 'copy' | 'cut', file: DriveFile } | null>(null);
-    const [selectedFileId, setSelectedFileId] = React.useState<string | null>(null);
+    const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+    const [lastSelectedId, setLastSelectedId] = React.useState<string | null>(null);
+    const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
 
     // Close context menu on global click
     React.useEffect(() => {
@@ -259,20 +261,55 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
         setContextMenu({ ...contextMenu, visible: false });
     };
 
+    // Multi-select click handler
+    const handleFileClick = (e: React.MouseEvent, file: DriveFile, index: number) => {
+        e.stopPropagation();
+
+        if (e.shiftKey && lastSelectedId) {
+            // Shift+click: select range
+            const lastIndex = filtered.findIndex(f => f.id === lastSelectedId);
+            const currentIndex = index;
+            const start = Math.min(lastIndex, currentIndex);
+            const end = Math.max(lastIndex, currentIndex);
+
+            const newSelected = new Set(selectedIds);
+            for (let i = start; i <= end; i++) {
+                newSelected.add(filtered[i].id);
+            }
+            setSelectedIds(newSelected);
+        } else if (e.ctrlKey || e.metaKey) {
+            // Ctrl+click: toggle selection
+            const newSelected = new Set(selectedIds);
+            if (newSelected.has(file.id)) {
+                newSelected.delete(file.id);
+            } else {
+                newSelected.add(file.id);
+            }
+            setSelectedIds(newSelected);
+            setLastSelectedId(file.id);
+        } else {
+            // Normal click: single select
+            setSelectedIds(new Set([file.id]));
+            setLastSelectedId(file.id);
+        }
+    };
+
     // Keyboard Shortcuts
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!isOpen) return;
 
+            const firstSelectedId = selectedIds.size > 0 ? Array.from(selectedIds)[0] : null;
+
             // Ctrl+C
-            if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selectedFileId) {
-                const file = files.find(f => f.id === selectedFileId);
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c' && firstSelectedId) {
+                const file = files.find(f => f.id === firstSelectedId);
                 if (file) handleCopy(file);
             }
 
             // Ctrl+X
-            if ((e.ctrlKey || e.metaKey) && e.key === 'x' && selectedFileId) {
-                const file = files.find(f => f.id === selectedFileId);
+            if ((e.ctrlKey || e.metaKey) && e.key === 'x' && firstSelectedId) {
+                const file = files.find(f => f.id === firstSelectedId);
                 if (file) handleCut(file);
             }
 
@@ -280,11 +317,17 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
             if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
                 handlePaste();
             }
+
+            // Ctrl+A - select all
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                e.preventDefault();
+                setSelectedIds(new Set(filtered.map(f => f.id)));
+            }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, selectedFileId, clipboard, files, currentFolderId, folderId]);
+    }, [isOpen, selectedIds, clipboard, files, currentFolderId, folderId, filtered]);
 
     if (!isOpen) return null;
 
@@ -355,6 +398,20 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                         {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                         {isUploading ? 'Nahrávam...' : 'Nahrať súbor'}
                     </button>
+                    <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl">
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}
+                        >
+                            <Grid className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}
+                        >
+                            <List className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* File Grid/List */}
@@ -366,7 +423,7 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                         }
                     }}
                     onClick={() => {
-                        setSelectedFileId(null);
+                        setSelectedIds(new Set());
                         setContextMenu({ ...contextMenu, visible: false });
                     }}
                 >
@@ -380,29 +437,30 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                             <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center italic text-4xl">📁</div>
                             <p className="text-sm font-black uppercase tracking-widest italic tracking-tighter">Tento priečinok je prázdny</p>
                         </div>
-                    ) : (
+                    ) : viewMode === 'grid' ? (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                            {filtered.map(file => {
+                            {filtered.map((file, index) => {
                                 const isFolder = file.mimeType === 'application/vnd.google-apps.folder';
+                                const isSelected = selectedIds.has(file.id);
                                 return (
                                     <div
                                         key={file.id}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedFileId(file.id);
-                                        }}
+                                        onClick={(e) => handleFileClick(e, file, index)}
                                         onDoubleClick={(e) => {
                                             e.stopPropagation();
                                             isFolder ? handleFolderClick(file) : window.open(file.webViewLink, '_blank');
                                         }}
                                         onContextMenu={(e) => {
                                             e.stopPropagation();
+                                            if (!selectedIds.has(file.id)) {
+                                                setSelectedIds(new Set([file.id]));
+                                                setLastSelectedId(file.id);
+                                            }
                                             handleContextMenu(e, file);
-                                            setSelectedFileId(file.id);
                                         }}
-                                        className={`cursor-pointer group bg-white p-6 rounded-[2.5rem] border hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100 transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden ${selectedFileId === file.id ? 'border-blue-500 ring-4 ring-blue-50' : 'border-gray-100'}`}
+                                        className={`cursor-pointer group bg-white p-6 rounded-[2.5rem] border hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100 transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden ${isSelected ? 'border-blue-500 ring-4 ring-blue-50' : 'border-gray-100'}`}
                                     >
-                                        <div className={`absolute top-0 left-0 w-full h-1 ${selectedFileId === file.id ? 'bg-blue-500 opacity-100' : 'bg-blue-600 opacity-0 group-hover:opacity-100'} transition-opacity`}></div>
+                                        <div className={`absolute top-0 left-0 w-full h-1 ${isSelected ? 'bg-blue-500 opacity-100' : 'bg-blue-600 opacity-0 group-hover:opacity-100'} transition-opacity`}></div>
                                         <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-transform group-hover:scale-110 ${isFolder ? 'bg-amber-50' : 'bg-blue-50'} overflow-hidden`}>
                                             {isFolder ? (
                                                 <Folder className="w-8 h-8 text-amber-500 fill-amber-500/20" />
@@ -424,6 +482,61 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                                 );
                             })}
                         </div>
+                    ) : (
+                        <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                    <tr>
+                                        <th className="px-6 py-4">Názov</th>
+                                        <th className="px-6 py-4">Typ</th>
+                                        <th className="px-6 py-4 text-right">Akcie</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {filtered.map((file, index) => {
+                                        const isFolder = file.mimeType === 'application/vnd.google-apps.folder';
+                                        const isSelected = selectedIds.has(file.id);
+                                        return (
+                                            <tr
+                                                key={file.id}
+                                                onClick={(e) => handleFileClick(e, file, index)}
+                                                onDoubleClick={(e) => {
+                                                    e.stopPropagation();
+                                                    isFolder ? handleFolderClick(file) : window.open(file.webViewLink, '_blank');
+                                                }}
+                                                onContextMenu={(e) => {
+                                                    e.stopPropagation();
+                                                    if (!selectedIds.has(file.id)) {
+                                                        setSelectedIds(new Set([file.id]));
+                                                        setLastSelectedId(file.id);
+                                                    }
+                                                    handleContextMenu(e, file);
+                                                }}
+                                                className={`transition-colors cursor-pointer group ${isSelected ? 'bg-blue-50' : 'hover:bg-blue-50/50'}`}
+                                            >
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        {isFolder ? <Folder className="w-5 h-5 text-amber-500" /> : <img src={file.iconLink} className="w-5 h-5" />}
+                                                        <span className="font-bold text-gray-900 text-sm truncate max-w-[300px]">{file.name}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 tracking-widest italic">
+                                                    {isFolder ? 'Priečinok' : 'Súbor'}
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); window.open(file.webViewLink, '_blank'); }}
+                                                        className="p-2 text-gray-300 hover:text-gray-900 opacity-0 group-hover:opacity-100 transition-all"
+                                                    >
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                 </div>
 
@@ -437,107 +550,111 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
             </div>
 
             {/* Context Menu (File) */}
-            {contextMenu.visible && contextMenu.file && (
-                <div
-                    className="fixed bg-white rounded-xl shadow-2xl border border-gray-100 p-2 z-[200] min-w-[220px] animate-in fade-in zoom-in-95 duration-200"
-                    style={{ top: contextMenu.y, left: contextMenu.x }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 py-2 border-b border-gray-50 mb-1 truncate max-w-[200px] flex items-center gap-2">
-                        {contextMenu.file.mimeType === 'application/vnd.google-apps.folder' ? <Folder className="w-3 h-3" /> : <File className="w-3 h-3" />}
-                        <span className="truncate">{contextMenu.file.name}</span>
-                    </div>
-
-                    <button
-                        onClick={() => handleDownload(contextMenu.file!)}
-                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+            {
+                contextMenu.visible && contextMenu.file && (
+                    <div
+                        className="fixed bg-white rounded-xl shadow-2xl border border-gray-100 p-2 z-[200] min-w-[220px] animate-in fade-in zoom-in-95 duration-200"
+                        style={{ top: contextMenu.y, left: contextMenu.x }}
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <Download className="w-4 h-4 text-gray-400" /> Stiahnuť
-                    </button>
+                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 py-2 border-b border-gray-50 mb-1 truncate max-w-[200px] flex items-center gap-2">
+                            {contextMenu.file.mimeType === 'application/vnd.google-apps.folder' ? <Folder className="w-3 h-3" /> : <File className="w-3 h-3" />}
+                            <span className="truncate">{contextMenu.file.name}</span>
+                        </div>
 
-                    <div className="h-px bg-gray-100 my-1" />
+                        <button
+                            onClick={() => handleDownload(contextMenu.file!)}
+                            className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                        >
+                            <Download className="w-4 h-4 text-gray-400" /> Stiahnuť
+                        </button>
 
-                    <button
-                        onClick={() => {
-                            if (contextMenu.file?.mimeType === 'application/vnd.google-apps.folder') {
-                                handleFolderClick(contextMenu.file);
-                            } else {
+                        <div className="h-px bg-gray-100 my-1" />
+
+                        <button
+                            onClick={() => {
+                                if (contextMenu.file?.mimeType === 'application/vnd.google-apps.folder') {
+                                    handleFolderClick(contextMenu.file);
+                                } else {
+                                    window.open(contextMenu.file?.webViewLink, '_blank');
+                                }
+                                setContextMenu({ ...contextMenu, visible: false });
+                            }}
+                            className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                        >
+                            <ExternalLink className="w-4 h-4 text-gray-400" /> Otvoriť
+                        </button>
+
+                        <button
+                            onClick={() => {
                                 window.open(contextMenu.file?.webViewLink, '_blank');
-                            }
-                            setContextMenu({ ...contextMenu, visible: false });
-                        }}
-                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
-                    >
-                        <ExternalLink className="w-4 h-4 text-gray-400" /> Otvoriť
-                    </button>
+                                setContextMenu({ ...contextMenu, visible: false });
+                            }}
+                            className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                        >
+                            <Cloud className="w-4 h-4 text-gray-400" /> Otvoriť na Drive
+                        </button>
 
-                    <button
-                        onClick={() => {
-                            window.open(contextMenu.file?.webViewLink, '_blank');
-                            setContextMenu({ ...contextMenu, visible: false });
-                        }}
-                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
-                    >
-                        <Cloud className="w-4 h-4 text-gray-400" /> Otvoriť na Drive
-                    </button>
+                        <div className="h-px bg-gray-100 my-1" />
 
-                    <div className="h-px bg-gray-100 my-1" />
+                        <button
+                            onClick={() => handleCopy(contextMenu.file!)}
+                            className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                        >
+                            <Copy className="w-4 h-4 text-gray-400" /> Kopírovať
+                        </button>
 
-                    <button
-                        onClick={() => handleCopy(contextMenu.file!)}
-                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
-                    >
-                        <Copy className="w-4 h-4 text-gray-400" /> Kopírovať
-                    </button>
+                        <button
+                            onClick={() => handleCut(contextMenu.file!)}
+                            className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                        >
+                            <Scissors className="w-4 h-4 text-gray-400" /> Vystrihnúť
+                        </button>
 
-                    <button
-                        onClick={() => handleCut(contextMenu.file!)}
-                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
-                    >
-                        <Scissors className="w-4 h-4 text-gray-400" /> Vystrihnúť
-                    </button>
+                        <div className="h-px bg-gray-100 my-1" />
 
-                    <div className="h-px bg-gray-100 my-1" />
+                        <button
+                            onClick={() => {
+                                handleRename(contextMenu.file!);
+                                setContextMenu({ ...contextMenu, visible: false });
+                            }}
+                            className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                        >
+                            <File className="w-4 h-4 text-gray-400" /> Premenovať
+                        </button>
 
-                    <button
-                        onClick={() => {
-                            handleRename(contextMenu.file!);
-                            setContextMenu({ ...contextMenu, visible: false });
-                        }}
-                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
-                    >
-                        <File className="w-4 h-4 text-gray-400" /> Premenovať
-                    </button>
-
-                    <button
-                        onClick={() => {
-                            handleDelete(contextMenu.file!);
-                            setContextMenu({ ...contextMenu, visible: false });
-                        }}
-                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-3"
-                    >
-                        <X className="w-4 h-4 text-red-400" /> Vymazať
-                    </button>
-                </div>
-            )}
+                        <button
+                            onClick={() => {
+                                handleDelete(contextMenu.file!);
+                                setContextMenu({ ...contextMenu, visible: false });
+                            }}
+                            className="w-full text-left px-3 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-3"
+                        >
+                            <X className="w-4 h-4 text-red-400" /> Vymazať
+                        </button>
+                    </div>
+                )
+            }
 
             {/* Context Menu (Background) */}
-            {contextMenu.visible && !contextMenu.file && (
-                <div
-                    className="fixed bg-white rounded-xl shadow-2xl border border-gray-100 p-2 z-[200] min-w-[220px] animate-in fade-in zoom-in-95 duration-200"
-                    style={{ top: contextMenu.y, left: contextMenu.x }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <button
-                        onClick={handlePaste}
-                        disabled={!clipboard}
-                        className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            {
+                contextMenu.visible && !contextMenu.file && (
+                    <div
+                        className="fixed bg-white rounded-xl shadow-2xl border border-gray-100 p-2 z-[200] min-w-[220px] animate-in fade-in zoom-in-95 duration-200"
+                        style={{ top: contextMenu.y, left: contextMenu.x }}
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <Clipboard className="w-4 h-4 text-gray-400" /> Vložiť
-                        {clipboard && <span className="text-[9px] text-gray-400 ml-auto uppercase tracking-widest">{clipboard.op}</span>}
-                    </button>
-                </div>
-            )}
-        </div>
+                        <button
+                            onClick={handlePaste}
+                            disabled={!clipboard}
+                            className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Clipboard className="w-4 h-4 text-gray-400" /> Vložiť
+                            {clipboard && <span className="text-[9px] text-gray-400 ml-auto uppercase tracking-widest">{clipboard.op}</span>}
+                        </button>
+                    </div>
+                )
+            }
+        </div >
     );
 }
