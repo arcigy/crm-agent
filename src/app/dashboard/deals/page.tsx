@@ -1,3 +1,4 @@
+// Triggering fresh build for Finance & Invoicing integration
 import { DealsTable } from "@/components/dashboard/DealsTable";
 import { getDeals } from "@/app/actions/deals";
 import { getProjects } from "@/app/actions/projects";
