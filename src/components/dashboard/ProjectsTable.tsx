@@ -133,6 +133,7 @@ function CreateProjectModal({
     const [mode, setMode] = React.useState<'form' | 'json'>(initialMode);
     const [jsonInput, setJsonInput] = React.useState('');
     const [formData, setFormData] = React.useState({
+        name: '',
         project_type: PROJECT_TYPES[0],
         contact_id: '',
         stage: 'planning' as ProjectStage,
@@ -155,6 +156,7 @@ function CreateProjectModal({
                     const items = Array.isArray(parsed) ? parsed : [parsed];
                     for (const item of items) {
                         await onSubmit({
+                            name: item.name || item.title || 'Nový projekt',
                             project_type: item.type || item.project_type || PROJECT_TYPES[0],
                             contact_id: item.contact_id ? parseInt(item.contact_id) : null,
                             stage: item.stage || 'planning',
@@ -221,16 +223,34 @@ function CreateProjectModal({
                     {mode === 'form' ? (
                         <>
                             <div className="space-y-2">
-                                <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Typ projektu</label>
-                                <select
+                                <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Názov projektu</label>
+                                <input
+                                    required
+                                    type="text"
+                                    placeholder="Napr. Redizajn webu 2026"
                                     className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-indigo-500 focus:bg-white transition-all outline-none"
-                                    value={formData.project_type}
-                                    onChange={(e) => setFormData({ ...formData, project_type: e.target.value })}
-                                >
-                                    {PROJECT_TYPES.map((type) => (
-                                        <option key={type} value={type}>{type}</option>
-                                    ))}
-                                </select>
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Typ projektu (Kategória)</label>
+                                <div className="relative">
+                                    <input
+                                        list="project-types-list"
+                                        type="text"
+                                        className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-indigo-500 focus:bg-white transition-all outline-none"
+                                        value={formData.project_type}
+                                        onChange={(e) => setFormData({ ...formData, project_type: e.target.value })}
+                                        placeholder="Vyberte alebo napíšte..."
+                                    />
+                                    <datalist id="project-types-list">
+                                        {PROJECT_TYPES.map((type) => (
+                                            <option key={type} value={type} />
+                                        ))}
+                                    </datalist>
+                                </div>
                             </div>
 
                             <div className="space-y-2">
@@ -388,14 +408,17 @@ export function ProjectsTable({ data, contacts }: ProjectsTableProps) {
                 );
             },
         }),
-        columnHelper.accessor('project_type', {
-            header: 'Typ projektu',
+        columnHelper.accessor('name', {
+            header: 'Projekt / Typ',
             cell: (info) => (
-                <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                        <FolderKanban className="w-3 h-3 text-indigo-600" />
+                <div className="flex flex-col">
+                    <span className="font-black text-gray-900 text-[11px] uppercase tracking-tight italic">
+                        {info.getValue() || info.row.original.project_type}
+                    </span>
+                    <div className="flex items-center gap-1 opacity-50">
+                        <FolderKanban className="w-2.5 h-2.5" />
+                        <span className="text-[9px] font-bold uppercase tracking-widest">{info.row.original.project_type}</span>
                     </div>
-                    <span className="font-bold text-gray-900 text-xs">{info.getValue()}</span>
                 </div>
             ),
         }),

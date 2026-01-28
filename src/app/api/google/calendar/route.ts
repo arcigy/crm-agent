@@ -66,20 +66,22 @@ export async function GET() {
             // @ts-ignore
             const projects = await withTimeout(directus.request(readItems('projects', {
                 filter: { deleted_at: { _null: true } },
+                fields: ['*', 'contact_id.*'],
                 limit: 100
             })), 3000);
 
             if (projects) {
                 // @ts-ignore
                 projectEvents = (projects as any[]).map(p => ({
-                    id: `project-${p.id}`,
-                    title: `📦 ${p.project_type}: ${p.contact_name || 'Projekt'}`,
+                    id: `p-${p.id}`,
+                    title: `📦 ${p.name || p.project_type}`,
                     start: p.end_date || p.date_created,
                     end: p.end_date || p.date_created,
                     allDay: true,
                     color: 'project',
-                    description: `Stav: ${p.stage}`,
-                    type: 'project'
+                    description: `Klient: ${p.contact_id?.first_name || p.contact_name || 'Neznámy'} ${p.contact_id?.last_name || ''}\nStatus: ${p.stage}\nTyp: ${p.project_type}`,
+                    type: 'project',
+                    contact: p.contact_id // Full contact object for the modal
                 }));
             }
         } catch (e) {

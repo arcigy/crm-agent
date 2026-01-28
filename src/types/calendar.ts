@@ -10,6 +10,7 @@ export interface CalendarEvent {
     location?: string;
     attendees?: string[];
     googleEventId?: string;
+    contact?: any;
 }
 
 export interface GoogleTokens {

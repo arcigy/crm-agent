@@ -2,6 +2,7 @@
 export interface Project {
     id: number;
     date_created: string;
+    name: string;
     project_type: string;
     contact_id: number | null;
     contact_name?: string | null; // Joined from contacts table

@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import type { Project, ProjectStage } from '@/types/project';
 import { currentUser, clerkClient } from '@clerk/nextjs/server';
 import { setupProjectStructure } from '@/lib/google-drive';
+import { getCalendarClient } from '@/lib/google';
 
 export async function getProjects(): Promise<{ data: Project[] | null; error: string | null }> {
     try {
@@ -25,6 +26,7 @@ export async function getProjects(): Promise<{ data: Project[] | null; error: st
 }
 
 export async function createProject(projectData: {
+    name: string;
     project_type: string;
     contact_id?: number | null;
     stage?: ProjectStage;
@@ -38,6 +40,7 @@ export async function createProject(projectData: {
         // 1. Create Project in Directus first
         // @ts-ignore
         const newProject = (await directus.request(createItem('projects', {
+            name: projectData.name || 'Nový projekt',
             project_type: projectData.project_type,
             contact_id: projectData.contact_id || null,
             contact_name: projectData.contact_name || 'Neznámy',
@@ -46,16 +49,15 @@ export async function createProject(projectData: {
             date_created: new Date().toISOString(),
         }))) as any;
 
-        // 2. Google Drive Automation
+        // 2. Google Integrations (Drive & Calendar)
         try {
             const client = await clerkClient();
             const tokenResponse = await client.users.getUserOauthAccessToken(user.id, 'oauth_google');
             const token = tokenResponse.data[0]?.token;
 
             if (token) {
+                // DRIVE AUTOMATION
                 const year = new Date().getFullYear().toString();
-
-                // Get count for this year to generate number (e.g. 001, 002)
                 // @ts-ignore
                 const yearProjects = await directus.request(readItems('projects', {
                     filter: {
@@ -66,26 +68,49 @@ export async function createProject(projectData: {
                 const projectNumber = (yearProjects as any[]).length.toString().padStart(3, '0');
 
                 const driveFolderId = await setupProjectStructure(token, {
-                    projectName: projectData.project_type,
+                    projectName: projectData.name || projectData.project_type,
                     projectNumber,
                     year,
                     contactName: projectData.contact_name || 'Neznámy'
                 });
 
-                // Update project with folder ID
+                // CALENDAR AUTOMATION (if end_date exists)
+                let googleEventId = null;
+                if (projectData.end_date) {
+                    try {
+                        const calendar = getCalendarClient(token);
+                        const event = await calendar.events.insert({
+                            calendarId: 'primary',
+                            requestBody: {
+                                summary: `PROJEKT: ${projectData.name || projectData.project_type}`,
+                                description: `Klient: ${projectData.contact_name || 'Neznámy'}\nTyp: ${projectData.project_type}\nStatus: ${projectData.stage || 'planning'}`,
+                                start: { date: projectData.end_date },
+                                end: { date: projectData.end_date }, // All day event
+                            }
+                        });
+                        googleEventId = event.data.id;
+                    } catch (calErr) {
+                        console.error('Calendar sync failed:', calErr);
+                    }
+                }
+
+                // Update project with folder ID and calendar ID
                 // @ts-ignore
                 await directus.request(updateItem('projects', newProject.id, {
-                    drive_folder_id: driveFolderId
+                    drive_folder_id: driveFolderId,
+                    google_event_id: googleEventId
                 }));
 
                 newProject.drive_folder_id = driveFolderId;
+                newProject.google_event_id = googleEventId;
             }
         } catch (driveErr) {
-            console.error('Google Drive sync failed, but project was created:', driveErr);
+            console.error('External API sync failed, but project was created:', driveErr);
         }
 
         revalidatePath('/dashboard/projects');
         revalidatePath('/dashboard/contacts');
+        revalidatePath('/dashboard/calendar');
         return { success: true, data: newProject };
     } catch (e: any) {
         console.error('Failed to create project:', e);

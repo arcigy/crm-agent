@@ -7,7 +7,9 @@ import { CalendarView } from '@/components/calendar/CalendarView';
 import { GoogleConnectButton } from '@/components/calendar/GoogleConnectButton';
 import { CreateEventModal } from '@/components/calendar/CreateEventModal';
 import { EventDetailModal } from '@/components/calendar/EventDetailModal';
+import { ContactDetailModal } from '@/components/dashboard/ContactDetailModal';
 import { CalendarEvent, CalendarView as ViewType } from '@/types/calendar';
+import { Lead } from '@/types/contact';
 import { toast } from 'sonner';
 
 function CalendarContent() {
@@ -19,6 +21,7 @@ function CalendarContent() {
     const [isConnected, setIsConnected] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+    const [viewContact, setViewContact] = useState<Lead | null>(null);
 
     useEffect(() => {
         const dateParam = searchParams?.get('date');
@@ -123,6 +126,13 @@ function CalendarContent() {
                 event={selectedEvent}
                 isOpen={!!selectedEvent}
                 onClose={() => setSelectedEvent(null)}
+                onOpenContact={(contact) => setViewContact(contact)}
+            />
+
+            <ContactDetailModal
+                contact={viewContact}
+                isOpen={!!viewContact}
+                onClose={() => setViewContact(null)}
             />
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">

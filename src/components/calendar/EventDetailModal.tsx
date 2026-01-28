@@ -10,9 +10,10 @@ interface EventDetailModalProps {
     event: CalendarEvent | null;
     isOpen: boolean;
     onClose: () => void;
+    onOpenContact?: (contact: any) => void;
 }
 
-export function EventDetailModal({ event, isOpen, onClose }: EventDetailModalProps) {
+export function EventDetailModal({ event, isOpen, onClose, onOpenContact }: EventDetailModalProps) {
     if (!isOpen || !event) return null;
 
     const isProject = event.id.startsWith('p-');
@@ -100,6 +101,16 @@ export function EventDetailModal({ event, isOpen, onClose }: EventDetailModalPro
                                 className="flex-1 h-14 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:bg-black transition-all active:scale-95"
                             >
                                 <ExternalLink className="w-5 h-5" /> Detail projektu
+                            </button>
+                        ) : isProject && event.contact && onOpenContact ? (
+                            <button
+                                onClick={() => {
+                                    onClose();
+                                    onOpenContact(event.contact);
+                                }}
+                                className="flex-1 h-14 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition-all active:scale-95"
+                            >
+                                <User className="w-5 h-5" /> Detail klienta
                             </button>
                         ) : (
                             <button
