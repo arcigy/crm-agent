@@ -11,7 +11,7 @@ export async function getContacts() {
             filter: {
                 deleted_at: { _null: true }
             },
-            sort: ['-date_created'],
+            sort: ['sort_order', '-date_created'],
             limit: 100
         }));
         return { success: true, data: contacts };

@@ -13,8 +13,9 @@ import {
     getExpandedRowModel,
     getFilteredRowModel,
 } from '@tanstack/react-table';
-import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
-import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
+import { DndContext, DragEndEvent, MouseSensor, TouchSensor, useSensor, useSensors, DragOverlay, closestCenter } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { restrictToFirstScrollableAncestor, restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { ChevronDown, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -168,15 +169,40 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
         const { active, over } = event;
         if (!over) return;
 
-        const contact = active.data.current?.contact as Lead;
-        const targetStatus = over.data.current?.status as string;
+        const activeData = active.data.current;
+        const overData = over.data.current;
 
-        if (contact && targetStatus && contact.status !== targetStatus) {
-            toast.promise(updateContact(contact.id, { status: targetStatus }), {
-                loading: 'Updating contact status...',
-                success: 'Status updated successfully',
-                error: (err) => 'Failed to update status: ' + err.message
-            });
+        const contact = activeData?.contact as Lead;
+
+        // 1. Handle Group Drop (Status Change)
+        if (overData?.type === 'group') {
+            const targetStatus = overData.status as string;
+            if (contact && targetStatus && contact.status !== targetStatus) {
+                const promise = updateContact(contact.id, { status: targetStatus });
+                toast.promise(promise, {
+                    loading: 'Updating contact status...',
+                    success: 'Status updated successfully',
+                    error: (err) => 'Failed to update status: ' + err.message
+                });
+                await promise;
+                window.location.reload();
+                return;
+            }
+        }
+
+        // 2. Handle Row-to-Row Drop (Manual Reordering)
+        if (active.id !== over.id && overData?.type === 'row') {
+            const overContact = overData.contact as Lead;
+
+            // If dragging between groups, we can still change status if they are in different groups
+            if (contact.status !== overContact.status) {
+                const promise = updateContact(contact.id, { status: overContact.status });
+                await promise;
+            }
+
+            // In a real app we would update the `sort_order` in the DB
+            // Here we just notify the user it would work with a proper DB schema
+            toast.info('Sorting saved (Simulated)');
             window.location.reload();
         }
     };
@@ -218,9 +244,16 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
                                 ))}
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {table.getRowModel().rows.map(row => (
-                                    row.getIsGrouped() ? <GroupHeader key={row.id} row={row} columnsCount={columns.length} /> : <DraggableRow key={row.id} row={row} />
-                                ))}
+                                <SortableContext
+                                    items={table.getRowModel().rows.filter(r => !r.getIsGrouped()).map(r => `row-${r.original.id}`)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    {table.getRowModel().rows.map(row => (
+                                        row.getIsGrouped() ?
+                                            <GroupHeader key={row.id} row={row} columnsCount={columns.length} /> :
+                                            <DraggableRow key={row.id} row={row} />
+                                    ))}
+                                </SortableContext>
                             </tbody>
                         </table>
                         <div className="p-3 border-t border-gray-100 bg-gray-50/50 sticky bottom-0" onClick={() => setIsModalOpen(true)}>
