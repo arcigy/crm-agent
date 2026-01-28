@@ -352,20 +352,15 @@ export function ProjectsTable({ data, contacts }: ProjectsTableProps) {
     };
 
     const handleCreate = async (formData: any) => {
-        const res = await createProject(formData);
-        if (res.success && res.data) {
-            // Automatically create a folder on Drive for this project
-            try {
-                const projectName = `${formData.project_type} - ${contacts.find(c => String(c.id) === String(formData.contact_id))?.first_name || 'Neznámy'}`;
-                await fetch('/api/google/drive', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: `Project #${res.data.id} - ${projectName}` })
-                });
-                toast.success('Priečinok na Drive bol vytvorený');
-            } catch (err) {
-                console.error('Failed to auto-create drive folder:', err);
-            }
+        const contact = contacts.find(c => String(c.id) === String(formData.contact_id));
+        const res = await createProject({
+            ...formData,
+            contact_name: contact ? `${contact.first_name} ${contact.last_name}` : 'Neznámy'
+        });
+        if (res.success) {
+            toast.success('Projekt a priečinky na Drive boli vytvorené');
+        } else {
+            toast.error('Chyba pri vytváraní projektu: ' + res.error);
         }
     };
 
