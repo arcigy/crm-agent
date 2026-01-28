@@ -1084,9 +1084,10 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
                             </div>
                         </div>
                     </div>
+                </div>
             )}
 
-                    <style jsx global>{`
+            <style jsx global>{`
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
@@ -1113,6 +1114,6 @@ export function ContactsTable({ data, onCreate }: { data: Lead[], onCreate?: (da
           animation-name: slideInRight;
         }
       `}</style>
-                </>
-            );
+        </>
+    );
 }
