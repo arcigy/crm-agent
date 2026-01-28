@@ -35,7 +35,7 @@ export async function listFiles(token: string, folderId?: string) {
     try {
         const res = await drive.files.list({
             q,
-            fields: 'files(id, name, mimeType, webViewLink, webContentLink, iconLink, thumbnailLink, size)',
+            fields: 'files(id, name, mimeType, webViewLink, webContentLink, iconLink, thumbnailLink, size, modifiedTime)',
             orderBy: 'folder, name',
             pageSize: 100
         });

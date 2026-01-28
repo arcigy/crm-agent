@@ -487,7 +487,7 @@ export function ProjectDriveModal({ isOpen, onClose, projectId, projectName, fol
                     ) : (
                         <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm">
                             <table className="w-full text-left">
-                                <thead className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                <thead className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-400 select-none">
                                     <tr>
                                         <th className="px-6 py-4">Názov</th>
                                         <th className="px-6 py-4">Typ</th>

@@ -28,6 +28,7 @@ interface DriveFile {
     webViewLink: string;
     iconLink: string;
     size?: string;
+    modifiedTime?: string;
 }
 
 export default function FilesTool() {
@@ -269,50 +270,60 @@ export default function FilesTool() {
                         <p className="text-xl font-black uppercase tracking-widest">Priečinok je prázdny</p>
                     </div>
                 ) : viewMode === 'grid' ? (
-                    <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                        {filtered.map((file, index) => {
-                            const isFolder = file.mimeType === 'application/vnd.google-apps.folder';
-                            const isSelected = selectedIds.has(file.id);
-                            return (
-                                <div
-                                    key={file.id}
-                                    onClick={(e) => handleFileClick(e, file, index)}
-                                    onDoubleClick={(e) => handleFileDoubleClick(e, file)}
-                                    onContextMenu={(e) => handleContextMenu(e, file)}
-                                    className={`group bg-white p-6 rounded-[2.5rem] border transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden cursor-pointer select-none ${isSelected ? 'border-blue-500 ring-4 ring-blue-50' : 'border-gray-100 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100'}`}
-                                >
-                                    <div className={`absolute top-0 left-0 w-full h-1 ${isSelected ? 'bg-blue-500 opacity-100' : 'bg-blue-600 opacity-0 group-hover:opacity-100'} transition-opacity`}></div>
-                                    <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center transition-transform group-hover:scale-110 ${isFolder ? 'bg-amber-50' : 'bg-blue-50'}`}>
-                                        {isFolder ? (
-                                            <Folder className="w-10 h-10 text-amber-500 fill-amber-500/20" />
-                                        ) : (
-                                            <img src={file.iconLink} alt="" className="w-10 h-10" />
-                                        )}
-                                    </div>
-                                    <div className="space-y-1 w-full">
-                                        <span className="text-sm font-black text-gray-900 block truncate leading-tight capitalize">
-                                            {file.name}
-                                        </span>
-                                        {!isFolder && <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Súbor</span>}
-                                    </div>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleContextMenu(e, file); }}
-                                        className="absolute bottom-4 right-4 p-2 text-gray-200 hover:text-gray-900 transition-colors opacity-0 group-hover:opacity-100"
+                    <div
+                        className="min-h-full pb-20"
+                        onClick={(e) => {
+                            if (e.target === e.currentTarget) {
+                                setSelectedIds(new Set());
+                            }
+                        }}
+                    >
+                        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                            {filtered.map((file, index) => {
+                                const isFolder = file.mimeType === 'application/vnd.google-apps.folder';
+                                const isSelected = selectedIds.has(file.id);
+                                return (
+                                    <div
+                                        key={file.id}
+                                        onClick={(e) => handleFileClick(e, file, index)}
+                                        onDoubleClick={(e) => handleFileDoubleClick(e, file)}
+                                        onContextMenu={(e) => handleContextMenu(e, file)}
+                                        className={`group bg-white p-6 rounded-[2.5rem] border transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden cursor-pointer select-none ${isSelected ? 'border-blue-500 ring-4 ring-blue-50' : 'border-gray-100 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-100'}`}
                                     >
-                                        <MoreVertical className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            );
-                        })}
+                                        <div className={`absolute top-0 left-0 w-full h-1 ${isSelected ? 'bg-blue-500 opacity-100' : 'bg-blue-600 opacity-0 group-hover:opacity-100'} transition-opacity`}></div>
+                                        <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center transition-transform group-hover:scale-110 ${isFolder ? 'bg-amber-50' : 'bg-blue-50'}`}>
+                                            {isFolder ? (
+                                                <Folder className="w-10 h-10 text-amber-500 fill-amber-500/20" />
+                                            ) : (
+                                                <img src={file.iconLink} alt="" className="w-10 h-10" />
+                                            )}
+                                        </div>
+                                        <div className="space-y-1 w-full">
+                                            <span className="text-sm font-black text-gray-900 block truncate leading-tight capitalize">
+                                                {file.name}
+                                            </span>
+                                            {!isFolder && <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Súbor</span>}
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleContextMenu(e, file); }}
+                                            className="absolute bottom-4 right-4 p-2 text-gray-200 hover:text-gray-900 transition-colors opacity-0 group-hover:opacity-100"
+                                        >
+                                            <MoreVertical className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 ) : (
                     <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm">
                         <table className="w-full text-left">
-                            <thead className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                            <thead className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-400 select-none">
                                 <tr>
                                     <th className="px-6 py-4">Názov</th>
                                     <th className="px-6 py-4">Typ</th>
                                     <th className="px-6 py-4">Veľkosť</th>
+                                    <th className="px-6 py-4">Upravené</th>
                                     <th className="px-6 py-4 text-right">Akcie</th>
                                 </tr>
                             </thead>
@@ -339,6 +350,9 @@ export default function FilesTool() {
                                             </td>
                                             <td className="px-6 py-4 text-xs font-medium text-gray-400">
                                                 {isFolder ? '--' : (file.size ? `${(parseInt(file.size) / 1024 / 1024).toFixed(1)} MB` : 'N/A')}
+                                            </td>
+                                            <td className="px-6 py-4 text-xs font-medium text-gray-400">
+                                                {file.modifiedTime ? new Date(file.modifiedTime).toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '--'}
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <button
