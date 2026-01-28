@@ -609,33 +609,10 @@ function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'form' }:
             if (mode === 'json') {
                 let parsed: any[] = [];
                 try {
-                    // Try JSON first
                     const possibleJson = JSON.parse(jsonInput);
                     parsed = Array.isArray(possibleJson) ? possibleJson : [possibleJson];
                 } catch (err) {
-                    // Fallback to "NV" / Line-by-line parser
-                    const lines = jsonInput.split('\n').filter(l => l.trim());
-                    if (lines.length > 0) {
-                        const entry: any = {};
-                        lines.forEach(line => {
-                            const [key, ...valParts] = line.split(':');
-                            if (valParts.length > 0) {
-                                const k = key.trim().toLowerCase();
-                                const v = valParts.join(':').trim();
-                                if (k.includes('name')) entry.name = v;
-                                if (k.includes('email')) entry.email = v;
-                                if (k.includes('phone') || k.includes('tel')) entry.phone = v;
-                                if (k.includes('company') || k.includes('org')) entry.company = v;
-                            }
-                        });
-                        if (Object.keys(entry).length > 0) {
-                            parsed = [entry];
-                        }
-                    }
-                }
-
-                if (parsed.length === 0) {
-                    alert('Nepodarilo sa rozpoznať formát (JSON ani Text)');
+                    alert('Neplatný formát JSON');
                     setLoading(false);
                     return;
                 }
@@ -694,7 +671,10 @@ function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'form' }:
                             Formulár
                         </button>
                         <button
-                            onClick={() => setMode('json')}
+                            onClick={() => {
+                                setJsonInput(JSON.stringify([formData], null, 4));
+                                setMode('json');
+                            }}
                             className={`px-6 py-3 rounded-xl transition-all ${mode === 'json' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400 hover:text-gray-900'}`}
                         >
                             RAW
@@ -776,16 +756,12 @@ function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'form' }:
                         </>
                     ) : (
                         <div className="space-y-4">
-                            <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Vložte RAW dáta (JSON alebo Text)</label>
+                            <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Systémová pamäť (JSON Protocol)</label>
                             <div className="bg-gray-900 rounded-[2rem] p-6 mb-2 border border-blue-500/20 shadow-2xl overflow-hidden relative group/code">
                                 <code className="text-[10px] text-blue-400 font-black uppercase tracking-widest block mb-4 italic opacity-60">Engine Protocol Input:</code>
-                                <pre className="text-[11px] text-gray-400 font-mono leading-relaxed">
-                                    {`// JSON: [{"name": "Ján", "email": "jan@mail.sk"}]
-// Text line-by-line:
-Name: Peter Pan
-Email: peter@neverland.sk
-Tel: +421 900 111 222`}
-                                </pre>
+                                <p className="text-[10px] text-gray-500 font-mono mt-2 leading-relaxed">
+                                    Vložte pole objektov s kľúčmi: first_name, last_name, email, phone, company.
+                                </p>
                             </div>
                             <textarea
                                 className="w-full h-72 font-mono text-xs p-6 bg-gray-50 border-2 border-gray-50 rounded-[2rem] focus:border-blue-500 focus:bg-white transition-all outline-none resize-none shadow-inner"
