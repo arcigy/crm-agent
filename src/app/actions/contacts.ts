@@ -108,6 +108,15 @@ export async function uploadVCard(formData: FormData) {
 export async function bulkCreateContacts(contacts: any[]) {
     try {
         let successCount = 0;
+
+        // Fetch existing emails to avoid duplicates in this batch
+        // @ts-ignore
+        const existingContacts = await directus.request(readItems('contacts', {
+            fields: ['email'],
+            limit: -1
+        }));
+        const existingEmails = new Set((existingContacts as any[]).map(c => c.email?.toLowerCase()).filter(Boolean));
+
         for (const contact of contacts) {
             const rawName = contact.name || contact.first_name || 'Neznámy';
             const nameParts = String(rawName).split(' ');
@@ -117,6 +126,11 @@ export async function bulkCreateContacts(contacts: any[]) {
             const email = Array.isArray(contact.email) ? contact.email[0] : (contact.email || '');
             const phone = Array.isArray(contact.phone || contact.tel) ? (contact.phone || contact.tel)[0] : (contact.phone || contact.tel || '');
             const company = contact.company || contact.org || '';
+
+            const normalizedEmail = String(email || '').toLowerCase().trim();
+            if (normalizedEmail && existingEmails.has(normalizedEmail)) {
+                continue; // Skip duplicates
+            }
 
             try {
                 // @ts-ignore
@@ -129,6 +143,7 @@ export async function bulkCreateContacts(contacts: any[]) {
                     status: 'lead'
                 }));
                 successCount++;
+                if (normalizedEmail) existingEmails.add(normalizedEmail);
             } catch (e) {
                 console.error('Bulk item failed', e);
             }
@@ -141,8 +156,53 @@ export async function bulkCreateContacts(contacts: any[]) {
 }
 
 export async function importGoogleContacts() {
-    // TODO: Implement Google Contacts import with Directus token storage
-    return { success: false, error: 'Google Contacts integration pending Directus migration' };
+    try {
+        const { currentUser } = await import('@clerk/nextjs/server');
+        const user = await currentUser();
+        if (!user) return { success: false, error: 'Unauthorized' };
+
+        // 1. Get tokens from Directus
+        // @ts-ignore
+        const tokensRes = await directus.request(readItems('google_tokens', {
+            filter: { user_id: { _eq: user.id } },
+            limit: 1
+        }));
+
+        if (!tokensRes || tokensRes.length === 0) {
+            return { success: false, error: 'Google account not connected or tokens missing.' };
+        }
+
+        const tokens = tokensRes[0];
+        const { getPeopleClient } = await import('@/lib/google');
+        const people = getPeopleClient(tokens.access_token, tokens.refresh_token);
+
+        // 2. Fetch contacts from Google
+        const response = await people.people.connections.list({
+            resourceName: 'people/me',
+            pageSize: 1000,
+            personFields: 'names,emailAddresses,phoneNumbers,organizations',
+        });
+
+        const connections = response.data.connections || [];
+        const googleContacts = connections.map(person => {
+            const name = person.names?.[0]?.displayName || 'Google Contact';
+            const email = person.emailAddresses?.[0]?.value || '';
+            const phone = person.phoneNumbers?.[0]?.value || '';
+            const company = person.organizations?.[0]?.name || '';
+            return { name, email, phone, company };
+        }).filter(c => c.email || c.phone); // Only meaningful ones
+
+        if (googleContacts.length === 0) {
+            return { success: true, count: 0, message: 'No contacts found in Google.' };
+        }
+
+        // 3. Save to CRM
+        return await bulkCreateContacts(googleContacts);
+
+    } catch (error: any) {
+        console.error('Google Import Error:', error);
+        return { success: false, error: error.message };
+    }
 }
 
 export async function syncGoogleContacts() {

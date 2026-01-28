@@ -29,13 +29,17 @@ export async function POST(req: Request) {
         const userEmail = user?.emailAddresses[0]?.emailAddress;
         if (!userEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const { title, content } = await req.json();
+        const { title, content, contact_id, project_id, task_id, file_link } = await req.json();
 
         // @ts-ignore
         const res = await directus.request(createItem('crm_notes', {
             title,
             content,
-            user_email: userEmail
+            user_email: userEmail,
+            contact_id: contact_id || null,
+            project_id: project_id || null,
+            task_id: task_id || null,
+            file_link: file_link || null
         }));
 
         return NextResponse.json(res);
@@ -46,12 +50,16 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
     try {
-        const { id, title, content } = await req.json();
+        const { id, title, content, contact_id, project_id, task_id, file_link } = await req.json();
 
         // @ts-ignore
         const res = await directus.request(updateItem('crm_notes', id, {
             title,
-            content
+            content,
+            contact_id: contact_id === undefined ? undefined : contact_id,
+            project_id: project_id === undefined ? undefined : project_id,
+            task_id: task_id === undefined ? undefined : task_id,
+            file_link: file_link === undefined ? undefined : file_link
         }));
 
         return NextResponse.json(res);

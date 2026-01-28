@@ -28,14 +28,11 @@ const createOAuthClient = () => {
 export const oauth2Client = createOAuthClient();
 
 const SCOPES = [
-    // Reduced scopes to test URL length limits
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile',
-    'https://www.googleapis.com/auth/calendar' // Keep one main scope
-    // 'https://www.googleapis.com/auth/gmail.modify',
-    // 'https://www.googleapis.com/auth/contacts',
-    // 'https://www.googleapis.com/auth/drive.file',
-    // 'https://www.googleapis.com/auth/tasks',
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/gmail.modify',
+    'https://www.googleapis.com/auth/contacts.readonly'
 ];
 
 export function getAuthUrl(state?: string): string {

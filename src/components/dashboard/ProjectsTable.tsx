@@ -120,14 +120,18 @@ function CreateProjectModal({
     isOpen,
     onClose,
     onSubmit,
-    contacts
+    contacts,
+    initialMode = 'form'
 }: {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (data: any) => Promise<void>;
     contacts: Lead[];
+    initialMode?: 'form' | 'json';
 }) {
     const [loading, setLoading] = React.useState(false);
+    const [mode, setMode] = React.useState<'form' | 'json'>(initialMode);
+    const [jsonInput, setJsonInput] = React.useState('');
     const [formData, setFormData] = React.useState({
         project_type: PROJECT_TYPES[0],
         contact_id: '',
@@ -135,105 +139,155 @@ function CreateProjectModal({
         end_date: '',
     });
 
+    React.useEffect(() => {
+        if (isOpen) setMode(initialMode);
+    }, [isOpen, initialMode]);
+
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         try {
-            await onSubmit({
-                ...formData,
-                contact_id: formData.contact_id ? parseInt(formData.contact_id) : null,
-                end_date: formData.end_date || null,
-            });
-            onClose();
-            setFormData({
-                project_type: PROJECT_TYPES[0],
-                contact_id: '',
-                stage: 'planning',
-                end_date: '',
-            });
+            if (mode === 'json') {
+                try {
+                    const parsed = JSON.parse(jsonInput);
+                    const items = Array.isArray(parsed) ? parsed : [parsed];
+                    for (const item of items) {
+                        await onSubmit({
+                            project_type: item.type || item.project_type || PROJECT_TYPES[0],
+                            contact_id: item.contact_id ? parseInt(item.contact_id) : null,
+                            stage: item.stage || 'planning',
+                            end_date: item.end_date || null
+                        });
+                    }
+                    onClose();
+                    window.location.reload();
+                } catch (err) {
+                    alert('Neplatný JSON formát');
+                }
+            } else {
+                await onSubmit({
+                    ...formData,
+                    contact_id: formData.contact_id ? parseInt(formData.contact_id) : null,
+                    end_date: formData.end_date || null,
+                });
+                onClose();
+                window.location.reload();
+            }
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                        <FolderKanban className="w-5 h-5 text-white" />
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-transparent backdrop-blur-md pointer-events-none">
+            <div className="absolute inset-0 bg-black/40 pointer-events-auto" onClick={onClose} />
+            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-300 pointer-events-auto border border-gray-100">
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                            <Plus className="w-6 h-6 text-white" />
+                        </div>
+                        <h2 className="text-2xl font-black text-gray-900 tracking-tight">Pridať Deal</h2>
                     </div>
-                    <h2 className="text-xl font-black text-gray-900">Nový projekt</h2>
+                    <div className="flex bg-gray-100 rounded-xl p-1 text-[10px] font-black uppercase tracking-widest">
+                        <button
+                            onClick={() => setMode('form')}
+                            className={`px-3 py-1.5 rounded-lg transition-all ${mode === 'form' ? 'bg-white shadow text-indigo-600' : 'text-gray-400 hover:text-gray-900'}`}
+                        >
+                            Formulár
+                        </button>
+                        <button
+                            onClick={() => setMode('json')}
+                            className={`px-3 py-1.5 rounded-lg transition-all ${mode === 'json' ? 'bg-white shadow text-indigo-600' : 'text-gray-400 hover:text-gray-900'}`}
+                        >
+                            RAW
+                        </button>
+                    </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Typ projektu</label>
-                        <select
-                            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                            value={formData.project_type}
-                            onChange={(e) => setFormData({ ...formData, project_type: e.target.value })}
-                        >
-                            {PROJECT_TYPES.map((type) => (
-                                <option key={type} value={type}>{type}</option>
-                            ))}
-                        </select>
-                    </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {mode === 'form' ? (
+                        <>
+                            <div className="space-y-2">
+                                <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Typ projektu</label>
+                                <select
+                                    className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-indigo-500 focus:bg-white transition-all outline-none"
+                                    value={formData.project_type}
+                                    onChange={(e) => setFormData({ ...formData, project_type: e.target.value })}
+                                >
+                                    {PROJECT_TYPES.map((type) => (
+                                        <option key={type} value={type}>{type}</option>
+                                    ))}
+                                </select>
+                            </div>
 
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Kontakt</label>
-                        <select
-                            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                            value={formData.contact_id}
-                            onChange={(e) => setFormData({ ...formData, contact_id: e.target.value })}
-                        >
-                            <option value="">-- Bez kontaktu --</option>
-                            {contacts.map((c) => (
-                                <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
-                            ))}
-                        </select>
-                    </div>
+                            <div className="space-y-2">
+                                <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Kontakt z CRM</label>
+                                <select
+                                    required
+                                    className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-indigo-500 focus:bg-white transition-all outline-none"
+                                    value={formData.contact_id}
+                                    onChange={(e) => setFormData({ ...formData, contact_id: e.target.value })}
+                                >
+                                    <option value="">-- Vyberte kontakt --</option>
+                                    {contacts.map((c) => (
+                                        <option key={c.id} value={c.id}>{c.first_name} {c.last_name} ({c.company || 'Osobné'})</option>
+                                    ))}
+                                </select>
+                            </div>
 
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Štádium</label>
-                        <select
-                            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                            value={formData.stage}
-                            onChange={(e) => setFormData({ ...formData, stage: e.target.value as ProjectStage })}
-                        >
-                            {PROJECT_STAGES.map((stage) => (
-                                <option key={stage.value} value={stage.value}>{stage.label}</option>
-                            ))}
-                        </select>
-                    </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Pipeline Stage</label>
+                                    <select
+                                        className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-indigo-500 focus:bg-white transition-all outline-none"
+                                        value={formData.stage}
+                                        onChange={(e) => setFormData({ ...formData, stage: e.target.value as ProjectStage })}
+                                    >
+                                        {PROJECT_STAGES.map((stage) => (
+                                            <option key={stage.value} value={stage.value}>{stage.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Deadline</label>
+                                    <input
+                                        type="date"
+                                        className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-indigo-500 focus:bg-white transition-all outline-none"
+                                        value={formData.end_date}
+                                        onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="space-y-4">
+                            <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">RAW JSON Input</label>
+                            <textarea
+                                className="w-full h-64 bg-slate-900 text-green-400 font-mono p-5 rounded-3xl text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                                placeholder='[{"type": "Web Design", "contact_id": 1, "stage": "planning"}]'
+                                value={jsonInput}
+                                onChange={(e) => setJsonInput(e.target.value)}
+                            />
+                        </div>
+                    )}
 
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Dátum ukončenia</label>
-                        <input
-                            type="date"
-                            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                            value={formData.end_date}
-                            onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                        />
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                    <div className="flex gap-4 pt-6">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                            className="flex-1 h-14 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
                         >
                             Zrušiť
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-lg disabled:opacity-50 active:scale-95"
+                            className="flex-[2] h-14 bg-gray-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-gray-200 hover:bg-black transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                            {loading ? 'Vytváranie...' : 'Vytvoriť projekt'}
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Vytvoriť Deal'}
                         </button>
                     </div>
                 </form>

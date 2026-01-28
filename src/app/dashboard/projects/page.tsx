@@ -4,6 +4,7 @@ import directus from '@/lib/directus';
 import { readItems } from '@directus/sdk';
 import type { Project, ProjectStage } from '@/types/project';
 import { Lead } from '@/types/contact';
+import { ProjectActionButtons } from '@/components/dashboard/ProjectActionButtons';
 
 import { MOCK_PROJECTS, MOCK_CONTACTS } from '@/types/mockData';
 
@@ -68,18 +69,22 @@ export default async function ProjectsPage() {
 
     return (
         <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-2xl font-black tracking-tight text-gray-900">Projekty</h1>
-                    {usingMockData && (
-                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full uppercase tracking-wider">
-                            Demo dáta
-                        </span>
-                    )}
+            <div className="flex items-center justify-between px-8 mb-4">
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-black tracking-tighter text-gray-900 uppercase italic leading-none underline decoration-indigo-500 decoration-8 underline-offset-12">
+                            Agent / <span className="text-indigo-600">Deals & Pipeline</span>
+                        </h1>
+                    </div>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.3em] pl-1 opacity-60">Business Intelligence Hub</p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <ProjectActionButtons />
                 </div>
             </div>
 
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden px-8 pb-4">
                 <ProjectsTable data={projects} contacts={contacts} />
             </div>
         </div>

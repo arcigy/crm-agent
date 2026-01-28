@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, X, FileText, Check, AlertCircle, Cloud } from 'lucide-react';
+import { Upload, X, FileText, Check, AlertCircle, Cloud, ChevronRight, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 
 interface ContactImportModalProps {
     isOpen: boolean;
@@ -10,30 +12,39 @@ interface ContactImportModalProps {
     onSuccess: () => void;
 }
 
+type Step = 'upload' | 'map' | 'confirm';
+
 export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImportModalProps) {
-    const [isDragging, setIsDragging] = useState(false);
+    const [step, setStep] = useState<Step>('upload');
     const [file, setFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [googleStatus, setGoogleStatus] = useState<'idle' | 'loading'>('idle');
+    const [headers, setHeaders] = useState<string[]>([]);
+    const [previewRows, setPreviewRows] = useState<any[]>([]);
+    const [mapping, setMapping] = useState<Record<string, string>>({
+        first_name: '',
+        last_name: '',
+        email: '',
+        phone: '',
+        company: ''
+    });
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     if (!isOpen) return null;
 
-    // ... existing drag handlers ...
-
     const handleGoogleImport = async () => {
         setGoogleStatus('loading');
         try {
-            // Dynamic import to call server action
             const { importGoogleContacts } = await import('@/app/actions/contacts');
             const res = await importGoogleContacts();
 
             if (res.success) {
-                toast.success('Google Import: kontakty úspešne importované.');
+                toast.success(`Google Sync: ${res.count} kontaktov importovaných.`);
                 onSuccess();
                 onClose();
             } else {
-                toast.error('Google Contacts nie sú momentálne dostupné: ' + res.error);
+                toast.error('Google Import zlyhal: ' + res.error);
             }
         } catch (e) {
             console.error(e);
@@ -43,84 +54,103 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
         }
     };
 
-
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-    };
-
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-        const droppedFile = e.dataTransfer.files[0];
-        if (droppedFile && (droppedFile.name.endsWith('.vcf') || droppedFile.name.endsWith('.csv'))) {
-            setFile(droppedFile);
+    const processFile = async (selectedFile: File) => {
+        const name = selectedFile.name.toLowerCase();
+        if (name.endsWith('.vcf') || name.endsWith('.vcard')) {
+            // vCard handling remains simple - auto parse
+            const text = await selectedFile.text();
+            const { parseVCard } = await import('@/lib/vcard-client');
+            const parsed = parseVCard(text);
+            if (parsed.length > 0) {
+                setPreviewRows(parsed);
+                setFile(selectedFile);
+                setStep('confirm');
+            } else {
+                toast.error('Vcard neobsahuje platné kontakty');
+            }
+        } else if (name.endsWith('.csv')) {
+            const text = await selectedFile.text();
+            Papa.parse(text, {
+                header: true,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    setHeaders(results.meta.fields || []);
+                    setPreviewRows(results.data.slice(0, 5));
+                    setFile(selectedFile);
+                    setStep('map');
+                    // Auto-detect mapping
+                    const newMapping = { ...mapping };
+                    (results.meta.fields || []).forEach(h => {
+                        const low = h.toLowerCase();
+                        if (low.includes('first') || low.includes('meno')) newMapping.first_name = h;
+                        if (low.includes('last') || low.includes('priezvisko')) newMapping.last_name = h;
+                        if (low.includes('email') || low.includes('mail')) newMapping.email = h;
+                        if (low.includes('phone') || low.includes('tel') || low.includes('mobil')) newMapping.phone = h;
+                        if (low.includes('company') || low.includes('firm') || low.includes('org')) newMapping.company = h;
+                    });
+                    setMapping(newMapping);
+                }
+            });
+        } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+            const buffer = await selectedFile.arrayBuffer();
+            const workbook = XLSX.read(buffer);
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const data: any[] = XLSX.utils.sheet_to_json(sheet);
+            if (data.length > 0) {
+                const sheetHeaders = Object.keys(data[0]);
+                setHeaders(sheetHeaders);
+                setPreviewRows(data.slice(0, 5));
+                setFile(selectedFile);
+                setStep('map');
+            }
         } else {
-            toast.error('Prosím nahrajte .vcf alebo .csv súbor');
+            toast.error('Nepodporovaný formát súboru');
         }
     };
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = e.target.files?.[0];
-        if (selectedFile) {
-            setFile(selectedFile);
-        }
-    };
-
-    const handleUpload = async () => {
-        if (!file) return;
-
+    const handleImport = async () => {
         setIsUploading(true);
         try {
-            const text = await file.text();
+            let contactsToUpload: any[] = [];
 
-            // 1. Client-Side Parse
-            const { parseVCard, contactsToCSV } = await import('@/lib/vcard-client');
-            const parsedContacts = parseVCard(text);
+            if (step === 'map' && file) {
+                // Re-parse the whole file and apply mapping
+                const name = file.name.toLowerCase();
+                let rawData: any[] = [];
 
-            if (parsedContacts.length === 0) {
-                toast.error('V súbore sa nenašli žiadne platné kontakty.');
-                setIsUploading(false);
-                return;
+                if (name.endsWith('.csv')) {
+                    const text = await file.text();
+                    const result = Papa.parse(text, { header: true, skipEmptyLines: true });
+                    rawData = result.data;
+                } else {
+                    const buffer = await file.arrayBuffer();
+                    const workbook = XLSX.read(buffer);
+                    rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                }
+
+                contactsToUpload = rawData.map(row => ({
+                    first_name: row[mapping.first_name] || '',
+                    last_name: row[mapping.last_name] || '',
+                    email: row[mapping.email] || '',
+                    phone: row[mapping.phone] || '',
+                    company: row[mapping.company] || ''
+                }));
+            } else {
+                contactsToUpload = previewRows;
             }
 
-            // 2. Download CSV (User Request)
-            const csvContent = contactsToCSV(parsedContacts);
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'converted_contacts.csv');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            toast.success('CSV vytvorené a stiahnuté.');
-
-            // 3. Upload to CRM (using bulkCreateContacts which expects structured data)
-            // We use bulkCreateContacts instead of uploadVCard because we already did the work here!
             const { bulkCreateContacts } = await import('@/app/actions/contacts');
-
-            // We might need to batch this if it's huge, but bulkCreateContacts handles array.
-            // Let's send it.
-            const res = await bulkCreateContacts(parsedContacts);
+            const res = await bulkCreateContacts(contactsToUpload);
 
             if (res.success) {
-                toast.success(`Importované do CRM: ${res.count} kontaktov.`);
+                toast.success(`Importovaných ${res.count} kontaktov.`);
                 onSuccess();
                 onClose();
             } else {
-                throw new Error(res.error || 'Import failed');
+                toast.error('Import zlyhal: ' + res.error);
             }
-        } catch (error: any) {
-            console.error('Import failed', error);
-            toast.error('Chyba: ' + (error.message || 'Unknown error'));
+        } catch (e: any) {
+            toast.error('Chyba: ' + e.message);
         } finally {
             setIsUploading(false);
         }
@@ -128,154 +158,179 @@ export function ContactImportModal({ isOpen, onClose, onSuccess }: ContactImport
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col transform transition-all animate-in zoom-in-95 duration-200">
+            <div className={`bg-white w-full ${step === 'map' ? 'max-w-4xl' : 'max-w-md'} rounded-3xl shadow-2xl overflow-hidden flex flex-col transform transition-all animate-in zoom-in-95 duration-200 border border-gray-100`}>
 
                 {/* Header */}
-                <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-                    <h3 className="font-bold text-lg text-gray-900">Import Kontaktov</h3>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
+                <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                    <div>
+                        <h3 className="font-black text-xl text-gray-900 tracking-tight">
+                            {step === 'upload' ? 'Import kontaktov' : step === 'map' ? 'Priradenie stĺpcov' : 'Potvrdenie importu'}
+                        </h3>
+                        <div className="flex gap-2 mt-1">
+                            <div className={`h-1 w-8 rounded-full ${step === 'upload' ? 'bg-blue-600' : 'bg-green-500'}`} />
+                            <div className={`h-1 w-8 rounded-full ${step === 'map' ? 'bg-blue-600' : step === 'confirm' ? 'bg-green-500' : 'bg-gray-200'}`} />
+                            <div className={`h-1 w-8 rounded-full ${step === 'confirm' ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white rounded-xl shadow-sm border border-gray-100 transition-colors">
+                        <X className="w-5 h-5 text-gray-400" />
                     </button>
                 </div>
 
-                {/* Content */}
-                <div className="p-8">
-                    {/* Google Import Button */}
-                    <div className="mb-4">
-                        <button
-                            type="button"
-                            onClick={handleGoogleImport}
-                            disabled={googleStatus === 'loading'}
-                            className="w-full py-3 px-4 rounded-xl font-bold bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-3 shadow-sm active:scale-95 disabled:opacity-50"
-                        >
-                            {googleStatus === 'loading' ? (
-                                <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></span>
-                            ) : (
-                                <Cloud className="w-5 h-5 text-blue-500" />
-                            )}
-                            <span>Importovať z Google účtu</span>
-                        </button>
-                        <p className="text-[10px] text-gray-400 text-center mt-2 px-4">
-                            Stiahne kontakty z vášho pripojeného Google/Gmail účtu.
-                        </p>
-                    </div>
-
-                    <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                            <div className="w-full border-t border-gray-200"></div>
-                        </div>
-                        <div className="relative flex justify-center">
-                            <span className="px-2 bg-white text-xs font-medium text-gray-500 uppercase tracking-wider">Alebo</span>
-                        </div>
-                    </div>
-                    {!file ? (
-                        <div
-                            className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center text-center transition-colors cursor-pointer
-                                ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/50'}
-                            `}
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            onDrop={handleDrop}
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                className="hidden"
-                                accept=".vcf,.vcard"
-                                onChange={handleFileSelect}
-                            />
-                            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
-                                <Upload className="w-8 h-8" />
-                            </div>
-                            <p className="font-bold text-gray-900 mb-2">Kliknite alebo pretiahnite súbor</p>
-                            <p className="text-sm text-gray-500">Podporované formáty: <span className="font-mono text-gray-700 bg-gray-100 px-1 rounded">.vcf</span> (vCard)</p>
-                        </div>
-                    ) : (
-                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center border border-blue-100 shadow-sm shrink-0">
-                                <FileText className="w-6 h-6 text-blue-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="font-bold text-gray-900 truncate">{file.name}</p>
-                                <p className="text-xs text-blue-600 font-medium uppercase tracking-wider">{(file.size / 1024).toFixed(1)} KB</p>
-                            </div>
-                            <button onClick={() => setFile(null)} className="p-1 hover:bg-blue-100 rounded text-blue-400 hover:text-blue-600">
-                                <X className="w-5 h-5" />
+                <div className="flex-1 overflow-y-auto max-h-[70vh]">
+                    {step === 'upload' && (
+                        <div className="p-8 space-y-8">
+                            {/* Google Option */}
+                            <button
+                                onClick={handleGoogleImport}
+                                disabled={googleStatus === 'loading'}
+                                className="w-full p-6 rounded-[2rem] bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-100/50 hover:border-blue-300 transition-all group relative overflow-hidden text-left"
+                            >
+                                <div className="relative z-10 flex items-center gap-6">
+                                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-lg group-hover:scale-110 transition-transform">
+                                        <Cloud className="w-8 h-8" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-black text-blue-900 text-lg">Google Sync</h4>
+                                        <p className="text-blue-600/60 text-xs font-bold uppercase tracking-widest">Automatický import z účtu</p>
+                                    </div>
+                                    <ChevronRight className="w-6 h-6 text-blue-300 group-hover:translate-x-1 transition-transform" />
+                                </div>
                             </button>
+
+                            <div className="relative flex justify-center py-2">
+                                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100"></div></div>
+                                <span className="px-4 bg-white text-[10px] font-black text-gray-300 uppercase tracking-[0.3em] relative z-10">alebo nahrajte súbor</span>
+                            </div>
+
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
+                                className="border-4 border-dashed border-gray-100 rounded-[3rem] p-12 flex flex-col items-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all group"
+                            >
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                    accept=".vcf,.csv,.xlsx,.xls"
+                                    onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])}
+                                />
+                                <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center text-gray-300 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                    <Upload className="w-10 h-10" />
+                                </div>
+                                <p className="text-xl font-black text-gray-900 mb-2">Kliknite sem</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Podporujeme vCard, CSV a Excel</p>
+                            </div>
                         </div>
                     )}
 
-                    {/* Native Contact Picker Button (Mobile Only Support usually) */}
-                    <div className="mb-6">
-                        <button
-                            type="button"
-                            onClick={async () => {
-                                try {
-                                    // Feature check
-                                    // @ts-ignore
-                                    if (!window.ContactsManager && !('contacts' in navigator && 'ContactsManager' in window)) {
-                                        toast.error('Váš prehliadač nepodporuje priamy výber kontaktov. Použite Import súboru.');
-                                        return;
-                                    }
+                    {step === 'map' && (
+                        <div className="p-8">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                                <div className="space-y-6">
+                                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 mb-6">Priradenie polí</h4>
+                                    {Object.keys(mapping).map((field) => (
+                                        <div key={field} className="space-y-2">
+                                            <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 ml-1">
+                                                {field.replace('_', ' ')}
+                                            </label>
+                                            <select
+                                                value={mapping[field]}
+                                                onChange={(e) => setMapping({ ...mapping, [field]: e.target.value })}
+                                                className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                            >
+                                                <option value="">-- Vynechať --</option>
+                                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                            </select>
+                                        </div>
+                                    ))}
+                                </div>
 
-                                    const props = ['name', 'email', 'tel'];
-                                    const opts = { multiple: true };
-
-                                    // @ts-ignore
-                                    const contacts = await navigator.contacts.select(props, opts);
-
-                                    if (contacts && contacts.length > 0) {
-                                        setIsUploading(true);
-                                        const { bulkCreateContacts } = await import('@/app/actions/contacts');
-                                        const res = await bulkCreateContacts(contacts);
-                                        if (res.success) {
-                                            toast.success(`Importované: ${res.count} kontaktov.`);
-                                            onSuccess();
-                                            onClose();
-                                        } else {
-                                            toast.error('Chyba pri importe.');
-                                        }
-                                        setIsUploading(false);
-                                    }
-                                } catch (e) {
-                                    console.error(e);
-                                    // Silent fail or toast if user cancelled
-                                }
-                            }}
-                            className="w-full py-4 text-center rounded-xl font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 transition-colors flex flex-col items-center justify-center gap-2"
-                        >
-                            <span className="text-sm">📱 Otvoriť zoznam kontaktov v telefóne</span>
-                        </button>
-                        <div className="text-center my-4 overflow-hidden">
-                            <span className="text-xs text-gray-400 uppercase tracking-widest px-2 bg-white relative z-10">alebo nahrajte súbor</span>
-                            <div className="border-t border-gray-100 -mt-2.5"></div>
+                                <div className="space-y-6">
+                                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 mb-6">Náhľad dát (prvých 5)</h4>
+                                    <div className="bg-gray-900 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden border border-white/10">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left">
+                                                <thead>
+                                                    <tr>
+                                                        {headers.slice(0, 3).map(h => (
+                                                            <th key={h} className="pb-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">{h}</th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {previewRows.map((row, i) => (
+                                                        <tr key={i} className="border-b border-white/5 last:border-0">
+                                                            {headers.slice(0, 3).map(h => (
+                                                                <td key={h} className="py-3 text-[10px] text-gray-300 font-mono truncate max-w-[100px]">{row[h]}</td>
+                                                            ))}
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div className="mt-4 pt-4 border-t border-white/5 text-center">
+                                            <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                                                {file?.name} • {(file?.size || 0 / 1024).toFixed(1)} KB
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    <div className="mt-6 flex items-start gap-3 p-3 bg-amber-50 text-amber-800 rounded-lg text-xs leading-relaxed border border-amber-100">
-                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                        <p>
-                            Tip: Na iPhone otvorte <strong>Kontakty</strong>, vyberte kontakty (potiahnutím dvoch prstov), zvoľte <strong>Zdieľať</strong> a uložte do Súborov. Potom tento súbor nahrajte sem.
-                        </p>
-                    </div>
+                    {step === 'confirm' && (
+                        <div className="p-12 text-center">
+                            <div className="w-24 h-24 bg-green-50 rounded-[2rem] flex items-center justify-center text-green-600 mx-auto mb-8 shadow-sm">
+                                <Check className="w-12 h-12" />
+                            </div>
+                            <h4 className="text-3xl font-black text-gray-900 mb-4 tracking-tight uppercase italic">Pripravené na import</h4>
+                            <p className="text-gray-400 font-bold uppercase tracking-[0.2em] text-[11px] mb-8 leading-relaxed">
+                                Našli sme <span className="text-blue-600">{previewRows.length}</span> kontaktov v súbore <span className="text-gray-900">"{file?.name}"</span>.
+                            </p>
+
+                            <div className="max-w-xs mx-auto space-y-3">
+                                {previewRows.slice(0, 3).map((c, i) => (
+                                    <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[10px] font-black shadow-sm shrink-0">{(c.first_name?.[0] || '?') + (c.last_name?.[0] || '')}</div>
+                                        <div className="text-left overflow-hidden">
+                                            <p className="text-xs font-black text-gray-900 truncate leading-none mb-1">{c.first_name} {c.last_name}</p>
+                                            <p className="text-[9px] text-gray-400 truncate tracking-widest uppercase font-bold">{c.email}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {previewRows.length > 3 && <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mt-4">A ďalších {previewRows.length - 3}...</p>}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-4">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                        className="px-6 py-3 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
                     >
                         Zrušiť
                     </button>
-                    <button
-                        onClick={handleUpload}
-                        disabled={!file || isUploading}
-                        className="px-6 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg shadow-blue-200 disabled:opacity-50 disabled:shadow-none flex items-center gap-2"
-                    >
-                        {isUploading ? 'Nahrávam...' : 'Importovať Kontakty'}
-                    </button>
+                    {step !== 'upload' && (
+                        <button
+                            onClick={handleImport}
+                            disabled={isUploading}
+                            className="px-10 py-4 bg-gray-900 hover:bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-gray-200 transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
+                        >
+                            {isUploading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Spracúvam
+                                </>
+                            ) : (
+                                <>
+                                    Potvrdiť import <ArrowRight className="w-4 h-4" />
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
