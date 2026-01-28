@@ -298,51 +298,55 @@ export function DealsTable({
         subfolderName="01_Zmluvy_a_Faktury"
       />
       <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden transition-colors duration-300">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-[#020617]/50 backdrop-blur-md sticky top-0 z-10 border-b border-border">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="px-6 py-5 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] border-r border-border/50 last:border-0"
-                  >
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody className="divide-y divide-border/50">
-            {table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                className="hover:bg-blue-500/5 transition-colors group"
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-6 py-4">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {tableData.length === 0 && (
-        <div className="p-20 text-center flex flex-col items-center gap-4">
-          <div className="p-6 rounded-full bg-muted/50 border border-border">
-            <Banknote className="w-12 h-12 text-muted-foreground/30" />
-          </div>
-          <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">
-            Žiadne obchody ani projekty na zobrazenie
-          </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-[#020617]/50 backdrop-blur-md sticky top-0 z-10 border-b border-border">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="px-6 py-5 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] border-r border-border/50 last:border-0"
+                    >
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {table.getRowModel().rows.map((row) => (
+                <tr
+                  key={row.id}
+                  className="hover:bg-blue-500/5 transition-colors group"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-6 py-4">
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+
+        {tableData.length === 0 && (
+          <div className="p-20 text-center flex flex-col items-center gap-4">
+            <div className="p-6 rounded-full bg-muted/50 border border-border">
+              <Banknote className="w-12 h-12 text-muted-foreground/30" />
+            </div>
+            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">
+              Žiadne obchody ani projekty na zobrazenie
+            </p>
+          </div>
+        )}
       </div>
     </>
   );
