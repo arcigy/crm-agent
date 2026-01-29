@@ -13,12 +13,10 @@ import {
   Database,
   Terminal,
   ChevronRight,
-  Euro,
 } from "lucide-react";
 import {
   chatWithAgent,
   getAgentChats,
-  saveAgentChat,
   saveAgentChat,
 } from "@/app/actions/agent";
 import { toast } from "sonner";
