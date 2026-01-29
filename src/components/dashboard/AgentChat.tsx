@@ -13,6 +13,7 @@ import {
   Database,
   Terminal,
   ChevronRight,
+  Euro,
 } from "lucide-react";
 import {
   chatWithAgent,
@@ -30,7 +31,7 @@ import {
   Clock,
   History,
   Trash2,
-  DollarSign,
+  Euro,
   Coins,
 } from "lucide-react";
 
@@ -306,7 +307,7 @@ export default function AgentChat() {
                       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
                         <Coins className="w-3 h-3 text-emerald-500" />
                         <span className="text-[10px] font-bold text-emerald-500">
-                          ${msg.costInfo.totalCost.toFixed(6)}
+                          {(msg.costInfo.totalCost * 0.92).toFixed(5)}€
                         </span>
                       </div>
                       <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-muted/50 border border-border rounded-full">
@@ -506,9 +507,9 @@ export default function AgentChat() {
             {/* Total Session Cost */}
             {totalSessionCost > 0 && (
               <div className="flex flex-col items-center justify-center px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-                <DollarSign className="w-4 h-4 text-emerald-500" />
+                <Euro className="w-4 h-4 text-emerald-500" />
                 <span className="text-[10px] font-black text-emerald-500">
-                  {totalSessionCost.toFixed(4)}
+                  {(totalSessionCost * 0.92).toFixed(4)}€
                 </span>
               </div>
             )}

@@ -154,6 +154,61 @@ const INBOX_ATOMS: any[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "db_create_contact",
+      description: "Vytvorí nový kontakt v CRM databáze.",
+      parameters: {
+        type: "object",
+        properties: {
+          first_name: { type: "string", description: "Krstné meno" },
+          last_name: { type: "string", description: "Priezvisko" },
+          email: { type: "string", description: "Email adresa" },
+          phone: { type: "string", description: "Telefónne číslo" },
+          company: { type: "string", description: "Názov firmy" },
+          status: {
+            type: "string",
+            enum: ["new", "contacted", "qualified", "lost"],
+            default: "new",
+          },
+          comments: { type: "string", description: "Poznámky ku kontaktu" },
+        },
+        required: ["first_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_search_contacts",
+      description: "Vyhľadá kontakty v CRM podľa mena, emailu alebo firmy.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Text na vyhľadanie" },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_get_all_contacts",
+      description: "Získa zoznam všetkých kontaktov v CRM.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: "Maximálny počet kontaktov",
+            default: 50,
+          },
+        },
+      },
+    },
+  },
 ];
 
 const SYSTEM_ATOMS: any[] = [
@@ -316,6 +371,84 @@ async function executeAtomicTool(name: string, args: any, user: any) {
           );
         }
         return { success: true };
+
+      case "db_create_contact":
+        try {
+          // Parse name if first_name contains full name
+          let firstName = args.first_name || "";
+          let lastName = args.last_name || "";
+
+          // If only first_name provided and contains space, split it
+          if (firstName.includes(" ") && !lastName) {
+            const parts = firstName.split(" ");
+            firstName = parts[0];
+            lastName = parts.slice(1).join(" ");
+          }
+
+          // @ts-ignore
+          const newContact = await directus.request(
+            createItem("contacts", {
+              first_name: firstName,
+              last_name: lastName,
+              email: args.email || null,
+              phone: args.phone || null,
+              company: args.company || null,
+              status: args.status || "new",
+              comments: args.comments || null,
+              date_created: new Date().toISOString(),
+            }),
+          );
+          return {
+            success: true,
+            contact_id: newContact.id,
+            message: `Kontakt ${firstName} ${lastName} bol vytvorený.`,
+          };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      case "db_search_contacts":
+        try {
+          // @ts-ignore
+          const searchResults = await directus.request(
+            readItems("contacts", {
+              filter: {
+                _or: [
+                  { first_name: { _icontains: args.query } },
+                  { last_name: { _icontains: args.query } },
+                  { email: { _icontains: args.query } },
+                  { company: { _icontains: args.query } },
+                ],
+              },
+              limit: 20,
+            }),
+          );
+          return {
+            success: true,
+            count: searchResults.length,
+            contacts: searchResults,
+          };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      case "db_get_all_contacts":
+        try {
+          // @ts-ignore
+          const allContacts = await directus.request(
+            readItems("contacts", {
+              limit: args.limit || 50,
+              sort: ["-date_created"],
+            }),
+          );
+          return {
+            success: true,
+            count: allContacts.length,
+            contacts: allContacts,
+          };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
 
       // --- SYSTEM TOOLS ---
       case "sys_list_files":
