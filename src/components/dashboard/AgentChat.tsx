@@ -154,18 +154,36 @@ export default function AgentChat() {
               {/* Tool Results visualization */}
               {msg.toolResults && msg.toolResults.length > 0 && (
                 <div className="flex flex-wrap gap-2 animate-in zoom-in-95 duration-500">
-                  {msg.toolResults.map((tool, tIdx) => (
-                    <div
-                      key={tIdx}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 border border-border rounded-xl"
-                    >
-                      <Terminal className="w-3 h-3 text-indigo-500" />
-                      <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                        {tool.name.replace("crm_", "").replace("_", " ")}
-                      </span>
-                      <div className="w-1 h-1 bg-emerald-500 rounded-full" />
-                    </div>
-                  ))}
+                  {msg.toolResults.map((step, tIdx) => {
+                    const isGmail = step.tool.startsWith("gmail");
+                    const isSuccess = step.result?.success;
+                    return (
+                      <div
+                        key={tIdx}
+                        className={`flex items-center gap-2 px-3 py-1.5 border rounded-xl shadow-sm transition-all ${
+                          isSuccess
+                            ? "bg-muted/50 border-border"
+                            : "bg-rose-500/10 border-rose-500/20"
+                        }`}
+                      >
+                        {isGmail ? (
+                          <Mail className="w-3 h-3 text-indigo-500" />
+                        ) : (
+                          <Terminal className="w-3 h-3 text-indigo-500" />
+                        )}
+                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                          {step.tool
+                            .replace("gmail_", "")
+                            .replace("db_", "")
+                            .replace("ai_", "")
+                            .replace("_", " ")}
+                        </span>
+                        <div
+                          className={`w-1 h-1 rounded-full ${isSuccess ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
