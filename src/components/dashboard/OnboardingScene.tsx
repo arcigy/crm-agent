@@ -45,8 +45,8 @@ export function OnboardingScene() {
       const res = await saveOnboardingData(formData);
       if (res.success) {
         toast.success("Nastavenie dokončené! Vitajte v CRM.");
-        router.refresh();
-        router.push("/dashboard");
+        // Force a hard reload to clear the onboarding gate in the layout
+        window.location.href = "/dashboard";
       } else {
         toast.error(res.error || "Chyba pri ukladaní.");
       }

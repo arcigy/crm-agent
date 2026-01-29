@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   Receipt,
+  BrainCircuit,
 } from "lucide-react";
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
@@ -35,6 +36,7 @@ const navigation = [
   { name: "Poznámky", href: "/dashboard/notes", icon: FileText },
   { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
   { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
+  { name: "AI Kontext", href: "/dashboard/settings/ai", icon: BrainCircuit },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
