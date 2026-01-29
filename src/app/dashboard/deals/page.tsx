@@ -49,17 +49,32 @@ export default async function DealsPage() {
           { label: "Otvorené obchody", value: projects.length, color: "blue" },
           {
             label: "Celková hodnota",
-            value: `${deals.reduce((acc, d) => acc + (d.value || 0), 0)} €`,
+            value: `${projects.reduce((acc, p) => {
+              const d = deals.find((deal) => deal.project_id === p.id);
+              return acc + (Number(p.value ?? d?.value) || 0);
+            }, 0)} €`,
             color: "indigo",
           },
           {
             label: "Nezaplatené",
-            value: `${deals.filter((d) => d.invoice_date && !d.paid).length} faktúr`,
+            value: `${
+              projects.filter((p) => {
+                const d = deals.find((deal) => deal.project_id === p.id);
+                const hasInvoice = p.invoice_date || d?.invoice_date;
+                const isPaid = p.paid ?? d?.paid ?? false;
+                return hasInvoice && !isPaid;
+              }).length
+            } faktúr`,
             color: "amber",
           },
           {
             label: "Hotovosť",
-            value: `${deals.filter((d) => d.paid).reduce((acc, d) => acc + (d.value || 0), 0)} €`,
+            value: `${projects.reduce((acc, p) => {
+              const d = deals.find((deal) => deal.project_id === p.id);
+              const isPaid = p.paid ?? d?.paid ?? false;
+              if (isPaid) return acc + (Number(p.value ?? d?.value) || 0);
+              return acc;
+            }, 0)} €`,
             color: "emerald",
           },
         ].map((stat, i) => (
