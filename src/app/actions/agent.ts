@@ -12,10 +12,10 @@ const openai = new OpenAI({
 });
 
 // ==========================================
-// 1. TOOL DEFINITIONS (Specialized workers)
+// 1. MOLECULE: CRM CORE (Contacts & Projects)
 // ==========================================
 
-const AGENT_TOOLS: any[] = [
+const CRM_CORE_TOOLS: any[] = [
   {
     type: "function",
     function: {
@@ -60,8 +60,7 @@ const AGENT_TOOLS: any[] = [
     type: "function",
     function: {
       name: "crm_update_project_stage",
-      description:
-        "Aktualizuje štádium projektu (napr. na 'completed' pri vyhranom obchode).",
+      description: "Aktualizuje štádium projektu.",
       parameters: {
         type: "object",
         properties: {
@@ -79,93 +78,177 @@ const AGENT_TOOLS: any[] = [
     type: "function",
     function: {
       name: "crm_get_stats",
-      description:
-        "Vypočíta finančné štatistiky (celková hodnota, zaplatené, nezaplatené).",
+      description: "Vypočíta finančné štatistiky CRM.",
       parameters: { type: "object", properties: {} },
     },
   },
 ];
 
 // ==========================================
-// 2. TOOL IMPLEMENTATIONS
+// 2. MOLECULE: INBOX & LEADS (Doručená pošta)
+// ==========================================
+
+const INBOX_LEADS_TOOLS: any[] = [
+  {
+    type: "function",
+    function: {
+      name: "inbox_list_leads",
+      description: "Získa zoznam analyzovaných emailov a leadov.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "inbox_details",
+      description:
+        "Získa detail analýzy konkrétnej správy (úmysel, rozpočet, ďalší krok).",
+      parameters: {
+        type: "object",
+        properties: {
+          message_id: { type: "string" },
+        },
+        required: ["message_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "inbox_classify_message",
+      description: "Analyzuje text správy pomocou AI a extrahuje lead dáta.",
+      parameters: {
+        type: "object",
+        properties: {
+          content: { type: "string", description: "Body of the message" },
+          subject: { type: "string" },
+          sender: { type: "string" },
+        },
+        required: ["content"],
+      },
+    },
+  },
+];
+
+const AGENT_TOOLS = [...CRM_CORE_TOOLS, ...INBOX_LEADS_TOOLS];
+
+// ==========================================
+// 3. TOOL EXECUTION (Molecule Logic)
 // ==========================================
 
 async function executeTool(name: string, args: any, userEmail: string) {
   try {
-    switch (name) {
-      case "crm_search_contacts":
-        // @ts-ignore
-        const contacts = await directus.request(
-          readItems("contacts", {
-            filter: {
-              _or: [
-                { first_name: { _icontains: args.query } },
-                { last_name: { _icontains: args.query } },
-                { company: { _icontains: args.query } },
-                { email: { _icontains: args.query } },
-              ],
-              deleted_at: { _null: true },
+    // A. CRM CORE LOGIC
+    if (name.startsWith("crm_")) {
+      switch (name) {
+        case "crm_search_contacts":
+          // @ts-ignore
+          const contacts = await directus.request(
+            readItems("contacts", {
+              filter: {
+                _or: [
+                  { first_name: { _icontains: args.query } },
+                  { last_name: { _icontains: args.query } },
+                  { company: { _icontains: args.query } },
+                  { email: { _icontains: args.query } },
+                ],
+                deleted_at: { _null: true },
+              },
+              limit: 10,
+            }),
+          );
+          return { success: true, data: contacts };
+
+        case "crm_create_contact":
+          // @ts-ignore
+          const newContact = await directus.request(
+            createItem("contacts", {
+              ...args,
+              date_created: new Date().toISOString(),
+            }),
+          );
+          revalidatePath("/dashboard/contacts");
+          return { success: true, data: newContact };
+
+        case "crm_get_projects_and_deals":
+          // @ts-ignore
+          const projects = await directus.request(
+            readItems("projects", {
+              filter: { deleted_at: { _null: true } },
+              limit: 20,
+            }),
+          );
+          return { success: true, data: projects };
+
+        case "crm_update_project_stage":
+          // @ts-ignore
+          await directus.request(
+            updateItem("projects", args.project_id, {
+              stage: args.stage,
+              date_updated: new Date().toISOString(),
+            }),
+          );
+          revalidatePath("/dashboard/projects");
+          revalidatePath("/dashboard/deals");
+          return { success: true };
+
+        case "crm_get_stats":
+          // @ts-ignore
+          const allProjects = await directus.request(
+            readItems("projects", {
+              filter: { deleted_at: { _null: true } },
+            }),
+          );
+          const stats = (allProjects as any[]).reduce(
+            (acc, p) => {
+              const val = Number(p.value) || 0;
+              acc.total += val;
+              if (p.paid) acc.paid += val;
+              else acc.unpaid += val;
+              return acc;
             },
-            limit: 10,
-          }),
-        );
-        return { success: true, data: contacts };
-
-      case "crm_create_contact":
-        // @ts-ignore
-        const newContact = await directus.request(
-          createItem("contacts", {
-            ...args,
-            date_created: new Date().toISOString(),
-          }),
-        );
-        revalidatePath("/dashboard/contacts");
-        return { success: true, data: newContact };
-
-      case "crm_get_projects_and_deals":
-        // @ts-ignore
-        const projects = await directus.request(
-          readItems("projects", {
-            filter: { deleted_at: { _null: true } },
-            limit: 20,
-          }),
-        );
-        return { success: true, data: projects };
-
-      case "crm_update_project_stage":
-        // @ts-ignore
-        await directus.request(
-          updateItem("projects", args.project_id, {
-            stage: args.stage,
-            date_updated: new Date().toISOString(),
-          }),
-        );
-        revalidatePath("/dashboard/projects");
-        revalidatePath("/dashboard/deals");
-        return { success: true };
-
-      case "crm_get_stats":
-        // @ts-ignore
-        const allProjects = await directus.request(
-          readItems("projects", {
-            filter: { deleted_at: { _null: true } },
-          }),
-        );
-        const stats = (allProjects as any[]).reduce(
-          (acc, p) => {
-            const val = Number(p.value) || 0;
-            acc.total += val;
-            if (p.paid) acc.paid += val;
-            else acc.unpaid += val;
-            return acc;
-          },
-          { total: 0, paid: 0, unpaid: 0 },
-        );
-        return { success: true, data: stats };
-
-      default:
-        return { success: false, error: "Tool not found" };
+            { total: 0, paid: 0, unpaid: 0 },
+          );
+          return { success: true, data: stats };
+      }
     }
+
+    // B. INBOX & LEADS LOGIC
+    if (name.startsWith("inbox_")) {
+      switch (name) {
+        case "inbox_list_leads":
+          // @ts-ignore
+          const leads = await directus.request(
+            readItems("email_analysis", {
+              sort: ["-date_created"],
+              limit: 10,
+            }),
+          );
+          return { success: true, data: leads };
+
+        case "inbox_details":
+          // @ts-ignore
+          const detail = await directus.request(
+            readItems("email_analysis", {
+              filter: { message_id: { _eq: args.message_id } },
+              limit: 1,
+            }),
+          );
+          return { success: true, data: detail?.[0] || null };
+
+        case "inbox_classify_message":
+          const { classifyEmail } = await import("./ai");
+          const analysis = await classifyEmail(
+            args.content,
+            userEmail,
+            args.sender,
+            args.subject,
+          );
+          return { success: true, data: analysis };
+      }
+    }
+
+    return { success: false, error: "Molecule tool not found" };
   } catch (error: any) {
     console.error(`Tool Execution Error [${name}]:`, error);
     return { success: false, error: error.message };
