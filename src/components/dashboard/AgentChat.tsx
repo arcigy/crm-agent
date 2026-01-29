@@ -19,6 +19,7 @@ import {
   chatWithAgent,
   getAgentChats,
   saveAgentChat,
+  saveAgentChat,
 } from "@/app/actions/agent";
 import { toast } from "sonner";
 import { readStreamableValue } from "@ai-sdk/rsc";
@@ -130,15 +131,26 @@ export default function AgentChat() {
     setIsLoading(true);
 
     try {
-      // 1. SAVE TO DB (Non-blocking)
+      // 1. SAVE TO DB AND UPDATE CHAT ID
       const isNewChat = history.length <= 2; // initial assistant + user
       const finalTitle = isNewChat
         ? userMessage.content.slice(0, 30)
-        : "Pokračujúci chat";
+        : "Nová konverzácia"; // Default title fix
 
-      saveAgentChat(chatId, finalTitle, history)
-        .then(() => fetchChats())
-        .catch((err) => console.error("Persistence Error:", err));
+      // Await saving to get the ID back immediately
+      const savedId = await saveAgentChat(chatId, finalTitle, history);
+
+      // Use the returned ID for all subsequent operations in this execution
+      const effectiveChatId = savedId || chatId;
+
+      if (savedId && savedId !== chatId) {
+        setChatId(savedId);
+        // Force refresh chat list immediately
+        await fetchChats();
+      } else {
+        // Just refresh list
+        fetchChats();
+      }
 
       const { stream } = await chatWithAgent(
         history.map((m) => ({
@@ -182,8 +194,8 @@ export default function AgentChat() {
         });
       }
 
-      // 2. SAVE FINAL RESULT
-      saveAgentChat(chatId, finalTitle, finalMessages)
+      // 2. SAVE FINAL RESULT WITH EFFECTIVE ID
+      saveAgentChat(effectiveChatId, finalTitle, finalMessages)
         .then(() => fetchChats())
         .catch((err) => console.error("Persistence Error:", err));
     } catch (error: any) {

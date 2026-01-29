@@ -1,7 +1,7 @@
 "use server";
 
 import directus from "@/lib/directus";
-import { readItems, createItem, updateItem } from "@directus/sdk";
+import { readItems, createItem, updateItem, deleteItem } from "@directus/sdk";
 import { currentUser, clerkClient } from "@clerk/nextjs/server";
 import { getIsolatedAIContext } from "@/lib/ai-context";
 import { getGmailClient } from "@/lib/google";
