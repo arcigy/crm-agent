@@ -518,10 +518,15 @@ async function executeAtomicTool(name: string, args: any, user: any) {
       case "db_delete_contact":
         try {
           // @ts-ignore
-          await directus.request(deleteItem("contacts", args.contact_id));
+          await directus.request(
+            updateItem("contacts", args.contact_id, {
+              status: "archived",
+              deleted_at: new Date().toISOString(),
+            }),
+          );
           return {
             success: true,
-            message: `Kontakt ID ${args.contact_id} bol vymazaný.`,
+            message: `Kontakt ID ${args.contact_id} bol presunutý do archívu.`,
           };
         } catch (e: any) {
           return { success: false, error: e.message };
@@ -533,11 +538,16 @@ async function executeAtomicTool(name: string, args: any, user: any) {
           const searchResults = await directus.request(
             readItems("contacts", {
               filter: {
-                _or: [
-                  { first_name: { _icontains: args.query } },
-                  { last_name: { _icontains: args.query } },
-                  { email: { _icontains: args.query } },
-                  { company: { _icontains: args.query } },
+                _and: [
+                  { status: { _neq: "archived" } },
+                  {
+                    _or: [
+                      { first_name: { _icontains: args.query } },
+                      { last_name: { _icontains: args.query } },
+                      { email: { _icontains: args.query } },
+                      { company: { _icontains: args.query } },
+                    ],
+                  },
                 ],
               },
               limit: 20,
@@ -557,6 +567,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
           // @ts-ignore
           const allContacts = await directus.request(
             readItems("contacts", {
+              filter: { status: { _neq: "archived" } },
               limit: args.limit || 50,
               sort: ["-date_created"],
             }),
@@ -576,7 +587,12 @@ async function executeAtomicTool(name: string, args: any, user: any) {
           // @ts-ignore
           const contacts = await directus.request(
             readItems("contacts", {
-              filter: { email: { _eq: args.email } },
+              filter: {
+                _and: [
+                  { email: { _eq: args.email } },
+                  { status: { _neq: "archived" } },
+                ],
+              },
             }),
           );
           return {
@@ -599,8 +615,8 @@ async function executeAtomicTool(name: string, args: any, user: any) {
             readItems("contacts", {
               filter: {
                 _and: [
-                  { first_name: { _icontains: args.first_name } },
-                  { last_name: { _icontains: args.last_name } },
+                  { first_name: { _icontains: args.name } },
+                  { status: { _neq: "archived" } },
                 ],
               },
             }),
