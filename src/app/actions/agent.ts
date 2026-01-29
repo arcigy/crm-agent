@@ -360,6 +360,11 @@ export async function chatWithAgent(messages: any[]) {
     content: "",
     status: "thinking",
     attempt: 1,
+    thoughts: {
+      intent: "",
+      plan: [] as string[],
+      extractedData: null as any,
+    },
   });
 
   (async () => {
@@ -372,31 +377,46 @@ export async function chatWithAgent(messages: any[]) {
       const userEmail = clerkUser.emailAddresses[0]?.emailAddress;
       const context = await getIsolatedAIContext(userEmail, "GLOBAL");
 
-      // 1. INTENT CLASSIFIER (Fast & Cheap)
+      // 1. INTENT CLASSIFIER & DATA EXTRACTION
       const classifierPrompt = `
-Si **Gatekeeper Agent**. Tvojou jedinou úlohou je určiť, či používateľ:
-A) Chce informáciu/vysvetlenie (INFO_ONLY).
-B) Chce, aby si niečo vykonal (napr. vytvoril kontakt, poslal mail, pozrel súbory) (ACTION).
+Si **Gatekeeper & Data Analyst**. Tvojou úlohou je:
+1. Určiť intent: INFO_ONLY (len otázka) alebo ACTION (niečo vykonať).
+2. EXTRAKCIA DÁT: Z textu vytiahni všetky entity (mená, emaily, telefóny, firmy).
 
-ODPOVEDAJ LEN JSON: { "intent": "INFO_ONLY" | "ACTION", "reason": "prečo" }
+ODPOVEDAJ LEN JSON: { 
+  "intent": "INFO_ONLY" | "ACTION", 
+  "reason": "prečo",
+  "extracted_data": { "name": "...", "email": "...", "phone": "...", "context": "..." }
+}
 `;
       const classifierRes = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "system", content: classifierPrompt }, ...messages],
         response_format: { type: "json_object" },
       });
-      const classifierVerdict = JSON.parse(
-        classifierRes.choices[0].message.content || '{"intent":"INFO_ONLY"}',
+      const verdict = JSON.parse(
+        classifierRes.choices[0].message.content || "{}",
       );
 
-      // CASE A: Simple Information Request
-      if (classifierVerdict.intent === "INFO_ONLY") {
+      superState.update({
+        thoughts: {
+          intent:
+            verdict.intent === "INFO_ONLY"
+              ? "Iba informačná otázka"
+              : "Požiadavka na akciu v systéme",
+          extractedData: verdict.extracted_data,
+          plan: [],
+        },
+        status: "thinking",
+      } as any);
+
+      if (verdict.intent === "INFO_ONLY") {
         const assistantRes = await openai.chat.completions.create({
           model: "gpt-4o-mini",
           messages: [
             {
               role: "system",
-              content: `Si ArciGy Agent, inteligentný parťák. Odpovedaj stručne a priateľsky k veci. Identita: ${context.user_nickname}.`,
+              content: `Si ArciGy Agent. Odpovedaj stručne a priateľsky. Identita: ${context.user_nickname}.`,
             },
             ...messages,
           ],
@@ -405,12 +425,16 @@ ODPOVEDAJ LEN JSON: { "intent": "INFO_ONLY" | "ACTION", "reason": "prečo" }
           toolResults: [],
           content: assistantRes.choices[0].message.content || "",
           status: "done",
-          attempt: 1,
+          thoughts: {
+            intent: "Informačná odpoveď",
+            extractedData: verdict.extracted_data,
+            plan: ["Odpovedám na tvoju otázku..."],
+          },
         } as any);
         return;
       }
 
-      // CASE B: Action Mission (Agentic Loop)
+      // 2. MISSION PLANNER (ACTION CASE)
       let missionAccomplished = false;
       let attempts = 0;
       const maxAttempts = 3;
@@ -426,29 +450,16 @@ ODPOVEDAJ LEN JSON: { "intent": "INFO_ONLY" | "ACTION", "reason": "prečo" }
           plannerPrompt: "",
         };
 
-        superState.update({
-          toolResults: finalExecutionResults,
-          content: `Misia v priebehu - pokus č. ${attempts}...`,
-          status: "thinking",
-          attempt: attempts,
-        } as any);
-
-        // 1. ORCHESTRATION LAYER (Planner - GPT-4o)
+        // ORCHESTRATOR
         const architectPrompt = `
-Si **Mission Orchestrator (The Master Brain)**. Tvojou úlohou je vyriešiť požiadavku používateľa pomocou sady atómických nástrojov.
+Si **Mission Orchestrator**. Navrhni PLÁN KROKOV v SLOVENČINE pre vyriešenie požiadavky.
+Dostupné nástroje: ${JSON.stringify(ALL_ATOMS.map((t) => t.function.name))}.
 
-DOSTUPNÉ NÁSTROJE: ${JSON.stringify(ALL_ATOMS.map((t) => t.function.name))}.
-PARAMETRE NÁSTROJOV: ${JSON.stringify(ALL_ATOMS)}
-
-PRAVIDLÁ:
-1. **Precízne plánovanie**: Rozbi požiadavku na logickú sekvenciu (napr. najprv FETCH list, potom GET details, potom SAVE analysis).
-2. **Kód & Systém**: Máš READ-ONLY prístup k src/. Ak nevieš ako CRM funguje, prečítaj si kód.
-3. **Dáta**: Extrahuj z promptu všetky údaje (mená, emaily, telefóny).
-4. **No-Fail**: Ak predošlý pokus zlyhal (pozri HISTÓRIU), navrhni iný postup.
-
-HISTÓRIA POKUSOV: ${JSON.stringify(missionHistory)}
-
-VÝSTUP LEN JSON: { "plan": [{ "tool": "name", "args": {...} }] }
+Dôležité: Do poľa "readable_plan" daj zoznam krokov v ľudskej reči (napr. "Vyhľadám kontakt v databáze", "Zapíšem nový lead").
+VÝSTUP LEN JSON: { 
+  "plan": [{ "tool": "name", "args": {...} }], 
+  "readable_plan": ["krok 1", "krok 2"] 
+}
 `;
         currentAttemptLog.plannerPrompt = architectPrompt;
 
@@ -460,21 +471,26 @@ VÝSTUP LEN JSON: { "plan": [{ "tool": "name", "args": {...} }] }
 
         const plannerRaw = plannerRes.choices[0].message.content;
         currentAttemptLog.plannerRawOutput = plannerRaw;
+        const plannerOutput = JSON.parse(plannerRaw || "{}");
 
-        const currentPlan = JSON.parse(plannerRaw || '{"plan":[]}');
+        superState.update({
+          thoughts: {
+            intent: "Vykonávam akciu",
+            extractedData: verdict.extracted_data,
+            plan: plannerOutput.readable_plan || [],
+          },
+          status: "thinking",
+          attempt: attempts,
+        } as any);
+
         const currentStepResults = [];
-
-        // 2. EXECUTIVE LAYER (Workers)
-        for (const step of currentPlan.plan) {
+        for (const step of plannerOutput.plan || []) {
           superState.update({
             toolResults: [
               ...finalExecutionResults,
               ...currentStepResults,
               { tool: step.tool, status: "running" },
             ],
-            content: "",
-            status: "thinking",
-            attempt: attempts,
           } as any);
 
           const result = await executeAtomicTool(
@@ -486,62 +502,57 @@ VÝSTUP LEN JSON: { "plan": [{ "tool": "name", "args": {...} }] }
 
           superState.update({
             toolResults: [...finalExecutionResults, ...currentStepResults],
-            content: "",
-            status: "thinking",
-            attempt: attempts,
           } as any);
         }
 
-        currentAttemptLog.steps = currentStepResults;
         finalExecutionResults = [
           ...finalExecutionResults,
           ...currentStepResults,
         ];
+        currentAttemptLog.steps = currentStepResults;
 
-        // 3. VERIFICATION LAYER (Analysis)
-        const verificationPrompt = `
-Si **Mission Verifier**. Máš prísne zhodnotiť, či výsledky pokusu č. ${attempts} splnili požiadavku.
-POŽIADAVKA: ${messages[messages.length - 1].content}
-VÝSLEDKY: ${JSON.stringify(currentStepResults)}
-
-ODPOVEDAJ LEN JSON: { "success": true/false, "analysis": "krátke zdôvodnenie", "missing_info": "čo ešte treba" }
-`;
+        // VERIFIER
+        const verificationPrompt = `Si Mission Verifier. Splnil tento pokus úlohu? JSON: { "success": boolean, "analysis": "..." }`;
         const verificationRes = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [{ role: "system", content: verificationPrompt }],
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: verificationPrompt },
+            { role: "user", content: JSON.stringify(currentStepResults) },
+          ],
           response_format: { type: "json_object" },
         });
-
-        const verdictRaw = verificationRes.choices[0].message.content;
-        const verdict = JSON.parse(verdictRaw || '{"success":false}');
-        currentAttemptLog.verification = verdict;
-
+        const vVerdictRaw = verificationRes.choices[0].message.content;
+        const vVerdict = JSON.parse(vVerdictRaw || "{}");
+        currentAttemptLog.verification = vVerdict;
         missionHistory.push(currentAttemptLog);
 
-        if (verdict.success) {
-          missionAccomplished = true;
-        }
+        if (vVerdict.success) missionAccomplished = true;
       }
 
-      // 4. FINAL REPORT
-      const verifierPrompt = `
-Si **ArciGy Agent**. Zhrň výsledok misie priamo a ľudsky.
-VÝSLEDKY: ${JSON.stringify(finalExecutionResults)}
-MISIA: ${missionAccomplished ? "ÚSPEŠNÁ" : "ZLYHALA"}
-
-Povedz v 1 vete, čo je reálne hotové. Žiadne detaily o JSON-och.
-`;
-
-      const finalRes = await openai.chat.completions.create({
+      const finalReportRes = await openai.chat.completions.create({
         model: "gpt-4o-mini",
-        messages: [{ role: "system", content: verifierPrompt }, ...messages],
+        messages: [
+          {
+            role: "system",
+            content: "Zhrň výsledok misie priamo, stručne v jednej vete.",
+          },
+          ...messages,
+          {
+            role: "system",
+            content: `Výsledky nástrojov: ${JSON.stringify(finalExecutionResults)}`,
+          },
+        ],
       });
 
       superState.done({
         toolResults: finalExecutionResults,
-        content: finalRes.choices[0].message.content || "",
+        content: finalReportRes.choices[0].message.content || "",
         status: "done",
-        attempt: attempts,
+        thoughts: {
+          intent: "Misia dokončená",
+          extractedData: verdict.extracted_data,
+          plan: ["Úloha bola úspešne spracovaná."],
+        },
         diagnostics: missionHistory,
       } as any);
     } catch (error: any) {
@@ -549,9 +560,7 @@ Povedz v 1 vete, čo je reálne hotové. Žiadne detaily o JSON-och.
     }
   })();
 
-  return {
-    stream: superState.value,
-  };
+  return { stream: superState.value };
 }
 
 // ==========================================

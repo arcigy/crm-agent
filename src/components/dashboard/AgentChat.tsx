@@ -36,6 +36,11 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   toolResults?: any[];
+  thoughts?: {
+    intent?: string;
+    plan?: string[];
+    extractedData?: any;
+  };
 }
 
 export default function AgentChat() {
@@ -63,6 +68,13 @@ export default function AgentChat() {
   }, []);
 
   const [isCopying, setIsCopying] = React.useState(false);
+  const [expandedLogs, setExpandedLogs] = React.useState<
+    Record<number, boolean>
+  >({});
+
+  const toggleLog = (idx: number) => {
+    setExpandedLogs((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  };
 
   React.useEffect(() => {
     if (scrollRef.current) {
@@ -81,24 +93,29 @@ export default function AgentChat() {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = { role: "user", content: input };
-    const history = [...messages, userMessage];
+    // Prepare messages
+    const assistantPlaceholder: Message = {
+      role: "assistant",
+      content: "Antigravity analyzuje...",
+      toolResults: [],
+      thoughts: { intent: "Analyzujem...", plan: [], extractedData: {} },
+    };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage, assistantPlaceholder]);
     setInput("");
     setIsLoading(true);
 
-    // Initial placeholder for assistant
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        content: "Agent analyzuje požiadavku...",
-        toolResults: [],
-      },
-    ]);
-
     try {
+      // 1. SAVE TO DB (Non-blocking)
+      const isNewChat = history.length <= 1; // user + assistant initial
+      const finalTitle = isNewChat
+        ? userMessage.content.slice(0, 30)
+        : "Pokračujúci chat";
+
+      saveAgentChat(chatId, finalTitle, [...messages, userMessage])
+        .then(() => fetchChats())
+        .catch((err) => console.error("Persistence Error:", err));
+
       const { stream } = await chatWithAgent(
         history.map((m) => ({
           role: m.role,
@@ -115,20 +132,21 @@ export default function AgentChat() {
             role: "assistant",
             content:
               val?.content ||
-              (val?.status === "thinking" ? "Antigravity premýšľa..." : ""),
+              (val?.status === "thinking" ? "Antigravity pracuje..." : ""),
             toolResults: val?.toolResults || [],
+            thoughts: val?.thoughts || assistantPlaceholder.thoughts,
           };
           finalMessages = newMsgs;
           return newMsgs;
         });
       }
 
-      // AUTO-SAVE AFTER COMPLETION
-      const title = input.slice(0, 30) || "Nová konverzácia";
-      await saveAgentChat(chatId, title, finalMessages);
-      fetchChats();
+      // 2. SAVE FINAL RESULT
+      saveAgentChat(chatId, finalTitle, finalMessages)
+        .then(() => fetchChats())
+        .catch((err) => console.error("Persistence Error:", err));
     } catch (error: any) {
-      toast.error("Chyba: " + error.message);
+      toast.error("Chyba spojenia.");
       setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
@@ -241,56 +259,131 @@ export default function AgentChat() {
                 {/* Molecular Thought Process (Expandable) */}
                 {msg.toolResults && msg.toolResults.length > 0 && (
                   <div className="space-y-2 animate-in fade-in duration-500">
-                    <details className="group border border-indigo-500/20 bg-indigo-500/5 rounded-2xl overflow-hidden transition-all hover:border-indigo-500/40">
-                      <summary className="flex items-center justify-between px-4 py-2.5 cursor-pointer list-none select-none">
+                    <div className="border border-indigo-500/20 bg-indigo-500/5 rounded-2xl overflow-hidden transition-all hover:border-indigo-500/40">
+                      <button
+                        onClick={() => toggleLog(idx)}
+                        className="w-full flex items-center justify-between px-4 py-2.5 cursor-pointer select-none"
+                      >
                         <div className="flex items-center gap-2">
-                          <Terminal className="w-3.5 h-4 text-indigo-500" />
+                          <Sparkles className="w-3.5 h-4 text-indigo-500" />
                           <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500/80">
-                            Logika & Molekulárny Plán
+                            Analýza & Plán Misie
                           </span>
                         </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-indigo-500/50 group-open:rotate-90 transition-transform" />
-                      </summary>
+                        <ChevronRight
+                          className={`w-3.5 h-3.5 text-indigo-500/50 transition-transform ${expandedLogs[idx] ? "rotate-90" : ""}`}
+                        />
+                      </button>
 
-                      <div className="p-4 pt-0 space-y-3 border-t border-indigo-500/10">
-                        {msg.toolResults.map((step, tIdx) => (
-                          <div
-                            key={tIdx}
-                            className="space-y-1.5 pt-3 first:pt-0"
-                          >
-                            <div className="flex items-center justify-between">
+                      {expandedLogs[idx] && (
+                        <div className="p-4 pt-0 space-y-4 border-t border-indigo-500/10">
+                          {/* 1. INTENT & DATA */}
+                          {msg.thoughts && (
+                            <div className="pt-4 space-y-3">
                               <div className="flex items-center gap-2">
-                                {step.tool?.startsWith("gmail") ? (
-                                  <Mail className="w-3 h-3 text-indigo-400" />
-                                ) : (
-                                  <Database className="w-3 h-3 text-violet-400" />
-                                )}
-                                <span className="text-[9px] font-black uppercase tracking-tight text-foreground/70">
-                                  {step.tool}
-                                </span>
+                                <div className="px-2 py-0.5 bg-indigo-500/20 rounded text-[9px] font-bold text-indigo-400 uppercase">
+                                  {msg.thoughts.intent}
+                                </div>
                               </div>
-                              <span
-                                className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                                  step.result?.success
-                                    ? "bg-emerald-500/10 text-emerald-500"
-                                    : "bg-rose-500/10 text-rose-500"
-                                }`}
-                              >
-                                {step.result?.success ? "Success" : "Failed"}
-                              </span>
-                            </div>
 
-                            <pre className="text-[10px] font-mono bg-black/20 p-3 rounded-xl overflow-x-auto text-indigo-300/80 border border-indigo-500/5">
-                              {JSON.stringify(
-                                step.result?.data || step.result,
-                                null,
-                                2,
+                              {msg.thoughts.extractedData && (
+                                <div className="bg-black/20 rounded-xl p-3 border border-indigo-500/10">
+                                  <div className="text-[8px] font-black uppercase tracking-widest text-indigo-500/50 mb-2">
+                                    Extrahované dáta
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {Object.entries(
+                                      msg.thoughts.extractedData,
+                                    ).map(
+                                      ([k, v]) =>
+                                        v && (
+                                          <div
+                                            key={k}
+                                            className="flex flex-col"
+                                          >
+                                            <span className="text-[7px] uppercase opacity-40">
+                                              {k}
+                                            </span>
+                                            <span className="text-[10px] font-bold truncate">
+                                              {String(v)}
+                                            </span>
+                                          </div>
+                                        ),
+                                    )}
+                                  </div>
+                                </div>
                               )}
-                            </pre>
+
+                              {/* 2. PLANNED STEPS */}
+                              {msg.thoughts.plan &&
+                                msg.thoughts.plan.length > 0 && (
+                                  <div className="space-y-2">
+                                    <div className="text-[8px] font-black uppercase tracking-widest text-indigo-500/50">
+                                      Plánované kroky
+                                    </div>
+                                    {msg.thoughts.plan.map((p, pIdx) => (
+                                      <div
+                                        key={pIdx}
+                                        className="flex items-center gap-2 text-[10px] font-medium text-foreground/70"
+                                      >
+                                        <div className="w-1 h-1 bg-indigo-500 rounded-full" />
+                                        {p}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                            </div>
+                          )}
+
+                          <div className="h-px bg-border/20" />
+
+                          {/* 3. ACTUAL EXECUTION LOGS */}
+                          <div className="space-y-3">
+                            <div className="text-[8px] font-black uppercase tracking-widest text-indigo-500/50">
+                              Technická exekúcia
+                            </div>
+                            {msg.toolResults.map((step, tIdx) => (
+                              <div
+                                key={tIdx}
+                                className="space-y-1.5 pt-3 first:pt-0"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    {step.tool?.startsWith("gmail") ? (
+                                      <Mail className="w-3 h-3 text-indigo-400" />
+                                    ) : (
+                                      <Database className="w-3 h-3 text-violet-400" />
+                                    )}
+                                    <span className="text-[9px] font-black uppercase tracking-tight text-foreground/70">
+                                      {step.tool}
+                                    </span>
+                                  </div>
+                                  <span
+                                    className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                                      step.result?.success
+                                        ? "bg-emerald-500/10 text-emerald-500"
+                                        : "bg-rose-500/10 text-rose-500"
+                                    }`}
+                                  >
+                                    {step.result?.success
+                                      ? "Success"
+                                      : "Failed"}
+                                  </span>
+                                </div>
+
+                                <pre className="text-[10px] font-mono bg-black/20 p-3 rounded-xl overflow-x-auto text-indigo-300/80 border border-indigo-500/5">
+                                  {JSON.stringify(
+                                    step.result?.data || step.result,
+                                    null,
+                                    2,
+                                  )}
+                                </pre>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </details>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
