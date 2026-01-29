@@ -396,9 +396,45 @@ async function executeAtomicTool(name: string, args: any, user: any) {
         const list = await gmail!.users.messages.list({
           userId: "me",
           q: args.q,
-          maxResults: args.maxResults,
+          maxResults: args.maxResults || 5,
         });
-        return { success: true, data: list.data.messages || [] };
+
+        const messages = list.data.messages || [];
+
+        // Fetch details for each message in parallel to provide context immediately
+        const enrichedMessages = await Promise.all(
+          messages.map(async (m) => {
+            try {
+              const detail = await gmail!.users.messages.get({
+                userId: "me",
+                id: m.id!,
+                format: "metadata",
+                metadataHeaders: ["Subject", "From", "Date"], // Optimize fetch size
+              });
+
+              const headers = detail.data.payload?.headers;
+              const subject =
+                headers?.find((h) => h.name === "Subject")?.value ||
+                "(No Subject)";
+              const from =
+                headers?.find((h) => h.name === "From")?.value || "(Unknown)";
+              const date = headers?.find((h) => h.name === "Date")?.value || "";
+
+              return {
+                id: m.id,
+                threadId: m.threadId,
+                subject,
+                from,
+                date,
+                snippet: detail.data.snippet, // Snippet is always returned
+              };
+            } catch (e) {
+              return { id: m.id, error: "Failed to fetch details" };
+            }
+          }),
+        );
+
+        return { success: true, data: enrichedMessages };
 
       case "gmail_get_details":
         const msg = await gmail!.users.messages.get({
