@@ -226,6 +226,204 @@ const INBOX_ATOMS: any[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "gmail_forward_email",
+      description: "Prepošle e-mail na zadanú adresu.",
+      parameters: {
+        type: "object",
+        properties: {
+          messageId: { type: "string" },
+          to: { type: "string", description: "Emailová adresa príjemcu" },
+        },
+        required: ["messageId", "to"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_update_contact",
+      description: "Aktualizuje údaje existujúceho kontaktu.",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "number" },
+          first_name: { type: "string" },
+          last_name: { type: "string" },
+          email: { type: "string" },
+          phone: { type: "string" },
+          company: { type: "string" },
+          status: {
+            type: "string",
+            enum: ["new", "contacted", "qualified", "lost"],
+          },
+        },
+        required: ["contact_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_add_contact_comment",
+      description: "Pridá komentár (poznámku) ku kontaktu.",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "number" },
+          comment: {
+            type: "string",
+            description: "Text komentára na pridanie",
+          },
+        },
+        required: ["contact_id", "comment"],
+      },
+    },
+  },
+];
+
+const DEAL_ATOMS: any[] = [
+  {
+    type: "function",
+    function: {
+      name: "db_fetch_deals",
+      description: "Načíta zoznam obchodov (deals).",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", default: 10 },
+          status: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_update_deal",
+      description: "Aktualizuje obchod (deal).",
+      parameters: {
+        type: "object",
+        properties: {
+          deal_id: { type: "number" },
+          status: { type: "string" },
+          value: { type: "number" },
+        },
+        required: ["deal_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_invoice_deal",
+      description: "Vystaví faktúru k obchodu (zmení stav na Invoiced).",
+      parameters: {
+        type: "object",
+        properties: {
+          deal_id: { type: "number" },
+        },
+        required: ["deal_id"],
+      },
+    },
+  },
+];
+
+const PROJECT_ATOMS: any[] = [
+  {
+    type: "function",
+    function: {
+      name: "db_fetch_projects",
+      description: "Načíta zoznam projektov.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", default: 10 },
+          contact_id: { type: "number" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_create_project",
+      description: "Vytvorí nový projekt.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          contact_id: { type: "number" },
+          value: { type: "number" },
+          deadline: { type: "string" },
+        },
+        required: ["name", "contact_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_update_project",
+      description: "Aktualizuje projekt.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "number" },
+          stage: { type: "string" },
+          value: { type: "number" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_delete_project",
+      description: "Vymaže projekt (soft delete).",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "number" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+];
+
+const FILE_ATOMS: any[] = [
+  {
+    type: "function",
+    function: {
+      name: "drive_search_file",
+      description: "Vyhľadá súbor v Google Drive (napr. faktúru, zmluvu).",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Názov súboru" },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "drive_get_file_link",
+      description: "Získa odkaz na stiahnutie súboru.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_id: { type: "string" },
+        },
+        required: ["file_id"],
+      },
+    },
+  },
 ];
 
 const SYSTEM_ATOMS: any[] = [
@@ -366,7 +564,14 @@ const VERIFIER_ATOMS: any[] = [
   },
 ];
 
-const ALL_ATOMS = [...INBOX_ATOMS, ...SYSTEM_ATOMS];
+const ALL_ATOMS = [
+  ...INBOX_ATOMS,
+  ...DEAL_ATOMS,
+  ...PROJECT_ATOMS,
+  ...FILE_ATOMS,
+  ...SYSTEM_ATOMS,
+  ...VERIFIER_ATOMS,
+];
 
 // ==========================================
 // 2. TOKEN HELPER (Clerk integration)
@@ -465,6 +670,34 @@ async function executeAtomicTool(name: string, args: any, user: any) {
           requestBody: { removeLabelIds: ["INBOX"] },
         });
         return { success: true };
+
+      case "gmail_forward_email":
+        const fwdOriginal = await gmail!.users.messages.get({
+          userId: "me",
+          id: args.messageId,
+          format: "metadata",
+          metadataHeaders: ["Subject"],
+        });
+        const fwdSubj =
+          fwdOriginal.data.payload?.headers?.find((h) => h.name === "Subject")
+            ?.value || "";
+        const fwdRaw = Buffer.from(
+          `To: ${args.to}\r\n` +
+            `Subject: Fwd: ${fwdSubj}\r\n` +
+            `\r\n` +
+            `---------- Forwarded message ---------\r\n` +
+            `Original Message ID: ${args.messageId}\r\n`,
+        )
+          .toString("base64")
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+
+        await gmail!.users.messages.send({
+          userId: "me",
+          requestBody: { raw: fwdRaw },
+        });
+        return { success: true, message: "Email preposlaný" };
 
       case "gmail_reply":
         const rawContent = `To: \r\nSubject: Re:\r\n\r\n${args.body}`;
@@ -616,6 +849,134 @@ async function executeAtomicTool(name: string, args: any, user: any) {
         } catch (e: any) {
           return { success: false, error: e.message };
         }
+
+      case "db_update_contact":
+        try {
+          // @ts-ignore
+          await directus.request(
+            updateItem("contacts", args.contact_id, {
+              ...args,
+              date_updated: new Date().toISOString(),
+            }),
+          );
+          return {
+            success: true,
+            message: `Kontakt ${args.contact_id} aktualizovaný.`,
+          };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      case "db_add_contact_comment":
+        try {
+          // @ts-ignore
+          const current = await directus.request(
+            readItem("contacts", args.contact_id),
+          );
+          const newComments =
+            (current.comments || "") +
+            "\n" +
+            `[${new Date().toLocaleDateString()}] ${args.comment}`;
+          // @ts-ignore
+          await directus.request(
+            updateItem("contacts", args.contact_id, { comments: newComments }),
+          );
+          return { success: true, message: "Komentár pridaný." };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      // --- DEALS ---
+      case "db_fetch_deals":
+        try {
+          // @ts-ignore
+          const deals = await directus.request(
+            readItems("deals", { limit: args.limit || 10 }),
+          );
+          return { success: true, deals };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      case "db_update_deal":
+        try {
+          // @ts-ignore
+          await directus.request(updateItem("deals", args.deal_id, args));
+          return { success: true, message: "Deal updated" };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      case "db_invoice_deal":
+        try {
+          // @ts-ignore
+          await directus.request(
+            updateItem("deals", args.deal_id, { status: "invoiced" }),
+          );
+          return { success: true, message: "Deal fakturovaný." };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      // --- PROJECTS ---
+      case "db_fetch_projects":
+        try {
+          // @ts-ignore
+          const projects = await directus.request(
+            readItems("projects", { limit: args.limit || 10 }),
+          );
+          return { success: true, projects };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      case "db_create_project":
+        try {
+          // @ts-ignore
+          const prj = await directus.request(
+            createItem("projects", {
+              ...args,
+              date_created: new Date().toISOString(),
+            }),
+          );
+          return { success: true, project_id: prj.id };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      case "db_update_project":
+        try {
+          // @ts-ignore
+          await directus.request(updateItem("projects", args.project_id, args));
+          return { success: true, message: "Project updated" };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      case "db_delete_project":
+        try {
+          // @ts-ignore
+          await directus.request(
+            updateItem("projects", args.project_id, { status: "archived" }),
+          );
+          return { success: true, message: "Project archived" };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      // --- FILES ---
+      case "drive_search_file":
+        return {
+          success: false,
+          error:
+            "Not implemented: Drive API integration required (missing scopes)",
+        };
+      case "drive_get_file_link":
+        return {
+          success: false,
+          error:
+            "Not implemented: Drive API integration required (missing scopes)",
+        };
 
       // --- VERIFIER TOOLS ---
       case "verify_contact_by_email":
@@ -1246,6 +1607,17 @@ export async function agentSendEmail(d: any) {
 
 export async function getAvailableTools() {
   return ALL_ATOMS;
+}
+
+export async function getStructuredTools() {
+  return [
+    { category: "Inbox & Contacts", tools: INBOX_ATOMS },
+    { category: "Deals", tools: DEAL_ATOMS },
+    { category: "Projects", tools: PROJECT_ATOMS },
+    { category: "Files (Drive)", tools: FILE_ATOMS },
+    { category: "System", tools: SYSTEM_ATOMS },
+    { category: "Verifiers", tools: VERIFIER_ATOMS },
+  ];
 }
 
 export async function runToolManually(toolName: string, args: any) {

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { getAvailableTools, runToolManually } from "@/app/actions/agent";
+import { getStructuredTools, runToolManually } from "@/app/actions/agent";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -14,7 +14,9 @@ import {
 import { cn } from "@/lib/utils";
 
 export function ToolsDebugger() {
-  const [tools, setTools] = React.useState<any[]>([]);
+  const [categories, setCategories] = React.useState<
+    { category: string; tools: any[] }[]
+  >([]);
   const [selectedTool, setSelectedTool] = React.useState<string | null>(null);
   const [argsJson, setArgsJson] = React.useState<string>("{}");
   const [result, setResult] = React.useState<any | null>(null);
@@ -24,10 +26,12 @@ export function ToolsDebugger() {
 
   React.useEffect(() => {
     setIsLoading(true);
-    getAvailableTools()
+    getStructuredTools()
       .then((data) => {
-        setTools(data);
-        if (data.length > 0) selectTool(data[0]);
+        setCategories(data);
+        if (data.length > 0 && data[0].tools.length > 0) {
+          selectTool(data[0].tools[0]);
+        }
       })
       .catch((err) => toast.error("Failed to load tools: " + err.message))
       .finally(() => setIsLoading(false));
@@ -76,11 +80,24 @@ export function ToolsDebugger() {
     }
   };
 
-  const filteredTools = tools.filter((t) =>
-    t.function.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  // Filter categories based on search
+  const filteredCategories = categories
+    .map((cat) => ({
+      ...cat,
+      tools: cat.tools.filter((t) =>
+        t.function.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
+    }))
+    .filter((c) => c.tools.length > 0);
 
-  const getToolDef = () => tools.find((t) => t.function.name === selectedTool);
+  // Helper to find tool def
+  const getToolDef = () => {
+    for (const cat of categories) {
+      const found = cat.tools.find((t) => t.function.name === selectedTool);
+      if (found) return found;
+    }
+    return null;
+  };
 
   return (
     <div className="flex h-[calc(100vh-100px)] gap-6 p-6">
@@ -104,31 +121,50 @@ export function ToolsDebugger() {
           />
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
           {isLoading ? (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
             </div>
           ) : (
-            filteredTools.map((tool) => (
-              <button
-                key={tool.function.name}
-                onClick={() => selectTool(tool)}
-                className={cn(
-                  "w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 group",
-                  selectedTool === tool.function.name
-                    ? "bg-indigo-500/20 border-indigo-500/50 shadow-[0_0_20px_-5px_rgba(99,102,241,0.3)]"
-                    : "bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10",
-                )}
-              >
-                <div className="font-mono text-sm font-semibold text-indigo-300 group-hover:text-indigo-200">
-                  {tool.function.name}
+            <div className="space-y-6">
+              {filteredCategories.map((cat) => (
+                <div key={cat.category}>
+                  <h3 className="px-2 mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/30 sticky top-0 bg-[#0F172A]/90 backdrop-blur-sm py-1 z-10">
+                    {cat.category}
+                  </h3>
+                  <div className="space-y-1">
+                    {cat.tools.map((tool) => (
+                      <button
+                        key={tool.function.name}
+                        onClick={() => selectTool(tool)}
+                        className={cn(
+                          "w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 group relative overflow-hidden",
+                          selectedTool === tool.function.name
+                            ? "bg-indigo-500/20 border-indigo-500/50 shadow-[0_0_20px_-5px_rgba(99,102,241,0.3)]"
+                            : "bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "absolute left-0 top-0 bottom-0 w-1 transition-colors",
+                            selectedTool === tool.function.name
+                              ? "bg-indigo-500"
+                              : "bg-transparent group-hover:bg-white/10",
+                          )}
+                        />
+                        <div className="font-mono text-sm font-semibold text-indigo-300 group-hover:text-indigo-200">
+                          {tool.function.name}
+                        </div>
+                        <div className="text-xs text-white/50 line-clamp-1 mt-1">
+                          {tool.function.description}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="text-xs text-white/50 line-clamp-1 mt-1">
-                  {tool.function.description}
-                </div>
-              </button>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -174,7 +210,7 @@ export function ToolsDebugger() {
               </div>
             </div>
 
-            {/* RIGHT PANEL: Output (Combined for vertical layout if better, but let's put it below for now) */}
+            {/* RIGHT PANEL: Output */}
             <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex-1 flex flex-col overflow-hidden min-h-[300px]">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-mono text-white/40 uppercase tracking-wider">
