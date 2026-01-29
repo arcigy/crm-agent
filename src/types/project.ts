@@ -12,6 +12,10 @@ export interface Project {
   created_at: string;
   updated_at: string;
   drive_folder_id?: string;
+  value?: number;
+  paid?: boolean;
+  invoice_date?: string | null;
+  due_date?: string | null;
 }
 
 export type ProjectStage =

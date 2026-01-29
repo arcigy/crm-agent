@@ -35,9 +35,8 @@ import {
   createDealFromProject,
 } from "@/app/actions/deals";
 import { StageBadge } from "./projects/StageBadge";
-import { updateProjectStage } from "@/app/actions/projects";
+import { updateProjectStage, updateProject } from "@/app/actions/projects";
 import { Lead } from "@/types/contact";
-import { name } from "assert";
 
 const columnHelper = createColumnHelper<Deal & { project?: Project }>();
 
@@ -78,15 +77,17 @@ export function DealsTable({
       }
 
       return {
-        ...(deal || {
-          id: -project.id, // Negative ID for virtual deals
-          name: project.name,
-          value: 0,
-          contact_id: project.contact_id,
-          project_id: project.id,
-          paid: false,
-          date_created: project.date_created,
-        }),
+        // Source data
+        id: deal?.id || -project.id,
+        name: project.name,
+        // Prioritize project-level financial fields
+        value: project.value ?? deal?.value ?? 0,
+        paid: project.paid ?? deal?.paid ?? false,
+        invoice_date: project.invoice_date ?? deal?.invoice_date,
+        due_date: project.due_date ?? deal?.due_date,
+        contact_id: project.contact_id,
+        project_id: project.id,
+        date_created: project.date_created,
         project: { ...project, contact_name: contactName },
       };
     });
@@ -146,22 +147,28 @@ export function DealsTable({
       header: "Suma",
       cell: (info) => {
         const value = info.getValue();
-        const isVirtual = info.row.original.id < 0;
+        const project = info.row.original.project;
 
-        if (isVirtual) {
+        if (!value || value === 0) {
           return (
             <button
               onClick={async () => {
                 const val = prompt("Zadajte sumu projektu v EUR:");
                 if (val && !isNaN(Number(val))) {
-                  const res = await createDealFromProject(
-                    info.row.original.project?.id || 0,
-                    info.row.original.name,
-                    info.row.original.project?.contact_id || 0,
-                    Number(val),
-                  );
-                  if (res.success) toast.success("Obchod vytvorený");
-                  else toast.error("Chyba: " + res.error);
+                  const numVal = Number(val);
+                  if (project) {
+                    const res = await updateProject(project.id, {
+                      value: numVal,
+                    });
+                    if (res.success) {
+                      toast.success("Suma nastavená");
+                      setCurrentProjects((prev) =>
+                        prev.map((p) =>
+                          p.id === project.id ? { ...p, value: numVal } : p,
+                        ),
+                      );
+                    } else toast.error("Chyba: " + res.error);
+                  }
                 }
               }}
               className="text-[10px] font-black uppercase text-blue-500 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20 hover:bg-blue-500/20 transition-all font-mono"
@@ -187,9 +194,9 @@ export function DealsTable({
       header: "Stav Fakturácie",
       cell: (info) => {
         const deal = info.row.original;
-        const isVirtual = deal.id < 0;
+        const project = deal.project;
 
-        if (isVirtual)
+        if (!deal.value || deal.value === 0)
           return (
             <span className="text-muted-foreground/30 text-[10px] font-black uppercase italic">
               Nefakturované
@@ -256,23 +263,57 @@ export function DealsTable({
 
         return (
           <div className="flex items-center justify-end gap-2">
-            {!isVirtual && !deal.invoice_date && (
+            {!deal.invoice_date && deal.value > 0 && (
               <button
-                onClick={() => {
-                  toast.promise(invoiceDeal(deal.id), {
-                    loading: "Generujem faktúru...",
-                    success: "Faktúra vygenerovaná",
-                    error: "Chyba pri fakturácii",
-                  });
+                onClick={async () => {
+                  const today = new Date();
+                  const dueDate = new Date();
+                  dueDate.setDate(today.getDate() + 14);
+
+                  const invoiceData = {
+                    invoice_date: today.toISOString(),
+                    due_date: dueDate.toISOString(),
+                  };
+
+                  if (deal.project) {
+                    const res = await updateProject(
+                      deal.project.id,
+                      invoiceData,
+                    );
+                    if (res.success) {
+                      toast.success("Faktúra vygenerovaná");
+                      setCurrentProjects((prev) =>
+                        prev.map((p) =>
+                          p.id === deal.project!.id
+                            ? { ...p, ...invoiceData }
+                            : p,
+                        ),
+                      );
+                    }
+                  }
                 }}
                 className="p-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2 text-[10px] font-black uppercase px-4"
               >
                 <Receipt className="w-3 h-3" /> Fakturovať
               </button>
             )}
-            {!isVirtual && deal.invoice_date && !deal.paid && (
+            {deal.invoice_date && !deal.paid && (
               <button
-                onClick={() => togglePaid(deal.id, deal.paid)}
+                onClick={async () => {
+                  if (deal.project) {
+                    const res = await updateProject(deal.project.id, {
+                      paid: true,
+                    });
+                    if (res.success) {
+                      toast.success("Zaplatené");
+                      setCurrentProjects((prev) =>
+                        prev.map((p) =>
+                          p.id === deal.project!.id ? { ...p, paid: true } : p,
+                        ),
+                      );
+                    }
+                  }
+                }}
                 className="p-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 flex items-center gap-2 text-[10px] font-black uppercase px-4"
               >
                 <Banknote className="w-3 h-3" /> Označiť ako zaplatené

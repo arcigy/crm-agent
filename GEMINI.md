@@ -90,12 +90,14 @@ Directus Token: 3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE
 Directus Admin: arcigyback@gmail.com / Automatizacie#2025
 
 Private Networking: CRM sa pripája na Directus cez private network pre rýchlejšiu komunikáciu.
+
 - Server-side (DIRECTUS_URL): http://directus-buk1.railway.internal:8055
 - Client-side (NEXT_PUBLIC_DIRECTUS_URL): https://directus-buk1-production.up.railway.app
 
 Kolekcie v Directuse:
+
 - contacts (id, first_name, last_name, email, phone, company, status, comments, date_created, date_updated, deleted_at)
-- projects (id, project_type, contact_id, contact_name, stage, end_date, date_created, date_updated, deleted_at)
+- projects (id, project_type, contact_id, contact_name, stage, end_date, value, paid, invoice_date, due_date, date_created, date_updated, deleted_at)
 - deals (id, name, value, contact_id, paid, invoice_date, description, date_created, date_updated, deleted_at)
 - activities (id, type, contact_id, subject, content, duration, activity_date, date_created)
 - crm_users (id, email, password_hash, first_name, last_name, role, status, date_created, date_updated)
@@ -108,7 +110,6 @@ Kolekcie v Directuse:
 
 Dôležité: Pred každou prácou s Directus API overiť, či služba beží na Railway.
 
-
 🚫 9. SUPABASE: NEPOUŽÍVAŤ
 Supabase sa v tomto projekte NEPOUŽÍVA pre dáta.
 Všetky kontakty, projekty, deals a iné CRM dáta sú výhradne v Directus.
@@ -117,10 +118,12 @@ Supabase kód treba postupne odstrániť a nahradiť Directus volaniami.
 🚀 10. GITHUB & DEPLOYMENT
 GitHub repo: https://github.com/arcigy/crm-agent
 Po KAŽDEJ zmene v kóde MUSÍŠ pushnúť na GitHub:
+
 ```powershell
 git add .
 git commit -m "popis zmeny"
 git push origin main
 ```
+
 Railway automaticky deployuje z main branch.
 NIKDY netestuj len lokálne - vždy deploy na produkciu!

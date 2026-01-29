@@ -94,20 +94,25 @@ export async function createProject(data: any) {
   }
 }
 
-export async function updateProjectStage(id: number, stage: ProjectStage) {
+export async function updateProject(id: number, data: Partial<Project>) {
   try {
     // @ts-ignore
     await directus.request(
       updateItem("projects", id, {
-        stage,
+        ...data,
         updated_at: new Date().toISOString(),
       }),
     );
     revalidatePath("/dashboard/projects");
+    revalidatePath("/dashboard/deals");
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e.message };
   }
+}
+
+export async function updateProjectStage(id: number, stage: ProjectStage) {
+  return updateProject(id, { stage });
 }
 
 export async function deleteProject(id: number) {
