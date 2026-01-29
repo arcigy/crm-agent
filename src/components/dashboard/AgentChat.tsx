@@ -93,6 +93,12 @@ export default function AgentChat() {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    // Define userMessage BEFORE using it
+    const userMessage: Message = {
+      role: "user",
+      content: input.trim(),
+    };
+
     // Prepare messages
     const assistantPlaceholder: Message = {
       role: "assistant",
@@ -101,18 +107,21 @@ export default function AgentChat() {
       thoughts: { intent: "Analyzujem...", plan: [], extractedData: {} },
     };
 
+    // Create the history array with current messages + new user message
+    const history = [...messages, userMessage];
+
     setMessages((prev) => [...prev, userMessage, assistantPlaceholder]);
     setInput("");
     setIsLoading(true);
 
     try {
       // 1. SAVE TO DB (Non-blocking)
-      const isNewChat = history.length <= 1; // user + assistant initial
+      const isNewChat = history.length <= 2; // initial assistant + user
       const finalTitle = isNewChat
         ? userMessage.content.slice(0, 30)
         : "Pokračujúci chat";
 
-      saveAgentChat(chatId, finalTitle, [...messages, userMessage])
+      saveAgentChat(chatId, finalTitle, history)
         .then(() => fetchChats())
         .catch((err) => console.error("Persistence Error:", err));
 
