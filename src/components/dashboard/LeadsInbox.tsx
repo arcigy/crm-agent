@@ -91,37 +91,39 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
     try {
       // Fetch Gmail
       const gmailRes = await fetch("/api/google/gmail", { cache: "no-store" });
-      const gmailData = await gmailRes.json();
-      if (gmailData.isConnected && gmailData.messages) {
-        setIsConnected(true);
-        setMessages((prev) => {
-          return gmailData.messages.map((newMsg: GmailMessage) => {
-            const existing = prev.find((p) => p.id === newMsg.id);
+      if (gmailRes.ok) {
+        const gmailData = await gmailRes.json();
+        if (gmailData.isConnected && gmailData.messages) {
+          setIsConnected(true);
+          setMessages((prev) => {
+            return gmailData.messages.map((newMsg: GmailMessage) => {
+              const existing = prev.find((p) => p.id === newMsg.id);
 
-            // Try to restore from localStorage if missing in state
-            let classification = existing?.classification;
-            if (!classification) {
-              const saved = localStorage.getItem(`ai_classify_${newMsg.id}`);
-              if (saved) classification = JSON.parse(saved);
-            }
+              let classification = existing?.classification;
+              if (!classification) {
+                const saved = localStorage.getItem(`ai_classify_${newMsg.id}`);
+                if (saved) classification = JSON.parse(saved);
+              }
 
-            // Smart Merge: Keep existing classification if new one is missing
-            if (classification) {
-              return { ...newMsg, classification };
-            }
-            return newMsg;
+              if (classification) {
+                return { ...newMsg, classification };
+              }
+              return newMsg;
+            });
           });
-        });
-      } else if (gmailData.isConnected === false) {
-        setIsConnected(false);
+        } else if (gmailData.isConnected === false) {
+          setIsConnected(false);
+        }
       }
 
       // Fetch Android Logs
       if (!isBackground) {
         const androidRes = await fetch("/api/android-logs");
-        const androidData = await androidRes.json();
-        if (androidData.success) {
-          setAndroidLogs(androidData.logs);
+        if (androidRes.ok) {
+          const androidData = await androidRes.json();
+          if (androidData.success) {
+            setAndroidLogs(androidData.logs);
+          }
         }
       }
     } catch (error) {
@@ -182,9 +184,9 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
 
   const filteredMessages = messages.filter((msg) => {
     const matchesSearch =
-      msg.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      msg.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      msg.snippet.toLowerCase().includes(searchQuery.toLowerCase());
+      (msg.subject || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (msg.from || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (msg.snippet || "").toLowerCase().includes(searchQuery.toLowerCase());
 
     if (selectedTab === "unread") return matchesSearch && !msg.isRead;
     if (selectedTab === "all" || selectedTab === "leads") return matchesSearch;
@@ -193,7 +195,9 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
 
   const filteredLogs = androidLogs.filter((log) => {
     const matchesSearch =
-      log.phone_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (log.phone_number || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
       (log.body || "").toLowerCase().includes(searchQuery.toLowerCase());
 
     if (selectedTab === "sms") return matchesSearch && log.type === "sms";

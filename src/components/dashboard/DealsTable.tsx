@@ -107,7 +107,7 @@ export function DealsTable({
       // 1. Search Query
       const search = searchQuery.toLowerCase();
       const matchesSearch =
-        item.name.toLowerCase().includes(search) ||
+        (item.name || "").toLowerCase().includes(search) ||
         (item.project?.contact_name || "").toLowerCase().includes(search) ||
         (item.project?.project_type || "").toLowerCase().includes(search);
 
