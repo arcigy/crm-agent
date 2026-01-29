@@ -535,7 +535,7 @@ VÝSTUP LEN JSON: {
         const orchestratorInput = `${architectPrompt}\n\nPoužívateľova požiadavka: ${userMessage}`;
         const orchestratorStart = Date.now();
         const claudeResponse = await anthropic.messages.create({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-4-5-20250929",
           max_tokens: 2048,
           messages: [
             {
@@ -555,7 +555,7 @@ VÝSTUP LEN JSON: {
         trackAICall(
           "orchestrator",
           "anthropic",
-          "claude-sonnet-4-20250514",
+          "claude-sonnet-4-5-20250929",
           orchestratorInput,
           plannerRaw,
           Date.now() - orchestratorStart,

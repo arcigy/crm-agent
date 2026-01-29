@@ -18,7 +18,7 @@ export const AI_PRICING = {
 
   // Anthropic Claude
   "claude-3-5-sonnet-20241022": { input: 3.0, output: 15.0 },
-  "claude-sonnet-4-20250514": { input: 3.0, output: 15.0 },
+  "claude-sonnet-4-5-20250929": { input: 3.0, output: 15.0 },
   "claude-3-5-haiku-20241022": { input: 1.0, output: 5.0 },
   "claude-3-opus-20240229": { input: 15.0, output: 75.0 },
   "claude-haiku-4.5": { input: 1.0, output: 5.0 },

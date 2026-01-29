@@ -30,7 +30,20 @@ import {
   Clock,
   History,
   Trash2,
+  DollarSign,
+  Coins,
 } from "lucide-react";
+
+interface CostInfo {
+  totalCost: number;
+  inputTokens: number;
+  outputTokens: number;
+  breakdown?: {
+    openai: number;
+    anthropic: number;
+    gemini: number;
+  };
+}
 
 interface Message {
   role: "user" | "assistant";
@@ -41,6 +54,7 @@ interface Message {
     plan?: string[];
     extractedData?: any;
   };
+  costInfo?: CostInfo;
 }
 
 export default function AgentChat() {
@@ -55,6 +69,7 @@ export default function AgentChat() {
   ]);
   const [input, setInput] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
+  const [totalSessionCost, setTotalSessionCost] = React.useState(0);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   const fetchChats = async () => {
@@ -137,6 +152,22 @@ export default function AgentChat() {
         setMessages((prev) => {
           const newMsgs = [...prev];
           const lastIdx = newMsgs.length - 1;
+
+          // Extract cost info from response
+          const costInfo: CostInfo | undefined = val?.costTracking
+            ? {
+                totalCost: val.costTracking.totalCost || 0,
+                inputTokens: val.costTracking.totalInputTokens || 0,
+                outputTokens: val.costTracking.totalOutputTokens || 0,
+                breakdown: val.costTracking.breakdown,
+              }
+            : undefined;
+
+          // Update total session cost
+          if (costInfo) {
+            setTotalSessionCost((prev) => prev + costInfo.totalCost);
+          }
+
           newMsgs[lastIdx] = {
             role: "assistant",
             content:
@@ -144,6 +175,7 @@ export default function AgentChat() {
               (val?.status === "thinking" ? "Antigravity pracuje..." : ""),
             toolResults: val?.toolResults || [],
             thoughts: val?.thoughts || assistantPlaceholder.thoughts,
+            costInfo,
           };
           finalMessages = newMsgs;
           return newMsgs;
@@ -164,6 +196,7 @@ export default function AgentChat() {
 
   const createNewChat = () => {
     setChatId(crypto.randomUUID());
+    setTotalSessionCost(0);
     setMessages([
       { role: "assistant", content: "Nová misia začína. Ako ti pomôžem?" },
     ]);
@@ -264,6 +297,45 @@ export default function AgentChat() {
                 >
                   {msg.content}
                 </div>
+
+                {/* Cost Badge - show for assistant messages with cost info */}
+                {msg.role === "assistant" &&
+                  msg.costInfo &&
+                  msg.costInfo.totalCost > 0 && (
+                    <div className="flex items-center gap-2 mt-2 animate-in fade-in duration-300">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                        <Coins className="w-3 h-3 text-emerald-500" />
+                        <span className="text-[10px] font-bold text-emerald-500">
+                          ${msg.costInfo.totalCost.toFixed(6)}
+                        </span>
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-muted/50 border border-border rounded-full">
+                        <span className="text-[9px] font-medium text-muted-foreground">
+                          {msg.costInfo.inputTokens + msg.costInfo.outputTokens}{" "}
+                          tokenov
+                        </span>
+                      </div>
+                      {msg.costInfo.breakdown && (
+                        <div className="inline-flex items-center gap-1 px-2 py-1 bg-muted/30 border border-border/50 rounded-full">
+                          {msg.costInfo.breakdown.openai > 0 && (
+                            <span className="text-[8px] font-medium text-blue-400">
+                              OpenAI
+                            </span>
+                          )}
+                          {msg.costInfo.breakdown.anthropic > 0 && (
+                            <span className="text-[8px] font-medium text-orange-400">
+                              Claude
+                            </span>
+                          )}
+                          {msg.costInfo.breakdown.gemini > 0 && (
+                            <span className="text-[8px] font-medium text-cyan-400">
+                              Gemini
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                 {/* Molecular Thought Process (Expandable) */}
                 {msg.toolResults && msg.toolResults.length > 0 && (
@@ -430,6 +502,17 @@ export default function AgentChat() {
                 className="w-full bg-muted/50 border border-border rounded-[2rem] py-4 px-6 text-sm font-bold placeholder:text-muted-foreground focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all resize-none shadow-inner"
               />
             </div>
+
+            {/* Total Session Cost */}
+            {totalSessionCost > 0 && (
+              <div className="flex flex-col items-center justify-center px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
+                <DollarSign className="w-4 h-4 text-emerald-500" />
+                <span className="text-[10px] font-black text-emerald-500">
+                  {totalSessionCost.toFixed(4)}
+                </span>
+              </div>
+            )}
+
             <button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
