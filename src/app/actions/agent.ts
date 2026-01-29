@@ -1187,3 +1187,26 @@ export async function agentScheduleEvent(d: any) {
 export async function agentSendEmail(d: any) {
   return { success: true };
 }
+
+// ==========================================
+// DEBUGGING TOOLS (LEVEL 0)
+// ==========================================
+
+export async function getAvailableTools() {
+  return ALL_ATOMS;
+}
+
+export async function runToolManually(toolName: string, args: any) {
+  const clerkUser = await currentUser();
+  if (!clerkUser) {
+    throw new Error("User not authenticated");
+  }
+
+  // Reuse existing execution logic
+  try {
+    const result = await executeAtomicTool(toolName, args, clerkUser);
+    return { success: true, result };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
