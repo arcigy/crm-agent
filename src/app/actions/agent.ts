@@ -380,6 +380,13 @@ export async function chatWithAgent(messages: any[]) {
 
       while (!missionAccomplished && attempts < maxAttempts) {
         attempts++;
+        const currentAttemptLog: any = {
+          attempt: attempts,
+          steps: [],
+          verification: null,
+          plannerPrompt: "",
+        };
+
         superState.update({
           toolResults: finalExecutionResults,
           content: `Plánujem pokus č. ${attempts}...`,
@@ -393,15 +400,15 @@ Si **Mission Orchestrator**. Tvojou úlohou je vyriešiť požiadavku používat
 Máš prístup k nástrojom: ${JSON.stringify(ALL_ATOMS.map((t) => t.function.name))}.
 
 TVOJE MOŽNOSTI:
-- Čítanie kódu a štruktúry: Použi sys_list_files a sys_read_file na pochopenie CRM. NEMÔŽEŠ kód prepisovať.
+- Čítanie kódu a štruktúry: Použi sys_list_files a sys_read_file na pochopenie CRM. 
 - Email: gmail_ nástroje.
 - Databáza: db_ nástroje.
 
 HISTÓRIA POKUSOV: ${JSON.stringify(missionHistory)}
 
-FILOZOFIA: "Sprav to za mňa, nepýtaj sa". Navrhni sériu atómických krokov.
 VÝSTUP LEN JSON: { "plan": [{ "tool": "name", "args": {...} }] }
 `;
+        currentAttemptLog.plannerPrompt = architectPrompt;
 
         const plannerRes = await openai.chat.completions.create({
           model: "gpt-4o",
@@ -409,9 +416,10 @@ VÝSTUP LEN JSON: { "plan": [{ "tool": "name", "args": {...} }] }
           response_format: { type: "json_object" },
         });
 
-        const currentPlan = JSON.parse(
-          plannerRes.choices[0].message.content || '{"plan":[]}',
-        );
+        const plannerRaw = plannerRes.choices[0].message.content;
+        currentAttemptLog.plannerRawOutput = plannerRaw;
+
+        const currentPlan = JSON.parse(plannerRaw || '{"plan":[]}');
         const currentStepResults = [];
 
         // 2. EXECUTIVE LAYER (Workers)
@@ -432,7 +440,7 @@ VÝSTUP LEN JSON: { "plan": [{ "tool": "name", "args": {...} }] }
             step.args,
             clerkUser,
           );
-          currentStepResults.push({ tool: step.tool, result });
+          currentStepResults.push({ tool: step.tool, args: step.args, result });
 
           superState.update({
             toolResults: [...finalExecutionResults, ...currentStepResults],
@@ -442,6 +450,7 @@ VÝSTUP LEN JSON: { "plan": [{ "tool": "name", "args": {...} }] }
           } as any);
         }
 
+        currentAttemptLog.steps = currentStepResults;
         finalExecutionResults = [
           ...finalExecutionResults,
           ...currentStepResults,
@@ -453,7 +462,7 @@ Si **Mission Verifier**. Skontroluj, či výsledky pokusu č. ${attempts} úspe�
 PÔVODNÁ POŽIADAVKA: ${messages[messages.length - 1].content}
 VÝSLEDKY POKUSU: ${JSON.stringify(currentStepResults)}
 
-ODPOVEDAJ LEN JSON: { "success": true/false, "analysis": "krátke zdôvodnenie", "missing_info": "čo ešte treba spraviť (ak success false)" }
+ODPOVEDAJ LEN JSON: { "success": true/false, "analysis": "krátke zdôvodnenie", "missing_info": "čo ešte treba spraviť" }
 `;
         const verificationRes = await openai.chat.completions.create({
           model: "gpt-4o",
@@ -461,18 +470,14 @@ ODPOVEDAJ LEN JSON: { "success": true/false, "analysis": "krátke zdôvodnenie",
           response_format: { type: "json_object" },
         });
 
-        const verdict = JSON.parse(
-          verificationRes.choices[0].message.content || '{"success":false}',
-        );
+        const verdictRaw = verificationRes.choices[0].message.content;
+        const verdict = JSON.parse(verdictRaw || '{"success":false}');
+        currentAttemptLog.verification = verdict;
+
+        missionHistory.push(currentAttemptLog);
 
         if (verdict.success) {
           missionAccomplished = true;
-        } else {
-          missionHistory.push({
-            attempt: attempts,
-            results: currentStepResults,
-            failure_reason: verdict.analysis,
-          });
         }
       }
 
@@ -495,6 +500,7 @@ PRAVIDLO: Max 1-2 vety. Buď priamy.
         content: finalRes.choices[0].message.content || "",
         status: "done",
         attempt: attempts,
+        diagnostics: missionHistory, // SEND DEEP LOGS TO UI
       } as any);
     } catch (error: any) {
       superState.error(error.message);
