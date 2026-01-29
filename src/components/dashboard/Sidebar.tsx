@@ -21,6 +21,7 @@ import {
   BrainCircuit,
   History,
   Bot,
+  Terminal,
 } from "lucide-react";
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
