@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
+import { useUser } from "@clerk/nextjs";
+import Image from "next/image";
 
 const navigation = [
   { name: "Nástenka", href: "/dashboard", icon: LayoutDashboard },
@@ -38,6 +40,10 @@ const navigation = [
 export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { user, isLoaded } = useUser();
+  const [logoError, setLogoError] = useState(false);
+
+  const logoUrl = user ? `/logos/${user.id}_logo.png` : null;
 
   // Close menu on navigation
   useEffect(() => {
@@ -73,12 +79,25 @@ export function Sidebar({ className }: { className?: string }) {
       >
         {/* Logo Area */}
         <div className="flex h-16 shrink-0 items-center px-6 border-b border-[#1E293B]">
-          <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <span className="text-white">C</span>
-            </div>
-            <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-              CRM-IDE
+          <div className="flex items-center gap-3 font-bold text-xl tracking-tight">
+            {!logoError && logoUrl ? (
+              <div className="relative w-8 h-8">
+                <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="w-full h-full object-contain rounded-lg shadow-lg"
+                  onError={() => setLogoError(true)}
+                />
+              </div>
+            ) : (
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20">
+                <span className="text-white">C</span>
+              </div>
+            )}
+            <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent truncate max-w-[140px]">
+              {user?.organization?.name ||
+                user?.fullName?.split(" ")[0] ||
+                "CRM"}
             </span>
           </div>
         </div>
