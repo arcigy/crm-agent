@@ -54,7 +54,7 @@ export async function getOnboardingSettings() {
 
     const email = clerkUser.emailAddresses[0]?.emailAddress;
 
-    // 1. Get user profile
+    // 1. Get user profile (Personal Identity)
     // @ts-ignore
     const users = await directus.request(
       readItems("crm_users", {
@@ -64,20 +64,15 @@ export async function getOnboardingSettings() {
     );
     const user = users?.[0];
 
-    // 2. Get AI Memories
+    // 2. Get AI Personalization (Business & AI Context)
     // @ts-ignore
-    const memories = await directus.request(
-      readItems("ai_memories", {
+    const personalization = await directus.request(
+      readItems("ai_personalization", {
         filter: { user_email: { _eq: email } },
+        limit: 1,
       }),
     );
-
-    const getMemory = (cat: string) => {
-      const m = memories.find((m: any) => m.category === cat);
-      if (!m) return "";
-      // Strip the prefix if it exists
-      return m.fact.split(": ").slice(1).join(": ") || m.fact;
-    };
+    const p = personalization?.[0];
 
     return {
       company_name: user?.company_name || "",
@@ -86,10 +81,10 @@ export async function getOnboardingSettings() {
       profession: user?.profession || "",
       about_me: user?.about_me || "",
       custom_instructions: user?.custom_instructions || "",
-      goals: getMemory("goal"),
-      tone: getMemory("tone"),
-      services: getMemory("services"),
-      focus: getMemory("focus"),
+      goals: p?.business_goals || "",
+      tone: p?.communication_tone || "",
+      services: p?.offered_services || "",
+      focus: p?.ai_focus_areas || "",
     };
   } catch (error) {
     console.error("Get Onboarding Settings Error:", error);
@@ -114,7 +109,7 @@ export async function updateOnboardingSettings(data: {
     if (!clerkUser) return { success: false, error: "Unauthorized" };
     const email = clerkUser.emailAddresses[0]?.emailAddress;
 
-    // 1. Update User Record
+    // 1. Update Core User Record (Identity)
     // @ts-ignore
     const users = await directus.request(
       readItems("crm_users", {
@@ -139,60 +134,37 @@ export async function updateOnboardingSettings(data: {
       );
     }
 
-    // 2. Refresh Memories (Delete old ones for these categories and create new ones)
-    const categories = [
-      "goal",
-      "tone",
-      "services",
-      "focus",
-      "company",
-      "personal",
-    ];
-
+    // 2. Update AI Personalization (Business Focus)
     // @ts-ignore
-    const oldMemories = await directus.request(
-      readItems("ai_memories", {
-        filter: {
-          user_email: { _eq: email },
-          category: { _in: categories },
-        },
+    const existingP = await directus.request(
+      readItems("ai_personalization", {
+        filter: { user_email: { _eq: email } },
+        limit: 1,
       }),
     );
 
-    if (oldMemories.length > 0) {
+    const pData = {
+      business_goals: data.goals,
+      communication_tone: data.tone,
+      offered_services: data.services,
+      ai_focus_areas: data.focus,
+      date_updated: new Date().toISOString(),
+    };
+
+    if (existingP && existingP.length > 0) {
       // @ts-ignore
       await directus.request(
-        deleteItems(
-          "ai_memories",
-          oldMemories.map((m: any) => m.id),
-        ),
+        updateItem("ai_personalization", existingP[0].id, pData),
+      );
+    } else {
+      // @ts-ignore
+      await directus.request(
+        createItem("ai_personalization", {
+          user_email: email,
+          ...pData,
+        }),
       );
     }
-
-    const newMemories = [
-      { fact: `Cieľ používania CRM: ${data.goals}`, category: "goal" },
-      { fact: `Komunikačný tón: ${data.tone}`, category: "tone" },
-      { fact: `Ponúkané služby: ${data.services}`, category: "services" },
-      { fact: `Priorita analýzy AI: ${data.focus}`, category: "focus" },
-      {
-        fact: `Firma: ${data.company_name} (Oblasť: ${data.industry})`,
-        category: "company",
-      },
-    ];
-
-    // @ts-ignore
-    await Promise.all(
-      newMemories.map((m) =>
-        directus.request(
-          createItem("ai_memories", {
-            user_email: email,
-            fact: m.fact,
-            category: m.category,
-            confidence: 100,
-          }),
-        ),
-      ),
-    );
 
     return { success: true };
   } catch (error: any) {

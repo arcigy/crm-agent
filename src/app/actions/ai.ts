@@ -1,51 +1,55 @@
-import OpenAI from 'openai';
-import { getSystemPrompt, getMemories } from '@/lib/memory';
+import OpenAI from "openai";
+import { getIsolatedAIContext } from "@/lib/ai-context";
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function classifyEmail(content: string, userEmail?: string, sender?: string, subject?: string) {
-    let customInstructions = "";
-    let userMemories = "";
+export async function classifyEmail(
+  content: string,
+  userEmail?: string,
+  sender?: string,
+  subject?: string,
+) {
+  let context = {
+    user_nickname: "",
+    user_profession: "",
+    user_custom_instructions: "",
+    business_company_name: "",
+    business_industry: "",
+    business_goals: "",
+    business_services: "",
+    communication_tone: "",
+    ai_focus_areas: "",
+    learned_memories: [] as string[],
+  };
 
-    if (userEmail) {
-        // 1. Fetch custom prompt from AI Memory (Specific Override)
-        const fetchedPrompt = await getSystemPrompt(userEmail, 'email_analysis');
-        if (fetchedPrompt) {
-            console.log(`[AI Classify] Using custom system prompt for ${userEmail}`);
-            customInstructions = `
-            SPECIFIC INSTRUCTIONS FOR EMAIL ANALYSIS (OVERRIDE DEFAULTS IF CONFLICT):
-            ${fetchedPrompt}
-            `;
-        }
+  if (userEmail) {
+    context = await getIsolatedAIContext(userEmail, "LEAD_ANALYSIS");
+  }
 
-        // 2. Fetch General Memories (Context about user preferences and facts)
-        try {
-            userMemories = await getMemories(userEmail);
-        } catch (e) {
-            console.error('Failed to fetch memories for classification:', e);
-        }
-    }
-
-    const prompt = `
-Si **profesionálny CRM asistent** špecializovaný na extrakciu dát a kategorizáciu klientskej komunikácie. Tvojou úlohou je analyzovať prichádzajúci e-mail a spracovať ho podľa nasledujúcich pravidiel.
-
----
-
-## 1. Kontextové dáta a priority
-
-### A. Používateľský kontext (User Memories)
-* **Dáta:** ${userMemories || 'Žiadne informácie - postupuj podľa štandardných pravidiel.'}
-* **Inštrukcia:** Tieto fakty o firme a klientoch používaj na interpretáciu vzťahov a odborných termínov v e-maile.
-
-### B. Špecifické inštrukcie (Custom Override)
-* **Dáta:** ${customInstructions}
-* **Inštrukcia:** Tieto pravidlá majú **absolútnu prednosť** pred štandardnými postupmi v prípade akéhokoľvek konfliktu.
+  const prompt = `
+Si **profesionálny CRM asistent** špecializovaný na extrakciu dát a kategorizáciu klientskej komunikácie. Tvojou úlohou je analyzovať prichádzajúci e-mail.
 
 ---
 
-## 2. Detekcia nerelevantného obsahu (Spam Filter)
+## KONTEXT POUŽÍVATEĽA (PERSONALIZÁCIA)
+Tieto informácie ti pomôžu správne interpretovať e-mail v kontexte firmy ${context.business_company_name}:
+
+* **Firma:** ${context.business_company_name} (${context.business_industry})
+* **Služby:** ${context.business_services}
+* **Ciele:** ${context.business_goals}
+* **Zameranie AI:** ${context.ai_focus_areas}
+* **Učenie:** ${context.learned_memories.join("\n")}
+
+---
+
+## ŠPECIFICKÉ INŠTRUKCIE (CUSTOM PROMPT)
+${context.user_custom_instructions || "Postupuj podľa štandardných pravidiel."}
+
+---
+
+## 1. Detekcia nerelevantného obsahu (Spam Filter)
 
 Akonáhle zistíš, že ide o **SPAM, NEWSLETTER, REKLAMU** alebo nerelevantnú hromadnú správu, aplikuj tento protokol:
 
@@ -138,12 +142,12 @@ KOMPLETNÝ EMAIL:
 
 MENO ADRESÁTA (ODOSIELATEĽ):
 """
-${sender || 'Neznámy'}
+${sender || "Neznámy"}
 """
 
 SUBJECT:
 """
-${subject || 'Bez predmetu'}
+${subject || "Bez predmetu"}
 """
 
 E-MAIL:
@@ -154,21 +158,25 @@ ${content}
 Vráť čistý JSON. Odpovedaj v slovenčine.
 `;
 
-    try {
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                { role: "system", content: "Si expert na analýzu obchodnej komunikácie. Odpovedáš striktne v JSON formáte." },
-                { role: "user", content: prompt }
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0,
-        });
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Si expert na analýzu obchodnej komunikácie. Odpovedáš striktne v JSON formáte.",
+        },
+        { role: "user", content: prompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0,
+    });
 
-        const result = JSON.parse(response.choices[0].message.content || '{}');
-        return result;
-    } catch (error) {
-        console.error('AI Classification Error:', error);
-        return null;
-    }
+    const result = JSON.parse(response.choices[0].message.content || "{}");
+    return result;
+  } catch (error) {
+    console.error("AI Classification Error:", error);
+    return null;
+  }
 }
