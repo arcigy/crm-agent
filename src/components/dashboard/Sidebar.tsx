@@ -20,6 +20,7 @@ import {
   Receipt,
   BrainCircuit,
   History,
+  Bot,
 } from "lucide-react";
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
@@ -27,6 +28,7 @@ import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 
 const navigation = [
+  { name: "ArciGy Agent", href: "/dashboard/agent", icon: Bot },
   { name: "Nástenka", href: "/dashboard", icon: LayoutDashboard },
   { name: "Doručená pošta", href: "/dashboard/leads", icon: Mail },
   { name: "Kontakty", href: "/dashboard/contacts", icon: Users },
