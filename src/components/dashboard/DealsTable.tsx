@@ -20,6 +20,10 @@ import {
   Banknote,
   FileText,
   HardDrive,
+  Search,
+  Filter,
+  ArrowUpDown,
+  X,
 } from "lucide-react";
 import { format, isAfter, isBefore, addDays } from "date-fns";
 import { sk } from "date-fns/locale";
@@ -57,10 +61,16 @@ export function DealsTable({
     folderId?: string;
   } | null>(null);
 
+  // Filter States
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [stageFilter, setStageFilter] = React.useState<string>("all");
+  const [priceFilter, setPriceFilter] = React.useState<string>("all");
+  const [uninvoicedOnly, setUninvoicedOnly] = React.useState(false);
+
   // Merge projects and deals
   // For each project, find its deal. If no deal found, create a "virtual" one from project data
   const tableData = React.useMemo(() => {
-    return currentProjects.map((project) => {
+    const data = currentProjects.map((project) => {
       const deal = deals.find(
         (d) => d.project_id === project.id || d.name === project.name,
       );
@@ -91,7 +101,45 @@ export function DealsTable({
         project: { ...project, contact_name: contactName },
       };
     });
-  }, [deals, currentProjects, contacts]);
+
+    // Apply filtering
+    return data.filter((item) => {
+      // 1. Search Query
+      const search = searchQuery.toLowerCase();
+      const matchesSearch =
+        item.name.toLowerCase().includes(search) ||
+        (item.project?.contact_name || "").toLowerCase().includes(search) ||
+        (item.project?.project_type || "").toLowerCase().includes(search);
+
+      if (!matchesSearch) return false;
+
+      // 2. Stage Filter
+      if (stageFilter !== "all" && item.project?.stage !== stageFilter)
+        return false;
+
+      // 3. Uninvoiced Filter
+      if (uninvoicedOnly && item.invoice_date) return false;
+
+      // 4. Price Filter
+      if (priceFilter !== "all") {
+        const val = item.value || 0;
+        if (priceFilter === "less_5" && val >= 5) return false;
+        if (priceFilter === "more_5" && val < 5) return false;
+        if (priceFilter === "zero" && val !== 0) return false;
+        if (priceFilter === "high" && val < 1000) return false;
+      }
+
+      return true;
+    });
+  }, [
+    deals,
+    currentProjects,
+    contacts,
+    searchQuery,
+    stageFilter,
+    priceFilter,
+    uninvoicedOnly,
+  ]);
 
   const columns = [
     columnHelper.accessor("name", {
@@ -363,6 +411,83 @@ export function DealsTable({
         subfolderName="01_Zmluvy_a_Faktury"
       />
       <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden transition-colors duration-300">
+        {/* Filters Toolbar */}
+        <div className="p-6 border-b border-border bg-muted/20 flex flex-wrap items-center gap-4">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+            <input
+              type="text"
+              placeholder="Hľadať projekt alebo kontakt..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-2xl text-sm font-bold focus:border-blue-500 outline-none transition-all placeholder:text-muted-foreground/30 text-foreground"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-card border border-border rounded-2xl px-3 py-1.5 shadow-sm">
+              <Filter className="w-3.5 h-3.5 text-blue-500" />
+              <select
+                value={stageFilter}
+                onChange={(e) => setStageFilter(e.target.value)}
+                className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none text-foreground cursor-pointer"
+              >
+                <option value="all">Všetky štádiá</option>
+                {PROJECT_STAGES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 bg-card border border-border rounded-2xl px-3 py-1.5 shadow-sm">
+              <Banknote className="w-3.5 h-3.5 text-emerald-500" />
+              <select
+                value={priceFilter}
+                onChange={(e) => setPriceFilter(e.target.value)}
+                className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none text-foreground cursor-pointer"
+              >
+                <option value="all">Všetky ceny</option>
+                <option value="zero">Bez ceny (0 €)</option>
+                <option value="less_5">Lacnejšie (pod 5 €)</option>
+                <option value="more_5">Drahšie (nad 5 €)</option>
+                <option value="high">Premium (nad 1000 €)</option>
+              </select>
+            </div>
+
+            <button
+              onClick={() => setUninvoicedOnly(!uninvoicedOnly)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${
+                uninvoicedOnly
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-500 shadow-lg shadow-amber-500/10"
+                  : "bg-card border-border text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              Nevyfakturované
+            </button>
+
+            {(searchQuery ||
+              stageFilter !== "all" ||
+              priceFilter !== "all" ||
+              uninvoicedOnly) && (
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setStageFilter("all");
+                  setPriceFilter("all");
+                  setUninvoicedOnly(false);
+                }}
+                className="p-2.5 rounded-xl hover:bg-red-500/10 text-red-500 transition-all border border-transparent hover:border-red-500/20"
+                title="Resetovať filtre"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead className="bg-[#020617]/50 backdrop-blur-md sticky top-0 z-10 border-b border-border">
