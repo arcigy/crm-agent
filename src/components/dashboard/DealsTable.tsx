@@ -35,17 +35,23 @@ import {
   createDealFromProject,
 } from "@/app/actions/deals";
 import { StageBadge } from "./projects/StageBadge";
+import { updateProjectStage } from "@/app/actions/projects";
+import { Lead } from "@/types/contact";
+import { name } from "assert";
 
 const columnHelper = createColumnHelper<Deal & { project?: Project }>();
 
 export function DealsTable({
   deals,
   projects,
+  contacts,
 }: {
   deals: Deal[];
   projects: Project[];
+  contacts: Lead[];
 }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [currentProjects, setCurrentProjects] = React.useState(projects);
   const [driveProject, setDriveProject] = React.useState<{
     id: number;
     name: string;
@@ -55,10 +61,22 @@ export function DealsTable({
   // Merge projects and deals
   // For each project, find its deal. If no deal found, create a "virtual" one from project data
   const tableData = React.useMemo(() => {
-    return projects.map((project) => {
+    return currentProjects.map((project) => {
       const deal = deals.find(
         (d) => d.project_id === project.id || d.name === project.name,
       );
+
+      // Resolve contact name if it's "Neznámy" or missing
+      let contactName = project.contact_name;
+      if (!contactName || contactName === "Neznámy") {
+        const contact = contacts.find(
+          (c) => String(c.id) === String(project.contact_id),
+        );
+        if (contact) {
+          contactName = `${contact.first_name} ${contact.last_name}`;
+        }
+      }
+
       return {
         ...(deal || {
           id: -project.id, // Negative ID for virtual deals
@@ -69,10 +87,10 @@ export function DealsTable({
           paid: false,
           date_created: project.date_created,
         }),
-        project,
+        project: { ...project, contact_name: contactName },
       };
     });
-  }, [deals, projects]);
+  }, [deals, currentProjects, contacts]);
 
   const columns = [
     columnHelper.accessor("name", {
@@ -113,7 +131,13 @@ export function DealsTable({
         return (
           <StageBadge
             projectId={info.row.original.project?.id || 0}
-            currentStage={stage || "planning"}
+            stage={(info.getValue() as any) || "planning"}
+            onStageChange={async (id, newStage) => {
+              setCurrentProjects((prev) =>
+                prev.map((p) => (p.id === id ? { ...p, stage: newStage } : p)),
+              );
+              await updateProjectStage(id, newStage);
+            }}
           />
         );
       },

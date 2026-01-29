@@ -1,19 +1,21 @@
-// Triggering fresh build for Finance & Invoicing integration
 import { DealsTable } from "@/components/dashboard/DealsTable";
 import { getDeals } from "@/app/actions/deals";
 import { getProjects } from "@/app/actions/projects";
+import { getContacts } from "@/app/actions/contacts";
 import { Banknote, Plus, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function DealsPage() {
-  const [dealsRes, projectsRes] = await Promise.all([
+  const [dealsRes, projectsRes, contactsRes] = await Promise.all([
     getDeals(),
     getProjects(),
+    getContacts(),
   ]);
 
   const deals = dealsRes.data || [];
   const projects = projectsRes.data || [];
+  const contacts = (contactsRes.data as any[]) || [];
 
   return (
     <div className="space-y-8 h-[calc(100vh-100px)] flex flex-col p-8 transition-colors duration-500">
@@ -79,7 +81,7 @@ export default async function DealsPage() {
 
       {/* Main Table */}
       <div className="flex-1 overflow-hidden">
-        <DealsTable deals={deals} projects={projects} />
+        <DealsTable deals={deals} projects={projects} contacts={contacts} />
       </div>
     </div>
   );
