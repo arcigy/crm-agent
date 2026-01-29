@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { chatWithAgent } from "@/app/actions/agent";
 import { toast } from "sonner";
+import { readStreamableValue } from "@ai-sdk/rsc";
+import { Mail, Copy, Check } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -35,42 +37,67 @@ export default function AgentChat() {
   const [isLoading, setIsLoading] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
+  const [isCopying, setIsCopying] = React.useState(false);
+
   React.useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
 
+  const copySessionToClipboard = () => {
+    const sessionData = JSON.stringify(messages, null, 2);
+    navigator.clipboard.writeText(sessionData);
+    setIsCopying(true);
+    toast.success("Konverzácia a logy skopírované!");
+    setTimeout(() => setIsCopying(false), 2000);
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: input };
+    const history = [...messages, userMessage];
+
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
+    // Initial placeholder for assistant
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: "Agent analyzuje požiadavku...",
+        toolResults: [],
+      },
+    ]);
+
     try {
-      const response = await chatWithAgent(
-        [...messages, userMessage].map((m) => ({
+      const { stream } = await chatWithAgent(
+        history.map((m) => ({
           role: m.role,
           content: m.content,
         })),
       );
 
-      if (response.error) {
-        toast.error("Chyba agenta: " + response.error);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
+      for await (const val of readStreamableValue(stream)) {
+        setMessages((prev) => {
+          const newMsgs = [...prev];
+          const lastIdx = newMsgs.length - 1;
+          newMsgs[lastIdx] = {
             role: "assistant",
-            content: response.content || "",
-            toolResults: response.toolResults,
-          },
-        ]);
+            content:
+              val?.content ||
+              (val?.status === "thinking" ? "Agent premýšľa..." : ""),
+            toolResults: val?.toolResults || [],
+          };
+          return newMsgs;
+        });
       }
-    } catch (error) {
-      toast.error("Systémová chyba komunikácie.");
+    } catch (error: any) {
+      toast.error("Chyba: " + error.message);
+      setMessages((prev) => prev.slice(0, -1)); // Remove placeholder on error
     } finally {
       setIsLoading(false);
     }
@@ -105,10 +132,24 @@ export default function AgentChat() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={copySessionToClipboard}
+            className="flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-muted/80 rounded-xl border border-border transition-all active:scale-95"
+            title="Skopírovať JSON celej session pre debug"
+          >
+            {isCopying ? (
+              <Check className="w-3 h-3 text-emerald-500" />
+            ) : (
+              <Copy className="w-3 h-3 text-muted-foreground" />
+            )}
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+              Debug JSON
+            </span>
+          </button>
           <div className="px-3 py-1.5 bg-muted rounded-xl border border-border hidden md:flex items-center gap-2">
             <Zap className="w-3 h-3 text-amber-500" />
             <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-              GPT-4o Mini Turbo
+              GPT-4o Antigravity
             </span>
           </div>
         </div>

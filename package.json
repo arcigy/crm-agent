@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.18",
+    "@ai-sdk/rsc": "^2.0.61",
     "@chengsokdara/use-whisper": "^0.2.0",
     "@clerk/nextjs": "^6.36.10",
     "@directus/sdk": "^21.0.0",

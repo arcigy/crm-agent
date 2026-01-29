@@ -7,6 +7,7 @@ import { getIsolatedAIContext } from "@/lib/ai-context";
 import { getGmailClient } from "@/lib/google";
 import OpenAI from "openai";
 import { revalidatePath } from "next/cache";
+import { createStreamableValue } from "@ai-sdk/rsc";
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
@@ -352,99 +353,117 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 // ==========================================
 
 export async function chatWithAgent(messages: any[]) {
-  try {
-    const clerkUser = await currentUser();
-    if (!clerkUser) return { error: "Unauthorized" };
-    const email = clerkUser.emailAddresses[0]?.emailAddress;
+  const superState = createStreamableValue({
+    toolResults: [] as any[],
+    content: "",
+    status: "thinking",
+  });
 
-    // A. PLANNER STEP (Architect decomposes task)
-    const context = await getIsolatedAIContext(email, "GLOBAL");
+  (async () => {
+    try {
+      const clerkUser = await currentUser();
+      if (!clerkUser) {
+        superState.error("Unauthorized");
+        return;
+      }
+      const email = clerkUser.emailAddresses[0]?.emailAddress;
+      const context = await getIsolatedAIContext(email, "GLOBAL");
 
-    const architectPrompt = `
-Si **Architect Planner (The Super Brain)**. Tvojou úlohou je rozbiť komplexnú požiadavku na sekvenciu atómických krokov.
+      // A. PLANNER STEP
+      const architectPrompt = `
+Si **Antigravity-style Architect**. Tvojou úlohou je vykonať požiadavku bez zbytočných rečí.
 Máš prístup k nástrojom: ${JSON.stringify(ALL_ATOMS.map((t) => t.function.name))}.
 
-PROTOKOL "NO-FAIL & SELF-HEAL":
-1. Máš plný prístup k systému cez 'sys_' tools. Ak niečo nefunguje, môžeš si prečítať kód, skontrolovať štruktúru súborov alebo spustiť build.
-2. Ak nástroj zlyhá, nehovor "to nejde". Navrhni iný atómický krok (workaround).
-3. Do výstupu daj LEN JSON: { "plan": [{ "tool": "name", "args": {...} }] }
+Pravidlá hry:
+1. **SPRAV TO ZA MŇA**: Nepýtaj sa na povolenie. Vykonaj všetky potrebné kroky (Gmail, DB, System).
+2. **Molekulárny plán**: Rozbi problém na exekvovateľné diely.
+3. **Proaktivita**: Ak vidíš chybu, skús ju opraviť cez 'sys_read_file' a 'sys_run_command'.
+4. Výstup: LEN JSON: { "plan": [{ "tool": "name", "args": {...} }] }
 
-Tvojou identitou je ${context.user_nickname}. Si vysoko autonómny. Ak máš pochybnosti o tom, ako funguje CRM, pozri sa do kódu v src/.
+Identita: ${context.user_nickname}.
 `;
 
-    const plannerRes = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "system", content: architectPrompt }, ...messages],
-      response_format: { type: "json_object" },
-    });
+      const plannerRes = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "system", content: architectPrompt }, ...messages],
+        response_format: { type: "json_object" },
+      });
 
-    const missionPlan = JSON.parse(
-      plannerRes.choices[0].message.content || '{"plan":[]}',
-    );
-    const executionResults = [];
+      const missionPlan = JSON.parse(
+        plannerRes.choices[0].message.content || '{"plan":[]}',
+      );
+      const executionResults: any[] = [];
 
-    // B. EXECUTION LOOP (The Workers)
-    for (const step of missionPlan.plan) {
-      let result = await executeAtomicTool(step.tool, step.args, clerkUser);
+      // B. EXECUTION LOOP
+      for (const step of missionPlan.plan) {
+        let result = await executeAtomicTool(step.tool, step.args, clerkUser);
 
-      // Automatic Solution Seeking on failure
-      if (!result.success) {
-        const solver = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content:
-                'Nástroj zlyhal. Navrhni ALTERNATÍVU (tool + args) pre vyriešenie problému. JSON: { "new_step": { "tool": "...", "args": {...} } }.',
-            },
-            {
-              role: "user",
-              content: `Pôvodný krok: ${JSON.stringify(step)}, Error: ${result.error}`,
-            },
-          ],
-          response_format: { type: "json_object" },
-        });
-        const workaround = JSON.parse(
-          solver.choices[0].message.content || "{}",
-        ).new_step;
-        if (workaround) {
-          result = await executeAtomicTool(
-            workaround.tool,
-            workaround.args,
-            clerkUser,
-          );
+        if (!result.success) {
+          const solver = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content:
+                  'Nástroj zlyhal. Navrhni ALTERNATÍVU (tool + args) pre vyriešenie problému. JSON: { "new_step": { "tool": "...", "args": {...} } }.',
+              },
+              {
+                role: "user",
+                content: `Step: ${JSON.stringify(step)}, Error: ${result.error}`,
+              },
+            ],
+            response_format: { type: "json_object" },
+          });
+          const workaround = JSON.parse(
+            solver.choices[0].message.content || "{}",
+          ).new_step;
+          if (workaround) {
+            result = await executeAtomicTool(
+              workaround.tool,
+              workaround.args,
+              clerkUser,
+            );
+          }
         }
+
+        executionResults.push({ tool: step.tool, result });
+        superState.update({
+          toolResults: [...executionResults],
+          content: "",
+          status: "thinking",
+        });
       }
 
-      executionResults.push({ tool: step.tool, result });
-    }
+      // C. FINAL RESPONSE
+      const verifierPrompt = `
+Si **ArciGy Agent** (Persona: Ultra-efektívny parťák). 
+VÝSLEDKY: ${JSON.stringify(executionResults)}
 
-    // C. FINAL VERIFICATION & ANALYSIS
-    const verifierPrompt = `
-Si **Final Verifier**. Skontroluj výsledky operácií pre používateľa ${context.user_nickname}.
-ZHRNUTIE VÝSLEDKOV: ${JSON.stringify(executionResults)}
-
-Tvojou úlohou:
-1. Povedz, čo si reálne spravil.
-2. Ak si narazil na chybu, povedz ako si ju obišiel.
-3. BUĎ ÚPRIMNÝ – ak si niečo nestihol, navrhni ďalší krok.
-4. Tón: ${context.communication_tone}.
+Komunikuj:
+1. **Extrémne stručne**: Žiadna omáčka. "Hotovo." + 1 veta zhrnutia.
+2. **Bez otázok**: Ak si niečo spravil, povedz to. Nepýtaj sa, či je to OK.
+3. **Tón**: Priateľský, k veci.
 `;
 
-    const finalRes = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "system", content: verifierPrompt }, ...messages],
-    });
+      const finalRes = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "system", content: verifierPrompt }, ...messages],
+      });
 
-    return {
-      role: "assistant",
-      content: finalRes.choices[0].message.content,
-      toolResults: executionResults,
-    };
-  } catch (error: any) {
-    console.error("Agent System Error:", error);
-    return { error: error.message };
-  }
+      const content = finalRes.choices[0].message.content || "";
+      superState.done({
+        toolResults: executionResults,
+        content,
+        status: "done",
+      });
+    } catch (error: any) {
+      superState.error(error.message);
+    }
+  })();
+
+  return {
+    stream: superState.value,
+  };
 }
 
 // Compatibility Shims
