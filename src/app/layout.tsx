@@ -1,8 +1,10 @@
+import * as React from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,12 +19,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "CRM Agent",
   description: "Advanced Agentic CRM",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "CRM Agent",
+  },
 };
 
 // VoiceDictationProvider temporarily disabled due to @ffmpeg/ffmpeg module issue
 // import { VoiceDictationProvider } from '@/components/VoiceDictationProvider';
 
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 export default function RootLayout({
   children,
@@ -42,6 +50,7 @@ export default function RootLayout({
           >
             {children}
             <Toaster richColors position="top-right" />
+            <ServiceWorkerRegister />
           </ThemeProvider>
         </body>
       </html>
