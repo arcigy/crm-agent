@@ -7,6 +7,11 @@ import { getIsolatedAIContext } from "@/lib/ai-context";
 import { getGmailClient } from "@/lib/google";
 import OpenAI from "openai";
 import { revalidatePath } from "next/cache";
+import fs from "fs";
+import path from "path";
+import { execSync } from "child_process";
+import client from "openai";
+import { any, string } from "zod";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -144,6 +149,53 @@ const INBOX_ATOMS: any[] = [
   },
 ];
 
+const SYSTEM_ATOMS: any[] = [
+  {
+    type: "function",
+    function: {
+      name: "sys_list_files",
+      description: "Zobrazí štruktúru súborov v projekte (tree view).",
+      parameters: {
+        type: "object",
+        properties: {
+          path: {
+            type: "string",
+            description: "Relatívna cesta (predvolene koreň .)",
+          },
+          depth: { type: "number", default: 2 },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "sys_read_file",
+      description: "Prečíta obsah konkrétneho súboru v projekte.",
+      parameters: {
+        type: "object",
+        properties: { path: { type: "string" } },
+        required: ["path"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "sys_run_command",
+      description:
+        "Spustí terminálový príkaz (napr. npm run build, git status).",
+      parameters: {
+        type: "object",
+        properties: { command: { type: "string" } },
+        required: ["command"],
+      },
+    },
+  },
+];
+
+const ALL_ATOMS = [...INBOX_ATOMS, ...SYSTEM_ATOMS];
+
 // ==========================================
 // 2. TOKEN HELPER (Clerk integration)
 // ==========================================
@@ -256,6 +308,37 @@ async function executeAtomicTool(name: string, args: any, user: any) {
         }
         return { success: true };
 
+      // --- SYSTEM TOOLS ---
+      case "sys_list_files":
+        const targetPath = path.resolve(process.cwd(), args.path || ".");
+        if (!targetPath.startsWith(process.cwd()))
+          return { success: false, error: "Access denied" };
+        const files = fs.readdirSync(targetPath, { withFileTypes: true });
+        const tree = files.map(
+          (f) => `${f.isDirectory() ? "[DIR]" : "[FILE]"} ${f.name}`,
+        );
+        return { success: true, data: tree };
+
+      case "sys_read_file":
+        const filePath = path.resolve(process.cwd(), args.path);
+        if (!filePath.startsWith(process.cwd()))
+          return { success: false, error: "Access denied" };
+        if (!fs.existsSync(filePath))
+          return { success: false, error: "File not found" };
+        const content = fs.readFileSync(filePath, "utf-8");
+        return { success: true, data: content.slice(0, 10000) }; // Limit to 10k chars
+
+      case "sys_run_command":
+        try {
+          const output = execSync(args.command, {
+            encoding: "utf-8",
+            timeout: 30000,
+          });
+          return { success: true, data: output };
+        } catch (e: any) {
+          return { success: false, error: e.stdout || e.message };
+        }
+
       default:
         return { success: false, error: "Tool not found" };
     }
@@ -278,15 +361,15 @@ export async function chatWithAgent(messages: any[]) {
     const context = await getIsolatedAIContext(email, "GLOBAL");
 
     const architectPrompt = `
-Si **Architect Planner (The Brain)**. Tvojou úlohou je rozbiť komplexnú požiadavku na sekvenciu atómických krokov.
-Máš prístup k nástrojom: ${JSON.stringify(INBOX_ATOMS.map((t) => t.function.name))}.
+Si **Architect Planner (The Super Brain)**. Tvojou úlohou je rozbiť komplexnú požiadavku na sekvenciu atómických krokov.
+Máš prístup k nástrojom: ${JSON.stringify(ALL_ATOMS.map((t) => t.function.name))}.
 
-PROTOKOL "NO-FAIL":
-1. Ak nástroj zlyhá, nehovor "to nejde". Navrhni iný atómický krok (workaround).
-2. Ak nevieš identifikovať e-mail, skús širšie vyhľadávanie (napr. len meno alebo doménu).
+PROTOKOL "NO-FAIL & SELF-HEAL":
+1. Máš plný prístup k systému cez 'sys_' tools. Ak niečo nefunguje, môžeš si prečítať kód, skontrolovať štruktúru súborov alebo spustiť build.
+2. Ak nástroj zlyhá, nehovor "to nejde". Navrhni iný atómický krok (workaround).
 3. Do výstupu daj LEN JSON: { "plan": [{ "tool": "name", "args": {...} }] }
 
-Identita: ${context.user_nickname}.
+Tvojou identitou je ${context.user_nickname}. Si vysoko autonómny. Ak máš pochybnosti o tom, ako funguje CRM, pozri sa do kódu v src/.
 `;
 
     const plannerRes = await openai.chat.completions.create({

@@ -80,7 +80,7 @@ export default function AgentChat() {
     <div className="flex flex-col h-[calc(100vh-180px)] max-w-5xl mx-auto bg-card border border-border rounded-[2.5rem] shadow-2xl overflow-hidden relative">
       {/* Dynamic Background Effects */}
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-transparent pointer-events-none" />
-      <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full" />
+      <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
 
       {/* Header */}
       <div className="relative px-8 py-5 border-b border-border bg-card/50 backdrop-blur-xl flex items-center justify-between">
@@ -151,39 +151,56 @@ export default function AgentChat() {
                 {msg.content}
               </div>
 
-              {/* Tool Results visualization */}
+              {/* Molecular Thought Process (Expandable) */}
               {msg.toolResults && msg.toolResults.length > 0 && (
-                <div className="flex flex-wrap gap-2 animate-in zoom-in-95 duration-500">
-                  {msg.toolResults.map((step, tIdx) => {
-                    const isGmail = step.tool.startsWith("gmail");
-                    const isSuccess = step.result?.success;
-                    return (
-                      <div
-                        key={tIdx}
-                        className={`flex items-center gap-2 px-3 py-1.5 border rounded-xl shadow-sm transition-all ${
-                          isSuccess
-                            ? "bg-muted/50 border-border"
-                            : "bg-rose-500/10 border-rose-500/20"
-                        }`}
-                      >
-                        {isGmail ? (
-                          <Mail className="w-3 h-3 text-indigo-500" />
-                        ) : (
-                          <Terminal className="w-3 h-3 text-indigo-500" />
-                        )}
-                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                          {step.tool
-                            .replace("gmail_", "")
-                            .replace("db_", "")
-                            .replace("ai_", "")
-                            .replace("_", " ")}
+                <div className="space-y-2 animate-in fade-in duration-500">
+                  <details className="group border border-indigo-500/20 bg-indigo-500/5 rounded-2xl overflow-hidden transition-all hover:border-indigo-500/40">
+                    <summary className="flex items-center justify-between px-4 py-2.5 cursor-pointer list-none select-none">
+                      <div className="flex items-center gap-2">
+                        <Terminal className="w-3.5 h-4 text-indigo-500" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500/80">
+                          Logika & Molekulárny Plán
                         </span>
-                        <div
-                          className={`w-1 h-1 rounded-full ${isSuccess ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`}
-                        />
                       </div>
-                    );
-                  })}
+                      <ChevronRight className="w-3.5 h-3.5 text-indigo-500/50 group-open:rotate-90 transition-transform" />
+                    </summary>
+
+                    <div className="p-4 pt-0 space-y-3 border-t border-indigo-500/10">
+                      {msg.toolResults.map((step, tIdx) => (
+                        <div key={tIdx} className="space-y-1.5 pt-3 first:pt-0">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {step.tool?.startsWith("gmail") ? (
+                                <Mail className="w-3 h-3 text-indigo-400" />
+                              ) : (
+                                <Database className="w-3 h-3 text-violet-400" />
+                              )}
+                              <span className="text-[9px] font-black uppercase tracking-tight text-foreground/70">
+                                {step.tool}
+                              </span>
+                            </div>
+                            <span
+                              className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                                step.result?.success
+                                  ? "bg-emerald-500/10 text-emerald-500"
+                                  : "bg-rose-500/10 text-rose-500"
+                              }`}
+                            >
+                              {step.result?.success ? "Success" : "Failed"}
+                            </span>
+                          </div>
+
+                          <pre className="text-[10px] font-mono bg-black/20 p-3 rounded-xl overflow-x-auto text-indigo-300/80 border border-indigo-500/5">
+                            {JSON.stringify(
+                              step.result?.data || step.result,
+                              null,
+                              2,
+                            )}
+                          </pre>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
                 </div>
               )}
             </div>
@@ -203,10 +220,10 @@ export default function AgentChat() {
       </div>
 
       {/* Input Area */}
-      <div className="px-8 py-6 border-t border-border bg-card/50 backdrop-blur-md relative">
+      <div className="px-8 py-6 border-t border-border bg-card/50 backdrop-blur-md relative z-10">
         <div className="relative max-w-3xl mx-auto flex items-end gap-3">
           <div className="flex-1 relative group">
-            <div className="absolute inset-0 bg-indigo-500/5 rounded-[2rem] blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-indigo-500/5 rounded-[2rem] blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
             <textarea
               rows={1}
               value={input}
