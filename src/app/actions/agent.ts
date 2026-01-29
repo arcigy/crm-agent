@@ -648,13 +648,33 @@ ODPOVEDAJ LEN JSON: {
           plannerPrompt: "",
         };
 
+        // Build detailed tool descriptions for Claude
+        const toolDescriptions = ALL_ATOMS.map((t) => {
+          const params = t.function.parameters?.properties || {};
+          const paramStr = Object.entries(params)
+            .map(
+              ([k, v]: [string, any]) =>
+                `${k}: ${v.type}${v.description ? ` (${v.description})` : ""}`,
+            )
+            .join(", ");
+          return `- ${t.function.name}: ${t.function.description}. Parametre: {${paramStr}}`;
+        }).join("\n");
+
         const architectPrompt = `
 Si **Mission Orchestrator**. Navrhni PLÁN KROKOV v SLOVENČINE pre vyriešenie požiadavky.
-Dostupné nástroje: ${JSON.stringify(ALL_ATOMS.map((t) => t.function.name))}.
 
-Dôležité: Do poľa "readable_plan" daj zoznam krokov v ľudskej reči (napr. "Vyhľadám kontakt v databáze", "Zapíšem nový lead").
+DOSTUPNÉ NÁSTROJE:
+${toolDescriptions}
+
+DÔLEŽITÉ PRAVIDLÁ:
+- Pre VYTVORENIE nového kontaktu použi: db_create_contact (s first_name, last_name, email, phone)
+- Pre VYHĽADANIE kontaktu použi: db_search_contacts (s query)
+- Pre AKTUALIZÁCIU lead analýzy použi: db_update_lead_info (s message_id)
+- Pre získanie emailov použi: gmail_fetch_list
+
+Do poľa "readable_plan" daj zoznam krokov v ľudskej reči.
 VÝSTUP LEN JSON: { 
-  "plan": [{ "tool": "name", "args": {...} }], 
+  "plan": [{ "tool": "názov_toolu", "args": {...} }], 
   "readable_plan": ["krok 1", "krok 2"] 
 }
 `;
@@ -845,25 +865,58 @@ Odpovedaj priamo, bez JSON formátu. Buď priateľský a profesionálny.`;
 // ==========================================
 
 export async function getAgentChats() {
-  const clerkUser = await currentUser();
-  if (!clerkUser) return [];
-  const email = clerkUser.emailAddresses[0]?.emailAddress;
+  try {
+    const clerkUser = await currentUser();
+    if (!clerkUser) return [];
+    const email = clerkUser.emailAddresses[0]?.emailAddress;
 
-  // @ts-ignore
-  const chats = await directus.request(
-    readItems("agent_chats", {
-      filter: { user_email: { _eq: email } },
-      sort: ["-date_created"],
-    }),
-  );
-  return chats;
+    // @ts-ignore
+    const chats = await directus.request(
+      readItems("agent_chats", {
+        filter: {
+          user_email: { _eq: email },
+          status: { _neq: "archived" },
+        },
+        sort: ["-date_created"],
+        limit: 50,
+      }),
+    );
+
+    // Parse messages from JSON string
+    return chats.map((chat: any) => ({
+      ...chat,
+      messages:
+        typeof chat.messages === "string"
+          ? JSON.parse(chat.messages)
+          : chat.messages,
+    }));
+  } catch (e: any) {
+    console.error("[getAgentChats] Error:", e.message);
+    return [];
+  }
 }
 
 export async function getAgentChatById(id: string) {
-  // @ts-ignore
-  return await directus
-    .request(readItems("agent_chats", { filter: { id: { _eq: id } } }))
-    .then((res) => res[0]);
+  try {
+    // @ts-ignore
+    const results = await directus.request(
+      readItems("agent_chats", { filter: { id: { _eq: id } } }),
+    );
+    const chat = results[0];
+    if (chat) {
+      return {
+        ...chat,
+        messages:
+          typeof chat.messages === "string"
+            ? JSON.parse(chat.messages)
+            : chat.messages,
+      };
+    }
+    return null;
+  } catch (e: any) {
+    console.error("[getAgentChatById] Error:", e.message);
+    return null;
+  }
 }
 
 export async function saveAgentChat(
@@ -871,31 +924,58 @@ export async function saveAgentChat(
   title: string,
   messages: any[],
 ) {
-  const clerkUser = await currentUser();
-  if (!clerkUser) return;
-  const email = clerkUser.emailAddresses[0]?.emailAddress;
+  try {
+    const clerkUser = await currentUser();
+    if (!clerkUser) {
+      console.error("[saveAgentChat] No user found");
+      return;
+    }
+    const email = clerkUser.emailAddresses[0]?.emailAddress;
 
-  // @ts-ignore
-  const existing = await directus.request(
-    readItems("agent_chats", { filter: { id: { _eq: id } } }),
-  );
-
-  if (existing.length > 0) {
-    // @ts-ignore
-    await directus.request(updateItem("agent_chats", id, { title, messages }));
-  } else {
-    // @ts-ignore
-    await directus.request(
-      createItem("agent_chats", {
-        id,
-        title,
-        messages,
-        user_email: email,
-        date_created: new Date().toISOString(),
-      }),
+    // Ensure we have a valid ID
+    const chatId = id || crypto.randomUUID();
+    console.log(
+      `[saveAgentChat] Saving chat ${chatId} with ${messages.length} messages`,
     );
+
+    // @ts-ignore
+    const existing = await directus
+      .request(readItems("agent_chats", { filter: { id: { _eq: chatId } } }))
+      .catch((e: any) => {
+        console.error("[saveAgentChat] Error checking existing:", e.message);
+        return [];
+      });
+
+    if (existing && existing.length > 0) {
+      // @ts-ignore
+      await directus.request(
+        updateItem("agent_chats", chatId, {
+          title,
+          messages: JSON.stringify(messages),
+          date_updated: new Date().toISOString(),
+        }),
+      );
+      console.log(`[saveAgentChat] Updated existing chat ${chatId}`);
+    } else {
+      // @ts-ignore
+      await directus.request(
+        createItem("agent_chats", {
+          id: chatId,
+          title: title || "Nový chat",
+          messages: JSON.stringify(messages),
+          user_email: email,
+          status: "active",
+          date_created: new Date().toISOString(),
+        }),
+      );
+      console.log(`[saveAgentChat] Created new chat ${chatId}`);
+    }
+    revalidatePath("/dashboard/agent");
+    return chatId;
+  } catch (e: any) {
+    console.error("[saveAgentChat] Error:", e.message);
+    // Don't throw - just log the error
   }
-  revalidatePath("/dashboard/agent");
 }
 
 export async function deleteAgentChat(id: string) {
