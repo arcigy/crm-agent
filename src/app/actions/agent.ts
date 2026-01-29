@@ -11,8 +11,14 @@ import { createStreamableValue } from "@ai-sdk/rsc";
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
-import client from "openai";
 import { any, string } from "zod";
+import {
+  startCostSession,
+  trackAICall,
+  endCostSession,
+  formatCost,
+  type SessionCost,
+} from "@/lib/ai-cost-tracker";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -386,6 +392,7 @@ export async function chatWithAgent(messages: any[]) {
       verifier: "Google Gemini 2.0 Flash",
       reporter: "Google Gemini 2.0 Flash",
     },
+    costTracking: null as SessionCost | null,
   });
 
   (async () => {
@@ -397,6 +404,9 @@ export async function chatWithAgent(messages: any[]) {
       }
       const userEmail = clerkUser.emailAddresses[0]?.emailAddress;
       const context = await getIsolatedAIContext(userEmail, "GLOBAL");
+
+      // === START COST TRACKING ===
+      startCostSession(userEmail);
 
       // ==========================================
       // 1. GATEKEEPER (OpenAI GPT-4o-mini)
@@ -412,14 +422,27 @@ ODPOVEDAJ LEN JSON: {
   "extracted_data": { "name": "...", "email": "...", "phone": "...", "context": "..." }
 }
 `;
+      const gatekeeperStart = Date.now();
       const classifierRes = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "system", content: classifierPrompt }, ...messages],
         response_format: { type: "json_object" },
       });
-      const verdict = JSON.parse(
-        classifierRes.choices[0].message.content || "{}",
+      const gatekeeperOutput = classifierRes.choices[0].message.content || "{}";
+
+      // Track Gatekeeper cost
+      trackAICall(
+        "gatekeeper",
+        "openai",
+        "gpt-4o-mini",
+        classifierPrompt + messages.map((m: any) => m.content).join(""),
+        gatekeeperOutput,
+        Date.now() - gatekeeperStart,
+        classifierRes.usage?.prompt_tokens,
+        classifierRes.usage?.completion_tokens,
       );
+
+      const verdict = JSON.parse(gatekeeperOutput);
 
       superState.update({
         thoughts: {
@@ -443,19 +466,33 @@ ODPOVEDAJ LEN JSON: {
           .map((m: any) => m.content)
           .join("\n");
 
-        const result = await geminiModel.generateContent(
-          `Si ArciGy Agent. Odpovedaj stručne a priateľsky v slovenčine. Identita používateľa: ${context.user_nickname}.\n\nOtázka: ${userMessages}`,
+        const convPrompt = `Si ArciGy Agent. Odpovedaj stručne a priateľsky v slovenčine. Identita používateľa: ${context.user_nickname}.\n\nOtázka: ${userMessages}`;
+        const convStart = Date.now();
+        const result = await geminiModel.generateContent(convPrompt);
+        const convOutput = result.response.text();
+
+        // Track Conversational cost
+        trackAICall(
+          "conversational",
+          "gemini",
+          "gemini-2.0-flash",
+          convPrompt,
+          convOutput,
+          Date.now() - convStart,
         );
+
+        const costSession = endCostSession();
 
         superState.done({
           toolResults: [],
-          content: result.response.text(),
+          content: convOutput,
           status: "done",
           thoughts: {
             intent: "Informačná odpoveď",
             extractedData: verdict.extracted_data,
             plan: ["Odpovedám na tvoju otázku..."],
           },
+          costTracking: costSession,
         } as any);
         return;
       }
@@ -495,13 +532,15 @@ VÝSTUP LEN JSON: {
           .filter((m: any) => m.role === "user")
           .map((m: any) => m.content)
           .join("\n");
+        const orchestratorInput = `${architectPrompt}\n\nPoužívateľova požiadavka: ${userMessage}`;
+        const orchestratorStart = Date.now();
         const claudeResponse = await anthropic.messages.create({
           model: "claude-sonnet-4-20250514",
           max_tokens: 2048,
           messages: [
             {
               role: "user",
-              content: `${architectPrompt}\n\nPoužívateľova požiadavka: ${userMessage}`,
+              content: orchestratorInput,
             },
           ],
         });
@@ -511,6 +550,18 @@ VÝSTUP LEN JSON: {
         );
         const plannerRaw = claudeText?.type === "text" ? claudeText.text : "{}";
         currentAttemptLog.plannerRawOutput = plannerRaw;
+
+        // Track Orchestrator cost
+        trackAICall(
+          "orchestrator",
+          "anthropic",
+          "claude-sonnet-4-20250514",
+          orchestratorInput,
+          plannerRaw,
+          Date.now() - orchestratorStart,
+          claudeResponse.usage?.input_tokens,
+          claudeResponse.usage?.output_tokens,
+        );
 
         // Parse JSON from Claude response
         const jsonMatch = plannerRaw.match(/\{[\s\S]*\}/);
@@ -570,9 +621,21 @@ ${JSON.stringify(currentStepResults, null, 2)}
 Odpovedaj LEN v JSON formáte:
 { "success": true/false, "analysis": "krátka analýza" }`;
 
+        const verifierStart = Date.now();
         const verificationResult =
           await geminiVerifier.generateContent(verificationPrompt);
         const vText = verificationResult.response.text();
+
+        // Track Verifier cost
+        trackAICall(
+          "verifier",
+          "gemini",
+          "gemini-2.0-flash",
+          verificationPrompt,
+          vText,
+          Date.now() - verifierStart,
+        );
+
         const vJsonMatch = vText.match(/\{[\s\S]*\}/);
         const vVerdict = vJsonMatch
           ? JSON.parse(vJsonMatch[0])
@@ -605,8 +668,22 @@ ${JSON.stringify(finalExecutionResults, null, 2)}
 
 Odpovedaj priamo, bez JSON formátu. Buď priateľský a profesionálny.`;
 
+      const reporterStart = Date.now();
       const reportResult = await geminiReporter.generateContent(reportPrompt);
       const finalReport = reportResult.response.text();
+
+      // Track Final Report cost
+      trackAICall(
+        "reporter",
+        "gemini",
+        "gemini-2.0-flash",
+        reportPrompt,
+        finalReport,
+        Date.now() - reporterStart,
+      );
+
+      // End cost session and get summary
+      const costSession = endCostSession();
 
       superState.done({
         toolResults: finalExecutionResults,
@@ -618,9 +695,11 @@ Odpovedaj priamo, bez JSON formátu. Buď priateľský a profesionálny.`;
           plan: ["Úloha bola úspešne spracovaná."],
         },
         diagnostics: missionHistory,
+        costTracking: costSession,
       } as any);
     } catch (error: any) {
       console.error("Agent Error:", error);
+      endCostSession(); // End session even on error
       superState.error(error.message);
     }
   })();
