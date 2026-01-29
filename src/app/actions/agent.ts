@@ -598,6 +598,17 @@ async function getGmail(userId: string) {
 // 3. ATOMIC EXECUTORS (The Workers)
 // ==========================================
 
+function formatPhoneNumber(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  // 1. Remove all spaces
+  let cleaned = phone.replace(/\s+/g, "");
+  // 2. Resolve 09 -> +4219 prefix
+  if (cleaned.startsWith("09")) {
+    cleaned = "+421" + cleaned.substring(1);
+  }
+  return cleaned;
+}
+
 async function executeAtomicTool(name: string, args: any, user: any) {
   try {
     const gmail = name.startsWith("gmail_") ? await getGmail(user.id) : null;
@@ -774,7 +785,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
               first_name: firstName,
               last_name: lastName,
               email: args.email || null,
-              phone: args.phone || null,
+              phone: formatPhoneNumber(args.phone),
               company: args.company || null,
               status: args.status || "new",
               comments: args.comments || null,
@@ -858,10 +869,15 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 
       case "db_update_contact":
         try {
+          const updateData = { ...args };
+          if (updateData.phone) {
+            updateData.phone = formatPhoneNumber(updateData.phone);
+          }
+
           // @ts-ignore
           await directus.request(
             updateItem("contacts", args.contact_id, {
-              ...args,
+              ...updateData,
               date_updated: new Date().toISOString(),
             }),
           );
