@@ -31,7 +31,6 @@ import {
   Clock,
   History,
   Trash2,
-  Euro,
   Coins,
 } from "lucide-react";
 
@@ -507,7 +506,7 @@ export default function AgentChat() {
             {/* Total Session Cost */}
             {totalSessionCost > 0 && (
               <div className="flex flex-col items-center justify-center px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-                <Euro className="w-4 h-4 text-emerald-500" />
+                <Coins className="w-4 h-4 text-emerald-500" />
                 <span className="text-[10px] font-black text-emerald-500">
                   {(totalSessionCost * 0.92).toFixed(4)}€
                 </span>
