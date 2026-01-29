@@ -351,8 +351,23 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 }
 
 // ==========================================
-// 4. MOLECULAR ORCHESTRATOR (The Architect)
+// 4. MOLECULAR ORCHESTRATOR (Multi-Provider AI)
 // ==========================================
+// Konfigurácia:
+// - Gatekeeper: GPT-4o-mini (OpenAI) - lacný, rýchly
+// - Orchestrator: Claude 3.7 Sonnet (Anthropic) - najlepší tool-use
+// - Verifier: Gemini 2.0 Flash (Google) - rýchly, lacný
+// - Final Report: Gemini 2.0 Flash (Google) - kvalitný text
+// ==========================================
+
+import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function chatWithAgent(messages: any[]) {
   const superState = createStreamableValue({
@@ -364,6 +379,12 @@ export async function chatWithAgent(messages: any[]) {
       intent: "",
       plan: [] as string[],
       extractedData: null as any,
+    },
+    providers: {
+      gatekeeper: "OpenAI GPT-4o-mini",
+      orchestrator: "Anthropic Claude 3.7 Sonnet",
+      verifier: "Google Gemini 2.0 Flash",
+      reporter: "Google Gemini 2.0 Flash",
     },
   });
 
@@ -377,7 +398,9 @@ export async function chatWithAgent(messages: any[]) {
       const userEmail = clerkUser.emailAddresses[0]?.emailAddress;
       const context = await getIsolatedAIContext(userEmail, "GLOBAL");
 
-      // 1. INTENT CLASSIFIER & DATA EXTRACTION
+      // ==========================================
+      // 1. GATEKEEPER (OpenAI GPT-4o-mini)
+      // ==========================================
       const classifierPrompt = `
 Si **Gatekeeper & Data Analyst**. Tvojou úlohou je:
 1. Určiť intent: INFO_ONLY (len otázka) alebo ACTION (niečo vykonať).
@@ -410,20 +433,23 @@ ODPOVEDAJ LEN JSON: {
         status: "thinking",
       } as any);
 
+      // INFO_ONLY - použijeme Gemini pre rýchlu odpoveď
       if (verdict.intent === "INFO_ONLY") {
-        const assistantRes = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content: `Si ArciGy Agent. Odpovedaj stručne a priateľsky. Identita: ${context.user_nickname}.`,
-            },
-            ...messages,
-          ],
+        const geminiModel = gemini.getGenerativeModel({
+          model: "gemini-2.0-flash",
         });
+        const userMessages = messages
+          .filter((m: any) => m.role === "user")
+          .map((m: any) => m.content)
+          .join("\n");
+
+        const result = await geminiModel.generateContent(
+          `Si ArciGy Agent. Odpovedaj stručne a priateľsky v slovenčine. Identita používateľa: ${context.user_nickname}.\n\nOtázka: ${userMessages}`,
+        );
+
         superState.done({
           toolResults: [],
-          content: assistantRes.choices[0].message.content || "",
+          content: result.response.text(),
           status: "done",
           thoughts: {
             intent: "Informačná odpoveď",
@@ -434,7 +460,9 @@ ODPOVEDAJ LEN JSON: {
         return;
       }
 
-      // 2. MISSION PLANNER (ACTION CASE)
+      // ==========================================
+      // 2. ORCHESTRATOR (Claude 3.7 Sonnet)
+      // ==========================================
       let missionAccomplished = false;
       let attempts = 0;
       const maxAttempts = 3;
@@ -450,7 +478,6 @@ ODPOVEDAJ LEN JSON: {
           plannerPrompt: "",
         };
 
-        // ORCHESTRATOR
         const architectPrompt = `
 Si **Mission Orchestrator**. Navrhni PLÁN KROKOV v SLOVENČINE pre vyriešenie požiadavky.
 Dostupné nástroje: ${JSON.stringify(ALL_ATOMS.map((t) => t.function.name))}.
@@ -463,19 +490,37 @@ VÝSTUP LEN JSON: {
 `;
         currentAttemptLog.plannerPrompt = architectPrompt;
 
-        const plannerRes = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [{ role: "system", content: architectPrompt }, ...messages],
-          response_format: { type: "json_object" },
+        // Claude 3.7 Sonnet pre orchestráciu
+        const userMessage = messages
+          .filter((m: any) => m.role === "user")
+          .map((m: any) => m.content)
+          .join("\n");
+        const claudeResponse = await anthropic.messages.create({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2048,
+          messages: [
+            {
+              role: "user",
+              content: `${architectPrompt}\n\nPoužívateľova požiadavka: ${userMessage}`,
+            },
+          ],
         });
 
-        const plannerRaw = plannerRes.choices[0].message.content;
+        const claudeText = claudeResponse.content.find(
+          (c) => c.type === "text",
+        );
+        const plannerRaw = claudeText?.type === "text" ? claudeText.text : "{}";
         currentAttemptLog.plannerRawOutput = plannerRaw;
-        const plannerOutput = JSON.parse(plannerRaw || "{}");
+
+        // Parse JSON from Claude response
+        const jsonMatch = plannerRaw.match(/\{[\s\S]*\}/);
+        const plannerOutput = jsonMatch
+          ? JSON.parse(jsonMatch[0])
+          : { plan: [], readable_plan: [] };
 
         superState.update({
           thoughts: {
-            intent: "Vykonávam akciu",
+            intent: "Vykonávam akciu (Claude Orchestrator)",
             extractedData: verdict.extracted_data,
             plan: plannerOutput.readable_plan || [],
           },
@@ -511,42 +556,61 @@ VÝSTUP LEN JSON: {
         ];
         currentAttemptLog.steps = currentStepResults;
 
-        // VERIFIER
-        const verificationPrompt = `Si Mission Verifier. Splnil tento pokus úlohu? JSON: { "success": boolean, "analysis": "..." }`;
-        const verificationRes = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: verificationPrompt },
-            { role: "user", content: JSON.stringify(currentStepResults) },
-          ],
-          response_format: { type: "json_object" },
+        // ==========================================
+        // 3. VERIFIER (Gemini 2.0 Flash)
+        // ==========================================
+        const geminiVerifier = gemini.getGenerativeModel({
+          model: "gemini-2.0-flash",
         });
-        const vVerdictRaw = verificationRes.choices[0].message.content;
-        const vVerdict = JSON.parse(vVerdictRaw || "{}");
+        const verificationPrompt = `Si Mission Verifier. Analyzuj tieto výsledky a urči, či bola misia úspešná.
+
+Výsledky nástrojov:
+${JSON.stringify(currentStepResults, null, 2)}
+
+Odpovedaj LEN v JSON formáte:
+{ "success": true/false, "analysis": "krátka analýza" }`;
+
+        const verificationResult =
+          await geminiVerifier.generateContent(verificationPrompt);
+        const vText = verificationResult.response.text();
+        const vJsonMatch = vText.match(/\{[\s\S]*\}/);
+        const vVerdict = vJsonMatch
+          ? JSON.parse(vJsonMatch[0])
+          : { success: false, analysis: "Nemožno analyzovať" };
+
         currentAttemptLog.verification = vVerdict;
         missionHistory.push(currentAttemptLog);
 
         if (vVerdict.success) missionAccomplished = true;
       }
 
-      const finalReportRes = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "Zhrň výsledok misie priamo, stručne v jednej vete.",
-          },
-          ...messages,
-          {
-            role: "system",
-            content: `Výsledky nástrojov: ${JSON.stringify(finalExecutionResults)}`,
-          },
-        ],
+      // ==========================================
+      // 4. FINAL REPORT (Gemini 2.0 Flash)
+      // ==========================================
+      const geminiReporter = gemini.getGenerativeModel({
+        model: "gemini-2.0-flash",
       });
+      const userMessages = messages
+        .filter((m: any) => m.role === "user")
+        .map((m: any) => m.content)
+        .join("\n");
+
+      const reportPrompt = `Zhrň výsledok misie priamo a stručne v jednej-dvoch vetách pre používateľa v slovenčine.
+
+Pôvodná požiadavka používateľa:
+${userMessages}
+
+Výsledky vykonaných akcií:
+${JSON.stringify(finalExecutionResults, null, 2)}
+
+Odpovedaj priamo, bez JSON formátu. Buď priateľský a profesionálny.`;
+
+      const reportResult = await geminiReporter.generateContent(reportPrompt);
+      const finalReport = reportResult.response.text();
 
       superState.done({
         toolResults: finalExecutionResults,
-        content: finalReportRes.choices[0].message.content || "",
+        content: finalReport,
         status: "done",
         thoughts: {
           intent: "Misia dokončená",
@@ -556,6 +620,7 @@ VÝSTUP LEN JSON: {
         diagnostics: missionHistory,
       } as any);
     } catch (error: any) {
+      console.error("Agent Error:", error);
       superState.error(error.message);
     }
   })();
