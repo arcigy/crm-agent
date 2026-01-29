@@ -24,10 +24,14 @@ export function OnboardingScene() {
   const [formData, setFormData] = React.useState({
     company_name: "",
     industry: "",
+    nickname: "",
+    profession: "",
+    about_me: "",
     goals: "",
     tone: "",
     services: "",
     focus: "",
+    custom_instructions: "",
   });
 
   const nextStep = () => setStep((prev) => prev + 1);
@@ -68,7 +72,7 @@ export function OnboardingScene() {
       <div className="relative w-full max-w-4xl px-6 h-full lg:h-auto flex flex-col justify-center gap-12 py-12">
         {/* Progress Bar */}
         <div className="absolute top-8 left-1/2 -translate-x-1/2 w-48 flex gap-2">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
               className={`h-1 flex-1 rounded-full transition-all duration-700 ${s <= step ? "bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]" : "bg-gray-800"}`}
@@ -84,7 +88,7 @@ export function OnboardingScene() {
                 <div className="p-3 bg-blue-600 w-fit rounded-2xl shadow-xl shadow-blue-600/20">
                   <Building2 className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-5xl font-black tracking-tighter uppercase italic italic">
+                <h1 className="text-5xl font-black tracking-tighter uppercase italic">
                   Základy <span className="text-blue-500">Vášho Biznisu</span>
                 </h1>
                 <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">
@@ -128,14 +132,75 @@ export function OnboardingScene() {
           {step === 2 && (
             <div className="space-y-8">
               <div className="flex flex-col gap-4">
+                <div className="p-3 bg-violet-600 w-fit rounded-2xl shadow-xl shadow-violet-600/20">
+                  <ShieldCheck className="w-8 h-8 text-white" />
+                </div>
+                <h1 className="text-5xl font-black tracking-tighter uppercase italic">
+                  Niečo <span className="text-violet-500">o Vás</span>
+                </h1>
+                <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">
+                  KROK 02 / OSOBNÝ PROFIL
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
+                    Prezývka / Ako Vás oslovovať?
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Napr. Maťo, Robo..."
+                    value={formData.nickname}
+                    onChange={(e) =>
+                      setFormData({ ...formData, nickname: e.target.value })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 font-bold focus:border-violet-500 focus:bg-white/10 outline-none transition-all placeholder:text-gray-600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
+                    Povolanie / Rola
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Napr. CEO, Obchodný riaditeľ..."
+                    value={formData.profession}
+                    onChange={(e) =>
+                      setFormData({ ...formData, profession: e.target.value })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 font-bold focus:border-violet-500 focus:bg-white/10 outline-none transition-all placeholder:text-gray-600"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
+                    Viac o Vás (Záujmy, hodnoty, predvoľby...)
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Povedzte AI viac o tom, čo je pre Vás dôležité..."
+                    value={formData.about_me}
+                    onChange={(e) =>
+                      setFormData({ ...formData, about_me: e.target.value })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 font-bold focus:border-violet-500 focus:bg-white/10 outline-none transition-all placeholder:text-gray-600 resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-8">
+              <div className="flex flex-col gap-4">
                 <div className="p-3 bg-indigo-600 w-fit rounded-2xl shadow-xl shadow-indigo-600/20">
                   <Target className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-5xl font-black tracking-tighter uppercase italic italic">
+                <h1 className="text-5xl font-black tracking-tighter uppercase italic">
                   Ciele a <span className="text-indigo-500">Stratégia</span>
                 </h1>
                 <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">
-                  KROK 02 / PREČO STE TU?
+                  KROK 03 / PREČO STE TU?
                 </p>
               </div>
 
@@ -146,7 +211,7 @@ export function OnboardingScene() {
                   </label>
                   <textarea
                     rows={3}
-                    placeholder="Čo chcete pomocou CRM dosiahnuť? (napr. ušetriť čas, viac predajov...)"
+                    placeholder="Čo chcete pomocou CRM dosiahnuť?"
                     value={formData.goals}
                     onChange={(e) =>
                       setFormData({ ...formData, goals: e.target.value })
@@ -172,17 +237,17 @@ export function OnboardingScene() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="space-y-8">
               <div className="flex flex-col gap-4">
                 <div className="p-3 bg-emerald-600 w-fit rounded-2xl shadow-xl shadow-emerald-600/20">
                   <BrainCircuit className="w-8 h-8 text-white" />
                 </div>
-                <h1 className="text-5xl font-black tracking-tighter uppercase italic italic">
-                  AI <span className="text-emerald-500">Personalizácia</span>
+                <h1 className="text-5xl font-black tracking-tighter uppercase italic">
+                  AI <span className="text-emerald-500">Inštrukcie</span>
                 </h1>
                 <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">
-                  KROK 03 / NALADENIE AGENTA
+                  KROK 04 / NALADENIE AGENTA
                 </p>
               </div>
 
@@ -203,11 +268,11 @@ export function OnboardingScene() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
-                    Na čo má AI pri inboxe dávať pozor?
+                    Na čo má AI v e-mailoch dávať pozor?
                   </label>
                   <input
                     type="text"
-                    placeholder="Napr. urgencia termínov, konkrétne mená..."
+                    placeholder="Napr. vždy navrhnúť termín, byť proaktívny..."
                     value={formData.focus}
                     onChange={(e) =>
                       setFormData({ ...formData, focus: e.target.value })
@@ -215,15 +280,23 @@ export function OnboardingScene() {
                     className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 font-bold focus:border-emerald-500 focus:bg-white/10 outline-none transition-all placeholder:text-gray-600"
                   />
                 </div>
-              </div>
-
-              <div className="bg-emerald-500/5 border border-emerald-500/20 p-6 rounded-3xl flex items-center gap-4">
-                <Zap className="w-6 h-6 text-emerald-500 animate-bounce" />
-                <p className="text-xs font-bold text-gray-300 leading-relaxed uppercase tracking-widest">
-                  TIETO INFORMÁCIE BUDÚ ULOŽENÉ DO{" "}
-                  <span className="text-white">AI MEMORY</span>, ABY AGENT
-                  PRESNE ROZUMEL KONTEXTU VAŠEJ PRÁCE.
-                </p>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
+                    Vlastné systémové pokyny (Custom Instructions)
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder="Vložte sem dlhý text s presnými inštrukciami pre AI..."
+                    value={formData.custom_instructions}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        custom_instructions: e.target.value,
+                      })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 font-bold focus:border-emerald-500 focus:bg-white/10 outline-none transition-all placeholder:text-gray-600 resize-none"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -242,7 +315,7 @@ export function OnboardingScene() {
             )}
 
             <div className="flex gap-4">
-              {step < 3 ? (
+              {step < 4 ? (
                 <button
                   onClick={nextStep}
                   className="px-10 py-4 bg-white text-black font-black uppercase tracking-[0.2em] text-xs rounded-full shadow-2xl hover:bg-blue-500 hover:text-white active:scale-95 transition-all flex items-center gap-3 group"

@@ -19,6 +19,7 @@ import {
   X,
   Receipt,
   BrainCircuit,
+  History,
 } from "lucide-react";
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
@@ -37,6 +38,7 @@ const navigation = [
   { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
   { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
   { name: "AI Kontext", href: "/dashboard/settings/ai", icon: BrainCircuit },
+  { name: "Pamäť AI", href: "/dashboard/settings/memory", icon: History },
 ];
 
 export function Sidebar({ className }: { className?: string }) {

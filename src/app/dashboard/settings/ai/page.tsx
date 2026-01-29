@@ -10,6 +10,9 @@ import {
   RefreshCcw,
   Zap,
   Info,
+  User,
+  ShieldCheck,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -23,17 +26,24 @@ export default function AISettingsPage() {
   const [formData, setFormData] = React.useState({
     company_name: "",
     industry: "",
+    nickname: "",
+    profession: "",
+    about_me: "",
     goals: "",
     tone: "",
     services: "",
     focus: "",
+    custom_instructions: "",
   });
 
   React.useEffect(() => {
     async function load() {
       const data = await getOnboardingSettings();
       if (data) {
-        setFormData(data);
+        setFormData({
+          ...formData,
+          ...data,
+        });
       }
       setLoading(false);
     }
@@ -65,7 +75,7 @@ export default function AISettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-4xl space-y-8 animate-in fade-in duration-500 pb-20">
       {/* Header */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
@@ -82,7 +92,47 @@ export default function AISettingsPage() {
         </p>
       </div>
 
+      {/* Basic Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* User Identity */}
+        <section className="bg-card border border-border p-8 rounded-[2.5rem] shadow-sm space-y-6">
+          <div className="flex items-center gap-3 border-b border-border pb-4">
+            <User className="w-5 h-5 text-violet-500" />
+            <h2 className="text-xs font-black uppercase tracking-widest text-foreground">
+              Osobný Profil
+            </h2>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                Prezývka
+              </label>
+              <input
+                type="text"
+                value={formData.nickname}
+                onChange={(e) =>
+                  setFormData({ ...formData, nickname: e.target.value })
+                }
+                className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-violet-500 outline-none transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                Povolanie
+              </label>
+              <input
+                type="text"
+                value={formData.profession}
+                onChange={(e) =>
+                  setFormData({ ...formData, profession: e.target.value })
+                }
+                className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-violet-500 outline-none transition-all"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Company Identity */}
         <section className="bg-card border border-border p-8 rounded-[2.5rem] shadow-sm space-y-6">
           <div className="flex items-center gap-3 border-b border-border pb-4">
@@ -122,46 +172,94 @@ export default function AISettingsPage() {
           </div>
         </section>
 
-        {/* AI Tuning */}
-        <section className="bg-card border border-border p-8 rounded-[2.5rem] shadow-sm space-y-6">
-          <div className="flex items-center gap-3 border-b border-border pb-4">
-            <Target className="w-5 h-5 text-indigo-500" />
-            <h2 className="text-xs font-black uppercase tracking-widest text-foreground">
-              AI Parametre
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                Tón komunikácie
+        {/* More About You */}
+        <section className="md:col-span-2 bg-card border border-border p-8 rounded-[2.5rem] shadow-sm space-y-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldCheck className="w-4 h-4 text-violet-500" />
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                Viac o Vás (Záujmy, hodnoty, predvoľby)
               </label>
-              <input
-                type="text"
-                value={formData.tone}
-                onChange={(e) =>
-                  setFormData({ ...formData, tone: e.target.value })
-                }
-                className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-indigo-500 outline-none transition-all"
-              />
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                Priorita pri analýze
-              </label>
-              <input
-                type="text"
-                value={formData.focus}
-                onChange={(e) =>
-                  setFormData({ ...formData, focus: e.target.value })
-                }
-                className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-indigo-500 outline-none transition-all"
-              />
+            <textarea
+              rows={3}
+              value={formData.about_me}
+              onChange={(e) =>
+                setFormData({ ...formData, about_me: e.target.value })
+              }
+              className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-violet-500 outline-none transition-all resize-none"
+            />
+          </div>
+        </section>
+
+        {/* AI Tuning */}
+        <section className="md:col-span-2 bg-card border border-border p-8 rounded-[2.5rem] shadow-sm space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 border-b border-border pb-4">
+                <Target className="w-5 h-5 text-indigo-500" />
+                <h2 className="text-xs font-black uppercase tracking-widest text-foreground">
+                  AI Parametre
+                </h2>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                    Tón komunikácie
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.tone}
+                    onChange={(e) =>
+                      setFormData({ ...formData, tone: e.target.value })
+                    }
+                    className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-indigo-500 outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                    Priorita pri analýze
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.focus}
+                    onChange={(e) =>
+                      setFormData({ ...formData, focus: e.target.value })
+                    }
+                    className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-indigo-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 border-b border-border pb-4">
+                <MessageSquare className="w-5 h-5 text-emerald-500" />
+                <h2 className="text-xs font-black uppercase tracking-widest text-foreground">
+                  Vlastné Pokyny
+                </h2>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                  Systémový Prompt (Custom Instructions)
+                </label>
+                <textarea
+                  rows={5}
+                  value={formData.custom_instructions}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      custom_instructions: e.target.value,
+                    })
+                  }
+                  className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-emerald-500 outline-none transition-all resize-none"
+                />
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Full Width Textarea Sections */}
+        {/* Goals & Services */}
         <section className="md:col-span-2 bg-card border border-border p-8 rounded-[2.5rem] shadow-sm space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2">
@@ -198,16 +296,6 @@ export default function AISettingsPage() {
             </div>
           </div>
         </section>
-      </div>
-
-      {/* Info Warning */}
-      <div className="bg-indigo-500/5 border border-indigo-500/10 p-6 rounded-[2rem] flex items-start gap-4">
-        <Info className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
-        <p className="text-xs font-bold text-gray-500 leading-relaxed uppercase tracking-wider">
-          Tieto zmeny okamžite predefinujú „mozog“ vášho CRM agenta. AI začne
-          spracovávať vaše e-maily a komunikovať s klientmi na základe tohto
-          nového kontextu.
-        </p>
       </div>
 
       {/* Footer Actions */}

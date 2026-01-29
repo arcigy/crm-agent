@@ -82,6 +82,10 @@ export async function getOnboardingSettings() {
     return {
       company_name: user?.company_name || "",
       industry: user?.industry || "",
+      nickname: user?.nickname || "",
+      profession: user?.profession || "",
+      about_me: user?.about_me || "",
+      custom_instructions: user?.custom_instructions || "",
       goals: getMemory("goal"),
       tone: getMemory("tone"),
       services: getMemory("services"),
@@ -96,6 +100,10 @@ export async function getOnboardingSettings() {
 export async function updateOnboardingSettings(data: {
   company_name: string;
   industry: string;
+  nickname: string;
+  profession: string;
+  about_me: string;
+  custom_instructions: string;
   goals: string;
   tone: string;
   services: string;
@@ -121,13 +129,25 @@ export async function updateOnboardingSettings(data: {
         updateItem("crm_users", user.id, {
           company_name: data.company_name,
           industry: data.industry,
+          nickname: data.nickname,
+          profession: data.profession,
+          about_me: data.about_me,
+          custom_instructions: data.custom_instructions,
+          onboarding_completed: true,
           date_updated: new Date().toISOString(),
         }),
       );
     }
 
     // 2. Refresh Memories (Delete old ones for these categories and create new ones)
-    const categories = ["goal", "tone", "services", "focus", "company"];
+    const categories = [
+      "goal",
+      "tone",
+      "services",
+      "focus",
+      "company",
+      "personal",
+    ];
 
     // @ts-ignore
     const oldMemories = await directus.request(
