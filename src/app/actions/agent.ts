@@ -875,19 +875,43 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 
       case "db_add_contact_comment":
         try {
+          // 1. Get current contact to preserve existing comments
           // @ts-ignore
           const current = await directus.request(
             readItem("contacts", args.contact_id),
           );
+
+          // 2. Prepare formatted comment with double newline for clarity
+          const timestamp = new Date().toLocaleString("sk-SK");
+          const separator = current.comments ? "\n\n---\n" : "";
           const newComments =
             (current.comments || "") +
-            "\n" +
-            `[${new Date().toLocaleDateString()}] ${args.comment}`;
+            separator +
+            `[${timestamp}] NOVÁ POZNÁMKA:\n${args.comment}`;
+
+          // 3. Update contact comments
           // @ts-ignore
           await directus.request(
             updateItem("contacts", args.contact_id, { comments: newComments }),
           );
-          return { success: true, message: "Komentár pridaný." };
+
+          // 4. ALSO write to Timeline (activities collection) as per rules
+          // @ts-ignore
+          await directus.request(
+            createItem("activities", {
+              contact_id: args.contact_id,
+              type: "note",
+              subject: "Nová poznámka z agenta",
+              content: args.comment,
+              activity_date: new Date().toISOString(),
+              date_created: new Date().toISOString(),
+            }),
+          );
+
+          return {
+            success: true,
+            message: "Komentár bol pridaný a zapísaný do histórie.",
+          };
         } catch (e: any) {
           return { success: false, error: e.message };
         }
