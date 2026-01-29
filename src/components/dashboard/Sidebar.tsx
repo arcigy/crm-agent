@@ -29,6 +29,7 @@ import Image from "next/image";
 
 const navigation = [
   { name: "ArciGy Agent", href: "/dashboard/agent", icon: Bot },
+  { name: "Nástroje Agentov", href: "/dashboard/tools", icon: Terminal },
   { name: "Nástenka", href: "/dashboard", icon: LayoutDashboard },
   { name: "Doručená pošta", href: "/dashboard/leads", icon: Mail },
   { name: "Kontakty", href: "/dashboard/contacts", icon: Users },
