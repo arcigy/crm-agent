@@ -209,6 +209,23 @@ const INBOX_ATOMS: any[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "db_delete_contact",
+      description: "Vymaže kontakt z CRM databázy (soft delete).",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: {
+            type: "number",
+            description: "ID kontaktu na vymazanie",
+          },
+        },
+        required: ["contact_id"],
+      },
+    },
+  },
 ];
 
 const SYSTEM_ATOMS: any[] = [
@@ -493,6 +510,18 @@ async function executeAtomicTool(name: string, args: any, user: any) {
             success: true,
             contact_id: newContact.id,
             message: `Kontakt ${firstName} ${lastName} bol vytvorený.`,
+          };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      case "db_delete_contact":
+        try {
+          // @ts-ignore
+          await directus.request(deleteItem("contacts", args.contact_id));
+          return {
+            success: true,
+            message: `Kontakt ID ${args.contact_id} bol vymazaný.`,
           };
         } catch (e: any) {
           return { success: false, error: e.message };
@@ -819,6 +848,7 @@ ${toolDescriptions}
 DÔLEŽITÉ PRAVIDLÁ:
 - Pre VYTVORENIE nového kontaktu použi: db_create_contact (s first_name, last_name, email, phone)
 - Pre VYHĽADANIE kontaktu použi: db_search_contacts (s query)
+- Pre VYMAZANIE kontaktu použi: db_delete_contact (s contact_id - najprv nájdi ID cez search!)
 - Pre AKTUALIZÁCIU lead analýzy použi: db_update_lead_info (s message_id)
 - Pre získanie emailov použi: gmail_fetch_list
 
@@ -826,6 +856,7 @@ VERIFIKÁCIA JE POVINNÁ:
 Každý plán MUSÍ obsahovať verifikačný krok na konci!
 - Po vytvorení kontaktu -> verify_contact_by_email
 - Po update -> verify_contact_exists
+- Po vymazaní -> verify_contact_exists (over, že už neexistuje)
 - Po získaní emailov -> skontroluj výstup
 
 Do poľa "readable_plan" daj zoznam krokov v ľudskej reči.
