@@ -29,6 +29,8 @@ import { format, isAfter, isBefore, addDays } from "date-fns";
 import { sk } from "date-fns/locale";
 import { toast } from "sonner";
 import { ProjectDriveModal } from "./ProjectDriveModal";
+import { InvoiceModal } from "./deals/InvoiceModal";
+import { PaymentModal } from "./deals/PaymentModal";
 
 import { Deal } from "@/types/deal";
 import { Project, PROJECT_STAGES } from "@/types/project";
@@ -60,6 +62,13 @@ export function DealsTable({
     name: string;
     folderId?: string;
   } | null>(null);
+
+  // Financial Modals State
+  const [invoicingProject, setInvoicingProject] =
+    React.useState<Project | null>(null);
+  const [payingProject, setPayingProject] = React.useState<Project | null>(
+    null,
+  );
 
   // Filter States
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -313,32 +322,8 @@ export function DealsTable({
           <div className="flex items-center justify-end gap-2">
             {!deal.invoice_date && deal.value > 0 && (
               <button
-                onClick={async () => {
-                  const today = new Date();
-                  const dueDate = new Date();
-                  dueDate.setDate(today.getDate() + 14);
-
-                  const invoiceData = {
-                    invoice_date: today.toISOString(),
-                    due_date: dueDate.toISOString(),
-                  };
-
-                  if (deal.project) {
-                    const res = await updateProject(
-                      deal.project.id,
-                      invoiceData,
-                    );
-                    if (res.success) {
-                      toast.success("Faktúra vygenerovaná");
-                      setCurrentProjects((prev) =>
-                        prev.map((p) =>
-                          p.id === deal.project!.id
-                            ? { ...p, ...invoiceData }
-                            : p,
-                        ),
-                      );
-                    }
-                  }
+                onClick={() => {
+                  if (deal.project) setInvoicingProject(deal.project);
                 }}
                 className="p-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2 text-[10px] font-black uppercase px-4"
               >
@@ -347,20 +332,8 @@ export function DealsTable({
             )}
             {deal.invoice_date && !deal.paid && (
               <button
-                onClick={async () => {
-                  if (deal.project) {
-                    const res = await updateProject(deal.project.id, {
-                      paid: true,
-                    });
-                    if (res.success) {
-                      toast.success("Zaplatené");
-                      setCurrentProjects((prev) =>
-                        prev.map((p) =>
-                          p.id === deal.project!.id ? { ...p, paid: true } : p,
-                        ),
-                      );
-                    }
-                  }
+                onClick={() => {
+                  if (deal.project) setPayingProject(deal.project);
                 }}
                 className="p-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 flex items-center gap-2 text-[10px] font-black uppercase px-4"
               >
@@ -410,6 +383,44 @@ export function DealsTable({
         folderId={driveProject?.folderId}
         subfolderName="01_Zmluvy_a_Faktury"
       />
+
+      {invoicingProject && (
+        <InvoiceModal
+          isOpen={!!invoicingProject}
+          onClose={() => setInvoicingProject(null)}
+          project={invoicingProject}
+          onConfirm={async (data) => {
+            const res = await updateProject(invoicingProject.id, data);
+            if (res.success) {
+              toast.success("Faktúra úspešne vygenerovaná");
+              setCurrentProjects((prev) =>
+                prev.map((p) =>
+                  p.id === invoicingProject.id ? { ...p, ...data } : p,
+                ),
+              );
+            }
+          }}
+        />
+      )}
+
+      {payingProject && (
+        <PaymentModal
+          isOpen={!!payingProject}
+          onClose={() => setPayingProject(null)}
+          project={payingProject}
+          onConfirm={async () => {
+            const res = await updateProject(payingProject.id, { paid: true });
+            if (res.success) {
+              toast.success("Platba bola úspešne spracovaná");
+              setCurrentProjects((prev) =>
+                prev.map((p) =>
+                  p.id === payingProject.id ? { ...p, paid: true } : p,
+                ),
+              );
+            }
+          }}
+        />
+      )}
       <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden transition-colors duration-300">
         {/* Filters Toolbar */}
         <div className="p-6 border-b border-border bg-muted/20 flex flex-wrap items-center gap-4">
