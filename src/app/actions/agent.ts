@@ -183,12 +183,14 @@ const SYSTEM_ATOMS: any[] = [
   {
     type: "function",
     function: {
-      name: "sys_run_command",
+      name: "sys_run_diagnostics",
       description:
-        "Spustí terminálový príkaz (napr. npm run build, git status).",
+        "Spustí diagnostický príkaz v termináli (napr. 'npm run build', 'git status'). Len na sledovanie stavu.",
       parameters: {
         type: "object",
-        properties: { command: { type: "string" } },
+        properties: {
+          command: { type: "string" },
+        },
         required: ["command"],
       },
     },
@@ -329,7 +331,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
         const content = fs.readFileSync(filePath, "utf-8");
         return { success: true, data: content.slice(0, 10000) }; // Limit to 10k chars
 
-      case "sys_run_command":
+      case "sys_run_diagnostics":
         try {
           const output = execSync(args.command, {
             encoding: "utf-8",
@@ -357,6 +359,7 @@ export async function chatWithAgent(messages: any[]) {
     toolResults: [] as any[],
     content: "",
     status: "thinking",
+    attempt: 1,
   });
 
   (async () => {
@@ -369,80 +372,117 @@ export async function chatWithAgent(messages: any[]) {
       const email = clerkUser.emailAddresses[0]?.emailAddress;
       const context = await getIsolatedAIContext(email, "GLOBAL");
 
-      // A. PLANNER STEP
-      const architectPrompt = `
-Si **Antigravity-style Architect**. Tvojou úlohou je vykonať požiadavku bez zbytočných rečí.
+      let missionAccomplished = false;
+      let attempts = 0;
+      const maxAttempts = 3;
+      const missionHistory: any[] = [];
+      let finalExecutionResults: any[] = [];
+
+      while (!missionAccomplished && attempts < maxAttempts) {
+        attempts++;
+        superState.update({
+          toolResults: finalExecutionResults,
+          content: `Plánujem pokus č. ${attempts}...`,
+          status: "thinking",
+          attempt: attempts,
+        } as any);
+
+        // 1. ORCHESTRATION LAYER (Planner)
+        const architectPrompt = `
+Si **Mission Orchestrator**. Tvojou úlohou je vyriešiť požiadavku používateľa pomocou dostupných nástrojov.
 Máš prístup k nástrojom: ${JSON.stringify(ALL_ATOMS.map((t) => t.function.name))}.
 
-Pravidlá hry:
-1. **SPRAV TO ZA MŇA**: Nepýtaj sa na povolenie. Vykonaj všetky potrebné kroky (Gmail, DB, System).
-2. **Molekulárny plán**: Rozbi problém na exekvovateľné diely.
-3. **Proaktivita**: Ak vidíš chybu, skús ju opraviť cez 'sys_read_file' a 'sys_run_command'.
-4. Výstup: LEN JSON: { "plan": [{ "tool": "name", "args": {...} }] }
+TVOJE MOŽNOSTI:
+- Čítanie kódu a štruktúry: Použi sys_list_files a sys_read_file na pochopenie CRM. NEMÔŽEŠ kód prepisovať.
+- Email: gmail_ nástroje.
+- Databáza: db_ nástroje.
 
-Identita: ${context.user_nickname}.
+HISTÓRIA POKUSOV: ${JSON.stringify(missionHistory)}
+
+FILOZOFIA: "Sprav to za mňa, nepýtaj sa". Navrhni sériu atómických krokov.
+VÝSTUP LEN JSON: { "plan": [{ "tool": "name", "args": {...} }] }
 `;
 
-      const plannerRes = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "system", content: architectPrompt }, ...messages],
-        response_format: { type: "json_object" },
-      });
+        const plannerRes = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "system", content: architectPrompt }, ...messages],
+          response_format: { type: "json_object" },
+        });
 
-      const missionPlan = JSON.parse(
-        plannerRes.choices[0].message.content || '{"plan":[]}',
-      );
-      const executionResults: any[] = [];
+        const currentPlan = JSON.parse(
+          plannerRes.choices[0].message.content || '{"plan":[]}',
+        );
+        const currentStepResults = [];
 
-      // B. EXECUTION LOOP
-      for (const step of missionPlan.plan) {
-        let result = await executeAtomicTool(step.tool, step.args, clerkUser);
-
-        if (!result.success) {
-          const solver = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "system",
-                content:
-                  'Nástroj zlyhal. Navrhni ALTERNATÍVU (tool + args) pre vyriešenie problému. JSON: { "new_step": { "tool": "...", "args": {...} } }.',
-              },
-              {
-                role: "user",
-                content: `Step: ${JSON.stringify(step)}, Error: ${result.error}`,
-              },
+        // 2. EXECUTIVE LAYER (Workers)
+        for (const step of currentPlan.plan) {
+          superState.update({
+            toolResults: [
+              ...finalExecutionResults,
+              ...currentStepResults,
+              { tool: step.tool, status: "running" },
             ],
-            response_format: { type: "json_object" },
-          });
-          const workaround = JSON.parse(
-            solver.choices[0].message.content || "{}",
-          ).new_step;
-          if (workaround) {
-            result = await executeAtomicTool(
-              workaround.tool,
-              workaround.args,
-              clerkUser,
-            );
-          }
+            content: "",
+            status: "thinking",
+            attempt: attempts,
+          } as any);
+
+          const result = await executeAtomicTool(
+            step.tool,
+            step.args,
+            clerkUser,
+          );
+          currentStepResults.push({ tool: step.tool, result });
+
+          superState.update({
+            toolResults: [...finalExecutionResults, ...currentStepResults],
+            content: "",
+            status: "thinking",
+            attempt: attempts,
+          } as any);
         }
 
-        executionResults.push({ tool: step.tool, result });
-        superState.update({
-          toolResults: [...executionResults],
-          content: "",
-          status: "thinking",
+        finalExecutionResults = [
+          ...finalExecutionResults,
+          ...currentStepResults,
+        ];
+
+        // 3. VERIFICATION LAYER (Analysis)
+        const verificationPrompt = `
+Si **Mission Verifier**. Skontroluj, či výsledky pokusu č. ${attempts} úspešne splnili požiadavku používateľa.
+PÔVODNÁ POŽIADAVKA: ${messages[messages.length - 1].content}
+VÝSLEDKY POKUSU: ${JSON.stringify(currentStepResults)}
+
+ODPOVEDAJ LEN JSON: { "success": true/false, "analysis": "krátke zdôvodnenie", "missing_info": "čo ešte treba spraviť (ak success false)" }
+`;
+        const verificationRes = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [{ role: "system", content: verificationPrompt }],
+          response_format: { type: "json_object" },
         });
+
+        const verdict = JSON.parse(
+          verificationRes.choices[0].message.content || '{"success":false}',
+        );
+
+        if (verdict.success) {
+          missionAccomplished = true;
+        } else {
+          missionHistory.push({
+            attempt: attempts,
+            results: currentStepResults,
+            failure_reason: verdict.analysis,
+          });
+        }
       }
 
-      // C. FINAL RESPONSE
+      // 4. FINAL REPORT (The Voice)
       const verifierPrompt = `
-Si **ArciGy Agent** (Persona: Ultra-efektívny parťák). 
-VÝSLEDKY: ${JSON.stringify(executionResults)}
+Si **ArciGy Agent**. Stručne a ľudsky zhrň výsledok misie.
+MISIA: ${missionAccomplished ? "ÚSPEŠNÁ" : "ČIASTOČNÁ/ZLYHALA"}
+VÝSLEDKY: ${JSON.stringify(finalExecutionResults)}
 
-Komunikuj:
-1. **Extrémne stručne**: Žiadna omáčka. "Hotovo." + 1 veta zhrnutia.
-2. **Bez otázok**: Ak si niečo spravil, povedz to. Nepýtaj sa, či je to OK.
-3. **Tón**: Priateľský, k veci.
+PRAVIDLO: Max 1-2 vety. Buď priamy.
 `;
 
       const finalRes = await openai.chat.completions.create({
@@ -450,12 +490,12 @@ Komunikuj:
         messages: [{ role: "system", content: verifierPrompt }, ...messages],
       });
 
-      const content = finalRes.choices[0].message.content || "";
       superState.done({
-        toolResults: executionResults,
-        content,
+        toolResults: finalExecutionResults,
+        content: finalRes.choices[0].message.content || "",
         status: "done",
-      });
+        attempt: attempts,
+      } as any);
     } catch (error: any) {
       superState.error(error.message);
     }
@@ -464,6 +504,70 @@ Komunikuj:
   return {
     stream: superState.value,
   };
+}
+
+// ==========================================
+// 5. PERSISTENCE LAYER (Directus)
+// ==========================================
+
+export async function getAgentChats() {
+  const clerkUser = await currentUser();
+  if (!clerkUser) return [];
+  const email = clerkUser.emailAddresses[0]?.emailAddress;
+
+  // @ts-ignore
+  const chats = await directus.request(
+    readItems("agent_chats", {
+      filter: { user_email: { _eq: email } },
+      sort: ["-date_created"],
+    }),
+  );
+  return chats;
+}
+
+export async function getAgentChatById(id: string) {
+  // @ts-ignore
+  return await directus
+    .request(readItems("agent_chats", { filter: { id: { _eq: id } } }))
+    .then((res) => res[0]);
+}
+
+export async function saveAgentChat(
+  id: string,
+  title: string,
+  messages: any[],
+) {
+  const clerkUser = await currentUser();
+  if (!clerkUser) return;
+  const email = clerkUser.emailAddresses[0]?.emailAddress;
+
+  // @ts-ignore
+  const existing = await directus.request(
+    readItems("agent_chats", { filter: { id: { _eq: id } } }),
+  );
+
+  if (existing.length > 0) {
+    // @ts-ignore
+    await directus.request(updateItem("agent_chats", id, { title, messages }));
+  } else {
+    // @ts-ignore
+    await directus.request(
+      createItem("agent_chats", {
+        id,
+        title,
+        messages,
+        user_email: email,
+        date_created: new Date().toISOString(),
+      }),
+    );
+  }
+  revalidatePath("/dashboard/agent");
+}
+
+export async function deleteAgentChat(id: string) {
+  // @ts-ignore
+  await directus.request(updateItem("agent_chats", id, { status: "archived" }));
+  revalidatePath("/dashboard/agent");
 }
 
 // Compatibility Shims
