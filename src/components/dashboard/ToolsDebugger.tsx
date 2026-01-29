@@ -11,9 +11,11 @@ import {
   Search,
   Terminal,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export function ToolsDebugger() {
+  const router = useRouter();
   const [categories, setCategories] = React.useState<
     { category: string; tools: any[] }[]
   >([]);
@@ -70,8 +72,10 @@ export function ToolsDebugger() {
 
       const res = await runToolManually(selectedTool, args);
       setResult(res);
-      if (res.success) toast.success("Tool executed successfully");
-      else toast.error("Tool execution failed");
+      if (res.success) {
+        toast.success("Tool executed successfully");
+        router.refresh(); // Refresh Client Data
+      } else toast.error("Tool execution failed");
     } catch (e: any) {
       toast.error("Error executing tool: " + e.message);
       setResult({ success: false, error: e.message });

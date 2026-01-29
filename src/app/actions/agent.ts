@@ -1675,6 +1675,10 @@ export async function runToolManually(toolName: string, args: any) {
   // Reuse existing execution logic
   try {
     const result = await executeAtomicTool(toolName, args, clerkUser);
+
+    // CRITICAL: Revalidate all dashboard paths so UI updates immediately
+    revalidatePath("/dashboard", "layout");
+
     return { success: true, result };
   } catch (e: any) {
     return { success: false, error: e.message };
