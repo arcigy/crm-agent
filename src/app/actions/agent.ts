@@ -258,6 +258,97 @@ const SYSTEM_ATOMS: any[] = [
   },
 ];
 
+// ==========================================
+// VERIFIER ATOMS - Nástroje pre kontrolu splnenia úloh
+// ==========================================
+const VERIFIER_ATOMS: any[] = [
+  {
+    type: "function",
+    function: {
+      name: "verify_contact_exists",
+      description: "Overí či kontakt s daným ID existuje v databáze.",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: {
+            type: "number",
+            description: "ID kontaktu na overenie",
+          },
+        },
+        required: ["contact_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "verify_contact_by_email",
+      description: "Overí či kontakt s daným emailom existuje v databáze.",
+      parameters: {
+        type: "object",
+        properties: {
+          email: { type: "string", description: "Email kontaktu na overenie" },
+        },
+        required: ["email"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "verify_contact_by_name",
+      description: "Overí či kontakt s daným menom existuje v databáze.",
+      parameters: {
+        type: "object",
+        properties: {
+          first_name: { type: "string", description: "Krstné meno" },
+          last_name: { type: "string", description: "Priezvisko" },
+        },
+        required: ["first_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "verify_recent_contacts",
+      description:
+        "Získa zoznam posledných N vytvorených kontaktov pre overenie.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Počet kontaktov", default: 5 },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "verify_project_exists",
+      description: "Overí či projekt s daným ID existuje.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "number", description: "ID projektu" },
+        },
+        required: ["project_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "verify_database_health",
+      description: "Overí pripojenie k databáze a vráti základné štatistiky.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+];
+
 const ALL_ATOMS = [...INBOX_ATOMS, ...SYSTEM_ATOMS];
 
 // ==========================================
@@ -446,6 +537,65 @@ async function executeAtomicTool(name: string, args: any, user: any) {
             count: allContacts.length,
             contacts: allContacts,
           };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      // --- VERIFIER TOOLS ---
+      case "verify_contact_by_email":
+        try {
+          // @ts-ignore
+          const contacts = await directus.request(
+            readItems("contacts", {
+              filter: { email: { _eq: args.email } },
+            }),
+          );
+          return {
+            success: true,
+            exists: contacts.length > 0,
+            contact: contacts[0] || null,
+            message:
+              contacts.length > 0
+                ? "Kontakt existuje."
+                : "Kontakt nebol nájdený.",
+          };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      case "verify_contact_by_name":
+        try {
+          // @ts-ignore
+          const contacts = await directus.request(
+            readItems("contacts", {
+              filter: {
+                _and: [
+                  { first_name: { _icontains: args.first_name } },
+                  { last_name: { _icontains: args.last_name } },
+                ],
+              },
+            }),
+          );
+          return {
+            success: true,
+            exists: contacts.length > 0,
+            count: contacts.length,
+            contacts: contacts.slice(0, 3), // Return first 3 matches
+          };
+        } catch (e: any) {
+          return { success: false, error: e.message };
+        }
+
+      case "verify_recent_contacts":
+        try {
+          // @ts-ignore
+          const contacts = await directus.request(
+            readItems("contacts", {
+              limit: args.limit || 5,
+              sort: ["-date_created"],
+            }),
+          );
+          return { success: true, count: contacts.length, contacts: contacts };
         } catch (e: any) {
           return { success: false, error: e.message };
         }
@@ -671,6 +821,12 @@ DÔLEŽITÉ PRAVIDLÁ:
 - Pre VYHĽADANIE kontaktu použi: db_search_contacts (s query)
 - Pre AKTUALIZÁCIU lead analýzy použi: db_update_lead_info (s message_id)
 - Pre získanie emailov použi: gmail_fetch_list
+
+VERIFIKÁCIA JE POVINNÁ:
+Každý plán MUSÍ obsahovať verifikačný krok na konci!
+- Po vytvorení kontaktu -> verify_contact_by_email
+- Po update -> verify_contact_exists
+- Po získaní emailov -> skontroluj výstup
 
 Do poľa "readable_plan" daj zoznam krokov v ľudskej reči.
 VÝSTUP LEN JSON: { 
