@@ -24,6 +24,7 @@ import {
   Filter,
   ArrowUpDown,
   X,
+  RotateCcw,
 } from "lucide-react";
 import { format, isAfter, isBefore, addDays } from "date-fns";
 import { sk } from "date-fns/locale";
@@ -340,6 +341,77 @@ export function DealsTable({
                 <Banknote className="w-3 h-3" /> Označiť ako zaplatené
               </button>
             )}
+
+            {/* Revert Actions */}
+            {deal.paid && (
+              <button
+                onClick={async () => {
+                  if (
+                    confirm("Naozaj chcete vrátiť stav na 'Čaká na platbu'?")
+                  ) {
+                    if (deal.project) {
+                      const res = await updateProject(deal.project.id, {
+                        paid: false,
+                      });
+                      if (res.success) {
+                        toast.success("Stav vrátený na čakajúcu platbu");
+                        setCurrentProjects((prev) =>
+                          prev.map((p) =>
+                            p.id === deal.project!.id
+                              ? { ...p, paid: false }
+                              : p,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                }}
+                className="p-2 rounded-xl border border-amber-500/20 text-amber-500 hover:bg-amber-500/10 transition-all"
+                title="Vrátiť na nezaplatené"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            )}
+
+            {!deal.paid && deal.invoice_date && (
+              <button
+                onClick={async () => {
+                  if (
+                    confirm(
+                      "Naozaj chcete stornovať túto faktúru? (Zmaže dátumy fakturácie)",
+                    )
+                  ) {
+                    if (deal.project) {
+                      const res = await updateProject(deal.project.id, {
+                        invoice_date: null as any,
+                        due_date: null as any,
+                        paid: false,
+                      });
+                      if (res.success) {
+                        toast.success("Faktúra stornovaná");
+                        setCurrentProjects((prev) =>
+                          prev.map((p) =>
+                            p.id === deal.project!.id
+                              ? {
+                                  ...p,
+                                  invoice_date: undefined,
+                                  due_date: undefined,
+                                  paid: false,
+                                }
+                              : p,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                }}
+                className="p-2 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500/10 transition-all"
+                title="Stornovať faktúru"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            )}
+
             <button className="p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground">
               <MoreHorizontal className="w-4 h-4" />
             </button>
