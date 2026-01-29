@@ -1,0 +1,130 @@
+"use client";
+
+import * as React from "react";
+import {
+  BrainCircuit,
+  History,
+  Settings,
+  Sparkles,
+  RefreshCcw,
+  ShieldCheck,
+  User,
+  Building2,
+  Lock,
+  ArrowRight,
+  Database,
+} from "lucide-react";
+import Link from "next/link";
+
+const settingsCategories = [
+  {
+    title: "AI Kontext & Personalizácia",
+    description:
+      "Nastavenie tónu komunikácie, biznis cieľov a vlastných pokynov pre agenta.",
+    href: "/dashboard/settings/ai",
+    icon: BrainCircuit,
+    color: "text-indigo-500",
+    bg: "bg-indigo-500/10",
+  },
+  {
+    title: "Pamäť AI",
+    description:
+      "Prehľad a správa informácií, ktoré si o Vás AI zapamätalo v priebehu času.",
+    href: "/dashboard/settings/memory",
+    icon: History,
+    color: "text-blue-500",
+    bg: "bg-blue-500/10",
+  },
+  {
+    title: "Synchronizácia & Integrácie",
+    description:
+      "Prepojenie s Google Calendar, Gmail a ďalšími externými nástrojmi.",
+    href: "/dashboard/settings/sync",
+    icon: RefreshCcw,
+    color: "text-amber-500",
+    bg: "bg-amber-500/10",
+  },
+  {
+    title: "Dátová Bezpečnosť",
+    description:
+      "Správa prístupov, audit logy a nastavenia súkromia dát v CRM.",
+    href: "#",
+    icon: ShieldCheck,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+    comingSoon: true,
+  },
+];
+
+export default function SettingsHub() {
+  return (
+    <div className="max-w-5xl space-y-12 animate-in fade-in duration-500 pb-20">
+      {/* Header */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-slate-800 rounded-2xl shadow-xl border border-slate-700">
+            <Settings className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
+            Nastavenia <span className="text-slate-500">& Systém</span>
+          </h1>
+        </div>
+        <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em] pl-1 opacity-60 flex items-center gap-2">
+          <Sparkles className="w-3 h-3 text-slate-500" />
+          Centrálna správa Vášho CRM rozhrania
+        </p>
+      </div>
+
+      {/* Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {settingsCategories.map((cat) => (
+          <Link
+            key={cat.title}
+            href={cat.href}
+            className={`group relative p-8 bg-card border border-border rounded-[2.5rem] shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 transition-all duration-300 flex flex-col gap-6 ${cat.comingSoon ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            <div className="flex items-start justify-between">
+              <div
+                className={`p-4 rounded-2xl ${cat.bg} ${cat.color} group-hover:scale-110 transition-transform duration-500`}
+              >
+                <cat.icon className="w-6 h-6" />
+              </div>
+              {cat.comingSoon ? (
+                <span className="text-[9px] font-black uppercase tracking-widest bg-muted px-3 py-1 rounded-full text-muted-foreground">
+                  Čoskoro
+                </span>
+              ) : (
+                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-2 transition-all" />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-black tracking-tight">{cat.title}</h3>
+              <p className="text-sm text-muted-foreground font-medium leading-relaxed">
+                {cat.description}
+              </p>
+            </div>
+
+            <div className="absolute bottom-6 right-8 opacity-0 group-hover:opacity-10 transition-opacity">
+              <cat.icon className="w-20 h-20 rotate-12" />
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Footer Info */}
+      <div className="bg-slate-500/5 border border-slate-500/10 p-8 rounded-[3rem] space-y-4">
+        <div className="flex items-center gap-3">
+          <Database className="w-5 h-5 text-slate-400" />
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+            Architektúra „The Black Box“
+          </p>
+        </div>
+        <p className="text-xs font-bold text-gray-500 leading-relaxed uppercase tracking-widest">
+          Všetky Vaše konfigurácie sú izolované pre každého AI agenta zvlášť,
+          aby sa zachovala maximálnu efektivitu a súkromie Vašich dát.
+        </p>
+      </div>
+    </div>
+  );
+}

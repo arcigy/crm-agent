@@ -142,10 +142,13 @@ export function Sidebar({ className }: { className?: string }) {
         <div className="border-t border-[#1E293B] p-4 bg-[#0F172A] mt-auto">
           <div className="flex flex-col gap-2">
             <ThemeToggle />
-            <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-gray-400 hover:bg-[#1E293B] hover:text-white w-full transition-all group text-left">
+            <Link
+              href="/dashboard/settings"
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-gray-400 hover:bg-[#1E293B] hover:text-white w-full transition-all group text-left"
+            >
               <Settings className="h-5 w-5 text-gray-400 group-hover:rotate-45 transition-transform" />
               Nastavenia
-            </button>
+            </Link>
             <LogoutButton className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-gray-400 hover:bg-red-500/10 hover:text-red-400 w-full transition-all justify-start" />
           </div>
         </div>
