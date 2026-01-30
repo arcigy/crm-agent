@@ -634,7 +634,6 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
           onConfirm={async () => {
             const toastId = toast.loading("Ukladám kontakt...");
             try {
-              // @ts-expect-error - Directus types mismatch
               const res = await agentCreateContact(contactModalData);
               if (res.success) {
                 toast.success("Kontakt úspešne vytvorený", { id: toastId });
@@ -769,12 +768,9 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {allItems.map((item: any) => {
-                if (item.itemType === "email") {
-                  const msg = item as GmailMessage & {
-                    classification?: EmailClassification;
-                    isAnalyzing?: boolean;
-                  };
+              {allItems.map((item) => {
+                if ((item as { itemType: string }).itemType === "email") {
+                  const msg = item as unknown as GmailMessage;
                   const isSpam = msg.classification?.intent === "spam";
 
                   // New Radial Gradient System
@@ -1228,7 +1224,7 @@ function EmailDetailView({
   };
 
   const hasHtml = !!email.bodyHtml;
-  const classification = (email as any).classification;
+  const classification = email.classification;
 
   return (
     <div className="flex flex-col h-full bg-white text-gray-700 font-medium">
