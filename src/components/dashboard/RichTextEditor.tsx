@@ -126,7 +126,10 @@ export default function RichTextEditor({
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        bold: { HTMLAttributes: { class: "font-bold" } },
+        italic: { HTMLAttributes: { class: "italic" } },
+      }),
       Link.configure({ openOnClick: false }),
       TextStyle,
       Color,

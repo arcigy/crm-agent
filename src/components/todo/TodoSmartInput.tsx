@@ -114,14 +114,12 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        bold: {
-          HTMLAttributes: {
-            class: "font-bold",
-          },
-        },
+        bold: { HTMLAttributes: { class: "font-bold" } },
+        italic: { HTMLAttributes: { class: "italic" } },
       }),
       Underline,
       Highlight,
+
       TextStyle,
       Color,
       MentionNode,

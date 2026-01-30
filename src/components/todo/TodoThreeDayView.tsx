@@ -44,10 +44,21 @@ export function TodoThreeDayView({
   // Filter tasks
   const getTasksForDate = (date: Date, includeFloating = false) => {
     const dateStr = date.toISOString().split("T")[0];
-    return tasks.filter((t) => {
-      if (!t.due_date) return includeFloating; // Floating tasks only in "Today" usually
-      return t.due_date.startsWith(dateStr);
-    });
+    return tasks
+      .filter((t) => {
+        if (!t.due_date) return includeFloating; // Floating tasks only in "Today" usually
+        return t.due_date.startsWith(dateStr);
+      })
+      .sort((a, b) => {
+        // Sort by time if available, otherwise push to bottom
+        const aTime = a.due_date?.includes("T")
+          ? a.due_date.split("T")[1]
+          : "99:99";
+        const bTime = b.due_date?.includes("T")
+          ? b.due_date.split("T")[1]
+          : "99:99";
+        return aTime.localeCompare(bTime);
+      });
   };
 
   const yesterdayTasks = getTasksForDate(yesterday);

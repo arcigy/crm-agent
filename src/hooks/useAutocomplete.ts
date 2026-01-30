@@ -100,16 +100,28 @@ export function useAutocomplete(editor: any) {
 
       const { selection } = editor.state;
       const { $from } = selection;
-      const textBefore =
-        ($from.nodeBefore as { text?: string } | null)?.text || "";
-      const words = textBefore.split(/\s+/);
-      const lastWord = words[words.length - 1] || "";
-      const from = selection.from - lastWord.length;
+
+      // Extract current formatting marks to preserve them after insertion
+      const marks = editor.state.storedMarks || $from.marks();
+
+      // Calculate the start of the word safely within the current paragraph
+      // We use parentOffset to stay strictly within the current block structure
+      const parentText = $from.parent.textContent;
+      const parentOffset = $from.parentOffset;
+      let wordStart = parentOffset;
+
+      // Scan backwards for the start of the word (space or start of text)
+      while (wordStart > 0 && !/\s/.test(parentText[wordStart - 1])) {
+        wordStart--;
+      }
+
+      // Convert local parent offset to absolute document position
+      const from = $from.pos - (parentOffset - wordStart);
 
       editor
         .chain()
         .focus()
-        .deleteRange({ from, to: selection.from })
+        .deleteRange({ from, to: $from.pos })
         .insertContent({
           type: "mentionComponent",
           attrs: {
@@ -119,6 +131,9 @@ export function useAutocomplete(editor: any) {
           },
         })
         .insertContent(" ")
+        // Restore focus and marks so the user can continue typing with the same style
+        .focus()
+        .setStoredMarks(marks)
         .run();
 
       setQuery("");
