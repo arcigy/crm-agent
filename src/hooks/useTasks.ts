@@ -9,18 +9,18 @@ import {
 } from "@/app/actions/tasks";
 import { toast } from "sonner";
 
-export function useTasks() {
+export function useTasks(date?: string) {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refreshTasks = useCallback(async () => {
     setLoading(true);
-    const res = await getTasks();
+    const res = await getTasks(date);
     if (res.success && res.data) {
       setTasks(res.data);
     }
     setLoading(false);
-  }, []);
+  }, [date]);
 
   useEffect(() => {
     refreshTasks();

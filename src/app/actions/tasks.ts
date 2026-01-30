@@ -5,16 +5,30 @@ import { readItems, createItem, updateItem, deleteItem } from "@directus/sdk";
 import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
-export async function getTasks() {
+export async function getTasks(date?: string) {
   try {
     const user = await currentUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
     const email = user.emailAddresses[0]?.emailAddress;
+    const filter: any = { user_email: { _eq: email } };
+
+    if (date) {
+      // Directus filter for date (assuming YYYY-MM-DD format)
+      filter._and = [
+        { user_email: { _eq: email } },
+        {
+          _or: [
+            { due_date: { _starts_with: date } },
+            { due_date: { _null: true } }, // Show floating tasks too
+          ],
+        },
+      ];
+    }
 
     const data = await directus.request(
       readItems("crm_tasks", {
-        filter: { user_email: { _eq: email } },
+        filter,
         sort: ["date_created"],
         limit: -1,
       }),

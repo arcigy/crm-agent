@@ -11,6 +11,8 @@ import {
   X,
   Link as LinkIcon,
   Clock,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { getTodoRelations } from "@/app/actions/todo-relations";
 import { toast } from "sonner";
@@ -34,13 +36,29 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   const [loading, setLoading] = useState(false);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Load relations when focused or picker opened
+  // Load relations
   useEffect(() => {
     if (isFocused && relations.contacts.length === 0) {
       loadRelations();
     }
   }, [isFocused]);
+
+  // Click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsFocused(false);
+        setActivePicker(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const loadRelations = async () => {
     setLoading(true);
@@ -59,20 +77,26 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     const end = input.selectionEnd;
     const val = input.value;
 
-    const newVal = val.substring(0, start) + text + val.substring(end);
+    // Add space if needed
+    const prefix = start > 0 && val[start - 1] !== " " ? " " : "";
+    const suffix = end < val.length && val[end] !== " " ? " " : "";
+
+    const insertion = prefix + text + suffix;
+    const newVal = val.substring(0, start) + insertion + val.substring(end);
+
     setTitle(newVal);
 
-    // Set cursor position after the inserted text
     setTimeout(() => {
       input.focus();
-      input.setSelectionRange(start + text.length, start + text.length);
+      const newCursorPos = start + insertion.length;
+      input.setSelectionRange(newCursorPos, newCursorPos);
     }, 10);
 
     setActivePicker(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (title.trim()) {
       onAdd(title);
       setTitle("");
@@ -80,32 +104,35 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
   const parseText = (text: string) => {
-    // Basic regex to identify @Contact, #Project, $Deal, !Time
-    // We'll look for specific patterns like @[Name](id)
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
 
-    // Regex for: @[Name](id), #[Name](id), $[Name](id), ![Time]
+    // Regex matches: @[Name](id), #[Name](id), $[Name](id), ![Time]
     const regex = /([@#$])\[(.*?)\]\((.*?)\)|(!\[(.*?)\])/g;
     let match;
 
     while ((match = regex.exec(text)) !== null) {
-      // Push text before match
       if (match.index > lastIndex) {
         parts.push(text.substring(lastIndex, match.index));
       }
 
       if (match[1]) {
-        // @, #, $
         const type = match[1];
         const name = match[2];
         const id = match[3];
 
         const colors = {
-          "@": "bg-blue-500/10 text-blue-600 border-blue-200",
-          "#": "bg-purple-500/10 text-purple-600 border-purple-200",
-          $: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
+          "@": "bg-blue-600/20 text-blue-600 border-blue-400 hover:bg-blue-600 hover:text-white",
+          "#": "bg-purple-600/20 text-purple-600 border-purple-400 hover:bg-purple-600 hover:text-white",
+          $: "bg-emerald-600/20 text-emerald-600 border-emerald-400 hover:bg-emerald-600 hover:text-white",
         };
 
         const hrefs = {
@@ -118,7 +145,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
           <Link
             key={match.index}
             href={hrefs[type as keyof typeof hrefs]}
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border font-black text-[11px] uppercase tracking-tight hover:scale-105 transition-transform ${colors[type as keyof typeof colors]}`}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border-2 font-black text-[12px] uppercase tracking-tighter cursor-pointer shadow-sm pointer-events-auto transition-all ${colors[type as keyof typeof colors]}`}
             onClick={(e) => e.stopPropagation()}
           >
             {type === "@" && <User size={10} />}
@@ -128,12 +155,11 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
           </Link>,
         );
       } else {
-        // !Time
         const time = match[5];
         parts.push(
           <span
             key={match.index}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border bg-amber-500/10 text-amber-600 border-amber-200 font-black text-[11px] uppercase tracking-tight"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border-2 bg-amber-600/20 text-amber-600 border-amber-400 font-black text-[12px] uppercase tracking-tighter pointer-events-auto"
           >
             <Clock size={10} />
             {time}
@@ -152,20 +178,15 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
 
   return (
     <div
-      className={`relative transition-all duration-300 ${isFocused ? "scale-[1.01]" : ""}`}
+      ref={containerRef}
+      className={`relative transition-all duration-500 ease-out ${isFocused ? "scale-[1.01]" : ""}`}
     >
       <div className="relative group">
-        {/* Visual Layer (rendered behind transparent textarea) */}
+        {/* Visual Highlighter - Exactly matched padding and font */}
         <div
-          className="absolute inset-0 w-full h-24 bg-white dark:bg-zinc-900 border-2 border-zinc-100 dark:border-zinc-800 rounded-[2.5rem] px-8 py-6 text-lg font-bold pointer-events-none overflow-hidden whitespace-pre-wrap flex flex-wrap gap-y-1 align-baseline"
-          style={{ visibility: isFocused ? "visible" : "hidden" }}
+          className={`absolute inset-0 w-full min-h-[6rem] border-4 rounded-[2.5rem] px-8 py-8 text-xl font-bold z-20 pointer-events-none overflow-hidden whitespace-pre-wrap flex flex-wrap gap-y-2 content-start transition-all ${isFocused ? "border-blue-500 shadow-2xl shadow-blue-500/10 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-[2px]" : "border-zinc-100 dark:border-zinc-800"}`}
         >
           {parseText(title)}
-          {title === "" && (
-            <span className="text-zinc-300">
-              Čo je dnes tvojou prioritou?...
-            </span>
-          )}
         </div>
 
         <textarea
@@ -173,185 +194,137 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onFocus={() => setIsFocused(true)}
-          // onBlur handled by clicking outside
-          placeholder={isFocused ? "" : "Čo je dnes tvojou prioritou?..."}
-          className={`w-full h-24 bg-white dark:bg-zinc-900 border-2 border-zinc-100 dark:border-zinc-800 rounded-[2.5rem] px-8 py-6 text-lg font-bold focus:border-blue-500 outline-none transition-all resize-none ${isFocused ? "text-transparent caret-blue-600" : "text-zinc-900 dark:text-white"}`}
+          onKeyDown={handleKeyDown}
+          placeholder={isFocused ? "" : "Napíš čo máš na mysli..."}
+          className={`w-full min-h-[6rem] bg-white dark:bg-zinc-900 rounded-[2.5rem] px-8 py-8 text-xl font-bold outline-none transition-all resize-none relative z-10 ${isFocused ? "text-transparent caret-blue-600" : "text-zinc-900 dark:text-white"}`}
+          style={{
+            lineHeight: "1.5",
+            WebkitTextFillColor: isFocused ? "transparent" : "inherit",
+          }}
         />
 
-        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
+        {/* Side Actions */}
+        <div className="absolute right-6 top-8 flex flex-col gap-2 z-20">
           <TagButton
-            icon={<User size={16} />}
+            icon={<User size={18} />}
             color={
               activePicker === "contact"
                 ? "bg-blue-600 text-white"
-                : "text-blue-500"
+                : "bg-blue-50 text-blue-500 border-blue-100 hover:bg-blue-100"
             }
             label="Kontakt"
             onClick={() =>
               setActivePicker(activePicker === "contact" ? null : "contact")
             }
-          />
+          >
+            {activePicker === "contact" && (
+              <div className="absolute right-full mr-4 top-0 w-64 bg-white dark:bg-zinc-800 border-2 border-blue-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-right-2 fade-in duration-200">
+                <PickerHeader
+                  title="Kontakty"
+                  icon={<User size={14} />}
+                  onClose={() => setActivePicker(null)}
+                />
+                {relations.contacts.map((c: any) => (
+                  <PickerItem
+                    key={c.id}
+                    title={`${c.first_name} ${c.last_name}`}
+                    sub={c.company}
+                    onClick={() =>
+                      insertAtCursor(
+                        `@[${c.first_name} ${c.last_name}](${c.id})`,
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </TagButton>
+
           <TagButton
-            icon={<FolderKanban size={16} />}
+            icon={<FolderKanban size={18} />}
             color={
               activePicker === "project"
                 ? "bg-purple-600 text-white"
-                : "text-purple-500"
+                : "bg-purple-50 text-purple-500 border-purple-100 hover:bg-purple-100"
             }
             label="Projekt"
             onClick={() =>
               setActivePicker(activePicker === "project" ? null : "project")
             }
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={!title.trim()}
-            className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-200 disabled:opacity-30 disabled:shadow-none transition-all hover:scale-110 active:scale-95"
           >
-            <Plus size={28} />
-          </button>
-        </div>
-      </div>
+            {activePicker === "project" && (
+              <div className="absolute right-full mr-4 top-0 w-64 bg-white dark:bg-zinc-800 border-2 border-purple-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-right-2 fade-in duration-200">
+                <PickerHeader
+                  title="Projekty"
+                  icon={<FolderKanban size={14} />}
+                  onClose={() => setActivePicker(null)}
+                />
+                {relations.projects.map((p: any) => (
+                  <PickerItem
+                    key={p.id}
+                    title={p.project_type}
+                    sub={p.stage}
+                    onClick={() =>
+                      insertAtCursor(`#[${p.project_type}](${p.id})`)
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </TagButton>
 
-      {/* Pickers */}
-      {isFocused && (activePicker || activePicker === null) && (
-        <div className="absolute top-28 left-0 right-0 p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[3rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] z-[100] animate-in fade-in slide-in-from-top-4">
-          {!activePicker ? (
-            <>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4 px-2">
-                Smart Actions Control
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <SmartAction
-                  icon={<User size={18} />}
-                  title="Kontakt"
-                  shortcut="@"
-                  color="text-blue-500"
-                  onClick={() => setActivePicker("contact")}
-                />
-                <SmartAction
-                  icon={<FolderKanban size={18} />}
-                  title="Projekt"
-                  shortcut="#"
-                  color="text-purple-500"
-                  onClick={() => setActivePicker("project")}
-                />
-                <SmartAction
-                  icon={<Briefcase size={18} />}
-                  title="Obchod"
-                  shortcut="$"
-                  color="text-emerald-500"
-                  onClick={() => setActivePicker("deal")}
-                />
-                <SmartAction
-                  icon={<Clock size={18} />}
+          <TagButton
+            icon={<Clock size={18} />}
+            color={
+              activePicker === "time"
+                ? "bg-amber-600 text-white"
+                : "bg-amber-50 text-amber-500 border-amber-100 hover:bg-amber-100"
+            }
+            label="Čas"
+            onClick={() =>
+              setActivePicker(activePicker === "time" ? null : "time")
+            }
+          >
+            {activePicker === "time" && (
+              <div className="absolute right-full mr-4 top-0 w-32 bg-white dark:bg-zinc-800 border-2 border-amber-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-right-2 fade-in duration-200">
+                <PickerHeader
                   title="Čas"
-                  shortcut="!"
-                  color="text-amber-500"
-                  onClick={() => setActivePicker("time")}
+                  icon={<Clock size={14} />}
+                  onClose={() => setActivePicker(null)}
                 />
-              </div>
-            </>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between px-2">
-                <h4 className="text-sm font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-                  {activePicker === "contact" && (
-                    <>
-                      <User size={14} className="text-blue-500" /> Výber
-                      Kontaktu
-                    </>
-                  )}
-                  {activePicker === "project" && (
-                    <>
-                      <FolderKanban size={14} className="text-purple-500" />{" "}
-                      Výber Projektu
-                    </>
-                  )}
-                  {activePicker === "deal" && (
-                    <>
-                      <Briefcase size={14} className="text-emerald-500" /> Výber
-                      Obchodu
-                    </>
-                  )}
-                  {activePicker === "time" && (
-                    <>
-                      <Clock size={14} className="text-amber-500" /> Nastaviť
-                      Čas
-                    </>
-                  )}
-                </h4>
-                <button
-                  onClick={() => setActivePicker(null)}
-                  className="p-1 hover:bg-zinc-100 rounded-lg"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              <div className="max-h-60 overflow-y-auto pr-2 space-y-1 custom-scrollbar">
-                {activePicker === "contact" &&
-                  relations.contacts.map((c: any) => (
-                    <PickerItem
-                      key={c.id}
-                      title={`${c.first_name} ${c.last_name}`}
-                      sub={c.company}
-                      onClick={() =>
-                        insertAtCursor(
-                          `@[${c.first_name} ${c.last_name}](${c.id})`,
-                        )
-                      }
-                    />
-                  ))}
-                {activePicker === "project" &&
-                  relations.projects.map((p: any) => (
-                    <PickerItem
-                      key={p.id}
-                      title={p.project_type}
-                      sub={p.stage}
-                      onClick={() =>
-                        insertAtCursor(`#[${p.project_type}](${p.id})`)
-                      }
-                    />
-                  ))}
-                {activePicker === "deal" &&
-                  relations.deals.map((d: any) => (
-                    <PickerItem
-                      key={d.id}
-                      title={d.name}
-                      sub={`${d.value} €`}
-                      onClick={() => insertAtCursor(`$[${d.name}](${d.id})`)}
-                    />
-                  ))}
-                {activePicker === "time" &&
-                  [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((h) => (
+                <div className="grid grid-cols-1 gap-1">
+                  {[9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((h) => (
                     <PickerItem
                       key={h}
                       title={`${h}:00`}
-                      sub="Nastaviť hodinu"
                       onClick={() => insertAtCursor(`![${h}:00]`)}
                     />
                   ))}
-                {loading && (
-                  <div className="p-10 text-center text-xs font-bold text-zinc-400 animate-pulse">
-                    Načítavam dáta z CRM...
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </TagButton>
         </div>
-      )}
 
-      {/* Close handler backdrop */}
-      {isFocused && (
-        <div
-          className="fixed inset-0 z-[90]"
-          onClick={() => {
-            setIsFocused(false);
-            setActivePicker(null);
-          }}
-        />
+        {/* Floating Submit Button */}
+        <button
+          onClick={() => handleSubmit()}
+          disabled={!title.trim()}
+          className="absolute bottom-6 right-6 w-14 h-14 bg-gray-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-2xl flex items-center justify-center shadow-xl transition-all hover:scale-110 active:scale-90 disabled:opacity-20 z-20"
+        >
+          <Plus size={32} />
+        </button>
+      </div>
+
+      {isFocused && !activePicker && (
+        <div className="flex gap-4 mt-4 px-6 animate-in slide-in-from-top-2 fade-in duration-300">
+          <HintBadge icon={<User size={10} />} label="@ Prepojiť Kontakt" />
+          <HintBadge
+            icon={<FolderKanban size={10} />}
+            label="# Priradiť Projekt"
+          />
+          <HintBadge icon={<Clock size={10} />} label="! Nastaviť Čas" />
+        </div>
       )}
     </div>
   );
@@ -362,59 +335,51 @@ function TagButton({
   color,
   label,
   onClick,
+  children,
 }: {
   icon: React.ReactNode;
   color: string;
   label: string;
   onClick: () => void;
+  children?: React.ReactNode;
 }) {
   return (
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      type="button"
-      className={`p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800 ${color} hover:bg-white dark:hover:bg-zinc-700 border border-transparent hover:border-zinc-100 transition-all group relative`}
-    >
-      {icon}
-      <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-zinc-800 text-white text-[9px] font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[110] shadow-xl">
-        {label}
-      </span>
-    </button>
+    <div className="relative">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        type="button"
+        className={`p-3.5 rounded-2xl border-2 transition-all group ${color}`}
+      >
+        {icon}
+        <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-zinc-800 text-white text-[10px] font-black px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[110] uppercase tracking-widest">
+          {label}
+        </span>
+      </button>
+      {children}
+    </div>
   );
 }
 
-function SmartAction({
-  icon,
+function PickerHeader({
   title,
-  shortcut,
-  color,
-  onClick,
+  icon,
+  onClose,
 }: {
-  icon: React.ReactNode;
   title: string;
-  shortcut: string;
-  color: string;
-  onClick: () => void;
+  icon: React.ReactNode;
+  onClose: () => void;
 }) {
   return (
-    <div
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      className="flex items-center gap-3 p-4 rounded-3xl bg-zinc-50 dark:bg-zinc-800/50 hover:bg-white dark:hover:bg-zinc-800 cursor-pointer transition-all border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 hover:shadow-lg group"
-    >
-      <div className={`${color} group-hover:scale-110 transition-transform`}>
-        {icon}
-      </div>
-      <div className="flex-1 text-xs font-black uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
-        {title}
-      </div>
-      <div className="text-[10px] font-black text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md">
-        {shortcut}
-      </div>
+    <div className="flex items-center justify-between px-3 py-2 mb-2 border-b border-zinc-50 dark:border-zinc-700/50">
+      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+        {icon} {title}
+      </span>
+      <button onClick={onClose} className="text-zinc-300 hover:text-zinc-900">
+        <X size={12} />
+      </button>
     </div>
   );
 }
@@ -430,20 +395,28 @@ function PickerItem({
 }) {
   return (
     <div
-      onClick={onClick}
-      className="flex items-center justify-between p-4 rounded-2xl hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer border border-transparent hover:border-blue-100 dark:hover:border-blue-800 transition-all group"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className="flex flex-col p-3 rounded-2xl hover:bg-zinc-50 dark:hover:bg-zinc-700/50 cursor-pointer transition-all border border-transparent hover:border-zinc-100 dark:hover:border-zinc-600"
     >
-      <div className="flex flex-col">
-        <span className="text-sm font-bold text-zinc-700 dark:text-zinc-200 group-hover:text-blue-600 transition-colors">
-          {title}
+      <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+        {title}
+      </span>
+      {sub && (
+        <span className="text-[9px] font-black text-zinc-400 uppercase tracking-tight">
+          {sub}
         </span>
-        {sub && (
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-            {sub}
-          </span>
-        )}
-      </div>
-      <Plus size={14} className="text-zinc-300 group-hover:text-blue-500" />
+      )}
     </div>
+  );
+}
+
+function HintBadge({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <span className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-zinc-400 opacity-60">
+      {icon} {label}
+    </span>
   );
 }
