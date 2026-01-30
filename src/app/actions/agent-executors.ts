@@ -367,6 +367,45 @@ async function executeDbTool(name: string, args: Record<string, any>) {
         message: "Obchod bol úspešne označený ako zaplatený (paid: true).",
       };
 
+    case "verify_project_exists":
+      const vProjId = args.project_id;
+      const vProjs = (await directus.request(
+        readItems("projects", {
+          filter: { id: { _eq: vProjId } } as any,
+        }),
+      )) as any[];
+      return {
+        success: vProjs.length > 0,
+        data: vProjs[0] || null,
+        message:
+          vProjs.length > 0
+            ? "Projekt bol nájdený a overený."
+            : "Projekt sa v databáze nenachádza.",
+      };
+
+    case "verify_database_health":
+      try {
+        // Simple test to see if we can reach contacts
+        const healthCheck = (await directus.request(
+          readItems("contacts", { limit: 1 }),
+        )) as any[];
+        return {
+          success: true,
+          data: {
+            status: "online",
+            contacts_available: healthCheck.length > 0,
+          },
+          message:
+            "Pripojenie k databáze Directus je stabilné a funkčné (HEALTH: OK).",
+        };
+      } catch (e: any) {
+        return {
+          success: false,
+          error: e.message,
+          message: "Chyba pripojenia k databáze (HEALTH: FAILED).",
+        };
+      }
+
     // --- VERIFICATION ---
     case "verify_contact_exists":
     case "verify_contact_by_email":

@@ -376,7 +376,7 @@ export function ToolsDebugger() {
                 <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
               </div>
             )}
-            <pre className="p-4 font-mono text-xs text-white/80 overflow-auto h-full w-full">
+            <pre className="p-4 font-mono text-xs text-white/80 overflow-auto h-full w-full whitespace-pre-wrap break-words">
               {result
                 ? JSON.stringify(result, null, 2)
                 : "// Run tool to see output..."}
