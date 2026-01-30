@@ -253,11 +253,11 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
 
   // Load relations
   useEffect(() => {
-    if (isFocused && relations.contacts.length === 0) {
+    if ((isFocused || activePicker) && relations.contacts.length === 0) {
       loadRelations();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isFocused]);
+  }, [isFocused, activePicker]);
 
   const containerRef = React.useRef<HTMLDivElement>(null);
   useEffect(() => {
