@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ListChecks, Trash2, CheckCircle2, Circle } from "lucide-react";
+import { SmartText } from "./SmartText";
 
 interface TodoFloatingListProps {
   tasks: any[];
@@ -50,11 +51,10 @@ export function TodoFloatingList({
               </button>
 
               <div className="flex-1 min-w-0">
-                <span
+                <SmartText
+                  text={task.title}
                   className={`block font-bold text-sm leading-tight truncate ${task.completed ? "line-through text-zinc-400" : "text-zinc-700 dark:text-zinc-200"}`}
-                >
-                  {task.title}
-                </span>
+                />
                 {task.due_date && (
                   <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 opacity-60 mt-1 block">
                     Dnes

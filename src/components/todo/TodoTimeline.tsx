@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Clock, CheckCircle2, Circle } from "lucide-react";
+import { SmartText } from "./SmartText";
 
 interface TodoTimelineProps {
   tasks: any[];
@@ -61,11 +62,10 @@ export function TodoTimeline({ tasks, onToggle }: TodoTimelineProps) {
                           ) : (
                             <Circle size={14} className="text-blue-500" />
                           )}
-                          <span
+                          <SmartText
+                            text={task.title}
                             className={`text-xs font-bold ${task.completed ? "line-through text-zinc-400" : "text-blue-900 dark:text-blue-200"}`}
-                          >
-                            {task.title}
-                          </span>
+                          />
                         </div>
                       </div>
                     ))
