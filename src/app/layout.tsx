@@ -38,7 +38,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      signInUrl="/login"
+      signUpUrl="/login"
+      afterSignInUrl="/dashboard"
+      afterSignUpUrl="/dashboard"
+    >
       <html lang="sk" suppressHydrationWarning>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased transition-colors duration-300`}
