@@ -36,6 +36,7 @@ export const AI_MODELS = {
 
 // === UNIFIED RESPONSE TYPE ===
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface AIResponse {
   content: string;
   model: string;
@@ -47,7 +48,11 @@ interface AIResponse {
 export async function callGatekeeper(
   systemPrompt: string,
   messages: { role: string; content: string }[],
-): Promise<{ intent: string; reason: string; extracted_data: any }> {
+): Promise<{
+  intent: string;
+  reason: string;
+  extracted_data: Record<string, unknown>;
+}> {
   const response = await openai.chat.completions.create({
     model: AI_MODELS.GATEKEEPER,
     messages: [
@@ -69,7 +74,7 @@ export async function callGatekeeper(
 export async function callOrchestrator(
   systemPrompt: string,
   userMessage: string,
-): Promise<{ plan: any[]; readable_plan: string[] }> {
+): Promise<{ plan: Record<string, unknown>[]; readable_plan: string[] }> {
   const response = await anthropic.messages.create({
     model: AI_MODELS.ORCHESTRATOR,
     max_tokens: 2048,
@@ -96,7 +101,7 @@ export async function callOrchestrator(
 // === VERIFIER (Gemini 2.0 Flash) ===
 
 export async function callVerifier(
-  toolResults: any[],
+  toolResults: Record<string, unknown>[],
 ): Promise<{ success: boolean; analysis: string }> {
   const model = gemini.getGenerativeModel({ model: AI_MODELS.VERIFIER });
 
@@ -123,7 +128,7 @@ Odpovedaj LEN v JSON formáte:
 
 export async function callFinalReport(
   messages: { role: string; content: string }[],
-  toolResults: any[],
+  toolResults: Record<string, unknown>[],
 ): Promise<string> {
   const model = gemini.getGenerativeModel({ model: AI_MODELS.FINAL_REPORT });
 
@@ -168,7 +173,9 @@ export async function callConversational(
 
 // === EMAIL CLASSIFIER (Claude) ===
 
-export async function callEmailClassifier(prompt: string): Promise<any> {
+export async function callEmailClassifier(
+  prompt: string,
+): Promise<Record<string, unknown> | null> {
   const response = await anthropic.messages.create({
     model: AI_MODELS.EMAIL_CLASSIFIER,
     max_tokens: 1024,

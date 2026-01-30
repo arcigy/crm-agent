@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Cloud, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
@@ -36,10 +36,12 @@ export function GoogleConnectButton({
           redirectUrl: window.location.href,
         });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
+      const errorMessage =
+        e instanceof Error ? e.message : "Skontrolujte nastavenia v Clerk";
       toast.error("Chyba prepojenia", {
-        description: e.message || "Skontrolujte nastavenia v Clerk",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
