@@ -1,5 +1,5 @@
 import directus from "@/lib/directus";
-import { readItems, createItem, updateItem } from "@directus/sdk";
+import { readItems, readItem, createItem, updateItem } from "@directus/sdk";
 import { clerkClient } from "@clerk/nextjs/server";
 import { getGmailClient } from "@/lib/google";
 import path from "path";
