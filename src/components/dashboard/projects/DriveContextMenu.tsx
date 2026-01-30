@@ -13,12 +13,7 @@ import {
   Clipboard,
 } from "lucide-react";
 
-interface DriveFile {
-  id: string;
-  name: string;
-  mimeType: string;
-  webViewLink: string;
-}
+import { DriveFile } from "@/hooks/useDriveFiles";
 
 interface DriveContextMenuProps {
   visible: boolean;

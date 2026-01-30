@@ -102,13 +102,15 @@ export function useDriveFiles(
   };
 
   const performClipboardAction = async (
-    action: "copy" | "move",
+    action: "copy" | "move" | "cut",
     fileId: string,
     targetId: string,
   ) => {
+    const op = action === "cut" ? "move" : action;
     const toastId = toast.loading(
-      action === "move" ? "Presúvam..." : "Kopírujem...",
+      op === "move" ? "Presúvam..." : "Kopírujem...",
     );
+
     try {
       const body =
         action === "copy"

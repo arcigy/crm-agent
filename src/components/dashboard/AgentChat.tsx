@@ -32,7 +32,6 @@ import {
   History,
   Coins,
 } from "lucide-react";
-import { Message } from "@anthropic-ai/sdk/resources";
 
 interface CostInfo {
   totalCost: number;

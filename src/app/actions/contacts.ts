@@ -6,7 +6,6 @@ import { createItem, updateItem, readItems } from "@directus/sdk";
 
 export async function getContacts() {
   try {
-    // @ts-expect-error - Directus SDK type mismatch with filter
     const contacts = await directus.request(
       readItems("contacts", {
         filter: {
@@ -33,7 +32,6 @@ export async function createContact(data: any) {
     }
 
     // Save to Directus
-    // @ts-expect-error - Directus SDK type mismatch
     const drContact = await directus.request(
       createItem("contacts", {
         first_name: data.first_name,
@@ -43,7 +41,7 @@ export async function createContact(data: any) {
         company: data.company || "",
         status: data.status || "lead",
         comments: data.comments || "",
-      }),
+      } as any),
     );
 
     revalidatePath("/dashboard/contacts");
@@ -60,8 +58,7 @@ export async function createContact(data: any) {
 
 export async function updateContact(id: number | string, data: any) {
   try {
-    // @ts-expect-error - Directus SDK type mismatch
-    await directus.request(updateItem("contacts", id, data));
+    await directus.request(updateItem("contacts", id, data as any));
     revalidatePath("/dashboard/contacts");
     return { success: true };
   } catch (error) {
@@ -75,8 +72,9 @@ export async function updateContact(id: number | string, data: any) {
 
 export async function updateContactComments(id: number, comments: string) {
   try {
-    // @ts-expect-error - Directus SDK type mismatch
-    await directus.request(updateItem("contacts", id, { comments: comments }));
+    await directus.request(
+      updateItem("contacts", id, { comments: comments } as any),
+    );
     revalidatePath("/dashboard/contacts");
     return { success: true };
   } catch (error) {
@@ -122,7 +120,6 @@ export async function uploadVCard(formData: FormData) {
       const firstName = nameParts.join(" ");
 
       try {
-        // @ts-expect-error - Directus SDK type mismatch
         await directus.request(
           createItem("contacts", {
             first_name: firstName,
@@ -131,7 +128,7 @@ export async function uploadVCard(formData: FormData) {
             phone: (phone || "").replace(/\s/g, ""),
             company: org || "",
             status: "lead",
-          }),
+          } as any),
         );
         successCount++;
       } catch (e) {
@@ -154,10 +151,9 @@ export async function bulkCreateContacts(contacts: any[]) {
     let successCount = 0;
 
     // Fetch existing emails to avoid duplicates in this batch
-    // @ts-expect-error - Directus SDK type mismatch
     const existingContacts = await directus.request(
       readItems("contacts", {
-        fields: ["email"],
+        fields: ["email"] as any,
         limit: -1,
       }),
     );
@@ -190,7 +186,6 @@ export async function bulkCreateContacts(contacts: any[]) {
       }
 
       try {
-        // @ts-expect-error - Directus SDK type mismatch
         await directus.request(
           createItem("contacts", {
             first_name: firstName,
@@ -200,7 +195,7 @@ export async function bulkCreateContacts(contacts: any[]) {
             company: company ? String(company) : "",
             status: contact.status || "lead",
             ...contact,
-          }),
+          } as any),
         );
         successCount++;
         if (normalizedEmail) existingEmails.add(normalizedEmail);
@@ -225,10 +220,9 @@ export async function importGoogleContacts() {
     if (!user) return { success: false, error: "Unauthorized" };
 
     // 1. Get tokens from Directus
-    // @ts-expect-error - Directus SDK type mismatch
     const tokensRes = (await directus.request(
       readItems("google_tokens", {
-        filter: { user_id: { _eq: user.id } },
+        filter: { user_id: { _eq: user.id } } as any,
         limit: 1,
       }),
     )) as any[];

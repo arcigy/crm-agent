@@ -54,7 +54,7 @@ export default async function ProjectsPage() {
           contacts = Array.from(uniqueContactsMap.values());
 
           // ENRICH PROJECTS WITH CONTACT NAMES
-          projects = realProjects.map((p) => {
+          projects = (realProjects as any[]).map((p: any) => {
             const contact = contacts.find(
               (c) => String(c.id) === String(p.contact_id),
             );

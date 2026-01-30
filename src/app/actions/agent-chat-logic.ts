@@ -148,7 +148,7 @@ async function handleInfoOnly(
   const prompt = `Si ArciGy Agent. Odpovedaj priateľsky v slovenčine. Kontext: ${context.user_nickname}. Otázka: ${userText}`;
   const start = Date.now();
   const res = await gemini.generateContent(prompt);
-  const output = res.response.text();
+  const output = res.response?.text() || "Chyba AI poskytovateľa.";
   trackAICall(
     "conversational",
     "gemini",
@@ -184,7 +184,7 @@ async function runOrchestratorLoop(
   const toolDescriptions = ALL_ATOMS.map((t: ToolDefinition) => {
     const params = t.function.parameters?.properties || {};
     const paramStr = Object.entries(params)
-      .map(([k, v]) => `${k}: ${v.type}`)
+      .map(([k, v]) => `${k}: ${(v as any).type}`)
       .join(", ");
     return `- ${t.function.name}: ${t.function.description}. Args: {${paramStr}}`;
   }).join("\n");
@@ -235,9 +235,9 @@ Výstup LEN JSON: { "plan": [{ "tool": "...", "args": {...} }], "readable_plan":
     // Verifier
     const vPrompt = `Bolo toto úspešné pre požiadavku používateľa? ${JSON.stringify(currentStepResults)}. Odpovedaj LEN JSON: { "success": true/false, "analysis": "..." }`;
     const vRes = await gemini.generateContent(vPrompt);
-    const vText = vRes.response.text();
+    const vText = vRes.response?.text() || "{}";
     const vJsonMatch = vText.match(/\{[\s\S]*\}/);
-    const vOutput = vJsonMatch ? JSON.parse(vJsonMatch[0]) : { success: true }; // Fallback to avoid loop if parsing fails but it likely worked
+    const vOutput = vJsonMatch ? JSON.parse(vJsonMatch[0]) : { success: true };
     missionHistory.push({ steps: currentStepResults, verification: vOutput });
     if (vOutput.success) missionAccomplished = true;
   }
@@ -256,7 +256,7 @@ async function runFinalReporter(
   const prompt = `Zhrň misiu v slovenčine. Výsledky: ${JSON.stringify(results)}`;
   const start = Date.now();
   const res = await gemini.generateContent(prompt);
-  const output = res.response.text();
+  const output = res.response?.text() || "Generovanie zhrnutia zlyhalo.";
   trackAICall(
     "reporter",
     "gemini",

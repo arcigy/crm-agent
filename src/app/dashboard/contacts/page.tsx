@@ -51,12 +51,14 @@ async function ContactsListing() {
         const fn = contact.first_name || "";
         const ln = contact.last_name || "";
         const fullName = normalize(`${fn} ${ln}`);
-        const contactProjects = (projectsData || []).filter((p) => {
-          return (
-            String(p.contact_id) === String(contact.id) ||
-            (p.contact_name && normalize(p.contact_name) === fullName)
-          );
-        });
+        const contactProjects = ((projectsData as any[]) || []).filter(
+          (p: any) => {
+            return (
+              String(p.contact_id) === String(contact.id) ||
+              (p.contact_name && normalize(p.contact_name) === fullName)
+            );
+          },
+        );
         return { ...contact, projects: contactProjects };
       });
     } else if (

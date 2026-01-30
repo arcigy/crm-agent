@@ -223,6 +223,15 @@ export function CreateProjectModal({
   );
 }
 
+interface FormInputProps {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  required?: boolean;
+}
+
 function FormInput({
   label,
   value,
@@ -230,7 +239,7 @@ function FormInput({
   placeholder,
   type = "text",
   required = false,
-}: any) {
+}: FormInputProps) {
   return (
     <div className="space-y-2">
       <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">
@@ -248,7 +257,21 @@ function FormInput({
   );
 }
 
-function FormSelect({ label, value, options, onChange, list }: any) {
+interface FormSelectProps {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+  list: string;
+}
+
+function FormSelect({
+  label,
+  value,
+  options,
+  onChange,
+  list,
+}: FormSelectProps) {
   return (
     <div className="space-y-2">
       <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">
