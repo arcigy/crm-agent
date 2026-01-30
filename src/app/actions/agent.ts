@@ -71,14 +71,19 @@ const INBOX_ATOMS: any[] = [
     type: "function",
     function: {
       name: "gmail_reply",
-      description: "Odošle odpoveď do existujúceho vlákna.",
+      description:
+        "Pripraví odpoveď na email a otvorí compose okno v CRM. Tento nástroj NIKDY neposiela email priamo - vždy len pripraví náhľad pre používateľa, ktorý ho môže upraviť a odoslať manuálne.",
       parameters: {
         type: "object",
         properties: {
-          threadId: { type: "string" },
+          threadId: {
+            type: "string",
+            description: "ID vlákna na ktoré sa odpovedá",
+          },
           body: {
             type: "string",
-            description: "Text odpovede v HTML alebo čistý text",
+            description:
+              "Text odpovede v HTML alebo čistý text - AI predvyplní tento text",
           },
         },
         required: ["threadId", "body"],
@@ -722,13 +727,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
           userId: "me",
           id: args.threadId,
           format: "metadata",
-          metadataHeaders: [
-            "From",
-            "Subject",
-            "To",
-            "Message-ID",
-            "References",
-          ],
+          metadataHeaders: ["From", "Subject", "To"],
         });
 
         const originalMsg = thread.data.messages?.[0];
@@ -742,11 +741,14 @@ async function executeAtomicTool(name: string, args: any, user: any) {
           null,
           originalFrom,
         ];
-        const recipientEmail = recipientMatch[1]?.trim();
+        const recipientEmail = recipientMatch[1]?.trim() || originalFrom;
 
-        if (!recipientEmail) {
-          return { success: false, error: "Recipient address required" };
-        }
+        // Get sender name for display
+        const senderName =
+          originalFrom
+            .replace(/<[^>]+>/, "")
+            .trim()
+            .replace(/^"|"$/g, "") || recipientEmail;
 
         // Get original subject
         const originalSubject =
@@ -755,43 +757,21 @@ async function executeAtomicTool(name: string, args: any, user: any) {
           ? originalSubject
           : `Re: ${originalSubject}`;
 
-        // Get Message-ID for References header (proper threading)
-        const messageId =
-          originalHeaders.find((h) => h.name === "Message-ID")?.value || "";
-        const references =
-          originalHeaders.find((h) => h.name === "References")?.value || "";
-
-        // Build proper email headers for reply
-        const replyHeaders = [
-          `To: ${recipientEmail}`,
-          `Subject: ${replySubject}`,
-          messageId ? `In-Reply-To: ${messageId}` : "",
-          references
-            ? `References: ${references} ${messageId}`
-            : messageId
-              ? `References: ${messageId}`
-              : "",
-          `Content-Type: text/html; charset=UTF-8`,
-          "",
-          args.body,
-        ]
-          .filter(Boolean)
-          .join("\r\n");
-
-        const rawReply = Buffer.from(replyHeaders)
-          .toString("base64")
-          .replace(/\+/g, "-")
-          .replace(/\//g, "_")
-          .replace(/=+$/, "");
-
-        await gmail!.users.messages.send({
-          userId: "me",
-          requestBody: {
+        // NEVER send email directly - always return action to open compose modal
+        // Frontend will handle opening the QuickComposerModal with this data
+        return {
+          success: true,
+          action: "open_compose",
+          message:
+            "Compose okno pripravené. Používateľ môže email upraviť a odoslať.",
+          compose: {
+            to: recipientEmail,
+            toName: senderName,
+            subject: replySubject,
+            body: args.body,
             threadId: args.threadId,
-            raw: rawReply,
           },
-        });
-        return { success: true, recipientEmail, subject: replySubject };
+        };
 
       case "ai_deep_analyze_lead":
         const { classifyEmail } = await import("./ai");
