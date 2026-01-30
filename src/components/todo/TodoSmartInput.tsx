@@ -29,6 +29,25 @@ interface TodoSmartInputProps {
 
 type PickerType = "contact" | "project" | "deal" | null;
 
+interface Contact {
+  id: number;
+  first_name: string;
+  last_name: string;
+  company?: string;
+}
+
+interface Project {
+  id: number;
+  project_type: string;
+  stage?: string;
+}
+
+interface Relations {
+  contacts: Contact[];
+  projects: Project[];
+  deals: unknown[];
+}
+
 const COLORS = [
   { value: "inherit", label: "Default" },
   { value: "#2563eb", label: "Blue" },
@@ -42,18 +61,17 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   const [time, setTime] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [activePicker, setActivePicker] = useState<PickerType>(null);
-  const [relations, setRelations] = useState<any>({
+  const [relations, setRelations] = useState<Relations>({
     contacts: [],
     projects: [],
     deals: [],
   });
-  const [loading, setLoading] = useState(false);
 
   // Autocomplete state
   const [autocompleteQuery, setAutocompleteQuery] = useState("");
-  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<any[]>(
-    [],
-  );
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<
+    Contact[]
+  >([]);
   const [autocompletePosition, setAutocompletePosition] = useState<{
     top: number;
     left: number;
@@ -64,6 +82,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   try {
     const ctx = useContactPreview();
     openContact = ctx.openContact;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {}
 
   // Initialize Tiptap Editor
@@ -139,13 +158,14 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     return () => clearTimeout(timer);
   }, [autocompleteQuery, relations.contacts]);
 
-  const checkAutocomplete = (editor: any) => {
+  const checkAutocomplete = (editor: ReturnType<typeof useEditor>) => {
     const { state } = editor;
     const { selection } = state;
     const { $from } = selection;
 
     // Get text before cursor
-    const textBefore = $from.nodeBefore?.text || "";
+    const textBefore =
+      ($from.nodeBefore as { text?: string } | null)?.text || "";
     const words = textBefore.split(/\s+/);
     const lastWord = words[words.length - 1] || "";
 
@@ -166,14 +186,15 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     }
   };
 
-  const selectAutocompleteSuggestion = (contact: any) => {
+  const selectAutocompleteSuggestion = (contact: Contact) => {
     if (!editor) return;
 
     // Delete the typed query
     const { state } = editor;
     const { selection } = state;
     const { $from } = selection;
-    const textBefore = $from.nodeBefore?.text || "";
+    const textBefore =
+      ($from.nodeBefore as { text?: string } | null)?.text || "";
     const words = textBefore.split(/\s+/);
     const lastWord = words[words.length - 1] || "";
 
@@ -234,6 +255,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     if (isFocused && relations.contacts.length === 0) {
       loadRelations();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFocused]);
 
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -461,7 +483,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
                   onClose={() => setActivePicker(null)}
                 />
                 <div className="max-h-60 overflow-y-auto">
-                  {relations.contacts.map((c: any) => (
+                  {relations.contacts.map((c) => (
                     <PickerItem
                       key={c.id}
                       title={`${c.first_name} ${c.last_name}`}
@@ -500,7 +522,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
                   onClose={() => setActivePicker(null)}
                 />
                 <div className="max-h-60 overflow-y-auto">
-                  {relations.projects.map((p: any) => (
+                  {relations.projects.map((p) => (
                     <PickerItem
                       key={p.id}
                       title={p.project_type}
