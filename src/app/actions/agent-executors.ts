@@ -54,9 +54,10 @@ export async function executeAtomicTool(
     }
     if (name === "ai_deep_analyze_lead") {
       const { classifyEmail } = await import("./ai");
+      const userEmail = user?.emailAddresses?.[0]?.emailAddress;
       const analysis = await classifyEmail(
         args.content,
-        user.emailAddresses[0].emailAddress,
+        userEmail,
         args.sender,
         args.subject,
       );
@@ -67,10 +68,11 @@ export async function executeAtomicTool(
       };
     }
     return { success: false, error: "Tool group not found" };
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Executor Error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: error instanceof Error ? error.message : JSON.stringify(error),
     };
   }
 }
