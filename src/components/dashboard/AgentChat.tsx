@@ -17,9 +17,11 @@ import {
   chatWithAgent,
   getAgentChats,
   saveAgentChat,
+} from "@/app/actions/agent";
+import type {
   AgentStep,
   AgentChat as AgentChatType,
-} from "@/app/actions/agent";
+} from "@/app/actions/agent-types";
 import { toast } from "sonner";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import {

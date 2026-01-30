@@ -1,5 +1,3 @@
-"use server";
-
 import directus from "@/lib/directus";
 import { readItems, readItem, createItem, updateItem } from "@directus/sdk";
 import { currentUser } from "@clerk/nextjs/server";

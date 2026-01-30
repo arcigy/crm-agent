@@ -1,19 +1,44 @@
 "use server";
 
-export * from "./agent-types";
-export * from "./agent-registry";
-export * from "./agent-executors";
-export * from "./agent-persistence";
-export * from "./agent-chat-logic";
-
 import { currentUser } from "@clerk/nextjs/server";
 import { executeAtomicTool } from "./agent-executors";
 import { ALL_ATOMS } from "./agent-registry";
 import { UserResource, ActionResult } from "./agent-types";
+import { chatWithAgent as originalChatWithAgent } from "./agent-chat-logic";
+import {
+  getAgentChats as originalGetAgentChats,
+  getAgentChatById as originalGetAgentChatById,
+  saveAgentChat as originalSaveAgentChat,
+  deleteAgentChat as originalDeleteAgentChat,
+} from "./agent-persistence";
 
 /**
- * High-level atomic server actions for UI components
+ * HIGH-LEVEL SERVER ACTIONS
  */
+
+export async function chatWithAgent(messages: any) {
+  return originalChatWithAgent(messages);
+}
+
+export async function getAgentChats() {
+  return originalGetAgentChats();
+}
+
+export async function getAgentChatById(id: string) {
+  return originalGetAgentChatById(id);
+}
+
+export async function saveAgentChat(
+  id: string,
+  title: string,
+  messages: any[],
+) {
+  return originalSaveAgentChat(id, title, messages);
+}
+
+export async function deleteAgentChat(id: string) {
+  return originalDeleteAgentChat(id);
+}
 
 export async function agentSendEmail(args: {
   recipient: string;
@@ -24,7 +49,6 @@ export async function agentSendEmail(args: {
   const user = (await currentUser()) as UserResource | null;
   if (!user) return { success: false, error: "Unauthorized" };
 
-  // Use the executor we already have
   return (await executeAtomicTool(
     "gmail_reply",
     {
@@ -74,7 +98,6 @@ export async function agentScheduleEvent(
 }
 
 export async function getStructuredTools() {
-  // Group ALL_ATOMS by category for the debugger UI
   return [
     {
       category: "Gmail & Inbox",
