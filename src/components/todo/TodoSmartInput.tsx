@@ -293,28 +293,32 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   const selectAutocompleteSuggestion = (suggestion: Suggestion) => {
     if (!editor) return;
 
-    // Delete the typed query
-    const { state } = editor;
-    const { selection } = state;
+    // Calculate the range to replace BEFORE starting the chain
+    const { selection } = editor.state;
     const { $from } = selection;
     const textBefore =
       ($from.nodeBefore as { text?: string } | null)?.text || "";
     const words = textBefore.split(/\s+/);
     const lastWord = words[words.length - 1] || "";
+    const from = selection.from - lastWord.length;
 
-    // Delete last word
     editor
       .chain()
       .focus()
       .deleteRange({
-        from: selection.from - lastWord.length,
+        from: from,
         to: selection.from,
       })
+      .insertContent({
+        type: "mentionComponent",
+        attrs: {
+          id: suggestion.id,
+          label: suggestion.label,
+          type: suggestion.type,
+        },
+      })
+      .insertContent(" ")
       .run();
-
-    // Insert mention
-    // Insert mention
-    insertMention(suggestion.label, suggestion.id, suggestion.type);
 
     // Clear autocomplete
     setAutocompleteQuery("");
@@ -528,8 +532,10 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
               {autocompleteSuggestions.map((suggestion) => (
                 <div
                   key={`${suggestion.type}-${suggestion.id}`}
-                  onClick={() => selectAutocompleteSuggestion(suggestion)}
-                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    selectAutocompleteSuggestion(suggestion);
+                  }}
                   className="flex items-center gap-2 p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-zinc-700 cursor-pointer transition-all group"
                 >
                   <div
