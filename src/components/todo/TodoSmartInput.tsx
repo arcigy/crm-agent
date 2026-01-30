@@ -7,6 +7,8 @@ import Underline from "@tiptap/extension-underline";
 import LinkExtension from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import Highlight from "@tiptap/extension-highlight";
+import TextStyle from "@tiptap/extension-text-style";
+import { Color } from "@tiptap/extension-color";
 import {
   Plus,
   User,
@@ -16,14 +18,25 @@ import {
   Italic,
   Underline as UnderlineIcon,
   List,
+  Palette,
 } from "lucide-react";
 import { getTodoRelations } from "@/app/actions/todo-relations";
+import { useContactPreview } from "@/components/providers/ContactPreviewProvider";
 
 interface TodoSmartInputProps {
   onAdd: (title: string, time?: string) => void;
 }
 
 type PickerType = "contact" | "project" | "deal" | null;
+
+const COLORS = [
+  { value: "inherit", label: "Default" },
+  { value: "#2563eb", label: "Blue" },
+  { value: "#dc2626", label: "Red" },
+  { value: "#059669", label: "Green" },
+  { value: "#d97706", label: "Orange" },
+  { value: "#9333ea", label: "Purple" },
+];
 
 export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   const [time, setTime] = useState("");
@@ -36,16 +49,41 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   });
   const [loading, setLoading] = useState(false);
 
+  // Autocomplete state
+  const [autocompleteQuery, setAutocompleteQuery] = useState("");
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<any[]>(
+    [],
+  );
+  const [autocompletePosition, setAutocompletePosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+
+  // Contact preview context
+  let openContact: ((id: string | number) => void) | undefined;
+  try {
+    const ctx = useContactPreview();
+    openContact = ctx.openContact;
+  } catch (e) {}
+
   // Initialize Tiptap Editor
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        bold: {
+          HTMLAttributes: {
+            class: "font-bold",
+          },
+        },
+      }),
       Underline,
       Highlight,
+      TextStyle,
+      Color,
       LinkExtension.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: "cursor-pointer text-blue-600 underline decoration-blue-300",
+          class: "cursor-pointer",
         },
       }),
       Placeholder.configure({
@@ -55,17 +93,111 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     editorProps: {
       attributes: {
         class:
-          "outline-none min-h-[8rem] px-8 py-8 pt-12 pb-20 text-xl font-bold text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0",
+          "outline-none min-h-[8rem] px-8 py-8 pt-12 pb-20 text-xl font-normal text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold [&_.font-medium]:font-medium [&_.font-black]:font-black",
+      },
+      handleClick: (view, pos, event) => {
+        const target = event.target as HTMLElement;
+        const link = target.closest("a");
+        if (link) {
+          const id = link.getAttribute("data-contact-id");
+          if (id && openContact) {
+            event.preventDefault();
+            event.stopPropagation();
+            openContact(id);
+            return true;
+          }
+        }
+        return false;
       },
     },
     onFocus: () => setIsFocused(true),
-    // Save draft on update
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      // Simple debounce or just save
       saveDraft(html, time);
+
+      // Check for autocomplete trigger
+      checkAutocomplete(editor);
     },
   });
+
+  // Autocomplete logic with debounce
+  useEffect(() => {
+    if (!autocompleteQuery || autocompleteQuery.length < 3) {
+      setAutocompleteSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      // Filter contacts by query
+      const filtered = relations.contacts.filter((c: any) => {
+        const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
+        return fullName.includes(autocompleteQuery.toLowerCase());
+      });
+      setAutocompleteSuggestions(filtered.slice(0, 5));
+    }, 1000); // 1 second delay
+
+    return () => clearTimeout(timer);
+  }, [autocompleteQuery, relations.contacts]);
+
+  const checkAutocomplete = (editor: any) => {
+    const { state } = editor;
+    const { selection } = state;
+    const { $from } = selection;
+
+    // Get text before cursor
+    const textBefore = $from.nodeBefore?.text || "";
+    const words = textBefore.split(/\s+/);
+    const lastWord = words[words.length - 1] || "";
+
+    if (lastWord.length >= 3) {
+      setAutocompleteQuery(lastWord);
+
+      // Calculate position for autocomplete dropdown
+      const coords = editor.view.coordsAtPos(selection.from);
+      if (coords) {
+        setAutocompletePosition({
+          top: coords.bottom + 5,
+          left: coords.left,
+        });
+      }
+    } else {
+      setAutocompleteQuery("");
+      setAutocompleteSuggestions([]);
+    }
+  };
+
+  const selectAutocompleteSuggestion = (contact: any) => {
+    if (!editor) return;
+
+    // Delete the typed query
+    const { state } = editor;
+    const { selection } = state;
+    const { $from } = selection;
+    const textBefore = $from.nodeBefore?.text || "";
+    const words = textBefore.split(/\s+/);
+    const lastWord = words[words.length - 1] || "";
+
+    // Delete last word
+    editor
+      .chain()
+      .focus()
+      .deleteRange({
+        from: selection.from - lastWord.length,
+        to: selection.from,
+      })
+      .run();
+
+    // Insert mention
+    insertMention(
+      `${contact.first_name} ${contact.last_name}`,
+      contact.id,
+      "contact",
+    );
+
+    // Clear autocomplete
+    setAutocompleteQuery("");
+    setAutocompleteSuggestions([]);
+  };
 
   // Load draft from localStorage on mount
   useEffect(() => {
@@ -104,8 +236,6 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     }
   }, [isFocused]);
 
-  // Click outside handler logic is tricky with Tiptap as click inside toolbar/picker is "outside" editor but inside component.
-  // We attach ref to container.
   const containerRef = React.useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -115,6 +245,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
       ) {
         setIsFocused(false);
         setActivePicker(null);
+        setAutocompleteSuggestions([]);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -137,69 +268,80 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   ) => {
     if (!editor) return;
 
-    // We insert a Link that looks like a tag
     const href =
       type === "contact"
         ? `/dashboard/contacts?id=${id}`
         : `/dashboard/projects?id=${id}`;
 
-    // Custom data attributes are stripped by default Link extension unless properly configured or extended.
-    // For simplicity and robustness, we rely on the Href or ID.
-    // However, SmartText (the display component) uses data-contact-id.
-    // Let's try to insert HTML directly.
     const icon = type === "contact" ? "👤" : "📁";
     const label = `${icon} ${text}`;
 
-    // Simple approach: Insert text and link it.
-    // We want it to be noticeable.
-    // We can use setLink.
-
-    // Insert text first
     editor
       .chain()
       .focus()
       .insertContent(
-        `<a href="${href}" data-contact-id="${id}" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-600 font-bold text-sm no-underline mx-1" contenteditable="false">${label}</a> `,
+        `<a href="${href}" data-contact-id="${id}" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-600 font-bold text-sm no-underline mx-1 select-none" contenteditable="false">${label}</a> `,
       )
       .run();
 
     setActivePicker(null);
   };
 
+  const cycleWeight = () => {
+    if (!editor) return;
+
+    // Check current state
+    const isBold = editor.isActive("bold");
+    const attrs = editor.getAttributes("textStyle");
+    const currentWeight = attrs.fontWeight;
+
+    // Cycle: Normal (400) -> Medium (500) -> Bold (700) -> Black (900) -> Normal
+    if (!isBold && !currentWeight) {
+      // Normal -> Medium
+      editor.chain().focus().setMark("textStyle", { fontWeight: "500" }).run();
+    } else if (currentWeight === "500") {
+      // Medium -> Bold
+      editor.chain().focus().unsetMark("textStyle").toggleBold().run();
+    } else if (isBold) {
+      // Bold -> Black
+      editor
+        .chain()
+        .focus()
+        .unsetMark("bold")
+        .setMark("textStyle", { fontWeight: "900" })
+        .run();
+    } else {
+      // Black -> Normal
+      editor.chain().focus().unsetMark("textStyle").run();
+    }
+  };
+
+  const cycleColor = () => {
+    if (!editor) return;
+    const currentColor = editor.getAttributes("textStyle").color || "inherit";
+
+    const idx = COLORS.findIndex((c) => c.value === currentColor);
+    const nextIdx = (idx + 1) % COLORS.length;
+    const nextColor = COLORS[nextIdx].value;
+
+    if (nextColor === "inherit") {
+      editor.chain().focus().unsetColor().run();
+    } else {
+      editor.chain().focus().setColor(nextColor).run();
+    }
+  };
+
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (editor && !editor.isEmpty) {
       const html = editor.getHTML();
-      onAdd(html, time); // Pass HTML
+      onAdd(html, time);
       editor.commands.clearContent();
       setTime("");
       localStorage.removeItem("todo-draft");
       setActivePicker(null);
     }
   };
-
-  // Handle Ctrl+Enter
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey && isFocused) {
-        // Tiptap handles Enter as new paragraph. We want submit?
-        // User requested "Enter" to submit? The old textarea did.
-        // But rich text editors usually use Enter for new lines.
-        // Let's keep Enter = New Line, Ctrl+Enter = Submit, OR simple Enter = Submit if not Shift?
-        // "Word-like" usually means Enter = New line.
-        // But this is a "Todo Input". Usually Enter submits.
-        // Let's stick to: Enter = Submit, Shift+Enter = New Line.
-        // But Tiptap captures Enter. We need custom handler in editor props or extension.
-        // Simpler: Just check keydown on container? Tiptap consumes it.
-        // We can add a custom keyboard shortcut to Tiptap config if needed.
-        // But let's assume the user presses the BIG PLUS BUTTON for now or Ctrl+Enter.
-        // WAIT, code snippet below handles Enter on div? No.
-        // Let's leave Enter as new line for formatted text (paragraphs). It's more "Word-like".
-      }
-    };
-    // Implementing Enter to submit via Tiptap extension is best, but let's stick to Button submit for robustness unless requested.
-    // Actually, users expect Enter to submit in single-line inputs, but this is a multi-line rich editor.
-  }, [isFocused]);
 
   if (!editor) {
     return null;
@@ -217,9 +359,13 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
         {isFocused && (
           <div className="absolute top-4 left-8 right-8 flex items-center gap-2 z-40 animate-in fade-in slide-in-from-bottom-1 duration-200">
             <ToolbarBtn
-              onClick={() => editor.chain().focus().toggleBold().run()}
-              isActive={editor.isActive("bold")}
+              onClick={cycleWeight}
+              isActive={
+                editor.isActive("bold") ||
+                !!editor.getAttributes("textStyle").fontWeight
+              }
               icon={<Bold size={14} strokeWidth={3} />}
+              title="Váha písma (Normal → Medium → Bold → Black)"
             />
             <ToolbarBtn
               onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -230,6 +376,12 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
               onClick={() => editor.chain().focus().toggleUnderline().run()}
               isActive={editor.isActive("underline")}
               icon={<UnderlineIcon size={14} strokeWidth={3} />}
+            />
+            <ToolbarBtn
+              onClick={cycleColor}
+              isActive={!!editor.getAttributes("textStyle").color}
+              icon={<Palette size={14} strokeWidth={3} />}
+              title="Farba textu"
             />
             <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
             <ToolbarBtn
@@ -242,6 +394,37 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
 
         {/* Tiptap Editor Content */}
         <EditorContent editor={editor} className="min-h-[8rem]" />
+
+        {/* Autocomplete Dropdown */}
+        {autocompleteSuggestions.length > 0 && autocompletePosition && (
+          <div
+            className="fixed bg-white dark:bg-zinc-800 border-2 border-blue-100 dark:border-zinc-700 rounded-2xl shadow-2xl p-2 z-[100] min-w-[200px]"
+            style={{
+              top: `${autocompletePosition.top}px`,
+              left: `${autocompletePosition.left}px`,
+            }}
+          >
+            {autocompleteSuggestions.map((contact) => (
+              <div
+                key={contact.id}
+                onClick={() => selectAutocompleteSuggestion(contact)}
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-zinc-700 cursor-pointer transition-all"
+              >
+                <User size={14} className="text-blue-600" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                    {contact.first_name} {contact.last_name}
+                  </span>
+                  {contact.company && (
+                    <span className="text-xs text-zinc-400">
+                      {contact.company}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Bottom Actions Toolbar */}
         <div className="absolute left-8 bottom-6 flex items-center gap-3 z-30 transition-all duration-300">
@@ -343,7 +526,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
         </button>
       </div>
 
-      {isFocused && !activePicker && (
+      {isFocused && !activePicker && autocompleteSuggestions.length === 0 && (
         <div className="flex gap-4 mt-4 px-6 animate-in slide-in-from-top-2 fade-in duration-300">
           <HintBadge icon={<User size={10} />} label="@ Prepojiť Kontakt" />
           <HintBadge
@@ -360,14 +543,17 @@ function ToolbarBtn({
   onClick,
   isActive,
   icon,
+  title,
 }: {
   onClick: () => void;
-  isActive: boolean;
+  isActive?: boolean;
   icon: React.ReactNode;
+  title?: string;
 }) {
   return (
     <button
       onClick={onClick}
+      title={title}
       className={`p-1.5 rounded-md transition-colors ${
         isActive
           ? "bg-zinc-200 dark:bg-zinc-600 text-zinc-900 dark:text-white"
