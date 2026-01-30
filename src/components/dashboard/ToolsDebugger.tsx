@@ -139,8 +139,12 @@ export function ToolsDebugger() {
         "tool" in payload &&
         "args" in payload
       ) {
-        toolToRun = (payload as any).tool;
-        argsToRun = (payload as any).args;
+        const uPayload = payload as {
+          tool: string;
+          args: Record<string, unknown>;
+        };
+        toolToRun = uPayload.tool;
+        argsToRun = uPayload.args;
         setSelectedTool(toolToRun); // Sync sidebar UI
       }
 
@@ -306,7 +310,7 @@ export function ToolsDebugger() {
                     const text = await navigator.clipboard.readText();
                     setArgsJson(text);
                     toast.success("JSON pasted from clipboard");
-                  } catch (err) {
+                  } catch {
                     toast.error("Failed to read clipboard");
                   }
                 }}
