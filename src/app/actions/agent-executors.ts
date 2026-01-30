@@ -302,11 +302,8 @@ async function executeDbTool(name: string, args: Record<string, any>) {
 
     // --- PROJECTS ---
     case "db_fetch_projects":
-      const pFilter: any = { status: { _neq: "archived" } };
-      if (args.contact_id) pFilter.contact_id = { _eq: args.contact_id };
       const prRes = (await directus.request(
         readItems("projects", {
-          filter: pFilter,
           limit: args.limit || 20,
         }),
       )) as any[];
@@ -363,11 +360,11 @@ async function executeDbTool(name: string, args: Record<string, any>) {
 
     case "db_invoice_deal":
       await directus.request(
-        updateItem("deals", args.deal_id, { status: "invoiced" } as any),
+        updateItem("deals", args.deal_id, { paid: true } as any),
       );
       return {
         success: true,
-        message: "Stav obchodu bol zmenený na 'Fakturované'.",
+        message: "Obchod bol úspešne označený ako zaplatený (paid: true).",
       };
 
     // --- VERIFICATION ---
