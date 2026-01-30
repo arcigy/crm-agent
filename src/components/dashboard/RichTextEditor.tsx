@@ -21,6 +21,9 @@ import {
   Type,
   Highlighter,
 } from "lucide-react";
+import { MentionNode } from "@/lib/tiptap-mention-node";
+import { useAutocomplete } from "@/hooks/useAutocomplete";
+import { AutocompleteDropdown } from "@/components/editor/AutocompleteDropdown";
 
 interface RichTextEditorProps {
   content: string;
@@ -129,11 +132,13 @@ export default function RichTextEditor({
       Color,
       Underline,
       Highlight,
+      MentionNode,
       Placeholder.configure({ placeholder: placeholder || "Začnite písať..." }),
     ],
     content: content,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
+      checkAutocomplete(editor);
     },
     editorProps: {
       attributes: {
@@ -142,6 +147,9 @@ export default function RichTextEditor({
       },
     },
   });
+
+  const { suggestions, position, checkAutocomplete, selectSuggestion } =
+    useAutocomplete(editor);
 
   // Update content if it changes externally
   React.useEffect(() => {
@@ -154,6 +162,11 @@ export default function RichTextEditor({
     <div className="flex flex-col border border-border rounded-[2.5rem] bg-card shadow-inner min-h-0 flex-1 transition-colors">
       <MenuBar editor={editor} />
       <EditorContent editor={editor} className="flex-1 overflow-hidden" />
+      <AutocompleteDropdown
+        suggestions={suggestions}
+        position={position}
+        onSelect={selectSuggestion}
+      />
 
       <style jsx global>{`
         .ProseMirror p.is-editor-empty:first-child::before {
