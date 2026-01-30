@@ -120,19 +120,40 @@ export function ToolsDebugger() {
     setResult(null);
 
     try {
-      let args = {};
+      let payload = {};
       try {
-        args = JSON.parse(argsJson);
+        payload = JSON.parse(argsJson);
       } catch {
         toast.error("Invalid JSON format");
         setIsRunning(false);
         return;
       }
 
-      const res = await runToolManually(selectedTool, args);
+      // Universal Mode: If JSON contains "tool" and "args", use them
+      let toolToRun = selectedTool;
+      let argsToRun = payload;
+
+      if (
+        payload &&
+        typeof payload === "object" &&
+        "tool" in payload &&
+        "args" in payload
+      ) {
+        toolToRun = (payload as any).tool;
+        argsToRun = (payload as any).args;
+        setSelectedTool(toolToRun); // Sync sidebar UI
+      }
+
+      if (!toolToRun) {
+        toast.error("No tool selected or specified in JSON");
+        setIsRunning(false);
+        return;
+      }
+
+      const res = await runToolManually(toolToRun, argsToRun);
       setResult(res);
       if (res.success) {
-        toast.success("Tool executed successfully");
+        toast.success(`Tool ${toolToRun} executed successfully`);
 
         // Handle specialized actions
         if (res.action === "open_compose" && res.compose) {
@@ -248,124 +269,116 @@ export function ToolsDebugger() {
 
       {/* MIDDLE PANEL: Input & Config */}
       <div className="flex-1 flex flex-col gap-4">
-        {selectedTool && (
-          <>
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex-1 flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    {selectedTool}
-                  </h3>
-                  <div className="text-sm text-white/60 mt-1">
-                    {getToolDef()?.function.description}
-                  </div>
-                </div>
-                <button
-                  onClick={handleRun}
-                  disabled={isRunning}
-                  className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isRunning ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Play className="w-4 h-4 fill-current" />
-                  )}
-                  Run Tool
-                </button>
-              </div>
-
-              <div className="flex-1 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-mono text-white/40 uppercase tracking-wider">
-                    Input JSON Arguments
-                  </label>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const text = await navigator.clipboard.readText();
-                        setArgsJson(text);
-                        toast.success("JSON pasted from clipboard");
-                      } catch (err) {
-                        toast.error("Failed to read clipboard");
-                      }
-                    }}
-                    className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-widest"
-                  >
-                    <ClipboardPaste className="w-3 h-3" />
-                    Paste JSON
-                  </button>
-                </div>
-                <textarea
-                  value={argsJson}
-                  onChange={(e) => setArgsJson(e.target.value)}
-                  className="flex-1 w-full bg-[#0F1117] border border-white/10 rounded-xl p-4 font-mono text-sm text-emerald-300 focus:outline-none focus:border-emerald-500/50 resize-none selection:bg-emerald-500/30"
-                  spellCheck="false"
-                />
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex-1 flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                {selectedTool || "Universal Executor"}
+              </h3>
+              <div className="text-sm text-white/60 mt-1">
+                {selectedTool
+                  ? getToolDef()?.function.description
+                  : 'Paste { "tool": "...", "args": { ... } } to run any tool.'}
               </div>
             </div>
-
-            {/* RIGHT PANEL: Output */}
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex-1 flex flex-col overflow-hidden min-h-[300px]">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-mono text-white/40 uppercase tracking-wider">
-                  Result
-                </label>
-                <div className="flex items-center gap-3">
-                  {result && (
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(
-                          JSON.stringify(result, null, 2),
-                        );
-                        toast.success("Result copied to clipboard");
-                      }}
-                      className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors uppercase tracking-widest mr-2"
-                    >
-                      <Copy className="w-3 h-3" />
-                      Copy Result
-                    </button>
-                  )}
-                  {result && (
-                    <div
-                      className={cn(
-                        "flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full",
-                        result.success
-                          ? "bg-emerald-500/10 text-emerald-400"
-                          : "bg-red-500/10 text-red-400",
-                      )}
-                    >
-                      {result.success ? (
-                        <CheckCircle className="w-3 h-3" />
-                      ) : (
-                        <XCircle className="w-3 h-3" />
-                      )}
-                      {result.success ? "SUCCESS" : "ERROR"}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex-1 relative bg-[#0F1117] border border-white/10 rounded-xl overflow-hidden">
-                {isRunning && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-10">
-                    <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-                  </div>
-                )}
-                <pre className="p-4 font-mono text-xs text-white/80 overflow-auto h-full w-full">
-                  {result
-                    ? JSON.stringify(result, null, 2)
-                    : "// Run tool to see output..."}
-                </pre>
-              </div>
-            </div>
-          </>
-        )}
-
-        {!selectedTool && (
-          <div className="flex-1 flex items-center justify-center text-white/30 italic">
-            Select a tool to start debugging
+            <button
+              onClick={handleRun}
+              disabled={isRunning}
+              className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isRunning ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4 fill-current" />
+              )}
+              Run Tool
+            </button>
           </div>
-        )}
+
+          <div className="flex-1 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-mono text-white/40 uppercase tracking-wider">
+                Input JSON Arguments
+              </label>
+              <button
+                onClick={async () => {
+                  try {
+                    const text = await navigator.clipboard.readText();
+                    setArgsJson(text);
+                    toast.success("JSON pasted from clipboard");
+                  } catch (err) {
+                    toast.error("Failed to read clipboard");
+                  }
+                }}
+                className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-widest"
+              >
+                <ClipboardPaste className="w-3 h-3" />
+                Paste JSON
+              </button>
+            </div>
+            <textarea
+              value={argsJson}
+              onChange={(e) => setArgsJson(e.target.value)}
+              className="flex-1 w-full bg-[#0F1117] border border-white/10 rounded-xl p-4 font-mono text-sm text-emerald-300 focus:outline-none focus:border-emerald-500/50 resize-none selection:bg-emerald-500/30"
+              spellCheck="false"
+            />
+          </div>
+        </div>
+
+        {/* RIGHT PANEL: Output */}
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex-1 flex flex-col overflow-hidden min-h-[300px]">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-mono text-white/40 uppercase tracking-wider">
+              Result
+            </label>
+            <div className="flex items-center gap-3">
+              {result && (
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      JSON.stringify(result, null, 2),
+                    );
+                    toast.success("Result copied to clipboard");
+                  }}
+                  className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors uppercase tracking-widest mr-2"
+                >
+                  <Copy className="w-3 h-3" />
+                  Copy Result
+                </button>
+              )}
+              {result && (
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full",
+                    result.success
+                      ? "bg-emerald-500/10 text-emerald-400"
+                      : "bg-red-500/10 text-red-400",
+                  )}
+                >
+                  {result.success ? (
+                    <CheckCircle className="w-3 h-3" />
+                  ) : (
+                    <XCircle className="w-3 h-3" />
+                  )}
+                  {result.success ? "SUCCESS" : "ERROR"}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex-1 relative bg-[#0F1117] border border-white/10 rounded-xl overflow-hidden">
+            {isRunning && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-10">
+                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+              </div>
+            )}
+            <pre className="p-4 font-mono text-xs text-white/80 overflow-auto h-full w-full">
+              {result
+                ? JSON.stringify(result, null, 2)
+                : "// Run tool to see output..."}
+            </pre>
+          </div>
+        </div>
       </div>
       {/* Compose Modal */}
       <QuickComposerModal
