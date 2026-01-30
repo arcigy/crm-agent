@@ -1168,8 +1168,9 @@ async function executeAtomicTool(
             timeout: 30000,
           });
           return { success: true, data: output };
-        } catch (e: any) {
-          return { success: false, error: e.stdout || e.message };
+        } catch (e) {
+          const error = e as any;
+          return { success: false, error: error.stdout || error.message };
         }
 
       default:
@@ -1199,18 +1200,25 @@ const anthropic = new Anthropic({
 
 const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
+interface AgentStep {
+  tool: string;
+  args?: Record<string, any>;
+  status?: "running" | "done" | "error";
+  result?: any;
+}
+
 export async function chatWithAgent(
   messages: { role: "user" | "assistant" | "system"; content: string }[],
 ) {
   const superState = createStreamableValue({
-    toolResults: [] as any[],
+    toolResults: [] as AgentStep[],
     content: "",
     status: "thinking",
     attempt: 1,
     thoughts: {
       intent: "",
       plan: [] as string[],
-      extractedData: null as any,
+      extractedData: null as Record<string, any> | null,
     },
     providers: {
       gatekeeper: "OpenAI GPT-4o-mini",
@@ -1280,7 +1288,7 @@ ODPOVEDAJ LEN JSON: {
           plan: [],
         },
         status: "thinking",
-      } as any);
+      });
 
       // INFO_ONLY - použijeme Gemini pre rýchlu odpoveď
       if (verdict.intent === "INFO_ONLY") {
@@ -1288,8 +1296,8 @@ ODPOVEDAJ LEN JSON: {
           model: "gemini-2.0-flash",
         });
         const userMessages = messages
-          .filter((m: any) => m.role === "user")
-          .map((m: any) => m.content)
+          .filter((m) => m.role === "user")
+          .map((m) => m.content)
           .join("\n");
 
         const convPrompt = `Si ArciGy Agent. Odpovedaj stručne a priateľsky v slovenčine. Identita používateľa: ${context.user_nickname}.\n\nOtázka: ${userMessages}`;
@@ -1326,23 +1334,21 @@ ODPOVEDAJ LEN JSON: {
       // ==========================================
       // 2. ORCHESTRATOR (Claude 3.7 Sonnet)
       // ==========================================
-      let missionAccomplished = false;
-      let attempts = 0;
       const maxAttempts = 3;
       const missionHistory: any[] = [];
-      let finalExecutionResults: any[] = [];
+      let finalExecutionResults: AgentStep[] = [];
 
       while (!missionAccomplished && attempts < maxAttempts) {
         attempts++;
-        const currentAttemptLog: any = {
+        const currentAttemptLog = {
           attempt: attempts,
-          steps: [],
-          verification: null,
+          steps: [] as AgentStep[],
+          verification: null as any,
           plannerPrompt: "",
+          plannerRawOutput: "",
         };
 
-        // Build detailed tool descriptions for Claude
-        const toolDescriptions = ALL_ATOMS.map((t) => {
+        const toolDescriptions = ALL_ATOMS.map((t: ToolDefinition) => {
           const params = t.function.parameters?.properties || {};
           const paramStr = Object.entries(params)
             .map(
@@ -1383,8 +1389,8 @@ VÝSTUP LEN JSON: {
 
         // Claude 3.7 Sonnet pre orchestráciu
         const userMessage = messages
-          .filter((m: any) => m.role === "user")
-          .map((m: any) => m.content)
+          .filter((m) => m.role === "user")
+          .map((m) => m.content)
           .join("\n");
         const orchestratorInput = `${architectPrompt}\n\nPoužívateľova požiadavka: ${userMessage}`;
         const orchestratorStart = Date.now();
@@ -1443,7 +1449,7 @@ VÝSTUP LEN JSON: {
               ...currentStepResults,
               { tool: step.tool, status: "running" },
             ],
-          } as any);
+          });
 
           const result = await executeAtomicTool(
             step.tool,
