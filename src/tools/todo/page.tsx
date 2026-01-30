@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { useTasks } from "@/hooks/useTasks";
 import { TodoSmartInput } from "@/components/todo/TodoSmartInput";
