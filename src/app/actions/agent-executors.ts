@@ -348,6 +348,29 @@ async function executeDbTool(name: string, args: Record<string, any>) {
       return { success: true, message: "Projekt bol archivovaný." };
 
     // --- DEALS ---
+    case "db_create_deal":
+      const nDeal = (await directus.request(
+        createItem("deals", {
+          name: args.name,
+          contact_id: args.contact_id,
+          value: args.value || 0,
+          description: args.description || "",
+          date_created: new Date().toISOString(),
+        } as any),
+      )) as any;
+      return {
+        success: true,
+        data: { deal_id: nDeal.id },
+        message: "Nový obchod bol úspešne vytvorený.",
+      };
+
+    case "db_update_deal":
+      await directus.request(updateItem("deals", args.deal_id, args as any));
+      return {
+        success: true,
+        message: "Obchod bol úspešne aktualizovaný.",
+      };
+
     case "db_fetch_deals":
       const dealsRes = (await directus.request(
         readItems("deals", { limit: args.limit || 10 }),

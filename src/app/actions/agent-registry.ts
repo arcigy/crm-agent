@@ -265,6 +265,23 @@ export const DEAL_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
+      name: "db_create_deal",
+      description: "Vytvorí nový obchod (deal).",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          contact_id: { type: "number" },
+          value: { type: "number" },
+          description: { type: "string" },
+        },
+        required: ["name", "contact_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "db_fetch_deals",
       description: "Načíta zoznam obchodov (deals).",
       parameters: {
