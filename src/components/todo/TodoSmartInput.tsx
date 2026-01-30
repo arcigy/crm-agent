@@ -529,6 +529,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
                 <div
                   key={`${suggestion.type}-${suggestion.id}`}
                   onClick={() => selectAutocompleteSuggestion(suggestion)}
+                  onMouseDown={(e) => e.preventDefault()}
                   className="flex items-center gap-2 p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-zinc-700 cursor-pointer transition-all group"
                 >
                   <div
