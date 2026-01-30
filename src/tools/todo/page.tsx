@@ -74,7 +74,15 @@ export default function TodoTool() {
           </div>
         </header>
 
-        <TodoSmartInput onAdd={(title) => add(title, selectedDate)} />
+        <TodoSmartInput
+          onAdd={(title, time) => {
+            let finalDate = selectedDate;
+            if (time) {
+              finalDate = `${selectedDate}T${time}:00`;
+            }
+            add(title, finalDate);
+          }}
+        />
       </div>
 
       {/* Main Grid */}

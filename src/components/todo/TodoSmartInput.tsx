@@ -6,26 +6,29 @@ import {
   User,
   FolderKanban,
   Briefcase,
-  Calendar,
   Search,
   X,
   Link as LinkIcon,
-  Clock,
   ChevronDown,
   ChevronUp,
+  Bold,
+  Italic,
+  Underline,
+  List,
 } from "lucide-react";
 import { getTodoRelations } from "@/app/actions/todo-relations";
 import { toast } from "sonner";
 import Link from "next/link";
 
 interface TodoSmartInputProps {
-  onAdd: (title: string, dueDate?: string) => void;
+  onAdd: (title: string, time?: string) => void;
 }
 
-type PickerType = "contact" | "project" | "deal" | "time" | null;
+type PickerType = "contact" | "project" | "deal" | null;
 
 export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   const [title, setTitle] = useState("");
+  const [time, setTime] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [activePicker, setActivePicker] = useState<PickerType>(null);
   const [relations, setRelations] = useState<any>({
@@ -37,6 +40,26 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Load draft from localStorage
+  useEffect(() => {
+    const savedDraft = localStorage.getItem("todo-draft");
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        setTitle(parsed.title || "");
+        setTime(parsed.time || "");
+      } catch (e) {
+        console.error("Failed to parse draft", e);
+      }
+    }
+  }, []);
+
+  // Save draft to localStorage
+  useEffect(() => {
+    const draft = { title, time };
+    localStorage.setItem("todo-draft", JSON.stringify(draft));
+  }, [title, time]);
 
   // Load relations
   useEffect(() => {
@@ -95,11 +118,43 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     setActivePicker(null);
   };
 
+  const applyFormat = (tag: string) => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const val = input.value;
+    const selectedText = val.substring(start, end);
+
+    if (!selectedText) return;
+
+    let formatted = "";
+    if (tag === "ul") {
+      formatted = `\n<ul>\n  <li>${selectedText}</li>\n</ul>\n`;
+    } else {
+      formatted = `<${tag}>${selectedText}</${tag}>`;
+    }
+
+    const newVal = val.substring(0, start) + formatted + val.substring(end);
+    setTitle(newVal);
+
+    setTimeout(() => {
+      input.focus();
+      input.setSelectionRange(
+        start + formatted.length,
+        start + formatted.length,
+      );
+    }, 10);
+  };
+
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (title.trim()) {
-      onAdd(title);
+      onAdd(title, time);
       setTitle("");
+      setTime("");
+      localStorage.removeItem("todo-draft");
       setActivePicker(null);
     }
   };
@@ -111,69 +166,25 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     }
   };
 
-  const parseText = (text: string) => {
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
+  // Generates HTML for the visual overlay (behind textarea)
+  const processHighlighterHtml = (text: string) => {
+    // 1. Regex for variables
+    const regex = /([@#$])\[(.*?)\]\((.*?)\)/g;
 
-    // Regex matches: @[Name](id), #[Name](id), $[Name](id), ![Time]
-    const regex = /([@#$])\[(.*?)\]\((.*?)\)|(!\[(.*?)\])/g;
-    let match;
+    // Replace variables with spans that look like the buttons
+    const html = text.replace(regex, (match, type, name, id) => {
+      const colors = {
+        "@": "bg-blue-600/20 text-blue-600 border-blue-400",
+        "#": "bg-purple-600/20 text-purple-600 border-purple-400",
+        $: "bg-emerald-600/20 text-emerald-600 border-emerald-400",
+      };
+      const colorClass = colors[type as keyof typeof colors] || "";
+      const icon = type === "@" ? "👤" : type === "#" ? "📁" : "💼";
 
-    while ((match = regex.exec(text)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(text.substring(lastIndex, match.index));
-      }
+      return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border-2 font-black text-[12px] uppercase tracking-tighter shadow-sm ${colorClass}">${icon} ${name}</span>`;
+    });
 
-      if (match[1]) {
-        const type = match[1];
-        const name = match[2];
-        const id = match[3];
-
-        const colors = {
-          "@": "bg-blue-600/20 text-blue-600 border-blue-400 hover:bg-blue-600 hover:text-white",
-          "#": "bg-purple-600/20 text-purple-600 border-purple-400 hover:bg-purple-600 hover:text-white",
-          $: "bg-emerald-600/20 text-emerald-600 border-emerald-400 hover:bg-emerald-600 hover:text-white",
-        };
-
-        const hrefs = {
-          "@": `/dashboard/contacts?id=${id}`,
-          "#": `/dashboard/projects?id=${id}`,
-          $: `/dashboard/deals?id=${id}`,
-        };
-
-        parts.push(
-          <Link
-            key={match.index}
-            href={hrefs[type as keyof typeof hrefs]}
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border-2 font-black text-[12px] uppercase tracking-tighter cursor-pointer shadow-sm pointer-events-auto transition-all ${colors[type as keyof typeof colors]}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {type === "@" && <User size={10} />}
-            {type === "#" && <FolderKanban size={10} />}
-            {type === "$" && <Briefcase size={10} />}
-            {name}
-          </Link>,
-        );
-      } else {
-        const time = match[5];
-        parts.push(
-          <span
-            key={match.index}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border-2 bg-amber-600/20 text-amber-600 border-amber-400 font-black text-[12px] uppercase tracking-tighter pointer-events-auto"
-          >
-            <Clock size={10} />
-            {time}
-          </span>,
-        );
-      }
-      lastIndex = regex.lastIndex;
-    }
-
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
-    }
-
-    return parts.length > 0 ? parts : text;
+    return html;
   };
 
   return (
@@ -181,13 +192,51 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
       ref={containerRef}
       className={`relative transition-all duration-500 ease-out ${isFocused ? "scale-[1.01]" : ""}`}
     >
+      {/* Formatting Toolbar - Only visible when focused */}
+      {isFocused && (
+        <div className="absolute top-4 left-8 right-8 flex items-center gap-2 z-40 animate-in fade-in slide-in-from-bottom-1 duration-200">
+          <button
+            tabIndex={-1}
+            onClick={() => applyFormat("b")}
+            className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-md text-zinc-500 transition-colors"
+            title="Bold"
+          >
+            <Bold size={14} strokeWidth={3} />
+          </button>
+          <button
+            tabIndex={-1}
+            onClick={() => applyFormat("i")}
+            className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-md text-zinc-500 transition-colors"
+            title="Italic"
+          >
+            <Italic size={14} strokeWidth={3} />
+          </button>
+          <button
+            tabIndex={-1}
+            onClick={() => applyFormat("u")}
+            className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-md text-zinc-500 transition-colors"
+            title="Underline"
+          >
+            <Underline size={14} strokeWidth={3} />
+          </button>
+          <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+          <button
+            tabIndex={-1}
+            onClick={() => applyFormat("ul")}
+            className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-md text-zinc-500 transition-colors"
+            title="List"
+          >
+            <List size={14} strokeWidth={3} />
+          </button>
+        </div>
+      )}
+
       <div className="relative group">
         {/* Visual Highlighter - Exactly matched padding and font */}
         <div
-          className={`absolute inset-0 w-full min-h-[6rem] border-4 rounded-[2.5rem] px-8 py-8 text-xl font-bold z-20 pointer-events-none overflow-hidden whitespace-pre-wrap flex flex-wrap gap-y-2 content-start transition-all ${isFocused ? "border-blue-500 shadow-2xl shadow-blue-500/10 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-[2px]" : "border-zinc-100 dark:border-zinc-800"}`}
-        >
-          {parseText(title)}
-        </div>
+          className={`absolute inset-0 w-full min-h-[8rem] border-4 rounded-[2.5rem] px-8 py-8 pt-12 text-xl font-bold z-20 pointer-events-none overflow-hidden whitespace-pre-wrap flex flex-wrap gap-y-2 content-start transition-all ${isFocused ? "border-blue-500 shadow-2xl shadow-blue-500/10 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-[2px]" : "border-zinc-100 dark:border-zinc-800"}`}
+          dangerouslySetInnerHTML={{ __html: processHighlighterHtml(title) }}
+        />
 
         <textarea
           ref={inputRef}
@@ -196,15 +245,28 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
           onFocus={() => setIsFocused(true)}
           onKeyDown={handleKeyDown}
           placeholder={isFocused ? "" : "Napíš čo máš na mysli..."}
-          className={`w-full min-h-[6rem] bg-white dark:bg-zinc-900 rounded-[2.5rem] px-8 py-8 text-xl font-bold outline-none transition-all resize-none relative z-10 ${isFocused ? "text-transparent caret-blue-600" : "text-zinc-900 dark:text-white"}`}
+          className={`w-full min-h-[8rem] bg-white dark:bg-zinc-900 rounded-[2.5rem] px-8 py-8 pt-12 pb-20 text-xl font-bold outline-none transition-all resize-none relative z-10 ${isFocused ? "text-transparent caret-blue-600 placeholder-transparent" : "text-zinc-900 dark:text-white"}`}
           style={{
             lineHeight: "1.5",
             WebkitTextFillColor: isFocused ? "transparent" : "inherit",
           }}
         />
 
-        {/* Side Actions */}
-        <div className="absolute right-6 top-8 flex flex-col gap-2 z-20">
+        {/* Bottom Actions Toolbar */}
+        <div className="absolute left-8 bottom-6 flex items-center gap-3 z-30 transition-all duration-300">
+          {/* Time Picker */}
+          <div className="relative group/time">
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="pl-3 pr-1 py-3.5 bg-zinc-50 dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700 rounded-2xl text-sm font-bold text-zinc-600 dark:text-zinc-300 focus:outline-none focus:border-blue-500 transition-all cursor-pointer w-[110px]"
+            />
+          </div>
+
+          <div className="w-[1px] h-8 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+
+          {/* Relation Buttons */}
           <TagButton
             icon={<User size={18} />}
             color={
@@ -218,24 +280,26 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
             }
           >
             {activePicker === "contact" && (
-              <div className="absolute right-full mr-4 top-0 w-64 bg-white dark:bg-zinc-800 border-2 border-blue-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-right-2 fade-in duration-200">
+              <div className="absolute bottom-full left-0 mb-4 w-64 bg-white dark:bg-zinc-800 border-2 border-blue-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-bottom-2 fade-in duration-200 z-50">
                 <PickerHeader
                   title="Kontakty"
                   icon={<User size={14} />}
                   onClose={() => setActivePicker(null)}
                 />
-                {relations.contacts.map((c: any) => (
-                  <PickerItem
-                    key={c.id}
-                    title={`${c.first_name} ${c.last_name}`}
-                    sub={c.company}
-                    onClick={() =>
-                      insertAtCursor(
-                        `@[${c.first_name} ${c.last_name}](${c.id})`,
-                      )
-                    }
-                  />
-                ))}
+                <div className="max-h-60 overflow-y-auto">
+                  {relations.contacts.map((c: any) => (
+                    <PickerItem
+                      key={c.id}
+                      title={`${c.first_name} ${c.last_name}`}
+                      sub={c.company}
+                      onClick={() =>
+                        insertAtCursor(
+                          `@[${c.first_name} ${c.last_name}](${c.id})`,
+                        )
+                      }
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </TagButton>
@@ -253,51 +317,21 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
             }
           >
             {activePicker === "project" && (
-              <div className="absolute right-full mr-4 top-0 w-64 bg-white dark:bg-zinc-800 border-2 border-purple-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-right-2 fade-in duration-200">
+              <div className="absolute bottom-full left-0 mb-4 w-64 bg-white dark:bg-zinc-800 border-2 border-purple-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-bottom-2 fade-in duration-200 z-50">
                 <PickerHeader
                   title="Projekty"
                   icon={<FolderKanban size={14} />}
                   onClose={() => setActivePicker(null)}
                 />
-                {relations.projects.map((p: any) => (
-                  <PickerItem
-                    key={p.id}
-                    title={p.project_type}
-                    sub={p.stage}
-                    onClick={() =>
-                      insertAtCursor(`#[${p.project_type}](${p.id})`)
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </TagButton>
-
-          <TagButton
-            icon={<Clock size={18} />}
-            color={
-              activePicker === "time"
-                ? "bg-amber-600 text-white"
-                : "bg-amber-50 text-amber-500 border-amber-100 hover:bg-amber-100"
-            }
-            label="Čas"
-            onClick={() =>
-              setActivePicker(activePicker === "time" ? null : "time")
-            }
-          >
-            {activePicker === "time" && (
-              <div className="absolute right-full mr-4 top-0 w-32 bg-white dark:bg-zinc-800 border-2 border-amber-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-right-2 fade-in duration-200">
-                <PickerHeader
-                  title="Čas"
-                  icon={<Clock size={14} />}
-                  onClose={() => setActivePicker(null)}
-                />
-                <div className="grid grid-cols-1 gap-1">
-                  {[9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((h) => (
+                <div className="max-h-60 overflow-y-auto">
+                  {relations.projects.map((p: any) => (
                     <PickerItem
-                      key={h}
-                      title={`${h}:00`}
-                      onClick={() => insertAtCursor(`![${h}:00]`)}
+                      key={p.id}
+                      title={p.project_type}
+                      sub={p.stage}
+                      onClick={() =>
+                        insertAtCursor(`#[${p.project_type}](${p.id})`)
+                      }
                     />
                   ))}
                 </div>
@@ -323,7 +357,6 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
             icon={<FolderKanban size={10} />}
             label="# Priradiť Projekt"
           />
-          <HintBadge icon={<Clock size={10} />} label="! Nastaviť Čas" />
         </div>
       )}
     </div>
@@ -354,7 +387,7 @@ function TagButton({
         className={`p-3.5 rounded-2xl border-2 transition-all group ${color}`}
       >
         {icon}
-        <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-zinc-800 text-white text-[10px] font-black px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[110] uppercase tracking-widest">
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-zinc-800 text-white text-[10px] font-black px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[110] uppercase tracking-widest">
           {label}
         </span>
       </button>

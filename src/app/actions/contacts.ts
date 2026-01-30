@@ -2,7 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import directus from "@/lib/directus";
-import { createItem, updateItem, readItems } from "@directus/sdk";
+import { createItem, updateItem, readItems, readItem } from "@directus/sdk";
+
+export async function getContact(id: string | number) {
+  try {
+    const contact = await directus.request(readItem("contacts", id));
+    return { success: true, data: contact };
+  } catch (error) {
+    console.error(`Failed to fetch contact ${id}:`, error);
+    return { success: false, error: String(error) };
+  }
+}
 
 export async function getContacts() {
   try {
