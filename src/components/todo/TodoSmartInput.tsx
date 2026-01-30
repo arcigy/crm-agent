@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import LinkExtension from "@tiptap/extension-link";
@@ -48,6 +50,13 @@ interface Relations {
   deals: unknown[];
 }
 
+interface Suggestion {
+  id: number;
+  label: string;
+  sub?: string;
+  type: "contact" | "project";
+}
+
 const COLORS = [
   { value: "inherit", label: "Default" },
   { value: "#2563eb", label: "Blue" },
@@ -72,6 +81,60 @@ const CustomLink = LinkExtension.extend({
   },
 });
 
+const MentionNode = Node.create({
+  name: "mentionComponent",
+  group: "inline",
+  inline: true,
+  selectable: true,
+  atom: true, // This allows deleting the whole node with one backspace
+
+  addAttributes() {
+    return {
+      id: {
+        default: null,
+      },
+      label: {
+        default: null,
+      },
+      type: {
+        default: "contact",
+      },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: "a[data-mention-component]",
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const type = HTMLAttributes.type;
+    const colors = {
+      contact:
+        "bg-blue-500/10 text-blue-600 border-blue-200 hover:bg-blue-500 hover:text-white",
+      project:
+        "bg-purple-500/10 text-purple-600 border-purple-200 hover:bg-purple-500 hover:text-white",
+    };
+    const colorClass = colors[type as keyof typeof colors] || "";
+
+    return [
+      "a",
+      mergeAttributes(HTMLAttributes, {
+        href: "#",
+        "data-mention-component": "",
+        "data-contact-id": HTMLAttributes.id,
+        class: `inline-flex items-center gap-1 px-1.5 py-0.5 rounded border font-black text-[10px] uppercase tracking-tight transition-all mx-1 ${colorClass} cursor-pointer align-middle no-underline`,
+        contenteditable: "false",
+      }),
+      type === "contact" ? "👤 " : "📁 ",
+      HTMLAttributes.label,
+    ];
+  },
+});
+
 export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   const [time, setTime] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -86,8 +149,11 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   // Autocomplete state
   const [autocompleteQuery, setAutocompleteQuery] = useState("");
   const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<
-    Contact[]
+    Suggestion[]
   >([]);
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => setIsMounted(true), []);
+
   const [autocompletePosition, setAutocompletePosition] = useState<{
     top: number;
     left: number;
@@ -115,6 +181,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
       Highlight,
       TextStyle,
       Color,
+      MentionNode,
       CustomLink.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -164,11 +231,32 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
 
     const timer = setTimeout(() => {
       // Filter contacts by query
-      const filtered = relations.contacts.filter((c: any) => {
-        const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
-        return fullName.includes(autocompleteQuery.toLowerCase());
-      });
-      setAutocompleteSuggestions(filtered.slice(0, 5));
+      const q = autocompleteQuery.toLowerCase();
+
+      const contacts: Suggestion[] = relations.contacts
+        .filter((c: any) => {
+          const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
+          return fullName.includes(q);
+        })
+        .map((c: any) => ({
+          id: c.id,
+          label: `${c.first_name} ${c.last_name}`,
+          sub: c.company,
+          type: "contact",
+        }));
+
+      const projects: Suggestion[] = relations.projects
+        .filter((p: any) => {
+          return p.project_type.toLowerCase().includes(q);
+        })
+        .map((p: any) => ({
+          id: p.id,
+          label: p.project_type,
+          sub: p.stage,
+          type: "project",
+        }));
+
+      setAutocompleteSuggestions([...contacts, ...projects].slice(0, 5));
     }, 1000); // 1 second delay
 
     return () => clearTimeout(timer);
@@ -202,7 +290,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     }
   };
 
-  const selectAutocompleteSuggestion = (contact: Contact) => {
+  const selectAutocompleteSuggestion = (suggestion: Suggestion) => {
     if (!editor) return;
 
     // Delete the typed query
@@ -225,11 +313,8 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
       .run();
 
     // Insert mention
-    insertMention(
-      `${contact.first_name} ${contact.last_name}`,
-      contact.id,
-      "contact",
-    );
+    // Insert mention
+    insertMention(suggestion.label, suggestion.id, suggestion.type);
 
     // Clear autocomplete
     setAutocompleteQuery("");
@@ -313,20 +398,18 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   ) => {
     if (!editor) return;
 
-    const href =
-      type === "contact"
-        ? `/dashboard/contacts?id=${id}`
-        : `/dashboard/projects?id=${id}`;
-
-    const icon = type === "contact" ? "👤" : "📁";
-    const label = `${icon} ${text}`;
-
     editor
       .chain()
       .focus()
-      .insertContent(
-        `<a href="${href}" data-contact-id="${id}" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-600 font-bold text-sm no-underline mx-1 select-none" contenteditable="false">${label}</a> `,
-      )
+      .insertContent({
+        type: "mentionComponent",
+        attrs: {
+          id: id,
+          label: text,
+          type: type,
+        },
+      })
+      .insertContent(" ")
       .run();
 
     setActivePicker(null);
@@ -431,35 +514,47 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
         <EditorContent editor={editor} className="min-h-[12rem]" />
 
         {/* Autocomplete Dropdown */}
-        {autocompleteSuggestions.length > 0 && autocompletePosition && (
-          <div
-            className="fixed bg-white dark:bg-zinc-800 border-2 border-blue-100 dark:border-zinc-700 rounded-2xl shadow-2xl p-2 z-[100] min-w-[200px]"
-            style={{
-              top: `${autocompletePosition.top}px`,
-              left: `${autocompletePosition.left}px`,
-            }}
-          >
-            {autocompleteSuggestions.map((contact) => (
-              <div
-                key={contact.id}
-                onClick={() => selectAutocompleteSuggestion(contact)}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-zinc-700 cursor-pointer transition-all"
-              >
-                <User size={14} className="text-blue-600" />
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                    {contact.first_name} {contact.last_name}
-                  </span>
-                  {contact.company && (
-                    <span className="text-xs text-zinc-400">
-                      {contact.company}
+        {isMounted &&
+          autocompleteSuggestions.length > 0 &&
+          autocompletePosition &&
+          createPortal(
+            <div
+              className="fixed bg-white dark:bg-zinc-800 border-2 border-blue-100 dark:border-zinc-700 rounded-2xl shadow-2xl p-2 z-[99999] min-w-[200px] animate-in fade-in zoom-in-95 duration-100"
+              style={{
+                top: `${autocompletePosition.top}px`,
+                left: `${autocompletePosition.left}px`,
+              }}
+            >
+              {autocompleteSuggestions.map((suggestion) => (
+                <div
+                  key={`${suggestion.type}-${suggestion.id}`}
+                  onClick={() => selectAutocompleteSuggestion(suggestion)}
+                  className="flex items-center gap-2 p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-zinc-700 cursor-pointer transition-all group"
+                >
+                  <div
+                    className={`p-1.5 rounded-lg ${suggestion.type === "contact" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600" : "bg-purple-100 dark:bg-purple-900/30 text-purple-600"}`}
+                  >
+                    {suggestion.type === "contact" ? (
+                      <User size={14} strokeWidth={3} />
+                    ) : (
+                      <FolderKanban size={14} strokeWidth={3} />
+                    )}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                      {suggestion.label}
                     </span>
-                  )}
+                    {suggestion.sub && (
+                      <span className="text-[10px] uppercase font-bold text-zinc-400">
+                        {suggestion.sub}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>,
+            document.body,
+          )}
 
         {/* Bottom Actions Toolbar */}
         <div className="absolute left-8 bottom-6 flex items-center gap-3 z-30 transition-all duration-300">
