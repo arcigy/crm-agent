@@ -4,14 +4,15 @@
  * Spustiť: npx ts-node scripts/test-create-contact.ts
  */
 
-const {
+import {
   createDirectus,
   rest,
   staticToken,
   createItem,
   readItems,
-  deleteItem,
-} = require("@directus/sdk");
+} from "@directus/sdk";
+
+export {};
 
 const DIRECTUS_URL = "http://directus-buk1-production.up.railway.app";
 const DIRECTUS_TOKEN = "3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE";
@@ -25,6 +26,13 @@ const directus = createDirectus(DIRECTUS_URL)
   .with(staticToken(DIRECTUS_TOKEN))
   .with(rest());
 
+interface Contact {
+  id: string | number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
 async function testContactLifecycle() {
   const testEmail = `test.user.${Date.now()}@example.com`;
   console.log(`🚀 Začínam test pre email: ${testEmail}`);
@@ -32,7 +40,7 @@ async function testContactLifecycle() {
   try {
     // 1. VYTVORENIE KONTAKTU
     console.log("📝 Pokus o vytvorenie kontaktu...");
-    const newContact = await directus.request(
+    const newContact = (await directus.request(
       createItem("contacts", {
         first_name: "Test",
         last_name: "User",
@@ -42,16 +50,16 @@ async function testContactLifecycle() {
         status: "new",
         date_created: new Date().toISOString(),
       }),
-    );
+    )) as Contact;
     console.log(`✅ Kontakt vytvorený! ID: ${newContact.id}`);
 
     // 2. OVERENIE EXISTENCIE
     console.log("🔍 Overujem či kontakt existuje v DB...");
-    const searchRes = await directus.request(
+    const searchRes = (await directus.request(
       readItems("contacts", {
         filter: { email: { _eq: testEmail } },
       }),
-    );
+    )) as Contact[];
 
     if (searchRes.length > 0) {
       console.log(
@@ -67,9 +75,12 @@ async function testContactLifecycle() {
     // console.log("🧹 Mažem testovací kontakt...");
     // await directus.request(deleteItem("contacts", newContact.id));
     // console.log("✅ Kontakt vymazaný.");
-  } catch (error: any) {
-    console.error("❌ CRITICAL ERROR:", error.message);
-    if (error.errors) {
+  } catch (error) {
+    console.error(
+      "❌ CRITICAL ERROR:",
+      error instanceof Error ? error.message : String(error),
+    );
+    if (error && typeof error === "object" && "errors" in error) {
       console.error("Detaily chyby:", JSON.stringify(error.errors, null, 2));
     }
   }

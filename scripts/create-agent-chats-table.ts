@@ -4,6 +4,8 @@
  * Spustiť: npx ts-node scripts/create-agent-chats-table.ts
  */
 
+export {};
+
 const DIRECTUS_URL = "https://directus-buk1-production.up.railway.app";
 const DIRECTUS_TOKEN = "3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE";
 
@@ -126,7 +128,7 @@ async function createAgentChatsTable() {
     }
 
     // Nastav public permissions
-    const permRes = await fetch(`${DIRECTUS_URL}/permissions`, {
+    await fetch(`${DIRECTUS_URL}/permissions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -141,8 +143,8 @@ async function createAgentChatsTable() {
     });
 
     console.log("✅ Tabuľka agent_chats vytvorená úspešne!");
-  } catch (e: any) {
-    console.error("❌ Chyba:", e.message);
+  } catch (e) {
+    console.error("❌ Chyba:", e instanceof Error ? e.message : String(e));
   }
 }
 

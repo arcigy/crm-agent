@@ -16,14 +16,47 @@ import { cn } from "@/lib/utils";
 import { QuickComposerModal } from "./QuickComposerModal";
 import { agentSendEmail } from "@/app/actions/agent";
 
+interface Tool {
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: string;
+      properties: Record<
+        string,
+        {
+          type: string;
+          description?: string;
+          enum?: string[];
+        }
+      >;
+      required?: string[];
+    };
+  };
+}
+
+interface ToolCategory {
+  category: string;
+  tools: Tool[];
+}
+
 export function ToolsDebugger() {
   const router = useRouter();
-  const [categories, setCategories] = React.useState<
-    { category: string; tools: any[] }[]
-  >([]);
+  const [categories, setCategories] = React.useState<ToolCategory[]>([]);
   const [selectedTool, setSelectedTool] = React.useState<string | null>(null);
   const [argsJson, setArgsJson] = React.useState<string>("{}");
-  const [result, setResult] = React.useState<any | null>(null);
+  const [result, setResult] = React.useState<{
+    success: boolean;
+    error?: string;
+    action?: string;
+    compose?: {
+      to: string;
+      toName?: string;
+      subject: string;
+      body: string;
+      threadId: string;
+    };
+  } | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isRunning, setIsRunning] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -49,27 +82,32 @@ export function ToolsDebugger() {
     setIsLoading(true);
     getStructuredTools()
       .then((data) => {
-        setCategories(data);
+        setCategories(data as ToolCategory[]);
         if (data.length > 0 && data[0].tools.length > 0) {
-          selectTool(data[0].tools[0]);
+          selectTool(data[0].tools[0] as Tool);
         }
       })
-      .catch((err) => toast.error("Failed to load tools: " + err.message))
+      .catch((err) =>
+        toast.error(
+          "Failed to load tools: " +
+            (err instanceof Error ? err.message : String(err)),
+        ),
+      )
       .finally(() => setIsLoading(false));
   }, []);
 
-  const selectTool = (tool: any) => {
+  const selectTool = (tool: Tool) => {
     setSelectedTool(tool.function.name);
     setResult(null);
 
     // Generate example JSON from parameters
     const params = tool.function.parameters?.properties || {};
-    const example: any = {};
-    for (const [key, val] of Object.entries(params) as [string, any][]) {
+    const example: Record<string, string | number | boolean> = {};
+    for (const [key, val] of Object.entries(params)) {
       if (val.type === "string") example[key] = "text";
-      if (val.type === "number") example[key] = 123;
-      if (val.type === "boolean") example[key] = true;
-      if (val.enum) example[key] = val.enum[0];
+      else if (val.type === "number") example[key] = 123;
+      else if (val.type === "boolean") example[key] = true;
+      else if (val.enum) example[key] = val.enum[0];
     }
     setArgsJson(JSON.stringify(example, null, 2));
   };
@@ -83,7 +121,7 @@ export function ToolsDebugger() {
       let args = {};
       try {
         args = JSON.parse(argsJson);
-      } catch (e) {
+      } catch {
         toast.error("Invalid JSON format");
         setIsRunning(false);
         return;
@@ -108,9 +146,10 @@ export function ToolsDebugger() {
 
         router.refresh(); // Refresh Client Data
       } else toast.error("Tool execution failed");
-    } catch (e: any) {
-      toast.error("Error executing tool: " + e.message);
-      setResult({ success: false, error: e.message });
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      toast.error("Error executing tool: " + errMsg);
+      setResult({ success: false, error: errMsg });
     } finally {
       setIsRunning(false);
     }
@@ -317,10 +356,14 @@ export function ToolsDebugger() {
                 id: toastId,
               });
             }
-          } catch (err: any) {
-            toast.error("Nepodarilo sa odoslať email: " + err.message, {
-              id: toastId,
-            });
+          } catch (err) {
+            toast.error(
+              "Nepodarilo sa odoslať email: " +
+                (err instanceof Error ? err.message : String(err)),
+              {
+                id: toastId,
+              },
+            );
           }
         }}
       />

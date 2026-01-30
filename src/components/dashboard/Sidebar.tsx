@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -26,7 +26,6 @@ import {
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
 import { useUser } from "@clerk/nextjs";
-import Image from "next/image";
 
 const navigation = [
   { name: "ArciGy Agent", href: "/dashboard/agent", icon: Bot },
@@ -54,11 +53,6 @@ export function Sidebar({ className }: { className?: string }) {
   // Custom logo URL - will fallback to default if doesn't exist
   const logoUrl = user ? `/logos/${user.id}_logo.png` : null;
 
-  // Close menu on navigation
-  useEffect(() => {
-    setIsOpen(false);
-  }, [pathname]);
-
   return (
     <>
       {/* Mobile Toggle Button (only visible on mobile) */}
@@ -73,7 +67,9 @@ export function Sidebar({ className }: { className?: string }) {
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] lg:hidden"
-          onClick={() => setIsOpen(false)}
+          onClick={() => {
+            setIsOpen(false);
+          }}
         />
       )}
 
@@ -105,7 +101,7 @@ export function Sidebar({ className }: { className?: string }) {
               </div>
             )}
             <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent truncate max-w-[140px]">
-              {user?.organization?.name ||
+              {(user as any)?.organization?.name ||
                 user?.fullName?.split(" ")[0] ||
                 "CRM"}
             </span>

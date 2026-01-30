@@ -31,7 +31,7 @@ export const AI_MODELS = {
   ORCHESTRATOR: "claude-3-5-sonnet-20241022", // Claude 3.7 Sonnet
   VERIFIER: "gemini-2.0-flash", // Gemini 2.0 Flash
   FINAL_REPORT: "gemini-2.0-flash", // Gemini 2.5 Flash
-  EMAIL_CLASSIFIER: "claude-3-5-sonnet-20241022", // Claude pre emaily
+  EMAIL_CLASSIFIER: "gemini-2.0-flash", // Claude pre emaily
 } as const;
 
 // === UNIFIED RESPONSE TYPE ===

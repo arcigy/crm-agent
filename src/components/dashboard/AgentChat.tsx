@@ -11,13 +11,14 @@ import {
   Search,
   PlusCircle,
   Database,
-  Terminal,
   ChevronRight,
 } from "lucide-react";
 import {
   chatWithAgent,
   getAgentChats,
   saveAgentChat,
+  AgentStep,
+  AgentChat as AgentChatType,
 } from "@/app/actions/agent";
 import { toast } from "sonner";
 import { readStreamableValue } from "@ai-sdk/rsc";
@@ -29,9 +30,9 @@ import {
   Plus,
   Clock,
   History,
-  Trash2,
   Coins,
 } from "lucide-react";
+import { Message } from "@anthropic-ai/sdk/resources";
 
 interface CostInfo {
   totalCost: number;
@@ -47,7 +48,7 @@ interface CostInfo {
 interface Message {
   role: "user" | "assistant";
   content: string;
-  toolResults?: any[];
+  toolResults?: AgentStep[];
   thoughts?: {
     intent?: string;
     plan?: string[];
@@ -58,7 +59,7 @@ interface Message {
 
 export default function AgentChat() {
   const [chatId, setChatId] = React.useState<string>("");
-  const [chatList, setChatList] = React.useState<any[]>([]);
+  const [chatList, setChatList] = React.useState<AgentChatType[]>([]);
   const [messages, setMessages] = React.useState<Message[]>([
     {
       role: "assistant",
@@ -196,8 +197,10 @@ export default function AgentChat() {
       saveAgentChat(effectiveChatId, finalTitle, finalMessages)
         .then(() => fetchChats())
         .catch((err) => console.error("Persistence Error:", err));
-    } catch (error: any) {
-      toast.error("Chyba spojenia.");
+    } catch (err) {
+      toast.error(
+        "Chyba spojenia: " + (err instanceof Error ? err.message : String(err)),
+      );
       setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
@@ -212,9 +215,13 @@ export default function AgentChat() {
     ]);
   };
 
-  const loadChat = (chat: any) => {
+  const loadChat = (chat: AgentChatType) => {
     setChatId(chat.id);
-    setMessages(chat.messages);
+    const msgs = chat.messages.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+    setMessages(msgs);
   };
 
   return (
@@ -384,7 +391,8 @@ export default function AgentChat() {
                                   </div>
                                   <div className="grid grid-cols-2 gap-2">
                                     {Object.entries(
-                                      msg.thoughts.extractedData,
+                                      (msg.thoughts?.extractedData ||
+                                        {}) as Record<string, any>,
                                     ).map(
                                       ([k, v]) =>
                                         v && (
