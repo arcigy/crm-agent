@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { QuickComposerModal } from "./QuickComposerModal";
+import { agentSendEmail } from "@/app/actions/agent";
 
 export function ToolsDebugger() {
   const router = useRouter();
@@ -25,6 +27,23 @@ export function ToolsDebugger() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [isRunning, setIsRunning] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
+
+  // Compose Modal State
+  const [composeData, setComposeData] = React.useState<{
+    isOpen: boolean;
+    to: string;
+    toName: string;
+    subject: string;
+    body: string;
+    threadId: string;
+  }>({
+    isOpen: false,
+    to: "",
+    toName: "",
+    subject: "",
+    body: "",
+    threadId: "",
+  });
 
   React.useEffect(() => {
     setIsLoading(true);
@@ -74,6 +93,19 @@ export function ToolsDebugger() {
       setResult(res);
       if (res.success) {
         toast.success("Tool executed successfully");
+
+        // Handle specialized actions
+        if (res.action === "open_compose" && res.compose) {
+          setComposeData({
+            isOpen: true,
+            to: res.compose.to,
+            toName: res.compose.toName || res.compose.to,
+            subject: res.compose.subject,
+            body: res.compose.body,
+            threadId: res.compose.threadId,
+          });
+        }
+
         router.refresh(); // Refresh Client Data
       } else toast.error("Tool execution failed");
     } catch (e: any) {
@@ -261,6 +293,37 @@ export function ToolsDebugger() {
           </div>
         )}
       </div>
+      {/* Compose Modal */}
+      <QuickComposerModal
+        isOpen={composeData.isOpen}
+        onClose={() => setComposeData((prev) => ({ ...prev, isOpen: false }))}
+        initialContent={composeData.body}
+        recruitName={composeData.toName}
+        onSend={async (text: string) => {
+          const toastId = toast.loading("Odosielam email...");
+          try {
+            const sendRes = await agentSendEmail({
+              recipient: composeData.to,
+              subject: composeData.subject,
+              body_html: text,
+              threadId: composeData.threadId,
+            });
+
+            if (sendRes.success) {
+              toast.success("Email úspešne odoslaný", { id: toastId });
+              setComposeData((prev) => ({ ...prev, isOpen: false }));
+            } else {
+              toast.error("Chyba pri odosielaní: " + sendRes.error, {
+                id: toastId,
+              });
+            }
+          } catch (err: any) {
+            toast.error("Nepodarilo sa odoslať email: " + err.message, {
+              id: toastId,
+            });
+          }
+        }}
+      />
     </div>
   );
 }
