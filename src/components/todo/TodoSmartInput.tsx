@@ -276,12 +276,19 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   }, []);
 
   const loadRelations = async () => {
-    setLoading(true);
-    const res = await getTodoRelations();
-    if (res.success) {
-      setRelations(res.data);
+    console.log("Loading relations...");
+    try {
+      const res = await getTodoRelations();
+      console.log("Relations response:", res);
+      if (res.success) {
+        setRelations(res.data);
+        console.log("Relations loaded:", res.data);
+      } else {
+        console.error("Failed to load relations:", res);
+      }
+    } catch (error) {
+      console.error("Error loading relations:", error);
     }
-    setLoading(false);
   };
 
   const insertMention = (
@@ -474,20 +481,23 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
                   onClose={() => setActivePicker(null)}
                 />
                 <div className="max-h-60 overflow-y-auto">
-                  {relations.contacts.map((c) => (
-                    <PickerItem
-                      key={c.id}
-                      title={`${c.first_name} ${c.last_name}`}
-                      sub={c.company}
-                      onClick={() =>
-                        insertMention(
-                          `${c.first_name} ${c.last_name}`,
-                          c.id,
-                          "contact",
-                        )
-                      }
-                    />
-                  ))}
+                  {(() => {
+                    console.log("Rendering contacts:", relations.contacts);
+                    return relations.contacts.map((c) => (
+                      <PickerItem
+                        key={c.id}
+                        title={`${c.first_name} ${c.last_name}`}
+                        sub={c.company}
+                        onClick={() =>
+                          insertMention(
+                            `${c.first_name} ${c.last_name}`,
+                            c.id,
+                            "contact",
+                          )
+                        }
+                      />
+                    ));
+                  })()}
                 </div>
               </div>
             )}
@@ -513,16 +523,19 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
                   onClose={() => setActivePicker(null)}
                 />
                 <div className="max-h-60 overflow-y-auto">
-                  {relations.projects.map((p) => (
-                    <PickerItem
-                      key={p.id}
-                      title={p.project_type}
-                      sub={p.stage}
-                      onClick={() =>
-                        insertMention(p.project_type, p.id, "project")
-                      }
-                    />
-                  ))}
+                  {(() => {
+                    console.log("Rendering projects:", relations.projects);
+                    return relations.projects.map((p) => (
+                      <PickerItem
+                        key={p.id}
+                        title={p.project_type}
+                        sub={p.stage}
+                        onClick={() =>
+                          insertMention(p.project_type, p.id, "project")
+                        }
+                      />
+                    ));
+                  })()}
                 </div>
               </div>
             )}
@@ -538,16 +551,6 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
           <Plus size={32} />
         </button>
       </div>
-
-      {isFocused && !activePicker && autocompleteSuggestions.length === 0 && (
-        <div className="flex gap-4 mt-4 px-6 animate-in slide-in-from-top-2 fade-in duration-300">
-          <HintBadge icon={<User size={10} />} label="@ Prepojiť Kontakt" />
-          <HintBadge
-            icon={<FolderKanban size={10} />}
-            label="# Priradiť Projekt"
-          />
-        </div>
-      )}
     </div>
   );
 }
