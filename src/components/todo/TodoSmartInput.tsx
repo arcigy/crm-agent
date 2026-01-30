@@ -57,6 +57,21 @@ const COLORS = [
   { value: "#9333ea", label: "Purple" },
 ];
 
+const CustomLink = LinkExtension.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      "data-contact-id": {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-contact-id"),
+        renderHTML: (attributes) => ({
+          "data-contact-id": attributes["data-contact-id"],
+        }),
+      },
+    };
+  },
+});
+
 export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   const [time, setTime] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -100,7 +115,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
       Highlight,
       TextStyle,
       Color,
-      LinkExtension.configure({
+      CustomLink.configure({
         openOnClick: false,
         HTMLAttributes: {
           class: "cursor-pointer",

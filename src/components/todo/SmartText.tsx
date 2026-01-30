@@ -59,17 +59,27 @@ export function SmartText({ text, className = "" }: SmartTextProps) {
 
   const handleClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    // Check if clicked element is inside an anchor tag
     const link = target.closest("a");
 
     if (link) {
-      e.stopPropagation(); // Always stop propagation for links inside SmartText
+      const href = link.getAttribute("href") || "";
+      const contactId =
+        link.getAttribute("data-contact-id") ||
+        (href.includes("/dashboard/contacts?id=")
+          ? href.split("id=")[1]
+          : null);
 
-      const contactId = link.getAttribute("data-contact-id");
-      // If it's a contact link and we have the opener
       if (contactId && openContact) {
         e.preventDefault();
+        e.stopPropagation();
         openContact(contactId);
+        return;
+      }
+
+      // If it's any other CRM link (project/deal), prevent navigating in new window
+      if (href.startsWith("/dashboard/")) {
+        // For now projects still navigate, but we can prevent it if user wants
+        // e.preventDefault();
       }
     }
   };
