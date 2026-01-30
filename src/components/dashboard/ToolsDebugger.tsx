@@ -10,6 +10,8 @@ import {
   XCircle,
   Search,
   Terminal,
+  ClipboardPaste,
+  Copy,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -273,9 +275,26 @@ export function ToolsDebugger() {
               </div>
 
               <div className="flex-1 flex flex-col gap-2">
-                <label className="text-xs font-mono text-white/40 uppercase tracking-wider">
-                  Input JSON Arguments
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-mono text-white/40 uppercase tracking-wider">
+                    Input JSON Arguments
+                  </label>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const text = await navigator.clipboard.readText();
+                        setArgsJson(text);
+                        toast.success("JSON pasted from clipboard");
+                      } catch (err) {
+                        toast.error("Failed to read clipboard");
+                      }
+                    }}
+                    className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-widest"
+                  >
+                    <ClipboardPaste className="w-3 h-3" />
+                    Paste JSON
+                  </button>
+                </div>
                 <textarea
                   value={argsJson}
                   onChange={(e) => setArgsJson(e.target.value)}
@@ -291,23 +310,39 @@ export function ToolsDebugger() {
                 <label className="text-xs font-mono text-white/40 uppercase tracking-wider">
                   Result
                 </label>
-                {result && (
-                  <div
-                    className={cn(
-                      "flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full",
-                      result.success
-                        ? "bg-emerald-500/10 text-emerald-400"
-                        : "bg-red-500/10 text-red-400",
-                    )}
-                  >
-                    {result.success ? (
-                      <CheckCircle className="w-3 h-3" />
-                    ) : (
-                      <XCircle className="w-3 h-3" />
-                    )}
-                    {result.success ? "SUCCESS" : "ERROR"}
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  {result && (
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          JSON.stringify(result, null, 2),
+                        );
+                        toast.success("Result copied to clipboard");
+                      }}
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors uppercase tracking-widest mr-2"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Copy Result
+                    </button>
+                  )}
+                  {result && (
+                    <div
+                      className={cn(
+                        "flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full",
+                        result.success
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : "bg-red-500/10 text-red-400",
+                      )}
+                    >
+                      {result.success ? (
+                        <CheckCircle className="w-3 h-3" />
+                      ) : (
+                        <XCircle className="w-3 h-3" />
+                      )}
+                      {result.success ? "SUCCESS" : "ERROR"}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex-1 relative bg-[#0F1117] border border-white/10 rounded-xl overflow-hidden">
