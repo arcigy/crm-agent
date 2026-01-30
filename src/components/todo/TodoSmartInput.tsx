@@ -61,6 +61,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   const [time, setTime] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [activePicker, setActivePicker] = useState<PickerType>(null);
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const [relations, setRelations] = useState<Relations>({
     contacts: [],
     projects: [],
@@ -309,48 +310,15 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     setActivePicker(null);
   };
 
-  const cycleWeight = () => {
+  const applyColor = (color: string) => {
     if (!editor) return;
 
-    // Check current state
-    const isBold = editor.isActive("bold");
-    const attrs = editor.getAttributes("textStyle");
-    const currentWeight = attrs.fontWeight;
-
-    // Cycle: Normal (400) -> Medium (500) -> Bold (700) -> Black (900) -> Normal
-    if (!isBold && !currentWeight) {
-      // Normal -> Medium
-      editor.chain().focus().setMark("textStyle", { fontWeight: "500" }).run();
-    } else if (currentWeight === "500") {
-      // Medium -> Bold
-      editor.chain().focus().unsetMark("textStyle").toggleBold().run();
-    } else if (isBold) {
-      // Bold -> Black
-      editor
-        .chain()
-        .focus()
-        .unsetMark("bold")
-        .setMark("textStyle", { fontWeight: "900" })
-        .run();
-    } else {
-      // Black -> Normal
-      editor.chain().focus().unsetMark("textStyle").run();
-    }
-  };
-
-  const cycleColor = () => {
-    if (!editor) return;
-    const currentColor = editor.getAttributes("textStyle").color || "inherit";
-
-    const idx = COLORS.findIndex((c) => c.value === currentColor);
-    const nextIdx = (idx + 1) % COLORS.length;
-    const nextColor = COLORS[nextIdx].value;
-
-    if (nextColor === "inherit") {
+    if (color === "inherit") {
       editor.chain().focus().unsetColor().run();
     } else {
-      editor.chain().focus().setColor(nextColor).run();
+      editor.chain().focus().setColor(color).run();
     }
+    setShowColorPicker(false);
   };
 
   const handleSubmit = (e?: React.FormEvent) => {
@@ -381,13 +349,10 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
         {isFocused && (
           <div className="absolute top-4 left-8 right-8 flex items-center gap-2 z-40 animate-in fade-in slide-in-from-bottom-1 duration-200">
             <ToolbarBtn
-              onClick={cycleWeight}
-              isActive={
-                editor.isActive("bold") ||
-                !!editor.getAttributes("textStyle").fontWeight
-              }
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              isActive={editor.isActive("bold")}
               icon={<Bold size={14} strokeWidth={3} />}
-              title="Váha písma (Normal → Medium → Bold → Black)"
+              title="Tučné písmo"
             />
             <ToolbarBtn
               onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -399,12 +364,38 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
               isActive={editor.isActive("underline")}
               icon={<UnderlineIcon size={14} strokeWidth={3} />}
             />
-            <ToolbarBtn
-              onClick={cycleColor}
-              isActive={!!editor.getAttributes("textStyle").color}
-              icon={<Palette size={14} strokeWidth={3} />}
-              title="Farba textu"
-            />
+            <div className="relative">
+              <ToolbarBtn
+                onClick={() => setShowColorPicker(!showColorPicker)}
+                isActive={!!editor.getAttributes("textStyle").color}
+                icon={<Palette size={14} strokeWidth={3} />}
+                title="Farba textu"
+              />
+              {showColorPicker && (
+                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl p-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="grid grid-cols-3 gap-2">
+                    {COLORS.map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => applyColor(color.value)}
+                        className="w-8 h-8 rounded-lg border-2 border-zinc-300 dark:border-zinc-600 hover:scale-110 transition-transform flex items-center justify-center"
+                        style={{
+                          backgroundColor:
+                            color.value === "inherit"
+                              ? "transparent"
+                              : color.value,
+                        }}
+                        title={color.label}
+                      >
+                        {color.value === "inherit" && (
+                          <X size={16} className="text-zinc-400" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
             <ToolbarBtn
               onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -476,7 +467,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
             }
           >
             {activePicker === "contact" && (
-              <div className="absolute bottom-full left-0 mb-4 w-64 bg-white dark:bg-zinc-800 border-2 border-blue-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-bottom-2 fade-in duration-200 z-50">
+              <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-zinc-800 border-2 border-blue-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-top-2 fade-in duration-200 z-[60]">
                 <PickerHeader
                   title="Kontakty"
                   icon={<User size={14} />}
@@ -515,7 +506,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
             }
           >
             {activePicker === "project" && (
-              <div className="absolute bottom-full left-0 mb-4 w-64 bg-white dark:bg-zinc-800 border-2 border-purple-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-bottom-2 fade-in duration-200 z-50">
+              <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-zinc-800 border-2 border-purple-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-top-2 fade-in duration-200 z-[60]">
                 <PickerHeader
                   title="Projekty"
                   icon={<FolderKanban size={14} />}
