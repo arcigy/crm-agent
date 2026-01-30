@@ -555,6 +555,81 @@ export const VERIFIER_ATOMS: ToolDefinition[] = [
   },
 ];
 
+export const WEB_ATOMS: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "web_scrape_page",
+      description:
+        "Stiahne a prečíta obsah jednej webovej stránky (vráti Markdown).",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "URL adresa stránky" },
+        },
+        required: ["url"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_crawl_site",
+      description:
+        "Prelezie celú webstránku (vrátane podstránok) a zmapuje ju.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "Hlavná URL adresa webu" },
+          limit: {
+            type: "number",
+            default: 10,
+            description: "Max. počet stránok",
+          },
+        },
+        required: ["url"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_search_google",
+      description:
+        "Vyhľadá informácie na internete (Google Search cez Firecrawl).",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "Čo hľadať (napr. 'Finstat ArciGy')",
+          },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_extract_data",
+      description:
+        "Inteligentne vytiahne štruktúrované dáta z URL podľa zadanej schémy.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string" },
+          prompt: {
+            type: "string",
+            description: "Čo vytiahnuť (napr. 'Všetky ceny produktov')",
+          },
+        },
+        required: ["url", "prompt"],
+      },
+    },
+  },
+];
+
 export const ALL_ATOMS = [
   ...INBOX_ATOMS,
   ...DEAL_ATOMS,
@@ -562,4 +637,5 @@ export const ALL_ATOMS = [
   ...FILE_ATOMS,
   ...SYSTEM_ATOMS,
   ...VERIFIER_ATOMS,
+  ...WEB_ATOMS,
 ];

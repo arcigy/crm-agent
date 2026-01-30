@@ -67,6 +67,9 @@ export async function executeAtomicTool(
         message: "AI hĺbková analýza leada bola úspešne dokončená.",
       };
     }
+    if (name.startsWith("web_")) {
+      return await executeWebTool(name, args);
+    }
     return { success: false, error: "Tool group not found" };
   } catch (error: any) {
     console.error("Executor Error:", error);
@@ -610,5 +613,83 @@ async function executeSysTool(name: string, args: Record<string, any>) {
 
     default:
       throw new Error("System tool not found");
+  }
+}
+async function executeWebTool(name: string, args: Record<string, any>) {
+  const apiKey = process.env.FIRECRAWL_API_KEY;
+  if (!apiKey) {
+    return { success: false, error: "Firecrawl API key not found in .env" };
+  }
+
+  // Helper for fetch wrapper
+  const fcRequest = async (endpoint: string, body: any) => {
+    const res = await fetch(`https://api.firecrawl.dev/v1/${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json();
+    if (!res.ok)
+      throw new Error(json.error?.message || json.error || res.statusText);
+    return json;
+  };
+
+  switch (name) {
+    case "web_scrape_page":
+      const scrapeRes = await fcRequest("scrape", {
+        url: args.url,
+        formats: ["markdown"],
+      });
+      return {
+        success: true,
+        data: scrapeRes.data?.markdown,
+        message: `Stránka ${args.url} bola úspešne stiahnutá.`,
+      };
+
+    case "web_crawl_site":
+      const crawlRes = await fcRequest("crawl", {
+        url: args.url,
+        limit: args.limit || 10,
+        scrapeOptions: { formats: ["markdown"] },
+      });
+      return {
+        success: true,
+        data: { jobId: crawlRes.id },
+        message: `Crawl job spustený (ID: ${crawlRes.id}). Použi iný tool na kontrolu stavu.`,
+      };
+
+    case "web_search_google":
+      // Firecrawl Search endpoint (beta) or generic search
+      const searchRes = await fcRequest("search", {
+        query: args.query,
+        limit: 5,
+        scrapeOptions: { formats: ["markdown"] },
+      });
+      return {
+        success: true,
+        data: searchRes.data, // Usually returns list of results with markdown
+        message: `Nájdené výsledky pre "${args.query}".`,
+      };
+
+    case "web_extract_data":
+      // Uses LLM Extraction feature of Firecrawl
+      const extractRes = await fcRequest("scrape", {
+        url: args.url,
+        formats: ["extract"],
+        extract: {
+          prompt: args.prompt,
+        },
+      });
+      return {
+        success: true,
+        data: extractRes.data?.extract,
+        message: "Dáta boli úspešne extrahované zo stránky.",
+      };
+
+    default:
+      throw new Error("Web tool not found");
   }
 }
