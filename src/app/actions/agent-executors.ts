@@ -450,6 +450,66 @@ async function executeDbTool(name: string, args: Record<string, any>) {
             : "Kontakt sa v databáze nenachádza.",
       };
 
+    case "verify_contact_by_name":
+      const vNameContacts = (await directus.request(
+        readItems("contacts", {
+          filter: {
+            _and: [
+              { status: { _neq: "archived" } },
+              {
+                _or: [
+                  { first_name: { _icontains: args.first_name || "" } },
+                  { last_name: { _icontains: args.last_name || "" } },
+                ],
+              },
+            ] as any,
+          },
+        }),
+      )) as any[];
+      return {
+        success: vNameContacts.length > 0,
+        data: vNameContacts,
+        message:
+          vNameContacts.length > 0
+            ? `Nájdených ${vNameContacts.length} kontaktov podľa mena.`
+            : "Žiadny kontakt s týmto menom nebol nájdený.",
+      };
+
+    case "verify_recent_contacts":
+      const recentContacts = (await directus.request(
+        readItems("contacts", {
+          sort: ["-date_created"] as any,
+          limit: args.limit || 5,
+          filter: { status: { _neq: "archived" } } as any,
+        }),
+      )) as any[];
+      return {
+        success: true,
+        data: recentContacts,
+        message: `Zoznam posledných ${recentContacts.length} kontaktov bol načítaný.`,
+      };
+
+    case "db_save_analysis":
+      await directus.request(
+        createItem("email_analysis", {
+          ...args.analysis_data,
+          date_created: new Date().toISOString(),
+        } as any),
+      );
+      return {
+        success: true,
+        message: "Analýza e-mailu bola uložená do databázy.",
+      };
+
+    case "db_update_lead_info":
+      await directus.request(
+        updateItem("contacts", args.contact_id, args.update_data as any),
+      );
+      return {
+        success: true,
+        message: "Informácie o leadovi boli aktualizované.",
+      };
+
     case "db_add_contact_comment":
       const contact = (await directus.request(
         readItem("contacts" as any, args.contact_id),
