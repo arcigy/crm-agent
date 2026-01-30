@@ -468,7 +468,6 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
                 ? "bg-blue-600 text-white"
                 : "bg-blue-50 text-blue-500 border-blue-100 hover:bg-blue-100"
             }
-            label="Kontakt"
             onClick={() =>
               setActivePicker(activePicker === "contact" ? null : "contact")
             }
@@ -510,7 +509,6 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
                 ? "bg-purple-600 text-white"
                 : "bg-purple-50 text-purple-500 border-purple-100 hover:bg-purple-100"
             }
-            label="Projekt"
             onClick={() =>
               setActivePicker(activePicker === "project" ? null : "project")
             }
@@ -584,13 +582,11 @@ function ToolbarBtn({
 function TagButton({
   icon,
   color,
-  label,
   onClick,
   children,
 }: {
   icon: React.ReactNode;
   color: string;
-  label: string;
   onClick: () => void;
   children?: React.ReactNode;
 }) {
@@ -605,9 +601,6 @@ function TagButton({
         className={`p-3.5 rounded-2xl border-2 transition-all group ${color}`}
       >
         {icon}
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-zinc-800 text-white text-[10px] font-black px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[110] uppercase tracking-widest">
-          {label}
-        </span>
       </button>
       {children}
     </div>
