@@ -113,7 +113,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     editorProps: {
       attributes: {
         class:
-          "outline-none min-h-[8rem] px-8 py-8 pt-12 pb-20 text-xl font-normal text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold [&_.font-medium]:font-medium [&_.font-black]:font-black",
+          "outline-none min-h-[12rem] px-8 py-8 pt-16 pb-24 text-xl font-normal text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold [&_.font-medium]:font-medium [&_.font-black]:font-black",
       },
       handleClick: (view, pos, event) => {
         const target = event.target as HTMLElement;
@@ -406,7 +406,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
         )}
 
         {/* Tiptap Editor Content */}
-        <EditorContent editor={editor} className="min-h-[8rem]" />
+        <EditorContent editor={editor} className="min-h-[12rem]" />
 
         {/* Autocomplete Dropdown */}
         {autocompleteSuggestions.length > 0 && autocompletePosition && (
