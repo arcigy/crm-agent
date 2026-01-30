@@ -76,7 +76,7 @@ export function SmartText({ text, className = "" }: SmartTextProps) {
 
   return (
     <div
-      className={`prose prose-sm max-w-none dark:prose-invert ${className}`}
+      className={`prose prose-sm max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 ${className}`}
       dangerouslySetInnerHTML={{ __html: processedHtml }}
       onClick={handleClick}
     />
