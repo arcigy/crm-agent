@@ -717,19 +717,81 @@ async function executeAtomicTool(name: string, args: any, user: any) {
         return { success: true, message: "Email preposlaný" };
 
       case "gmail_reply":
-        const rawContent = `To: \r\nSubject: Re:\r\n\r\n${args.body}`;
+        // Get the original thread to extract recipient and subject
+        const thread = await gmail!.users.threads.get({
+          userId: "me",
+          id: args.threadId,
+          format: "metadata",
+          metadataHeaders: [
+            "From",
+            "Subject",
+            "To",
+            "Message-ID",
+            "References",
+          ],
+        });
+
+        const originalMsg = thread.data.messages?.[0];
+        const originalHeaders = originalMsg?.payload?.headers || [];
+
+        // Get original sender (they become the recipient of the reply)
+        const originalFrom =
+          originalHeaders.find((h) => h.name === "From")?.value || "";
+        // Extract email from "Name <email@example.com>" format
+        const recipientMatch = originalFrom.match(/<(.+?)>/) || [
+          null,
+          originalFrom,
+        ];
+        const recipientEmail = recipientMatch[1]?.trim();
+
+        if (!recipientEmail) {
+          return { success: false, error: "Recipient address required" };
+        }
+
+        // Get original subject
+        const originalSubject =
+          originalHeaders.find((h) => h.name === "Subject")?.value || "";
+        const replySubject = originalSubject.startsWith("Re:")
+          ? originalSubject
+          : `Re: ${originalSubject}`;
+
+        // Get Message-ID for References header (proper threading)
+        const messageId =
+          originalHeaders.find((h) => h.name === "Message-ID")?.value || "";
+        const references =
+          originalHeaders.find((h) => h.name === "References")?.value || "";
+
+        // Build proper email headers for reply
+        const replyHeaders = [
+          `To: ${recipientEmail}`,
+          `Subject: ${replySubject}`,
+          messageId ? `In-Reply-To: ${messageId}` : "",
+          references
+            ? `References: ${references} ${messageId}`
+            : messageId
+              ? `References: ${messageId}`
+              : "",
+          `Content-Type: text/html; charset=UTF-8`,
+          "",
+          args.body,
+        ]
+          .filter(Boolean)
+          .join("\r\n");
+
+        const rawReply = Buffer.from(replyHeaders)
+          .toString("base64")
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+
         await gmail!.users.messages.send({
           userId: "me",
           requestBody: {
             threadId: args.threadId,
-            raw: Buffer.from(rawContent)
-              .toString("base64")
-              .replace(/\+/g, "-")
-              .replace(/\//g, "_")
-              .replace(/=+$/, ""),
+            raw: rawReply,
           },
         });
-        return { success: true };
+        return { success: true, recipientEmail, subject: replySubject };
 
       case "ai_deep_analyze_lead":
         const { classifyEmail } = await import("./ai");
