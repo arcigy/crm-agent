@@ -8,8 +8,6 @@ import {
   Search,
   RefreshCcw,
   Clock,
-  User,
-  CheckCircle2,
   Download,
   Phone,
   MessageSquare,
@@ -144,7 +142,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         strategy: "oauth_google",
         redirectUrl: window.location.href,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to connect Google via Clerk:", error);
       setLoading(false);
     }
@@ -212,8 +210,16 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
     ...filteredMessages.map((m) => ({ ...m, itemType: "email" as const })),
     ...filteredLogs.map((l) => ({ ...l, itemType: "android" as const })),
   ].sort((a, b) => {
-    const dateA = new Date((a as any).date || (a as any).timestamp).getTime();
-    const dateB = new Date((b as any).date || (b as any).timestamp).getTime();
+    const dateA = new Date(
+      (a as { date?: string }).date ||
+        (a as { timestamp?: string }).timestamp ||
+        0,
+    ).getTime();
+    const dateB = new Date(
+      (b as { date?: string }).date ||
+        (b as { timestamp?: string }).timestamp ||
+        0,
+    ).getTime();
     return dateB - dateA;
   });
 
@@ -412,7 +418,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
       } else {
         throw new Error(data.error);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error(`[Auto-Analyze] Error for ${msg.id}:`, error);
       setMessages((prev) =>
         prev.map((m) => (m.id === msg.id ? { ...m, isAnalyzing: false } : m)),
@@ -458,7 +464,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           originalContent: cleanBody,
-          nextStep: (msg as any).classification?.next_step || "Reply",
+          nextStep: msg.classification?.next_step || "Reply",
           senderName: msg.from,
           messageId: msg.id, // Added for caching
         }),
@@ -574,7 +580,14 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
                 action.parameters.tab,
               )
             ) {
-              setSelectedTab(action.parameters.tab as any);
+              setSelectedTab(
+                action.parameters.tab as
+                  | "all"
+                  | "unread"
+                  | "leads"
+                  | "sms"
+                  | "calls",
+              );
             }
             // Visual feedback
             const toastMsg = `🔍 Filtering: "${action.parameters.query}" in ${action.parameters.tab || "view"}`;
@@ -621,7 +634,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
           onConfirm={async () => {
             const toastId = toast.loading("Ukladám kontakt...");
             try {
-              // @ts-ignore
+              // @ts-expect-error - Directus types mismatch
               const res = await agentCreateContact(contactModalData);
               if (res.success) {
                 toast.success("Kontakt úspešne vytvorený", { id: toastId });
@@ -629,6 +642,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
                 toast.error(`Chyba: ${res.error}`, { id: toastId });
               }
             } catch (err) {
+              console.error(err);
               toast.error("Nepodarilo sa uložiť kontakt", { id: toastId });
             }
           }}

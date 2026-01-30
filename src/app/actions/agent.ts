@@ -1,13 +1,7 @@
 "use server";
 
 import directus from "@/lib/directus";
-import {
-  readItems,
-  readItem,
-  createItem,
-  updateItem,
-  deleteItem,
-} from "@directus/sdk";
+import { readItems, readItem, createItem, updateItem } from "@directus/sdk";
 import { currentUser, clerkClient } from "@clerk/nextjs/server";
 import { getIsolatedAIContext } from "@/lib/ai-context";
 import { getGmailClient } from "@/lib/google";
@@ -15,14 +9,12 @@ import OpenAI from "openai";
 import { revalidatePath } from "next/cache";
 import { createStreamableValue } from "@ai-sdk/rsc";
 import fs from "fs";
-import path from "path";
+import path, { format } from "path";
 import { execSync } from "child_process";
-import { any, string } from "zod";
 import {
   startCostSession,
   trackAICall,
   endCostSession,
-  formatCost,
   type SessionCost,
 } from "@/lib/ai-cost-tracker";
 
@@ -34,7 +26,20 @@ const openai = new OpenAI({
 // 1. MOLECULAR TOOL REGISTRY (ATOMIC)
 // ==========================================
 
-const INBOX_ATOMS: any[] = [
+interface ToolDefinition {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: "object";
+      properties: Record<string, any>;
+      required?: string[];
+    };
+  };
+}
+
+const INBOX_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
@@ -295,7 +300,7 @@ const INBOX_ATOMS: any[] = [
   },
 ];
 
-const DEAL_ATOMS: any[] = [
+const DEAL_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
@@ -342,7 +347,7 @@ const DEAL_ATOMS: any[] = [
   },
 ];
 
-const PROJECT_ATOMS: any[] = [
+const PROJECT_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
@@ -406,7 +411,7 @@ const PROJECT_ATOMS: any[] = [
   },
 ];
 
-const FILE_ATOMS: any[] = [
+const FILE_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
@@ -437,7 +442,7 @@ const FILE_ATOMS: any[] = [
   },
 ];
 
-const SYSTEM_ATOMS: any[] = [
+const SYSTEM_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
@@ -487,7 +492,7 @@ const SYSTEM_ATOMS: any[] = [
 // ==========================================
 // VERIFIER ATOMS - Nástroje pre kontrolu splnenia úloh
 // ==========================================
-const VERIFIER_ATOMS: any[] = [
+const VERIFIER_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
@@ -614,7 +619,11 @@ function formatPhoneNumber(phone: string | null | undefined): string | null {
   return cleaned;
 }
 
-async function executeAtomicTool(name: string, args: any, user: any) {
+async function executeAtomicTool(
+  name: string,
+  args: Record<string, any>,
+  user: { id: string; emailAddresses: { emailAddress: string }[] },
+) {
   try {
     const gmail = name.startsWith("gmail_") ? await getGmail(user.id) : null;
 
@@ -636,16 +645,18 @@ async function executeAtomicTool(name: string, args: any, user: any) {
                 userId: "me",
                 id: m.id!,
                 format: "metadata",
-                metadataHeaders: ["Subject", "From", "Date"], // Optimize fetch size
+                metadataHeaders: ["Subject", "From", "Date"],
               });
 
-              const headers = detail.data.payload?.headers;
+              const msgHeaders = detail.data.payload?.headers;
               const subject =
-                headers?.find((h) => h.name === "Subject")?.value ||
+                msgHeaders?.find((h) => h.name === "Subject")?.value ||
                 "(No Subject)";
               const from =
-                headers?.find((h) => h.name === "From")?.value || "(Unknown)";
-              const date = headers?.find((h) => h.name === "Date")?.value || "";
+                msgHeaders?.find((h) => h.name === "From")?.value ||
+                "(Unknown)";
+              const date =
+                msgHeaders?.find((h) => h.name === "Date")?.value || "";
 
               return {
                 id: m.id,
@@ -653,14 +664,14 @@ async function executeAtomicTool(name: string, args: any, user: any) {
                 subject,
                 from,
                 date,
-                snippet: detail.data.snippet, // Snippet is always returned
+                snippet: detail.data.snippet,
               };
             } catch (e) {
+              console.error(e);
               return { id: m.id, error: "Failed to fetch details" };
             }
           }),
         );
-
         return { success: true, data: enrichedMessages };
 
       case "gmail_get_details":
@@ -784,7 +795,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
         return { success: true, data: analysis };
 
       case "db_save_analysis":
-        // @ts-ignore
+        // @ts-expect-error - Directus SDK complex types
         await directus.request(
           createItem("email_analysis", {
             ...args,
@@ -794,14 +805,14 @@ async function executeAtomicTool(name: string, args: any, user: any) {
         return { success: true };
 
       case "db_update_lead_info":
-        // @ts-ignore
+        // @ts-expect-error - Directus SDK complex types
         const existing = await directus.request(
           readItems("email_analysis", {
             filter: { message_id: { _eq: args.message_id } },
           }),
         );
         if (existing.length > 0) {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           await directus.request(
             updateItem("email_analysis", existing[0].id, args),
           );
@@ -821,7 +832,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
             lastName = parts.slice(1).join(" ");
           }
 
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           const newContact = await directus.request(
             createItem("contacts", {
               first_name: firstName,
@@ -845,7 +856,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 
       case "db_delete_contact":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           await directus.request(
             updateItem("contacts", args.contact_id, {
               status: "archived",
@@ -862,7 +873,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 
       case "db_search_contacts":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           const searchResults = await directus.request(
             readItems("contacts", {
               filter: {
@@ -892,7 +903,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 
       case "db_get_all_contacts":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           const allContacts = await directus.request(
             readItems("contacts", {
               filter: { status: { _neq: "archived" } },
@@ -916,7 +927,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
             updateData.phone = formatPhoneNumber(updateData.phone);
           }
 
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           await directus.request(
             updateItem("contacts", args.contact_id, {
               ...updateData,
@@ -934,7 +945,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
       case "db_add_contact_comment":
         try {
           // 1. Get current contact to preserve existing comments
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           const current = await directus.request(
             readItem("contacts", args.contact_id),
           );
@@ -948,13 +959,13 @@ async function executeAtomicTool(name: string, args: any, user: any) {
             `[${timestamp}] NOVÁ POZNÁMKA:\n${args.comment}`;
 
           // 3. Update contact comments
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           await directus.request(
             updateItem("contacts", args.contact_id, { comments: newComments }),
           );
 
           // 4. ALSO write to Timeline (activities collection) as per rules
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           await directus.request(
             createItem("activities", {
               contact_id: args.contact_id,
@@ -977,7 +988,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
       // --- DEALS ---
       case "db_fetch_deals":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           const deals = await directus.request(
             readItems("deals", { limit: args.limit || 10 }),
           );
@@ -988,7 +999,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 
       case "db_update_deal":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           await directus.request(updateItem("deals", args.deal_id, args));
           return { success: true, message: "Deal updated" };
         } catch (e: any) {
@@ -997,7 +1008,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 
       case "db_invoice_deal":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           await directus.request(
             updateItem("deals", args.deal_id, { status: "invoiced" }),
           );
@@ -1009,7 +1020,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
       // --- PROJECTS ---
       case "db_fetch_projects":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           const projects = await directus.request(
             readItems("projects", { limit: args.limit || 10 }),
           );
@@ -1020,7 +1031,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 
       case "db_create_project":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           const prj = await directus.request(
             createItem("projects", {
               ...args,
@@ -1034,7 +1045,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 
       case "db_update_project":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           await directus.request(updateItem("projects", args.project_id, args));
           return { success: true, message: "Project updated" };
         } catch (e: any) {
@@ -1043,7 +1054,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 
       case "db_delete_project":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           await directus.request(
             updateItem("projects", args.project_id, { status: "archived" }),
           );
@@ -1069,7 +1080,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
       // --- VERIFIER TOOLS ---
       case "verify_contact_by_email":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           const contacts = await directus.request(
             readItems("contacts", {
               filter: {
@@ -1095,7 +1106,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 
       case "verify_contact_by_name":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           const contacts = await directus.request(
             readItems("contacts", {
               filter: {
@@ -1118,7 +1129,7 @@ async function executeAtomicTool(name: string, args: any, user: any) {
 
       case "verify_recent_contacts":
         try {
-          // @ts-ignore
+          // @ts-expect-error - Directus SDK complex types
           const contacts = await directus.request(
             readItems("contacts", {
               limit: args.limit || 5,
@@ -1188,7 +1199,9 @@ const anthropic = new Anthropic({
 
 const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-export async function chatWithAgent(messages: any[]) {
+export async function chatWithAgent(
+  messages: { role: "user" | "assistant" | "system"; content: string }[],
+) {
   const superState = createStreamableValue({
     toolResults: [] as any[],
     content: "",
@@ -1248,7 +1261,7 @@ ODPOVEDAJ LEN JSON: {
         "gatekeeper",
         "openai",
         "gpt-4o-mini",
-        classifierPrompt + messages.map((m: any) => m.content).join(""),
+        classifierPrompt + messages.map((m) => m.content).join(""),
         gatekeeperOutput,
         Date.now() - gatekeeperStart,
         classifierRes.usage?.prompt_tokens,
@@ -1306,7 +1319,7 @@ ODPOVEDAJ LEN JSON: {
             plan: ["Odpovedám na tvoju otázku..."],
           },
           costTracking: costSession,
-        } as any);
+        });
         return;
       }
 
@@ -1414,11 +1427,13 @@ VÝSTUP LEN JSON: {
           thoughts: {
             intent: "Vykonávam akciu (Claude Orchestrator)",
             extractedData: verdict.extracted_data,
-            plan: plannerOutput.readable_plan || [],
+            plan:
+              (plannerOutput as { readable_plan?: string[] }).readable_plan ||
+              [],
           },
           status: "thinking",
           attempt: attempts,
-        } as any);
+        });
 
         const currentStepResults = [];
         for (const step of plannerOutput.plan || []) {
@@ -1558,7 +1573,7 @@ export async function getAgentChats() {
     if (!clerkUser) return [];
     const email = clerkUser.emailAddresses[0]?.emailAddress;
 
-    // @ts-ignore
+    // @ts-expect-error - Directus SDK complex types
     const chats = await directus.request(
       readItems("agent_chats", {
         filter: {
@@ -1586,7 +1601,7 @@ export async function getAgentChats() {
 
 export async function getAgentChatById(id: string) {
   try {
-    // @ts-ignore
+    // @ts-expect-error - Directus SDK complex types
     const results = await directus.request(
       readItems("agent_chats", { filter: { id: { _eq: id } } }),
     );
@@ -1626,16 +1641,16 @@ export async function saveAgentChat(
       `[saveAgentChat] Saving chat ${chatId} with ${messages.length} messages`,
     );
 
-    // @ts-ignore
+    // @ts-expect-error - Directus SDK complex types
     const existing = await directus
       .request(readItems("agent_chats", { filter: { id: { _eq: chatId } } }))
-      .catch((e: any) => {
+      .catch((e: Error) => {
         console.error("[saveAgentChat] Error checking existing:", e.message);
         return [];
       });
 
     if (existing && existing.length > 0) {
-      // @ts-ignore
+      // @ts-expect-error - Directus SDK complex types
       await directus.request(
         updateItem("agent_chats", chatId, {
           title,
@@ -1645,7 +1660,7 @@ export async function saveAgentChat(
       );
       console.log(`[saveAgentChat] Updated existing chat ${chatId}`);
     } else {
-      // @ts-ignore
+      // @ts-expect-error - Directus SDK complex types
       await directus.request(
         createItem("agent_chats", {
           id: chatId,
@@ -1667,25 +1682,35 @@ export async function saveAgentChat(
 }
 
 export async function deleteAgentChat(id: string) {
-  // @ts-ignore
+  // @ts-expect-error - Directus SDK complex types
   await directus.request(updateItem("agent_chats", id, { status: "archived" }));
   revalidatePath("/dashboard/agent");
 }
 
 // Compatibility Shims
-export async function agentCreateContact(d: any) {
+export async function agentCreateContact(
+  _d: any,
+): Promise<{ success: boolean; error?: string }> {
   return { success: true };
 }
-export async function agentCreateDeal(d: any) {
+export async function agentCreateDeal(
+  _d: any,
+): Promise<{ success: boolean; error?: string }> {
   return { success: true };
 }
-export async function agentCheckAvailability(d: any) {
+export async function agentCheckAvailability(
+  _d: any,
+): Promise<{ success: boolean; error?: string }> {
   return { success: true };
 }
-export async function agentScheduleEvent(d: any) {
+export async function agentScheduleEvent(
+  _d: any,
+): Promise<{ success: boolean; error?: string }> {
   return { success: true };
 }
-export async function agentSendEmail(d: any) {
+export async function agentSendEmail(
+  _d: any,
+): Promise<{ success: boolean; error?: string }> {
   return { success: true };
 }
 
@@ -1708,7 +1733,10 @@ export async function getStructuredTools() {
   ];
 }
 
-export async function runToolManually(toolName: string, args: any) {
+export async function runToolManually(
+  toolName: string,
+  args: Record<string, any>,
+) {
   const clerkUser = await currentUser();
   if (!clerkUser) {
     throw new Error("User not authenticated");
