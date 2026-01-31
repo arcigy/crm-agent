@@ -131,6 +131,7 @@ export function ProjectsTable({
         }}
       />
       <ProjectDriveModal
+        key={driveProject?.id || "none"}
         isOpen={!!driveProject}
         onClose={() => setDriveProject(null)}
         projectId={driveProject?.id || 0}

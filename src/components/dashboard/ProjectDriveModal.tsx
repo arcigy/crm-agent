@@ -34,7 +34,10 @@ export function ProjectDriveModal({
   folderId,
   subfolderName,
 }: ProjectDriveModalProps) {
-  const driveOptions = React.useMemo(() => ({ recursive: true }), []);
+  const driveOptions = React.useMemo(
+    () => ({ recursive: true, isOpen }),
+    [isOpen],
+  );
 
   const {
     files,
@@ -77,17 +80,6 @@ export function ProjectDriveModal({
   });
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const lastOpenRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (isOpen && !lastOpenRef.current) {
-      setCurrentFolderId(folderId);
-      setFolderHistory([]);
-      fetchFiles(folderId);
-    }
-    lastOpenRef.current = isOpen;
-  }, [isOpen, folderId, fetchFiles, setCurrentFolderId, setFolderHistory]);
 
   if (!isOpen) return null;
 

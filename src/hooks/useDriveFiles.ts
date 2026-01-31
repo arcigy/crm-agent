@@ -19,11 +19,10 @@ export function useDriveFiles(
   projectName: string,
   folderId?: string,
   subfolderName?: string,
-  options: { recursive?: boolean } = {},
+  options: { recursive?: boolean; isOpen?: boolean } = {},
 ) {
   const [files, setFiles] = React.useState<DriveFile[]>([]);
-  const [allFiles, setAllFiles] = React.useState<DriveFile[]>([]); // For recursive mode
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(false);
   const [currentFolderId, setCurrentFolderId] = React.useState<
     string | undefined
   >(folderId);
@@ -33,21 +32,21 @@ export function useDriveFiles(
   const [isUploading, setIsUploading] = React.useState(false);
 
   const isRecursive = !!options.recursive;
+  const isOpen = !!options.isOpen;
 
   const fetchFiles = React.useCallback(
     async (targetId?: string) => {
       setLoading(true);
       try {
-        const idToFetch = targetId;
-        const isInitialLoad = !targetId;
+        // Use provided targetId, or fall back to state/props
+        const idToFetch = targetId || currentFolderId || folderId;
+        const isInitialLoad = !targetId && !currentFolderId;
 
         let url = idToFetch
           ? `/api/google/drive?folderId=${idToFetch}`
-          : folderId
-            ? `/api/google/drive?folderId=${folderId}`
-            : `/api/google/drive?projectName=${encodeURIComponent(projectName)}`;
+          : `/api/google/drive?projectName=${encodeURIComponent(projectName)}`;
 
-        if (subfolderName && isInitialLoad && !idToFetch) {
+        if (subfolderName && isInitialLoad && !targetId && !currentFolderId) {
           url += `&subfolderName=${encodeURIComponent(subfolderName)}`;
         }
 
@@ -59,23 +58,30 @@ export function useDriveFiles(
         const data = await res.json();
 
         if (data.isConnected) {
-          if (isRecursive) {
-            setAllFiles(data.files || []);
-            setFiles(data.files || []);
-          } else {
-            setFiles(data.files || []);
-          }
+          setFiles(data.files || []);
         } else {
           toast.error("Google Drive nie je prepojený");
         }
       } catch (error) {
-        toast.error("Chyba pri načítaní súborov");
+        console.error("Fetch files failed:", error);
       } finally {
         setLoading(false);
       }
     },
-    [projectName, subfolderName, isRecursive, folderId],
+    [projectName, subfolderName, isRecursive, folderId, currentFolderId],
   );
+
+  const lastOpenRef = React.useRef(false);
+
+  // Auto-fetch on open
+  React.useEffect(() => {
+    if (isOpen && !lastOpenRef.current) {
+      setCurrentFolderId(folderId);
+      setFolderHistory([]);
+      fetchFiles(folderId);
+    }
+    lastOpenRef.current = isOpen;
+  }, [isOpen, folderId, fetchFiles]);
 
   const deleteFile = async (fileId: string, name: string) => {
     if (!confirm(`Naozaj chcete vymazať ${name}?`)) return false;
