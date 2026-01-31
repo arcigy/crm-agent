@@ -25,6 +25,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { MentionNode } from "@/lib/tiptap-mention-node";
+import { FontSize } from "@/lib/tiptap-font-size";
 import { useAutocomplete } from "@/hooks/useAutocomplete";
 import { AutocompleteDropdown } from "@/components/editor/AutocompleteDropdown";
 import { Editor } from "@tiptap/react";
@@ -174,9 +175,7 @@ const MenuBar = ({ editor, onLinkOpen }: { editor: Editor | null, onLinkOpen: ()
                 <button
                   key={s.value}
                   onClick={() => {
-                    // Note: This requires a custom extension or using TextStyle with data attributes
-                    // For now, let's use a standard way if possible or simplify
-                    editor.chain().focus().setMark('textStyle', { fontSize: s.value }).run();
+                    editor.chain().focus().setFontSize(s.value).run();
                     setActiveMenu(null);
                   }}
                   className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold hover:bg-muted rounded-lg transition-colors text-foreground"
@@ -304,6 +303,7 @@ export default function RichTextEditor({
         }
       }),
       TextStyle,
+      FontSize,
       Color,
       Underline,
       Highlight.configure({ multicolor: true }),
