@@ -69,30 +69,90 @@ export function ContactDocuments({ contact }: { contact: Lead }) {
     fetchRoots();
   }, [contact]);
 
-  const toggleFolder = async (id: string) => {
-    const isExpanding = !expanded[id];
-    setExpanded((prev) => ({ ...prev, [id]: isExpanding }));
-
-    if (isExpanding && !contents[id]) {
-      setLoadingNodes((prev) => ({ ...prev, [id]: true }));
-      try {
-        const res = await fetch(`/api/google/drive?folderId=${id}`);
-        const data = await res.json();
-        setContents((prev) => ({ ...prev, [id]: data.files || [] }));
-      } catch (err) {
-        console.error("Fetch children failed:", err);
-      } finally {
-        setLoadingNodes((prev) => ({ ...prev, [id]: false }));
-      }
+  // Load entire project structure recursively
+  const loadProjectRecursive = async (projectId: string) => {
+    if (contents[projectId]) {
+      // Already loaded, just toggle
+      setExpanded((prev) => ({ ...prev, [projectId]: !prev[projectId] }));
+      return;
     }
+
+    setLoadingNodes((prev) => ({ ...prev, [projectId]: true }));
+    try {
+      const res = await fetch(
+        `/api/google/drive?folderId=${projectId}&recursive=true`,
+      );
+      const data = await res.json();
+
+      if (data.isConnected && data.files) {
+        // Build hierarchical structure
+        const fileMap = new Map<string, FileNode>();
+        const rootChildren: FileNode[] = [];
+
+        // First pass: create all nodes
+        data.files.forEach((file: any) => {
+          fileMap.set(file.id, {
+            id: file.id,
+            name: file.name,
+            mimeType: file.mimeType,
+            webViewLink: file.webViewLink,
+            parents: file.parents,
+            children: [],
+          });
+        });
+
+        // Second pass: build hierarchy
+        data.files.forEach((file: any) => {
+          const node = fileMap.get(file.id)!;
+          const parentId = file.parents?.[0];
+
+          if (parentId === projectId) {
+            // Direct child of project root
+            rootChildren.push(node);
+          } else if (parentId && fileMap.has(parentId)) {
+            // Child of another folder
+            const parent = fileMap.get(parentId)!;
+            if (!parent.children) parent.children = [];
+            parent.children.push(node);
+          }
+        });
+
+        // Sort folders first, then files
+        const sortNodes = (nodes: FileNode[]) => {
+          nodes.sort((a, b) => {
+            const aIsFolder =
+              a.mimeType === "application/vnd.google-apps.folder";
+            const bIsFolder =
+              b.mimeType === "application/vnd.google-apps.folder";
+            if (aIsFolder && !bIsFolder) return -1;
+            if (!aIsFolder && bIsFolder) return 1;
+            return a.name.localeCompare(b.name);
+          });
+          nodes.forEach((node) => {
+            if (node.children) sortNodes(node.children);
+          });
+        };
+        sortNodes(rootChildren);
+
+        setContents((prev) => ({ ...prev, [projectId]: rootChildren }));
+        setExpanded((prev) => ({ ...prev, [projectId]: true }));
+      }
+    } catch (err) {
+      console.error("Failed to load project:", err);
+    } finally {
+      setLoadingNodes((prev) => ({ ...prev, [projectId]: false }));
+    }
+  };
+
+  const toggleFolder = (id: string) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const renderTree = (nodes: FileNode[], level: number = 0) => {
     return nodes.map((node) => {
       const isFolder = node.mimeType === "application/vnd.google-apps.folder";
       const isExpanded = expanded[node.id];
-      const isLoadingNode = loadingNodes[node.id];
-      const nodeChildren = contents[node.id];
+      const hasChildren = node.children && node.children.length > 0;
 
       return (
         <React.Fragment key={node.id}>
@@ -120,9 +180,7 @@ export function ContactDocuments({ contact }: { contact: Lead }) {
             <div className="flex items-center gap-1.5 min-w-0 flex-1">
               {isFolder ? (
                 <>
-                  {isLoadingNode ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />
-                  ) : isExpanded ? (
+                  {isExpanded ? (
                     <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   ) : (
                     <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -153,18 +211,9 @@ export function ContactDocuments({ contact }: { contact: Lead }) {
             )}
           </div>
 
-          {isFolder && isExpanded && nodeChildren && (
+          {isFolder && isExpanded && hasChildren && (
             <div className="relative">
-              {renderTree(nodeChildren, level + 1)}
-            </div>
-          )}
-
-          {isFolder && isExpanded && !nodeChildren && !isLoadingNode && (
-            <div
-              className="text-[10px] italic text-muted-foreground/60 py-1"
-              style={{ paddingLeft: `${(level + 1) * 16 + 28}px` }}
-            >
-              Priečinok je prázdny
+              {renderTree(node.children!, level + 1)}
             </div>
           )}
         </React.Fragment>
@@ -242,11 +291,11 @@ export function ContactDocuments({ contact }: { contact: Lead }) {
                       !loadingNodes[project.id] &&
                       !expanded[project.id] && (
                         <button
-                          onClick={() => toggleFolder(project.id)}
+                          onClick={() => loadProjectRecursive(project.id)}
                           className="text-xs text-muted-foreground hover:text-blue-600 transition-colors flex items-center gap-2"
                         >
                           <ChevronRight className="w-3 h-3" />
-                          Načítať podpriečinky...
+                          Načítať celý projekt...
                         </button>
                       )}
 
