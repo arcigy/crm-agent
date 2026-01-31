@@ -1,4 +1,4 @@
-import { LucideIcon, Zap, FolderKanban, Calendar, Mail, CheckSquare, FileText, HardDrive } from 'lucide-react';
+import { LucideIcon, Zap, FolderKanban, Calendar, Mail, CheckSquare, FileText, HardDrive, Receipt, FileSignature, Landmark } from 'lucide-react';
 
 export interface Tool {
   id: string;
@@ -73,5 +73,29 @@ export const tools: Tool[] = [
     icon: Zap,
     stripePriceId: 'price_dummy_123',
     path: '/dashboard/tool/dummy-tool',
+  },
+  {
+    id: 'invoicing',
+    name: 'Fakturácia',
+    description: 'Vlastný fakturačný systém pre vašu firmu.',
+    icon: Receipt,
+    stripePriceId: 'price_invoicing_premium',
+    path: '/dashboard/invoicing',
+  },
+  {
+    id: 'quotes',
+    name: 'Cenové Ponuky',
+    description: 'Tvorba a správa custom cenových ponúk.',
+    icon: Landmark,
+    stripePriceId: 'price_quotes_premium',
+    path: '/dashboard/quotes',
+  },
+  {
+    id: 'contracts',
+    name: 'Zmluvy',
+    description: 'Generovanie a správa klientskych zmlúv.',
+    icon: FileSignature,
+    stripePriceId: 'price_contracts_premium',
+    path: '/dashboard/contracts',
   }
 ];
