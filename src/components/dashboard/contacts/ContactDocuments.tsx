@@ -218,7 +218,54 @@ export function ContactDocuments({ contact }: { contact: Lead }) {
             {/* Subtle background decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[80px] -mr-32 -mt-32 rounded-full" />
 
-            <div className="relative z-10">{renderTree(roots)}</div>
+            <div className="relative z-10 space-y-10">
+              {roots.map((project) => (
+                <div key={project.id} className="space-y-4">
+                  {/* Project Header */}
+                  <div className="flex items-center gap-4 border-b border-border pb-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                      <Folder className="w-5 h-5 fill-current/20" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black text-foreground uppercase tracking-tight">
+                        {project.name}
+                      </h4>
+                      <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">
+                        HLAVNÝ PROJEKTOVÝ PRIEČINOK
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Subfolders as expandable tree */}
+                  <div className="pl-4">
+                    {!contents[project.id] &&
+                      !loadingNodes[project.id] &&
+                      !expanded[project.id] && (
+                        <button
+                          onClick={() => toggleFolder(project.id)}
+                          className="text-xs text-muted-foreground hover:text-blue-600 transition-colors flex items-center gap-2"
+                        >
+                          <ChevronRight className="w-3 h-3" />
+                          Načítať podpriečinky...
+                        </button>
+                      )}
+
+                    {loadingNodes[project.id] && (
+                      <div className="flex items-center gap-2 text-blue-500 py-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-xs font-bold">Načítavam...</span>
+                      </div>
+                    )}
+
+                    {expanded[project.id] && contents[project.id] && (
+                      <div className="space-y-1">
+                        {renderTree(contents[project.id], 0)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
