@@ -4,9 +4,10 @@ export const MentionNode = Node.create({
   name: "mentionComponent",
   group: "inline",
   inline: true,
-  selectable: true,
+  selectable: false,
   draggable: false,
   atom: true,
+  isolating: true,
 
   addAttributes() {
     return {
