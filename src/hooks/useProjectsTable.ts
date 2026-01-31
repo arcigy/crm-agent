@@ -13,7 +13,6 @@ export function useProjectsTable(data: Project[], contacts: Lead[]) {
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [detailContact, setDetailContact] = React.useState<Lead | null>(null);
-  const [driveProject, setDriveProject] = React.useState<Project | null>(null);
   const [fullDetailProject, setFullDetailProject] =
     React.useState<Project | null>(null);
   const [fullDetailTab, setFullDetailTab] = React.useState<
@@ -96,8 +95,6 @@ export function useProjectsTable(data: Project[], contacts: Lead[]) {
     setIsModalOpen,
     detailContact,
     setDetailContact,
-    driveProject,
-    setDriveProject,
     fullDetailProject,
     setFullDetailProject,
     fullDetailTab,

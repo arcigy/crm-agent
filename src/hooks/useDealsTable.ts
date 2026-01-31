@@ -21,11 +21,6 @@ export function useDealsTable(
   const [uninvoicedOnly, setUninvoicedOnly] = React.useState(false);
 
   // Modals state
-  const [driveProject, setDriveProject] = React.useState<{
-    id: number;
-    name: string;
-    folderId?: string;
-  } | null>(null);
   const [invoicingProject, setInvoicingProject] =
     React.useState<Project | null>(null);
   const [payingProject, setPayingProject] = React.useState<Project | null>(
@@ -169,8 +164,6 @@ export function useDealsTable(
     setPriceFilter,
     uninvoicedOnly,
     setUninvoicedOnly,
-    driveProject,
-    setDriveProject,
     invoicingProject,
     setInvoicingProject,
     payingProject,
