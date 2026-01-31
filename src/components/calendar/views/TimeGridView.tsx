@@ -134,12 +134,17 @@ export function TimeGridView({
                         key={event.id}
                         onClick={() => onEventClick(event)}
                         className={`absolute left-1 right-1 border rounded-lg p-2 text-xs shadow-sm overflow-hidden z-20 transition-all text-left flex flex-col gap-0.5 hover:shadow-md hover:z-40 active:scale-[0.98] ${
-                          event.color ||
-                          "bg-blue-600/90 border-blue-400 text-white"
+                          !event.color || !event.color.startsWith("bg-")
+                            ? "bg-blue-600/90 border-blue-400 text-white"
+                            : event.color
                         }`}
                         style={{
                           top: `${(startHour + startMin / 60) * 80 + 2}px`,
                           height: `${Math.max(durationHrs * 80 - 4, 20)}px`,
+                          backgroundColor:
+                            event.color && !event.color.startsWith("bg-")
+                              ? event.color
+                              : undefined,
                         }}
                       >
                         <div className="font-bold truncate text-[11px]">
