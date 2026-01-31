@@ -16,6 +16,9 @@ export function useProjectsTable(data: Project[], contacts: Lead[]) {
   const [driveProject, setDriveProject] = React.useState<Project | null>(null);
   const [fullDetailProject, setFullDetailProject] =
     React.useState<Project | null>(null);
+  const [fullDetailTab, setFullDetailTab] = React.useState<
+    "overview" | "tasks" | "documents"
+  >("overview");
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -97,6 +100,8 @@ export function useProjectsTable(data: Project[], contacts: Lead[]) {
     setDriveProject,
     fullDetailProject,
     setFullDetailProject,
+    fullDetailTab,
+    setFullDetailTab,
     handleStageChange,
     handleExport,
   };

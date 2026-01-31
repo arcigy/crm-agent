@@ -12,20 +12,22 @@ interface ProjectDetailModalProps {
   project: Project | null;
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: "overview" | "tasks" | "documents";
 }
 
 export function ProjectDetailModal({
   project,
   isOpen,
   onClose,
+  initialTab = "overview",
 }: ProjectDetailModalProps) {
   const [activeTab, setActiveTab] = React.useState<
     "overview" | "tasks" | "documents"
-  >("overview");
+  >(initialTab);
 
   React.useEffect(() => {
-    if (isOpen) setActiveTab("overview");
-  }, [isOpen]);
+    if (isOpen) setActiveTab(initialTab);
+  }, [isOpen, initialTab]);
 
   if (!isOpen || !project) return null;
 

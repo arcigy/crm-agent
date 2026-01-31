@@ -34,6 +34,9 @@ export function useDealsTable(
   const [detailContact, setDetailContact] = React.useState<Lead | null>(null);
   const [fullDetailProject, setFullDetailProject] =
     React.useState<Project | null>(null);
+  const [fullDetailTab, setFullDetailTab] = React.useState<
+    "overview" | "tasks" | "documents"
+  >("overview");
 
   const tableData = React.useMemo(() => {
     const data = currentProjects.map((project) => {
@@ -176,6 +179,8 @@ export function useDealsTable(
     setDetailContact,
     fullDetailProject,
     setFullDetailProject,
+    fullDetailTab,
+    setFullDetailTab,
     handleUpdateProjectStage,
     handleUpdateProjectValue,
     handleTogglePaidStatus,

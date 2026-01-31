@@ -23,7 +23,7 @@ import { format, isBefore } from "date-fns";
 import { sk } from "date-fns/locale";
 import { toast } from "sonner";
 import { ProjectDriveModal } from "./ProjectDriveModal";
-import { InvoiceModal } from "./deals/InvoiceModal";
+import { InvoiceModal, InvoiceModal } from "./deals/InvoiceModal";
 import { PaymentModal } from "./deals/PaymentModal";
 import { DealsFilters } from "./deals/DealsFilters";
 import { useDealsTable } from "@/hooks/useDealsTable";
@@ -59,8 +59,6 @@ export function DealsTable({
     setPriceFilter,
     uninvoicedOnly,
     setUninvoicedOnly,
-    driveProject,
-    setDriveProject,
     invoicingProject,
     setInvoicingProject,
     payingProject,
@@ -69,6 +67,8 @@ export function DealsTable({
     setDetailContact,
     fullDetailProject,
     setFullDetailProject,
+    fullDetailTab,
+    setFullDetailTab,
     handleUpdateProjectStage,
     handleUpdateProjectValue,
     handleTogglePaidStatus,
@@ -84,7 +84,10 @@ export function DealsTable({
           className="flex flex-col cursor-pointer group/name"
           onClick={() => {
             const p = info.row.original.project;
-            if (p) setFullDetailProject(p);
+            if (p) {
+              setFullDetailTab("overview");
+              setFullDetailProject(p);
+            }
           }}
         >
           <span className="font-black text-foreground text-[11px] uppercase tracking-tighter italic group-hover/name:text-blue-600 transition-colors">
@@ -286,13 +289,12 @@ export function DealsTable({
             </button>
             {deal.project?.drive_folder_id && (
               <button
-                onClick={() =>
-                  setDriveProject({
-                    id: deal.project!.id,
-                    name: deal.project!.name,
-                    folderId: deal.project!.drive_folder_id,
-                  })
-                }
+                onClick={() => {
+                  if (deal.project) {
+                    setFullDetailTab("documents");
+                    setFullDetailProject(deal.project);
+                  }
+                }}
                 className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500 transition-all hover:text-white shadow-lg shadow-blue-500/5 group"
               >
                 <HardDrive className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -315,13 +317,11 @@ export function DealsTable({
 
   return (
     <>
-      <ProjectDriveModal
-        isOpen={!!driveProject}
-        onClose={() => setDriveProject(null)}
-        projectId={driveProject?.id || 0}
-        projectName={driveProject?.name || ""}
-        folderId={driveProject?.folderId}
-        subfolderName="01_Zmluvy_a_Faktury"
+      <ProjectDetailModal
+        project={fullDetailProject}
+        isOpen={!!fullDetailProject}
+        onClose={() => setFullDetailProject(null)}
+        initialTab={fullDetailTab}
       />
 
       {invoicingProject && (
@@ -346,12 +346,6 @@ export function DealsTable({
         contact={detailContact}
         isOpen={!!detailContact}
         onClose={() => setDetailContact(null)}
-      />
-
-      <ProjectDetailModal
-        project={fullDetailProject}
-        isOpen={!!fullDetailProject}
-        onClose={() => setFullDetailProject(null)}
       />
 
       <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden transition-colors duration-300">

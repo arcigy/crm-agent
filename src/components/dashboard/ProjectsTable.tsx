@@ -34,10 +34,10 @@ export function ProjectsTable({
     setIsModalOpen,
     detailContact,
     setDetailContact,
-    driveProject,
-    setDriveProject,
     fullDetailProject,
     setFullDetailProject,
+    fullDetailTab,
+    setFullDetailTab,
     handleStageChange,
     handleExport,
   } = useProjectsTable(data, contacts);
@@ -48,14 +48,20 @@ export function ProjectsTable({
         contacts,
         handleStageChange,
         (contact) => setDetailContact(contact),
-        (project) => setDriveProject(project),
-        (project) => setFullDetailProject(project),
+        (project) => {
+          setFullDetailTab("documents");
+          setFullDetailProject(project);
+        },
+        (project) => {
+          setFullDetailTab("overview");
+          setFullDetailProject(project);
+        },
       ),
     [
       contacts,
       handleStageChange,
       setDetailContact,
-      setDriveProject,
+      setFullDetailTab,
       setFullDetailProject,
     ],
   );
@@ -88,17 +94,11 @@ export function ProjectsTable({
         isOpen={!!detailContact}
         onClose={() => setDetailContact(null)}
       />
-      <ProjectDriveModal
-        isOpen={!!driveProject}
-        onClose={() => setDriveProject(null)}
-        projectId={driveProject?.id || 0}
-        projectName={driveProject?.name || ""}
-        folderId={driveProject?.drive_folder_id}
-      />
       <ProjectDetailModal
         project={fullDetailProject}
         isOpen={!!fullDetailProject}
         onClose={() => setFullDetailProject(null)}
+        initialTab={fullDetailTab}
       />
 
       <div className="p-6 border-b border-border bg-muted/20 flex flex-wrap items-center justify-between gap-4">
