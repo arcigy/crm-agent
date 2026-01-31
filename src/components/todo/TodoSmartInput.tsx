@@ -124,13 +124,14 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
         },
       }),
       Placeholder.configure({
-        placeholder: "Napíš čo máš na mysli...",
+        placeholder: "Čo plánuješ urobiť? (Použi @ pre kontakt, # pre projekt)",
+        includeChildren: true,
       }),
     ],
     editorProps: {
       attributes: {
         class:
-          "outline-none min-h-[12rem] px-8 py-8 pt-16 pb-24 text-xl font-normal text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold",
+          "outline-none min-h-[14rem] px-8 py-8 pt-20 pb-24 text-xl font-medium text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold",
       },
       handleKeyDown: (view, event) => {
         // First try autocomplete keyboard navigation

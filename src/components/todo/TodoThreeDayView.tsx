@@ -41,27 +41,27 @@ export function TodoThreeDayView({
   const tomorrow = addDays(current, 1);
 
   // Filter tasks
-  const getTasksForDate = (date: Date, includeFloating = false) => {
-    const dateStr = date.toISOString().split("T")[0];
+  const getTasksForDate = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
     return tasks
       .filter((t) => {
-        if (!t.due_date) return includeFloating; // Floating tasks only in "Today" usually
+        if (!t.due_date) return false;
         return t.due_date.startsWith(dateStr);
       })
       .sort((a, b) => {
-        // Sort by time if available, otherwise push to bottom
+        // Sort by time if available, otherwise push to bottom ("00:00" is start, so we use "99:99" for end)
         const aTime = a.due_date?.includes("T")
-          ? a.due_date.split("T")[1]
+          ? a.due_date.split("T")[1].substring(0, 5)
           : "99:99";
         const bTime = b.due_date?.includes("T")
-          ? b.due_date.split("T")[1]
+          ? b.due_date.split("T")[1].substring(0, 5)
           : "99:99";
         return aTime.localeCompare(bTime);
       });
   };
 
   const yesterdayTasks = getTasksForDate(yesterday);
-  const todayTasks = getTasksForDate(current, true); // Include floating tasks in Today
+  const todayTasks = getTasksForDate(current);
   const tomorrowTasks = getTasksForDate(tomorrow);
 
   return (
