@@ -58,6 +58,11 @@ Sender: ${sender}
                 `.trim(),
                 contact_id: contactId,
                 activity_date: new Date().toISOString(),
+                metadata: {
+                    gmail_id: message_id,
+                    sender: sender,
+                    classification: classification
+                }
             }));
             console.log('[Webhook] Analysis persisted to Directus Activities');
         } catch (e) {

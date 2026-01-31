@@ -17,6 +17,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const { user, isLoaded } = useUser();
   const [messages, setMessages] =
     React.useState<GmailMessage[]>(initialMessages);
+  const [dbAnalyses, setDbAnalyses] = React.useState<any[]>([]);
   const [androidLogs, setAndroidLogs] = React.useState<AndroidLog[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isConnected, setIsConnected] = React.useState(false);
@@ -56,6 +57,15 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const fetchMessages = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
+      // Fetch DB Analyses first (background analyzed emails)
+      const dbRes = await fetch("/api/notes?type=ai_analysis");
+      if (dbRes.ok) {
+        const dbData = await dbRes.json();
+        if (dbData.success) {
+          setDbAnalyses(dbData.notes || []);
+        }
+      }
+
       // Fetch Gmail
       const gmailRes = await fetch("/api/google/gmail", { cache: "no-store" });
       if (gmailRes.ok) {
@@ -68,8 +78,14 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
 
               let classification = existing?.classification;
               if (!classification) {
-                const saved = localStorage.getItem(`ai_classify_${newMsg.id}`);
-                if (saved) classification = JSON.parse(saved);
+                // Check DB analyses
+                const dbMatch = dbAnalyses.find(a => a.metadata?.gmail_id === newMsg.id);
+                if (dbMatch) {
+                  classification = dbMatch.metadata.classification;
+                } else {
+                  const saved = localStorage.getItem(`ai_classify_${newMsg.id}`);
+                  if (saved) classification = JSON.parse(saved);
+                }
               }
 
               if (classification) {
