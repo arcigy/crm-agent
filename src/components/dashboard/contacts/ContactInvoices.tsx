@@ -109,13 +109,13 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
         (f: any) =>
           f.mimeType === "application/vnd.google-apps.folder" &&
           f.name.toLowerCase().includes("zmluv") &&
-          !f.name.toLowerCase().includes("faktúr"),
+          !f.name.toLowerCase().includes("faktur"),
       );
 
       const fakturyFolder = subData.files.find(
         (f: any) =>
           f.mimeType === "application/vnd.google-apps.folder" &&
-          f.name.toLowerCase().includes("faktúr"),
+          f.name.toLowerCase().includes("faktur"),
       );
 
       console.log(
