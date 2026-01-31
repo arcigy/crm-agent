@@ -22,6 +22,7 @@ import {
   Type,
   Baseline,
   Link as LinkIcon,
+  ChevronDown,
 } from "lucide-react";
 import { MentionNode } from "@/lib/tiptap-mention-node";
 import { useAutocomplete } from "@/hooks/useAutocomplete";
@@ -37,6 +38,8 @@ interface RichTextEditorProps {
 }
 
 const MenuBar = ({ editor, onLinkOpen }: { editor: Editor | null, onLinkOpen: () => void }) => {
+  const [activeMenu, setActiveMenu] = React.useState<'color' | 'highlight' | 'size' | null>(null);
+
   if (!editor) return null;
 
   const colors = [
@@ -56,8 +59,18 @@ const MenuBar = ({ editor, onLinkOpen }: { editor: Editor | null, onLinkOpen: ()
     { name: 'Pink', color: '#fbcfe8' },
   ];
 
+  const sizes = [
+    { name: 'Small', value: '0.875rem' },
+    { name: 'Normal', value: '1rem' },
+    { name: 'Large', value: '1.25rem' },
+    { name: 'Extra Large', value: '1.5rem' },
+  ];
+
+  const currentColor = editor.getAttributes('textStyle').color || 'inherit';
+  const currentHighlight = editor.getAttributes('highlight').color || 'transparent';
+
   return (
-    <div className="flex flex-wrap gap-1 p-2 bg-muted border-b border-border rounded-t-[2.5rem] transition-colors">
+    <div className="flex flex-wrap gap-1 p-2 bg-muted border-b border-border rounded-t-[2.5rem] transition-colors relative z-50">
       <button
         onClick={() => editor.chain().focus().toggleBold().run()}
         className={`p-2 rounded-xl transition-all ${editor.isActive("bold") ? "bg-indigo-600 text-white shadow-lg" : "text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border"}`}
@@ -83,42 +96,97 @@ const MenuBar = ({ editor, onLinkOpen }: { editor: Editor | null, onLinkOpen: ()
       <div className="w-px h-8 bg-border/50 mx-1 self-center" />
 
       {/* Text Color Dropdown */}
-      <div className="group relative">
-        <button className="p-2 rounded-xl text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border transition-all flex items-center gap-1">
-          <Baseline className="w-4 h-4" />
-          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: editor.getAttributes('textStyle').color || 'currentColor' }} />
+      <div className="relative">
+        <button
+          onClick={() => setActiveMenu(activeMenu === 'color' ? null : 'color')}
+          className={`p-2 rounded-xl text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border transition-all flex items-center gap-1 ${activeMenu === 'color' ? 'bg-card border-border' : ''}`}
+        >
+          <Baseline className="w-4 h-4" style={{ color: currentColor !== 'inherit' ? currentColor : undefined }} />
+          <ChevronDown className="w-3 h-3 opacity-50" />
         </button>
-        <div className="absolute top-full left-0 mt-1 hidden group-hover:flex flex-col bg-card border border-border rounded-xl shadow-xl z-50 p-1 min-w-[120px]">
-          {colors.map((c) => (
-            <button
-              key={c.color}
-              onClick={() => editor.chain().focus().setColor(c.color).run()}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold hover:bg-muted rounded-lg transition-colors"
-            >
-              <div className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: c.color === 'inherit' ? 'currentColor' : c.color }} />
-              {c.name}
-            </button>
-          ))}
-        </div>
+        {activeMenu === 'color' && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setActiveMenu(null)} />
+            <div className="absolute top-full left-0 mt-1 flex flex-col bg-card border border-border rounded-xl shadow-xl z-50 p-1 min-w-[140px] animate-in fade-in zoom-in-95 duration-150">
+              {colors.map((c) => (
+                <button
+                  key={c.color}
+                  onClick={() => {
+                    editor.chain().focus().setColor(c.color).run();
+                    setActiveMenu(null);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold hover:bg-muted rounded-lg transition-colors ${currentColor === c.color ? 'bg-muted text-indigo-600' : 'text-foreground'}`}
+                >
+                  <div className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: c.color === 'inherit' ? 'currentColor' : c.color }} />
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Highlight Dropdown */}
-      <div className="group relative">
-        <button className="p-2 rounded-xl text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border transition-all">
-          <Highlighter className="w-4 h-4" />
+      <div className="relative">
+        <button
+          onClick={() => setActiveMenu(activeMenu === 'highlight' ? null : 'highlight')}
+          className={`p-2 rounded-xl text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border transition-all flex items-center gap-1 ${activeMenu === 'highlight' ? 'bg-card border-border' : ''}`}
+        >
+          <Highlighter className="w-4 h-4" style={{ color: currentHighlight !== 'transparent' ? currentHighlight : undefined }} />
+          <ChevronDown className="w-3 h-3 opacity-50" />
         </button>
-        <div className="absolute top-full left-0 mt-1 hidden group-hover:flex flex-col bg-card border border-border rounded-xl shadow-xl z-50 p-1 min-w-[120px]">
-          {highlights.map((h) => (
-            <button
-              key={h.color}
-              onClick={() => editor.chain().focus().setHighlight({ color: h.color }).run()}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold hover:bg-muted rounded-lg transition-colors"
-            >
-              <div className="w-3 h-3 rounded border border-border" style={{ backgroundColor: h.color }} />
-              {h.name}
-            </button>
-          ))}
-        </div>
+        {activeMenu === 'highlight' && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setActiveMenu(null)} />
+            <div className="absolute top-full left-0 mt-1 flex flex-col bg-card border border-border rounded-xl shadow-xl z-50 p-1 min-w-[140px] animate-in fade-in zoom-in-95 duration-150">
+              {highlights.map((h) => (
+                <button
+                  key={h.color}
+                  onClick={() => {
+                    editor.chain().focus().setHighlight({ color: h.color }).run();
+                    setActiveMenu(null);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold hover:bg-muted rounded-lg transition-colors ${currentHighlight === h.color ? 'bg-muted text-indigo-600' : 'text-foreground'}`}
+                >
+                  <div className="w-3 h-3 rounded border border-border" style={{ backgroundColor: h.color }} />
+                  {h.name}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Text Size Dropdown */}
+      <div className="relative">
+        <button
+          onClick={() => setActiveMenu(activeMenu === 'size' ? null : 'size')}
+          className={`p-2 rounded-xl text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border transition-all flex items-center gap-1 ${activeMenu === 'size' ? 'bg-card border-border' : ''}`}
+        >
+          <Type className="w-4 h-4" />
+          <ChevronDown className="w-3 h-3 opacity-50" />
+        </button>
+        {activeMenu === 'size' && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setActiveMenu(null)} />
+            <div className="absolute top-full left-0 mt-1 flex flex-col bg-card border border-border rounded-xl shadow-xl z-50 p-1 min-w-[140px] animate-in fade-in zoom-in-95 duration-150">
+              {sizes.map((s) => (
+                <button
+                  key={s.value}
+                  onClick={() => {
+                    // Note: This requires a custom extension or using TextStyle with data attributes
+                    // For now, let's use a standard way if possible or simplify
+                    editor.chain().focus().setMark('textStyle', { fontSize: s.value }).run();
+                    setActiveMenu(null);
+                  }}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold hover:bg-muted rounded-lg transition-colors text-foreground"
+                >
+                  <span style={{ fontSize: s.value }}>{s.name}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="w-px h-8 bg-border/50 mx-1 self-center" />
@@ -227,7 +295,14 @@ export default function RichTextEditor({
         bold: { HTMLAttributes: { class: "font-bold" } },
         italic: { HTMLAttributes: { class: "italic" } },
       }),
-      Link.configure({ openOnClick: false }),
+      Link.configure({
+        openOnClick: true,
+        HTMLAttributes: {
+          class: 'text-indigo-600 hover:text-indigo-800 underline transition-colors cursor-pointer',
+          target: '_blank',
+          rel: 'noopener noreferrer'
+        }
+      }),
       TextStyle,
       Color,
       Underline,
@@ -282,9 +357,6 @@ export default function RichTextEditor({
   return (
     <div className="flex flex-col border border-border rounded-[2.5rem] bg-card shadow-inner min-h-0 flex-1 transition-colors">
       <MenuBar editor={editor} onLinkOpen={() => {
-        // Force autocomplete to trigger by inserting a space or special char if needed,
-        // but the best way is to just show that it works via @ typing.
-        // For the "button" style, we can simulate an "@" trigger:
         if (editor) {
           editor.chain().focus().insertContent("@").run();
           checkAutocomplete(editor);
@@ -350,6 +422,10 @@ export default function RichTextEditor({
           margin: 1.5em 0;
           padding: 1em;
           border-radius: 0 1rem 1rem 0;
+        }
+        .prose a {
+          cursor: pointer !important;
+          pointer-events: auto !important;
         }
       `}</style>
     </div>
