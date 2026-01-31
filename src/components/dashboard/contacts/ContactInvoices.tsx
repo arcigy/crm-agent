@@ -152,27 +152,59 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
 
   React.useEffect(() => {
     const loadAllDocuments = async () => {
-      if (!contact.projects?.length) {
-        setContractFiles([]);
-        setInvoiceFiles([]);
-        return;
-      }
-
       setIsLoading(true);
       setError(null);
 
       try {
+        let projectFolders: Array<{ id: string; name: string }> = [];
+
+        // Strategy 1: Use linked projects from database
+        if (contact.projects?.length) {
+          console.log("[Finance] Using linked projects from database");
+          projectFolders = contact.projects
+            .filter((p) => p.drive_folder_id)
+            .map((p) => ({
+              id: p.drive_folder_id!,
+              name: p.project_type || p.name || "Projekt",
+            }));
+        }
+
+        // Strategy 2: Fallback - Search Drive by contact name
+        if (projectFolders.length === 0) {
+          console.log(
+            "[Finance] No linked projects, searching Drive by contact name",
+          );
+          const contactName =
+            `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
+          const searchRes = await fetch(
+            `/api/google/drive?search=${encodeURIComponent(`Client: ${contactName}`)}`,
+          );
+          const searchResult = await searchRes.json();
+
+          if (searchResult.isConnected && searchResult.files) {
+            projectFolders = searchResult.files.map((f: any) => ({
+              id: f.id,
+              name: f.name,
+            }));
+          }
+        }
+
+        console.log(
+          `[Finance] Found ${projectFolders.length} project folders to scan`,
+        );
+
+        if (projectFolders.length === 0) {
+          setContractFiles([]);
+          setInvoiceFiles([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch documents from all project folders
         const results = await Promise.all(
-          contact.projects.map((p) => {
-            if (p.drive_folder_id) {
-              return fetchDocumentsForProject(
-                p.id,
-                p.drive_folder_id,
-                p.project_type,
-              );
-            }
-            return Promise.resolve({ zmluvy: [], faktury: [] });
-          }),
+          projectFolders.map((folder) =>
+            fetchDocumentsForProject(0, folder.id, folder.name),
+          ),
         );
 
         // Combine all zmluvy and faktury from all projects
@@ -199,9 +231,14 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
         uniqueZmluvy.sort(sorter);
         uniqueFaktury.sort(sorter);
 
+        console.log(
+          `[Finance] Final: ${uniqueZmluvy.length} contracts, ${uniqueFaktury.length} invoices`,
+        );
+
         setContractFiles(uniqueZmluvy);
         setInvoiceFiles(uniqueFaktury);
       } catch (err) {
+        console.error("[Finance] Error loading documents:", err);
         setError("Nepodarilo sa načítať dokumenty z Google Drive.");
         toast.error("Chyba pri načítaní dokumentov");
       } finally {
