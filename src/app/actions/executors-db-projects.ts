@@ -1,5 +1,7 @@
 import directus from "@/lib/directus";
 import { readItems, createItem, updateItem } from "@directus/sdk";
+import { setupProjectStructure } from "@/lib/google-drive";
+import { clerkClient } from "@clerk/nextjs/server";
 
 /**
  * Handles database project operations.
@@ -7,6 +9,7 @@ import { readItems, createItem, updateItem } from "@directus/sdk";
 export async function executeDbProjectTool(
   name: string,
   args: Record<string, any>,
+  userId?: string,
 ) {
   switch (name) {
     case "db_fetch_projects":
@@ -24,17 +27,52 @@ export async function executeDbProjectTool(
     case "db_create_project":
       const nProj = (await directus.request(
         createItem("projects", {
-          name: args.name,
+          name: args.name || args.project_type,
+          project_type: args.project_type,
           contact_id: args.contact_id,
+          contact_name: args.contact_name || "Neznámy",
           value: args.value || 0,
-          stage: args.stage || "lead",
+          stage: args.stage || "planning",
+          end_date: args.end_date || null,
           date_created: new Date().toISOString(),
         } as any),
       )) as any;
+
+      // Handle Automations if userId is provided
+      if (userId) {
+        try {
+          const client = await clerkClient();
+          const tokenRes = await client.users.getUserOauthAccessToken(
+            userId,
+            "oauth_google",
+          );
+          const token = tokenRes.data[0]?.token;
+
+          if (token) {
+            const year = new Date().getFullYear().toString();
+            const driveId = await setupProjectStructure(token, {
+              projectName: args.name || args.project_type,
+              projectNumber: String(nProj.id).padStart(3, "0"),
+              year,
+              contactName: args.contact_name || "Neznámy",
+            });
+
+            await directus.request(
+              updateItem("projects", nProj.id, {
+                drive_folder_id: driveId,
+              } as any),
+            );
+          }
+        } catch (err) {
+          console.error("Agent Project Automation failed:", err);
+          // We don't fail the whole tool call, just log it.
+        }
+      }
+
       return {
         success: true,
         data: { project_id: nProj.id },
-        message: "Nový projekt bol úspešne založený.",
+        message: "Nový projekt bol úspešne založený vrátane automatizácií.",
       };
 
     case "db_update_project":

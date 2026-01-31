@@ -47,7 +47,7 @@ export async function executeAtomicTool(
       name.startsWith("db_delete_project") ||
       name.startsWith("verify_project_exists")
     ) {
-      return await executeDbProjectTool(name, safeArgs);
+      return await executeDbProjectTool(name, safeArgs, user.id);
     }
 
     // Database Tools - Deals
