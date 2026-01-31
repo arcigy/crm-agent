@@ -166,10 +166,7 @@ export default function RichTextEditor({
           "prose prose-sm sm:prose-base lg:prose-md xl:prose-lg focus:outline-none max-w-none p-8 min-h-[300px] overflow-y-auto custom-scrollbar font-medium text-foreground dark:prose-invert",
       },
       handleKeyDown: (view, event) => {
-        return handleKeyDown(
-          event,
-          view.state.hasOwnProperty("selection") ? (view as any) : editor,
-        );
+        return handleKeyDown(event, editor);
       },
       handleClick: (view, pos, event) => {
         const target = event.target as HTMLElement;

@@ -126,10 +126,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
       },
       handleKeyDown: (view, event) => {
         // First try autocomplete keyboard navigation
-        const handledByAutocomplete = handleKeyDown(
-          event,
-          view.state.hasOwnProperty("selection") ? (view as any) : editor,
-        );
+        const handledByAutocomplete = handleKeyDown(event, editor);
 
         if (handledByAutocomplete) return true;
 

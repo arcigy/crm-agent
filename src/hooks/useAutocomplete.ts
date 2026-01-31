@@ -7,6 +7,7 @@ import {
   ProjectRelation,
 } from "@/app/actions/todo-relations";
 import { Editor } from "@tiptap/react";
+import { type } from "os";
 
 export interface Suggestion {
   id: number;
@@ -14,6 +15,14 @@ export interface Suggestion {
   sub?: string;
   type: "contact" | "project";
 }
+
+// Helper to normalize text for diacritics-insensitive search
+const normalizeText = (text: string) => {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+};
 
 export function useAutocomplete() {
   const [query, setQuery] = useState("");
@@ -77,12 +86,12 @@ export function useAutocomplete() {
     }
 
     const timer = setTimeout(() => {
-      // Strip leading triggers like @, #, $, ! for filtering
-      const q = query.replace(/^[@#$!]/, "").toLowerCase();
+      // Normalize query
+      const q = normalizeText(query.replace(/^[@#$!]/, ""));
 
       const contacts: Suggestion[] = relations.contacts
         .filter((c) =>
-          `${c.first_name} ${c.last_name}`.toLowerCase().includes(q),
+          normalizeText(`${c.first_name} ${c.last_name}`).includes(q),
         )
         .map((c) => ({
           id: c.id,
@@ -92,7 +101,7 @@ export function useAutocomplete() {
         }));
 
       const projects: Suggestion[] = relations.projects
-        .filter((p) => p.project_type.toLowerCase().includes(q))
+        .filter((p) => normalizeText(p.project_type).includes(q))
         .map((p) => ({
           id: p.id,
           label: p.project_type,
@@ -114,12 +123,17 @@ export function useAutocomplete() {
       replaceWord: boolean = true,
     ) => {
       if (!editor) {
-        console.error("selectSuggestion: Editor is null");
+        console.error("Autocomplete: Editor is missing in selectSuggestion");
         return;
       }
 
+      console.log("Autocomplete: Attempting insertion", {
+        suggestion,
+        replaceWord,
+      });
+
       try {
-        const { state } = editor;
+        const { state, view } = editor;
         const { selection } = state;
         const { $from } = selection;
 
@@ -127,33 +141,25 @@ export function useAutocomplete() {
         let to = $from.pos;
 
         if (replaceWord) {
-          // Scan backwards from cursor to find word start
+          // Robust word detection
           const textBefore = $from.parent.textBetween(
-            Math.max(0, $from.parentOffset - 20),
+            Math.max(0, $from.parentOffset - 25),
             $from.parentOffset,
             undefined,
             "\ufffc",
           );
 
-          console.log("Autocomplete text before:", textBefore);
+          console.log("Autocomplete: textBefore analysis:", `"${textBefore}"`);
           const match = textBefore.match(/(\S+)$/);
           if (match) {
             const word = match[0];
             from = $from.pos - word.length;
             to = $from.pos;
-            console.log("Replacing word:", word, "at", { from, to });
+            console.log("Autocomplete: replacing range", { from, to, word });
           }
-        } else {
-          console.log("Direct insertion at:", from);
         }
 
         const marks = state.storedMarks || $from.marks();
-
-        console.log("Inserting mention structure:", {
-          id: suggestion.id,
-          label: suggestion.label,
-          type: suggestion.type,
-        });
 
         editor
           .chain()
@@ -172,11 +178,13 @@ export function useAutocomplete() {
           .setStoredMarks(marks)
           .run();
 
-        console.log("Mention insertion successful");
+        console.log("Autocomplete: Insertion successful");
       } catch (error) {
-        console.error("selectSuggestion error:", error);
+        console.error("Autocomplete: CRITICAL ERROR during insertion:", error);
         import("sonner").then(({ toast }) =>
-          toast.error("Chyba pri vkladaní tagu"),
+          toast.error(
+            `Chyba pri vkladaní: ${error instanceof Error ? error.message : "Internal Error"}`,
+          ),
         );
       }
 
