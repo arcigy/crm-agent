@@ -49,5 +49,5 @@ export function DriveFileIcon({
   )
     return <FileCode className={`${className} text-blue-500`} />;
 
-  return <File className={`${className} text-gray-400`} />;
+  return <File className={`${className} text-muted-foreground`} />;
 }

@@ -95,10 +95,14 @@ export function ProjectDriveModal({
     });
   }, [files, currentFolderId, folderId]);
 
-  const filtered = currentViewFiles.filter((f) => {
-    if (!f.name) return false;
-    return f.name.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const filtered = React.useMemo(() => {
+    // If searching, search in ALL files of the project (files already contains all in recursive mode)
+    const sourceFiles = searchQuery ? files : currentViewFiles;
+    return sourceFiles.filter((f) => {
+      if (!f.name) return false;
+      return f.name.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+  }, [files, currentViewFiles, searchQuery]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
@@ -114,8 +118,14 @@ export function ProjectDriveModal({
       for (const file of Array.from(e.target.files)) {
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("folderId", targetId);
-        await fetch("/api/google/upload", { method: "POST", body: formData });
+        formData.append("parentId", targetId);
+
+        const res = await fetch("/api/google/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) throw new Error("Upload failed");
       }
       toast.success("Súbory nahraté");
       fetchFiles(targetId);
@@ -167,7 +177,7 @@ export function ProjectDriveModal({
           {loading ? (
             <LoadingState />
           ) : filtered.length === 0 ? (
-            <EmptyState />
+            <EmptyState searchQuery={searchQuery} />
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filtered.map((file, idx) => (
@@ -206,7 +216,7 @@ export function ProjectDriveModal({
               ))}
             </div>
           ) : (
-            <div className="bg-card rounded-[2rem] border border-border overflow-hidden shadow-sm">
+            <div className="bg-card rounded-[2rem] border border-border overflow-hidden shadow-sm transition-colors">
               <table className="w-full text-left">
                 <tbody className="divide-y divide-border/50">
                   {filtered.map((file, idx) => (
@@ -329,7 +339,7 @@ function Header({
                 onClick={onBack}
                 className="p-1 hover:bg-muted rounded-lg mr-1"
               >
-                <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+                <ArrowLeft className="w-5 h-5 text-muted-foreground transition-colors" />
               </button>
             )}
             {projectName}{" "}
@@ -344,9 +354,9 @@ function Header({
       </div>
       <button
         onClick={onClose}
-        className="p-3 hover:bg-gray-100 rounded-2xl transition-all"
+        className="p-3 hover:bg-muted rounded-2xl transition-all"
       >
-        <X className="w-6 h-6 text-gray-400" />
+        <X className="w-6 h-6 text-muted-foreground" />
       </button>
     </div>
   );
@@ -362,12 +372,12 @@ function Toolbar({
   setViewMode,
 }: any) {
   return (
-    <div className="px-8 py-4 border-b border-border bg-card flex items-center gap-4">
+    <div className="px-8 py-4 border-b border-border bg-card flex items-center gap-4 transition-colors">
       <div className="relative flex-1">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Hľadať v súboroch..."
+          placeholder="Hľadať v súboroch projektu..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-12 pr-6 py-3 bg-muted/50 border border-border rounded-2xl text-sm font-bold focus:bg-card focus:border-blue-500 outline-none transition-all text-foreground"
@@ -376,7 +386,7 @@ function Toolbar({
       <button
         disabled={isUploading || loading}
         onClick={onUploadClick}
-        className="bg-gray-900 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-black transition-all shadow-lg active:scale-95 disabled:opacity-50"
+        className="bg-foreground text-background px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:opacity-90 transition-all shadow-lg active:scale-95 disabled:opacity-50"
       >
         {isUploading ? (
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -385,16 +395,16 @@ function Toolbar({
         )}{" "}
         {isUploading ? "Nahrávam..." : "Nahrať súbor"}
       </button>
-      <div className="flex bg-gray-50 p-1 rounded-xl">
+      <div className="flex bg-muted p-1 rounded-xl transition-colors">
         <button
           onClick={() => setViewMode("grid")}
-          className={`p-2 rounded-lg ${viewMode === "grid" ? "bg-white text-blue-600 shadow-sm" : "text-gray-400"}`}
+          className={`p-2 rounded-lg transition-all ${viewMode === "grid" ? "bg-card text-blue-600 shadow-sm" : "text-muted-foreground"}`}
         >
           <Grid className="w-4 h-4" />
         </button>
         <button
           onClick={() => setViewMode("list")}
-          className={`p-2 rounded-lg ${viewMode === "list" ? "bg-white text-blue-600 shadow-sm" : "text-gray-400"}`}
+          className={`p-2 rounded-lg transition-all ${viewMode === "list" ? "bg-card text-blue-600 shadow-sm" : "text-muted-foreground"}`}
         >
           <ListIcon className="w-4 h-4" />
         </button>
@@ -407,27 +417,27 @@ function LoadingState() {
   return (
     <div className="h-full flex flex-col items-center justify-center gap-4">
       <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
         Pripájam sa k Drive...
       </p>
     </div>
   );
 }
-function EmptyState() {
+function EmptyState({ searchQuery }: { searchQuery?: string }) {
   return (
     <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-      <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center text-4xl mb-4">
-        📁
+      <div className="w-20 h-20 bg-muted rounded-[2rem] flex items-center justify-center text-4xl mb-4">
+        {searchQuery ? "🔍" : "📁"}
       </div>
-      <p className="text-sm font-black uppercase tracking-widest">
-        Tento priečinok je prázdny
+      <p className="text-sm font-black uppercase tracking-widest text-foreground">
+        {searchQuery ? "Nenašli sa žiadne zhody" : "Tento priečinok je prázdny"}
       </p>
     </div>
   );
 }
 function Footer({ count }: any) {
   return (
-    <div className="p-6 border-t border-border bg-muted/30 flex justify-between items-center px-10">
+    <div className="p-6 border-t border-border bg-muted/30 flex justify-between items-center px-10 transition-colors">
       <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
         {count} objektov
       </span>
