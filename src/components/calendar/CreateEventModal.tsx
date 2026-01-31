@@ -62,7 +62,9 @@ export function CreateEventModal({
   // Autocomplete state
   const [suggestions, setSuggestions] = React.useState<any[]>([]);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
+  const [currentWord, setCurrentWord] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const debounceRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const [relations, setRelations] = React.useState<{
     contacts: ContactRelation[];
@@ -105,51 +107,60 @@ export function CreateEventModal({
     }
   }, [initialDate, isOpen]);
 
-  // --- Autocomplete Logic ---
+  // --- Autocomplete Logic (like TodoSmartInput) ---
 
   const handleSummaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setFormData((prev) => ({ ...prev, summary: val }));
 
+    // Find the word currently being typed
     const cursorPosition = e.target.selectionStart || 0;
     const textBeforeCursor = val.slice(0, cursorPosition);
-    const match = textBeforeCursor.match(/([@#])(\S*)$/);
+    const words = textBeforeCursor.split(/\s+/);
+    const lastWord = words[words.length - 1] || "";
 
-    if (match) {
-      const trigger = match[1]; // @ or #
-      const query = normalizeText(match[2]);
+    setCurrentWord(lastWord);
 
-      let results: any[] = [];
+    // Clear previous debounce
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
 
-      if (trigger === "@") {
-        results = relations.contacts
-          .filter((c) =>
-            normalizeText(`${c.first_name} ${c.last_name}`).includes(query),
-          )
-          .map((c) => ({
-            id: c.id,
-            label: `${c.first_name} ${c.last_name}`,
-            type: "contact",
-            sub: c.company,
-          }))
-          .slice(0, 5);
-      } else if (trigger === "#") {
-        results = relations.projects
-          .filter((p) => normalizeText(p.project_type).includes(query))
-          .map((p) => ({
-            id: p.id,
-            label: p.project_type,
-            type: "project",
-            sub: p.stage,
-          }))
-          .slice(0, 5);
-      }
+    // Only search if word is 3+ characters (like useAutocomplete)
+    if (lastWord.length < 3) {
+      setSuggestions([]);
+      setSelectedIndex(0);
+      return;
+    }
 
+    // Debounce 500ms
+    debounceRef.current = setTimeout(() => {
+      const query = normalizeText(lastWord.replace(/^[@#]/, ""));
+
+      const matchedContacts = relations.contacts
+        .filter((c) =>
+          normalizeText(`${c.first_name} ${c.last_name}`).includes(query),
+        )
+        .map((c) => ({
+          id: c.id,
+          label: `${c.first_name} ${c.last_name}`,
+          type: "contact",
+          sub: c.company,
+        }));
+
+      const matchedProjects = relations.projects
+        .filter((p) => normalizeText(p.project_type).includes(query))
+        .map((p) => ({
+          id: p.id,
+          label: p.project_type,
+          type: "project",
+          sub: p.stage,
+        }));
+
+      const results = [...matchedContacts, ...matchedProjects].slice(0, 5);
       setSuggestions(results);
       setSelectedIndex(0);
-    } else {
-      setSuggestions([]);
-    }
+    }, 500);
   };
 
   const applySuggestion = (suggestion: any) => {
@@ -158,22 +169,18 @@ export function CreateEventModal({
     const textBefore = formData.summary.slice(0, cursorPosition);
     const textAfter = formData.summary.slice(cursorPosition);
 
-    // Find the start of the trigger word
-    const match = textBefore.match(/([@#])(\S*)$/);
-    if (!match) return;
+    // Find the start of the current word
+    const words = textBefore.split(/\s+/);
+    const lastWordLength = (words[words.length - 1] || "").length;
+    const startOfWord = textBefore.length - lastWordLength;
 
-    const triggerIndex = match.index!;
     const newTextBefore =
-      textBefore.substring(0, triggerIndex) +
-      (suggestion.type === "contact" ? "@" : "#") +
-      suggestion.label +
-      " ";
+      textBefore.substring(0, startOfWord) + suggestion.label + " ";
 
     const newSummary = newTextBefore + textAfter;
     setFormData((prev) => ({
       ...prev,
       summary: newSummary,
-      // Auto append to description
       description: prev.description
         ? prev.description +
           `\n${suggestion.type === "contact" ? "Kontakt" : "Projekt"}: ${suggestion.label}`
@@ -181,12 +188,11 @@ export function CreateEventModal({
     }));
 
     setSuggestions([]);
+    setCurrentWord("");
 
-    // Restore focus and cursor (approximate)
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
-        // inputRef.current.setSelectionRange(newTextBefore.length, newTextBefore.length);
       }
     }, 0);
   };
@@ -202,7 +208,7 @@ export function CreateEventModal({
       setSelectedIndex(
         (prev) => (prev - 1 + suggestions.length) % suggestions.length,
       );
-    } else if (e.key === "Enter") {
+    } else if (e.key === "Enter" && suggestions.length > 0) {
       e.preventDefault();
       applySuggestion(suggestions[selectedIndex]);
     } else if (e.key === "Escape") {
@@ -210,12 +216,25 @@ export function CreateEventModal({
     }
   };
 
+  // Cleanup debounce on unmount
+  React.useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
   // --- End Autocomplete Logic ---
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // If suggestions are open and user presses Enter, don't submit form
+    if (suggestions.length > 0) return;
+
     setLoading(true);
 
     try {
@@ -308,7 +327,7 @@ export function CreateEventModal({
               ref={inputRef}
               required
               type="text"
-              placeholder="Stretnutie @..."
+              placeholder="Stretnutie s..."
               className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all font-bold text-gray-900 placeholder:font-medium placeholder:text-gray-300"
               value={formData.summary}
               onChange={handleSummaryChange}
@@ -468,7 +487,6 @@ export function CreateEventModal({
                   <button
                     key={loc.value}
                     type="button"
-                    // TOGGLE LOGIC HERE
                     onClick={() =>
                       setFormData((prev) => ({
                         ...prev,
