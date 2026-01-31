@@ -113,50 +113,72 @@ export function useAutocomplete() {
       editor: Editor | null,
       replaceWord: boolean = true,
     ) => {
-      if (!editor) return;
-
-      const { state } = editor;
-      const { selection } = state;
-      const { $from } = selection;
-
-      let from = $from.pos;
-      let to = $from.pos;
-
-      if (replaceWord) {
-        // Scan backwards from cursor to find word start
-        const textBefore = $from.parent.textBetween(
-          Math.max(0, $from.parentOffset - 20),
-          $from.parentOffset,
-          undefined,
-          "\ufffc",
-        );
-
-        const match = textBefore.match(/(\S+)$/);
-        if (match) {
-          const word = match[0];
-          from = $from.pos - word.length;
-          to = $from.pos;
-        }
+      if (!editor) {
+        console.error("selectSuggestion: Editor is null");
+        return;
       }
 
-      const marks = state.storedMarks || $from.marks();
+      try {
+        const { state } = editor;
+        const { selection } = state;
+        const { $from } = selection;
 
-      editor
-        .chain()
-        .focus()
-        .deleteRange({ from, to })
-        .insertContent({
-          type: "mentionComponent",
-          attrs: {
-            id: suggestion.id,
-            label: suggestion.label,
-            type: suggestion.type,
-          },
-        })
-        .insertContent(" ")
-        .focus()
-        .setStoredMarks(marks)
-        .run();
+        let from = $from.pos;
+        let to = $from.pos;
+
+        if (replaceWord) {
+          // Scan backwards from cursor to find word start
+          const textBefore = $from.parent.textBetween(
+            Math.max(0, $from.parentOffset - 20),
+            $from.parentOffset,
+            undefined,
+            "\ufffc",
+          );
+
+          console.log("Autocomplete text before:", textBefore);
+          const match = textBefore.match(/(\S+)$/);
+          if (match) {
+            const word = match[0];
+            from = $from.pos - word.length;
+            to = $from.pos;
+            console.log("Replacing word:", word, "at", { from, to });
+          }
+        } else {
+          console.log("Direct insertion at:", from);
+        }
+
+        const marks = state.storedMarks || $from.marks();
+
+        console.log("Inserting mention structure:", {
+          id: suggestion.id,
+          label: suggestion.label,
+          type: suggestion.type,
+        });
+
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from, to })
+          .insertContent({
+            type: "mentionComponent",
+            attrs: {
+              id: suggestion.id,
+              label: suggestion.label,
+              type: suggestion.type,
+            },
+          })
+          .insertContent(" ")
+          .focus()
+          .setStoredMarks(marks)
+          .run();
+
+        console.log("Mention insertion successful");
+      } catch (error) {
+        console.error("selectSuggestion error:", error);
+        import("sonner").then(({ toast }) =>
+          toast.error("Chyba pri vkladaní tagu"),
+        );
+      }
 
       setQuery("");
       setSuggestions([]);

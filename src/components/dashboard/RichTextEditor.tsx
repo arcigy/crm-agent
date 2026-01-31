@@ -24,6 +24,7 @@ import { MentionNode } from "@/lib/tiptap-mention-node";
 import { useAutocomplete } from "@/hooks/useAutocomplete";
 import { AutocompleteDropdown } from "@/components/editor/AutocompleteDropdown";
 import { Editor } from "@tiptap/react";
+import { useContactPreview } from "@/components/providers/ContactPreviewProvider";
 
 interface RichTextEditorProps {
   content: string;
@@ -124,6 +125,13 @@ export default function RichTextEditor({
   onChange,
   placeholder,
 }: RichTextEditorProps) {
+  // Contact preview context
+  let openContact: ((id: string | number) => void) | undefined;
+  try {
+    const ctx = useContactPreview();
+    openContact = ctx.openContact;
+  } catch (e) {}
+
   const {
     suggestions,
     position,
@@ -162,6 +170,20 @@ export default function RichTextEditor({
           event,
           view.state.hasOwnProperty("selection") ? (view as any) : editor,
         );
+      },
+      handleClick: (view, pos, event) => {
+        const target = event.target as HTMLElement;
+        const mention = target.closest("[data-contact-id]");
+        if (mention) {
+          const id = mention.getAttribute("data-contact-id");
+          if (id && openContact) {
+            event.preventDefault();
+            event.stopPropagation();
+            openContact(id);
+            return true;
+          }
+        }
+        return false;
       },
     },
   });

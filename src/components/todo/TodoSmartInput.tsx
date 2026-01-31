@@ -148,9 +148,9 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
 
       handleClick: (view, pos, event) => {
         const target = event.target as HTMLElement;
-        const link = target.closest("a");
-        if (link) {
-          const id = link.getAttribute("data-contact-id");
+        const mention = target.closest("[data-contact-id]");
+        if (mention) {
+          const id = mention.getAttribute("data-contact-id");
           if (id && openContact) {
             event.preventDefault();
             event.stopPropagation();
@@ -253,11 +253,21 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   ) => {
     if (!editor) return;
 
-    selectSuggestion(
-      { id: id as number, label: text, type },
-      editor,
-      false, // Do not attempt to replace adjacent word
-    );
+    console.log("Locally inserting mention:", { text, id, type });
+
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: "mentionComponent",
+        attrs: {
+          id: id,
+          label: text,
+          type: type,
+        },
+      })
+      .insertContent(" ")
+      .run();
 
     setActivePicker(null);
   };
