@@ -6,24 +6,14 @@ import {
   getCoreRowModel,
   useReactTable,
   getSortedRowModel,
-  SortingState,
 } from "@tanstack/react-table";
-import {
-  ChevronDown,
-  Plus,
-  Search,
-  Download,
-  FolderKanban,
-  MoreHorizontal,
-} from "lucide-react";
-import { toast } from "sonner";
-import { Project, ProjectStage, PROJECT_STAGES } from "@/types/project";
-import { createProject, updateProjectStage } from "@/app/actions/projects";
-import { ProjectDriveModal } from "./ProjectDriveModal";
+import { Plus, Search, Download, FolderKanban } from "lucide-react";
+import { Project } from "@/types/project";
 import { ContactDetailModal } from "./ContactDetailModal";
 import { Lead } from "@/types/contact";
 import { CreateProjectModal } from "./projects/CreateProjectModal";
 import { getProjectColumns } from "./projects/ProjectColumns";
+import { useProjectsTable } from "@/hooks/useProjectsTable";
 
 export function ProjectsTable({
   data,
@@ -32,76 +22,22 @@ export function ProjectsTable({
   data: Project[];
   contacts: Lead[];
 }) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [projects, setProjects] = React.useState(data);
-  const [fullDetailContact, setFullDetailContact] = React.useState<Lead | null>(
-    null,
-  );
-  const [driveProject, setDriveProject] = React.useState<{
-    id: number;
-    name: string;
-    folderId?: string;
-  } | null>(null);
-  const [modalMode, setModalMode] = React.useState<"form" | "json">("form");
+  const {
+    sorting,
+    setSorting,
+    globalFilter,
+    setGlobalFilter,
+    isMounted,
+    isModalOpen,
+    setIsModalOpen,
+    detailContact,
+    setDetailContact,
+    handleExport,
+  } = useProjectsTable(data, contacts);
 
-  React.useEffect(() => {
-    setProjects(data);
-    const handleOpenCreate = (e: any) => {
-      setModalMode(e.detail || "form");
-      setIsModalOpen(true);
-    };
-    const handleExport = () => {
-      const headers = [
-        "ID",
-        "Dátum vytvorenia",
-        "Typ projektu",
-        "Kontakt",
-        "Štádium",
-      ];
-      const rows = projects.map((p) => [
-        p.id,
-        new Date(p.date_created).toLocaleDateString(),
-        p.project_type,
-        p.contact_name || "N/A",
-        PROJECT_STAGES.find((s) => s.value === p.stage)?.label || p.stage,
-      ]);
-      const csv = [headers.join(","), ...rows.map((e) => e.join(","))].join(
-        "\n",
-      );
-      const blob = new Blob([csv], { type: "text/csv" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `projekty_export.csv`;
-      link.click();
-    };
-    window.addEventListener("open-create-project", handleOpenCreate);
-    window.addEventListener("export-projects-csv", handleExport);
-    return () => {
-      window.removeEventListener("open-create-project", handleOpenCreate);
-      window.removeEventListener("export-projects-csv", handleExport);
-    };
-  }, [data, projects]);
-
-  const columns = getProjectColumns(
-    contacts,
-    async (id, stage) => {
-      setProjects((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, stage } : p)),
-      );
-      await updateProjectStage(id, stage);
-    },
-    (contact) => setFullDetailContact(contact),
-    (project) =>
-      setDriveProject({
-        id: project.id,
-        name: `${project.project_type} - ${project.contact_name}`,
-        folderId: project.drive_folder_id,
-      }),
-  );
-
+  const columns = React.useMemo(() => getProjectColumns(), []);
   const table = useReactTable({
-    data: projects,
+    data,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
@@ -109,125 +45,98 @@ export function ProjectsTable({
     getSortedRowModel: getSortedRowModel(),
   });
 
+  if (!isMounted)
+    return (
+      <div className="p-20 text-center font-bold text-gray-300 uppercase tracking-widest">
+        Inicializujem...
+      </div>
+    );
+
   return (
-    <>
+    <div className="flex flex-col h-full bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden transition-all duration-300">
       <CreateProjectModal
         isOpen={isModalOpen}
-        initialMode={modalMode}
         onClose={() => setIsModalOpen(false)}
         contacts={contacts}
-        onSubmit={async (formData) => {
-          const contact = contacts.find(
-            (c) => String(c.id) === String(formData.contact_id),
-          );
-          const res = await createProject({
-            ...formData,
-            contact_name: contact
-              ? `${contact.first_name} ${contact.last_name}`
-              : "Neznámy",
-          });
-          if (res.success) toast.success("Deal vytvorený");
-          else toast.error("Chyba: " + res.error);
-        }}
-      />
-      <ProjectDriveModal
-        key={driveProject?.id || "none"}
-        isOpen={!!driveProject}
-        onClose={() => setDriveProject(null)}
-        projectId={driveProject?.id || 0}
-        projectName={driveProject?.name || ""}
-        folderId={driveProject?.folderId}
       />
       <ContactDetailModal
-        contact={fullDetailContact}
-        isOpen={!!fullDetailContact}
-        onClose={() => setFullDetailContact(null)}
+        contact={detailContact}
+        isOpen={!!detailContact}
+        onClose={() => setDetailContact(null)}
       />
 
-      <div className="flex flex-col h-full bg-card rounded-2xl shadow-sm border border-border overflow-hidden transition-colors duration-300">
-        <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-gray-50 to-white dark:from-slate-900 dark:to-card">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
-            >
-              <Plus className="w-3.5 h-3.5" /> Nový
-            </button>
-            <div className="relative ml-2">
-              <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Hľadať projekty..."
-                className="pl-9 pr-4 py-2 border border-border bg-background dark:bg-slate-900 rounded-xl text-sm outline-none w-64 focus:border-blue-500 text-foreground"
-              />
-            </div>
+      <div className="p-6 border-b border-border bg-muted/20 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-6 flex-1 min-w-[300px]">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+            <input
+              type="text"
+              placeholder="Hľadať v projektoch..."
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-2xl text-sm font-bold focus:border-blue-500 outline-none transition-all placeholder:text-muted-foreground/30 text-foreground"
+            />
           </div>
-          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-            {projects.length} projektov
-          </div>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-3 bg-white border border-border rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground hover:bg-muted transition-all"
+          >
+            <Download className="w-4 h-4 text-blue-500" /> Export
+          </button>
         </div>
-
-        <div className="overflow-auto flex-1 custom-scrollbar">
-          <table className="w-full text-left border-collapse min-w-[900px]">
-            <thead className="bg-gray-50/80 dark:bg-slate-900/80 sticky top-0 z-10 border-b border-border">
-              {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id}>
-                  {hg.headers.map((h) => (
-                    <th
-                      key={h.id}
-                      className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800"
-                      onClick={h.column.getToggleSortingHandler()}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        {flexRender(h.column.columnDef.header, h.getContext())}
-                        <ChevronDown className="w-2.5 h-2.5 opacity-40" />
-                      </div>
-                    </th>
-                  ))}
-                  <th className="w-12 p-4" />
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-border">
-              {table.getRowModel().rows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={columns.length + 1}
-                    className="text-center py-20"
-                  >
-                    <FolderKanban className="w-12 h-12 text-gray-200 dark:text-gray-800 mx-auto mb-4" />
-                    <p className="text-gray-400 font-medium">Žiadne projekty</p>
-                  </td>
-                </tr>
-              ) : (
-                table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        className="px-4 py-1.5 text-xs text-foreground"
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </td>
-                    ))}
-                    <td className="px-4 py-1.5 text-right">
-                      <button className="p-1 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md opacity-0 group-hover:opacity-100">
-                        <MoreHorizontal className="w-3.5 h-3.5 text-gray-400" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" /> Nový Projekt
+        </button>
       </div>
-    </>
+
+      <div className="overflow-x-auto flex-1 thin-scrollbar">
+        <table className="w-full text-left border-collapse min-w-[800px]">
+          <thead className="bg-[#020617]/50 backdrop-blur-md sticky top-0 z-10 border-b border-border">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    className="px-6 py-5 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] border-r border-border/50 last:border-0"
+                  >
+                    {flexRender(
+                      header.column.columnDef.header,
+                      header.getContext(),
+                    )}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody className="divide-y divide-border/50">
+            {table.getRowModel().rows.map((row) => (
+              <tr
+                key={row.id}
+                className="hover:bg-blue-500/5 transition-colors group"
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="px-6 py-4">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {data.length === 0 && (
+          <div className="p-20 text-center flex flex-col items-center gap-4">
+            <div className="p-6 rounded-full bg-muted/50 border border-border">
+              <FolderKanban className="w-12 h-12 text-muted-foreground/30" />
+            </div>
+            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">
+              Žiadne aktívne projekty
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
