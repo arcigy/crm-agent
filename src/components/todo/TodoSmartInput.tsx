@@ -321,63 +321,139 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
       }`}
     >
       <div className="relative group bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-sm border border-zinc-200 dark:border-zinc-800 transition-all duration-300 focus-within:border-blue-500 focus-within:shadow-blue-500/10 focus-within:ring-4 focus-within:ring-blue-500/5">
-        {/* Formatting Toolbar */}
+        {/* Formatting & Relation Toolbar */}
         {isFocused && (
-          <div className="absolute top-4 left-8 right-8 flex items-center gap-2 z-40 animate-in fade-in slide-in-from-bottom-1 duration-200">
-            <ToolbarBtn
-              onClick={() => editor.chain().focus().toggleBold().run()}
-              isActive={editor.isActive("bold")}
-              icon={<Bold size={14} strokeWidth={3} />}
-              title="Tučné písmo"
-            />
-            <ToolbarBtn
-              onClick={() => editor.chain().focus().toggleItalic().run()}
-              isActive={editor.isActive("italic")}
-              icon={<Italic size={14} strokeWidth={3} />}
-            />
-            <ToolbarBtn
-              onClick={() => editor.chain().focus().toggleUnderline().run()}
-              isActive={editor.isActive("underline")}
-              icon={<UnderlineIcon size={14} strokeWidth={3} />}
-            />
-            <div className="relative">
+          <div className="absolute top-4 left-8 right-8 flex items-center justify-between z-50 animate-in fade-in slide-in-from-bottom-1 duration-200">
+            <div className="flex items-center gap-2">
               <ToolbarBtn
-                onClick={() => setShowColorPicker(!showColorPicker)}
-                isActive={!!editor.getAttributes("textStyle").color}
-                icon={<Palette size={14} strokeWidth={3} />}
-                title="Farba textu"
+                onClick={() => editor.chain().focus().toggleBold().run()}
+                isActive={editor.isActive("bold")}
+                icon={<Bold size={14} strokeWidth={3} />}
+                title="Tučné písmo"
               />
-              {showColorPicker && (
-                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl p-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-                  <div className="grid grid-cols-3 gap-2">
-                    {COLORS.map((color) => (
-                      <button
-                        key={color.value}
-                        onClick={() => applyColor(color.value)}
-                        className="w-8 h-8 rounded-lg border-2 border-zinc-300 dark:border-zinc-600 hover:scale-110 transition-transform flex items-center justify-center"
-                        style={{
-                          backgroundColor:
-                            color.value === "inherit"
-                              ? "transparent"
-                              : color.value,
-                        }}
-                        title={color.label}
-                      >
-                        {color.value === "inherit" && (
-                          <X size={16} className="text-zinc-400" />
-                        )}
-                      </button>
-                    ))}
+              <ToolbarBtn
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+                isActive={editor.isActive("italic")}
+                icon={<Italic size={14} strokeWidth={3} />}
+              />
+              <ToolbarBtn
+                onClick={() => editor.chain().focus().toggleUnderline().run()}
+                isActive={editor.isActive("underline")}
+                icon={<UnderlineIcon size={14} strokeWidth={3} />}
+              />
+              <div className="relative">
+                <ToolbarBtn
+                  onClick={() => setShowColorPicker(!showColorPicker)}
+                  isActive={!!editor.getAttributes("textStyle").color}
+                  icon={<Palette size={14} strokeWidth={3} />}
+                  title="Farba textu"
+                />
+                {showColorPicker && (
+                  <div className="absolute top-full left-0 mt-2 bg-white dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl p-2 z-[110] animate-in fade-in slide-in-from-top-1 duration-150">
+                    <div className="grid grid-cols-3 gap-2">
+                      {COLORS.map((color) => (
+                        <button
+                          key={color.value}
+                          onClick={() => applyColor(color.value)}
+                          className="w-8 h-8 rounded-lg border-2 border-zinc-300 dark:border-zinc-600 hover:scale-110 transition-transform flex items-center justify-center"
+                          style={{
+                            backgroundColor:
+                              color.value === "inherit"
+                                ? "transparent"
+                                : color.value,
+                          }}
+                          title={color.label}
+                        >
+                          {color.value === "inherit" && (
+                            <X size={16} className="text-zinc-400" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+              <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+              <ToolbarBtn
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                isActive={editor.isActive("bulletList")}
+                icon={<List size={14} strokeWidth={3} />}
+              />
             </div>
-            <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
-            <ToolbarBtn
-              onClick={() => editor.chain().focus().toggleBulletList().run()}
-              isActive={editor.isActive("bulletList")}
-              icon={<List size={14} strokeWidth={3} />}
-            />
+
+            <div className="flex items-center gap-2">
+              <TagButton
+                icon={<User size={16} />}
+                color={
+                  activePicker === "contact"
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-blue-50 text-blue-500 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800"
+                }
+                onClick={() =>
+                  setActivePicker(activePicker === "contact" ? null : "contact")
+                }
+              >
+                {activePicker === "contact" && (
+                  <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-zinc-800 border-2 border-blue-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-top-2 fade-in duration-200 z-[100]">
+                    <PickerHeader
+                      title="Kontakty"
+                      icon={<User size={14} />}
+                      onClose={() => setActivePicker(null)}
+                    />
+                    <div className="max-h-60 overflow-y-auto">
+                      {relations.contacts.map((c) => (
+                        <PickerItem
+                          key={c.id}
+                          title={`${c.first_name} ${c.last_name}`}
+                          sub={c.company}
+                          onClick={() =>
+                            insertMention(
+                              `${c.first_name} ${c.last_name}`,
+                              c.id,
+                              "contact",
+                            )
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </TagButton>
+
+              <TagButton
+                icon={<FolderKanban size={16} />}
+                color={
+                  activePicker === "project"
+                    ? "bg-purple-600 text-white border-purple-600"
+                    : "bg-purple-50 text-purple-500 border-purple-100 dark:bg-purple-900/20 dark:border-purple-800"
+                }
+                onClick={() =>
+                  setActivePicker(activePicker === "project" ? null : "project")
+                }
+              >
+                {activePicker === "project" && (
+                  <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-zinc-800 border-2 border-purple-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-top-2 fade-in duration-200 z-[100]">
+                    <PickerHeader
+                      title="Projekty"
+                      icon={<FolderKanban size={14} />}
+                      onClose={() => setActivePicker(null)}
+                    />
+                    <div className="max-h-60 overflow-y-auto">
+                      {relations.projects.map((p) => (
+                        <PickerItem
+                          key={p.id}
+                          title={p.project_type}
+                          sub={p.stage}
+                          onClick={() =>
+                            insertMention(p.project_type, p.id, "project")
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </TagButton>
+            </div>
           </div>
         )}
 
@@ -403,87 +479,6 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
               className="pl-3 pr-1 py-3.5 bg-zinc-50 dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700 rounded-2xl text-sm font-bold text-zinc-600 dark:text-zinc-300 focus:outline-none focus:border-blue-500 transition-all cursor-pointer w-[110px]"
             />
           </div>
-
-          <div className="w-[1px] h-8 bg-zinc-200 dark:bg-zinc-700 mx-1" />
-
-          {/* Relation Buttons */}
-          <TagButton
-            icon={<User size={18} />}
-            color={
-              activePicker === "contact"
-                ? "bg-blue-600 text-white"
-                : "bg-blue-50 text-blue-500 border-blue-100 hover:bg-blue-100"
-            }
-            onClick={() =>
-              setActivePicker(activePicker === "contact" ? null : "contact")
-            }
-          >
-            {activePicker === "contact" && (
-              <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-zinc-800 border-2 border-blue-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-top-2 fade-in duration-200 z-[60]">
-                <PickerHeader
-                  title="Kontakty"
-                  icon={<User size={14} />}
-                  onClose={() => setActivePicker(null)}
-                />
-                <div className="max-h-60 overflow-y-auto">
-                  {(() => {
-                    console.log("Rendering contacts:", relations.contacts);
-                    return relations.contacts.map((c) => (
-                      <PickerItem
-                        key={c.id}
-                        title={`${c.first_name} ${c.last_name}`}
-                        sub={c.company}
-                        onClick={() =>
-                          insertMention(
-                            `${c.first_name} ${c.last_name}`,
-                            c.id,
-                            "contact",
-                          )
-                        }
-                      />
-                    ));
-                  })()}
-                </div>
-              </div>
-            )}
-          </TagButton>
-
-          <TagButton
-            icon={<FolderKanban size={18} />}
-            color={
-              activePicker === "project"
-                ? "bg-purple-600 text-white"
-                : "bg-purple-50 text-purple-500 border-purple-100 hover:bg-purple-100"
-            }
-            onClick={() =>
-              setActivePicker(activePicker === "project" ? null : "project")
-            }
-          >
-            {activePicker === "project" && (
-              <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-zinc-800 border-2 border-purple-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-top-2 fade-in duration-200 z-[60]">
-                <PickerHeader
-                  title="Projekty"
-                  icon={<FolderKanban size={14} />}
-                  onClose={() => setActivePicker(null)}
-                />
-                <div className="max-h-60 overflow-y-auto">
-                  {(() => {
-                    console.log("Rendering projects:", relations.projects);
-                    return relations.projects.map((p) => (
-                      <PickerItem
-                        key={p.id}
-                        title={p.project_type}
-                        sub={p.stage}
-                        onClick={() =>
-                          insertMention(p.project_type, p.id, "project")
-                        }
-                      />
-                    ));
-                  })()}
-                </div>
-              </div>
-            )}
-          </TagButton>
         </div>
 
         {/* Floating Submit Button */}

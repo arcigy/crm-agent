@@ -175,8 +175,12 @@ export function useAutocomplete() {
           })
           .insertContent(" ")
           .focus()
-          .setStoredMarks(marks)
           .run();
+
+        // Restore marks manually if they exist
+        if (marks && marks.length > 0) {
+          editor.view.dispatch(editor.state.tr.setStoredMarks(marks));
+        }
 
         console.log("Autocomplete: Insertion successful");
       } catch (error) {
