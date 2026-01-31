@@ -44,11 +44,20 @@ export default function TodoTool() {
 
         <TodoSmartInput
           onAdd={(title, time) => {
-            let finalDate = selectedDate;
             if (time) {
-              finalDate = `${selectedDate}T${time}:00`;
+              // Parse the selected date and time to create a local Date object
+              const [year, month, day] = selectedDate.split("-").map(Number);
+              const [hour, minute] = time.split(":").map(Number);
+
+              // month is 0-indexed in JS Date
+              const dateObj = new Date(year, month - 1, day, hour, minute);
+
+              // toISOString() converts to UTC correctly based on local system timezone
+              add(title, dateObj.toISOString());
+            } else {
+              // No time specified, send undefined (null in db)
+              add(title, undefined);
             }
-            add(title, finalDate);
           }}
         />
       </div>
