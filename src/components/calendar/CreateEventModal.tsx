@@ -10,6 +10,8 @@ import {
   Loader2,
   Repeat,
   Check,
+  User,
+  FolderKanban,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -25,6 +27,12 @@ interface CreateEventModalProps {
   onClose: () => void;
   onSuccess: () => void;
   initialDate?: Date;
+}
+
+interface Mention {
+  id: string | number;
+  label: string;
+  type: "contact" | "project";
 }
 
 const LOCATIONS = [
@@ -59,10 +67,11 @@ export function CreateEventModal({
   const [isAllDay, setIsAllDay] = React.useState(false);
   const [isReminder, setIsReminder] = React.useState(false);
 
-  // Autocomplete state
+  // Smart Input State
+  const [inputValue, setInputValue] = React.useState("");
+  const [mentions, setMentions] = React.useState<Mention[]>([]);
   const [suggestions, setSuggestions] = React.useState<any[]>([]);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
-  const [currentWord, setCurrentWord] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
   const debounceRef = React.useRef<NodeJS.Timeout | null>(null);
 
@@ -77,11 +86,14 @@ export function CreateEventModal({
       getTodoRelations().then((res) => {
         if (res.success) setRelations(res.data);
       });
+      // Reset state when modal opens
+      setInputValue("");
+      setMentions([]);
+      setSuggestions([]);
     }
   }, [isOpen]);
 
   const [formData, setFormData] = React.useState({
-    summary: "",
     description: "",
     location: "",
     recurrence: "",
@@ -107,11 +119,23 @@ export function CreateEventModal({
     }
   }, [initialDate, isOpen]);
 
-  // --- Autocomplete Logic (like TodoSmartInput) ---
+  // Build the full summary text (for Google Calendar)
+  const buildSummaryText = () => {
+    const mentionTexts = mentions.map((m) => m.label);
+    const parts = [inputValue.trim(), ...mentionTexts].filter(Boolean);
+    return parts.join(" ");
+  };
 
-  const handleSummaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // --- Autocomplete Logic ---
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    setFormData((prev) => ({ ...prev, summary: val }));
+    setInputValue(val);
+
+    // Clear previous debounce
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
 
     // Find the word currently being typed
     const cursorPosition = e.target.selectionStart || 0;
@@ -119,14 +143,7 @@ export function CreateEventModal({
     const words = textBeforeCursor.split(/\s+/);
     const lastWord = words[words.length - 1] || "";
 
-    setCurrentWord(lastWord);
-
-    // Clear previous debounce
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    // Only search if word is 3+ characters (like useAutocomplete)
+    // Only search if word is 3+ characters
     if (lastWord.length < 3) {
       setSuggestions([]);
       setSelectedIndex(0);
@@ -141,6 +158,9 @@ export function CreateEventModal({
         .filter((c) =>
           normalizeText(`${c.first_name} ${c.last_name}`).includes(query),
         )
+        .filter(
+          (c) => !mentions.some((m) => m.id === c.id && m.type === "contact"),
+        )
         .map((c) => ({
           id: c.id,
           label: `${c.first_name} ${c.last_name}`,
@@ -150,6 +170,9 @@ export function CreateEventModal({
 
       const matchedProjects = relations.projects
         .filter((p) => normalizeText(p.project_type).includes(query))
+        .filter(
+          (p) => !mentions.some((m) => m.id === p.id && m.type === "project"),
+        )
         .map((p) => ({
           id: p.id,
           label: p.project_type,
@@ -164,37 +187,44 @@ export function CreateEventModal({
   };
 
   const applySuggestion = (suggestion: any) => {
+    // Add to mentions
+    setMentions((prev) => [
+      ...prev,
+      { id: suggestion.id, label: suggestion.label, type: suggestion.type },
+    ]);
+
+    // Remove the partial word from input
     const cursorPosition =
-      inputRef.current?.selectionStart || formData.summary.length;
-    const textBefore = formData.summary.slice(0, cursorPosition);
-    const textAfter = formData.summary.slice(cursorPosition);
+      inputRef.current?.selectionStart || inputValue.length;
+    const textBefore = inputValue.slice(0, cursorPosition);
+    const textAfter = inputValue.slice(cursorPosition);
 
-    // Find the start of the current word
     const words = textBefore.split(/\s+/);
-    const lastWordLength = (words[words.length - 1] || "").length;
-    const startOfWord = textBefore.length - lastWordLength;
+    words.pop(); // remove partial word
+    const newTextBefore = words.join(" ") + (words.length > 0 ? " " : "");
 
-    const newTextBefore =
-      textBefore.substring(0, startOfWord) + suggestion.label + " ";
+    setInputValue(newTextBefore + textAfter);
+    setSuggestions([]);
 
-    const newSummary = newTextBefore + textAfter;
+    // Auto-add to description
     setFormData((prev) => ({
       ...prev,
-      summary: newSummary,
       description: prev.description
         ? prev.description +
           `\n${suggestion.type === "contact" ? "Kontakt" : "Projekt"}: ${suggestion.label}`
         : `${suggestion.type === "contact" ? "Kontakt" : "Projekt"}: ${suggestion.label}`,
     }));
 
-    setSuggestions([]);
-    setCurrentWord("");
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
 
-    setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
-    }, 0);
+  const removeMention = (mentionToRemove: Mention) => {
+    setMentions((prev) =>
+      prev.filter(
+        (m) =>
+          !(m.id === mentionToRemove.id && m.type === mentionToRemove.type),
+      ),
+    );
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -232,8 +262,13 @@ export function CreateEventModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // If suggestions are open and user presses Enter, don't submit form
     if (suggestions.length > 0) return;
+
+    const summary = buildSummaryText();
+    if (!summary.trim()) {
+      toast.error("Zadajte názov udalosti");
+      return;
+    }
 
     setLoading(true);
 
@@ -267,7 +302,7 @@ export function CreateEventModal({
       }
 
       const res = await createCalendarEvent({
-        summary: formData.summary,
+        summary,
         description: formData.description,
         location: formData.location,
         start,
@@ -318,22 +353,56 @@ export function CreateEventModal({
           onSubmit={handleSubmit}
           className="p-8 space-y-6 overflow-y-auto custom-scrollbar"
         >
-          {/* Title & Suggestions */}
+          {/* Title with Mention Badges */}
           <div className="relative">
             <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 block px-1">
               Názov udalosti
             </label>
+
+            {/* Mention Badges */}
+            {mentions.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {mentions.map((mention, idx) => (
+                  <span
+                    key={`${mention.type}-${mention.id}-${idx}`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition-all group cursor-default ${
+                      mention.type === "contact"
+                        ? "bg-blue-100 text-blue-700 border border-blue-200"
+                        : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                    }`}
+                  >
+                    {mention.type === "contact" ? (
+                      <User className="w-3.5 h-3.5" />
+                    ) : (
+                      <FolderKanban className="w-3.5 h-3.5" />
+                    )}
+                    {mention.label}
+                    <button
+                      type="button"
+                      onClick={() => removeMention(mention)}
+                      className="ml-1 p-0.5 rounded-full hover:bg-black/10 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
             <input
               ref={inputRef}
-              required
               type="text"
-              placeholder="Stretnutie s..."
+              placeholder={
+                mentions.length > 0 ? "Pridať ďalší text..." : "Stretnutie s..."
+              }
               className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all font-bold text-gray-900 placeholder:font-medium placeholder:text-gray-300"
-              value={formData.summary}
-              onChange={handleSummaryChange}
+              value={inputValue}
+              onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               autoComplete="off"
             />
+
+            {/* Suggestions Dropdown */}
             {suggestions.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden divide-y divide-gray-100">
                 {suggestions.map((s, i) => (
@@ -344,12 +413,16 @@ export function CreateEventModal({
                     className={`w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-2 transition-colors ${i === selectedIndex ? "bg-blue-50" : ""}`}
                   >
                     <span
-                      className={`text-xs px-1.5 py-0.5 rounded ${s.type === "contact" ? "bg-indigo-100 text-indigo-700" : "bg-emerald-100 text-emerald-700"} font-bold uppercase`}
+                      className={`flex items-center justify-center w-7 h-7 rounded-lg ${s.type === "contact" ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"}`}
                     >
-                      {s.type === "contact" ? "@" : "#"}
+                      {s.type === "contact" ? (
+                        <User className="w-4 h-4" />
+                      ) : (
+                        <FolderKanban className="w-4 h-4" />
+                      )}
                     </span>
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-bold text-gray-700">
                         {s.label}
                       </span>
                       {s.sub && (
