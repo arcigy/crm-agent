@@ -109,27 +109,32 @@ export function useAutocomplete(editor: Editor | null) {
       const { selection } = editor.state;
       const { $from } = selection;
 
+      const { state } = editor;
+      const { selection } = state;
+      const { $from } = selection;
+
+      // Scan backwards from cursor to find word start
+      const textBefore = $from.parent.textBetween(
+        Math.max(0, $from.parentOffset - 20),
+        $from.parentOffset,
+        undefined,
+        "\ufffc",
+      );
+
+      const match = textBefore.match(/(\S+)$/);
+      if (!match) return;
+
+      const word = match[0];
+      const from = $from.pos - word.length;
+      const to = $from.pos;
+
       // Extract current formatting marks to preserve them after insertion
-      const marks = editor.state.storedMarks || $from.marks();
-
-      // Calculate the start of the word safely within the current paragraph
-      // We use parentOffset to stay strictly within the current block structure
-      const parentText = $from.parent.textContent;
-      const parentOffset = $from.parentOffset;
-      let wordStart = parentOffset;
-
-      // Scan backwards for the start of the word (space or start of text)
-      while (wordStart > 0 && !/\s/.test(parentText[wordStart - 1])) {
-        wordStart--;
-      }
-
-      // Convert local parent offset to absolute document position
-      const from = $from.pos - (parentOffset - wordStart);
+      const marks = state.storedMarks || $from.marks();
 
       editor
         .chain()
         .focus()
-        .deleteRange({ from, to: $from.pos })
+        .deleteRange({ from, to })
         .insertContent({
           type: "mentionComponent",
           attrs: {
@@ -139,7 +144,6 @@ export function useAutocomplete(editor: Editor | null) {
           },
         })
         .insertContent(" ")
-        // Restore focus and marks so the user can continue typing with the same style
         .focus()
         .setStoredMarks(marks)
         .run();

@@ -439,6 +439,13 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
           <Plus size={32} />
         </button>
       </div>
+      <style jsx global>{`
+        .prose u {
+          text-decoration: underline !important;
+          text-decoration-style: solid !important;
+          text-underline-offset: 2px;
+        }
+      `}</style>
     </div>
   );
 }

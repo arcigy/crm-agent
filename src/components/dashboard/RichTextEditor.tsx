@@ -182,6 +182,11 @@ export default function RichTextEditor({
         .ProseMirror:focus {
           outline: none;
         }
+        .prose u {
+          text-decoration: underline;
+          text-decoration-style: solid !important;
+          text-underline-offset: 2px;
+        }
         .prose h1 {
           font-weight: 900;
           letter-spacing: -0.05em;
