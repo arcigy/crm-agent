@@ -36,15 +36,18 @@ export function useDriveFiles(
     async (targetId?: string) => {
       setLoading(true);
       try {
-        const idToFetch = targetId || currentFolderId;
-        const isInitialLoad = !targetId && !currentFolderId;
+        // We use the passed targetId if available, or the one from props if it's the initial load
+        const idToFetch = targetId;
+        const isInitialLoad = !targetId;
 
         let url = idToFetch
           ? `/api/google/drive?folderId=${idToFetch}`
-          : `/api/google/drive?projectName=${encodeURIComponent(projectName)}`;
+          : folderId
+            ? `/api/google/drive?folderId=${folderId}`
+            : `/api/google/drive?projectName=${encodeURIComponent(projectName)}`;
 
-        // Only use subfolderName on the initial load if we don't have a direct folderId
-        if (subfolderName && isInitialLoad && !targetId) {
+        // Only use subfolderName on the very first load if we don't have a direct folderId
+        if (subfolderName && isInitialLoad && !idToFetch) {
           url += `&subfolderName=${encodeURIComponent(subfolderName)}`;
         }
 
@@ -71,7 +74,7 @@ export function useDriveFiles(
         setLoading(false);
       }
     },
-    [currentFolderId, projectName, subfolderName, options.recursive],
+    [projectName, subfolderName, options.recursive, folderId],
   );
 
   const deleteFile = async (fileId: string, name: string) => {

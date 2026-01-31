@@ -89,14 +89,16 @@ export function ProjectDriveModal({
 
     // Filter files that have 'parentId' in their parents array
     return files.filter((f: any) => {
-      if (!f.parents) return false;
+      // Safety: check if parents exists and is an array
+      if (!f || !f.parents || !Array.isArray(f.parents)) return false;
       return f.parents.includes(parentId);
     });
   }, [files, currentFolderId, folderId]);
 
-  const filtered = currentViewFiles.filter((f) =>
-    f.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filtered = currentViewFiles.filter((f) => {
+    if (!f.name) return false;
+    return f.name.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
