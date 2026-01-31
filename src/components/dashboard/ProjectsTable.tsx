@@ -94,6 +94,7 @@ export function ProjectsTable({
         onClose={() => setDetailContact(null)}
       />
       <ProjectDetailModal
+        key={fullDetailProject?.id}
         project={fullDetailProject}
         isOpen={!!fullDetailProject}
         onClose={() => setFullDetailProject(null)}

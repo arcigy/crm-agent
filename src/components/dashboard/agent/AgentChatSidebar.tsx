@@ -66,7 +66,10 @@ export function AgentChatSidebar({
               <div className="flex items-center gap-2 opacity-50">
                 <Clock className="w-3 h-3" />
                 <span className="text-[9px] font-bold">
-                  {new Date(chat.date_created).toLocaleDateString()}
+                  {chat.date_created &&
+                  !isNaN(new Date(chat.date_created).getTime())
+                    ? new Date(chat.date_created).toLocaleDateString("sk-SK")
+                    : "—"}
                 </span>
               </div>
             </div>

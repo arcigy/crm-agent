@@ -36,7 +36,9 @@ export function ContactProjects({ contact }: { contact: Lead }) {
               </h4>
               <div className="flex items-center gap-2 text-xs text-gray-400 font-medium">
                 <Clock className="w-3 h-3" />{" "}
-                {new Date(p.date_created).toLocaleDateString()}
+                {p.date_created && !isNaN(new Date(p.date_created).getTime())
+                  ? new Date(p.date_created).toLocaleDateString("sk-SK")
+                  : "—"}
               </div>
             </div>
           ))}

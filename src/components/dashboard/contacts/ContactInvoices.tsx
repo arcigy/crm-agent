@@ -323,11 +323,13 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
           </div>
           <div className="w-1.5 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800" />
           <span className="text-[9px] font-bold text-zinc-400">
-            {new Date(file.modifiedTime).toLocaleDateString("sk-SK", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-            })}
+            {file.modifiedTime && !isNaN(new Date(file.modifiedTime).getTime())
+              ? new Date(file.modifiedTime).toLocaleDateString("sk-SK", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                })
+              : "—"}
           </span>
         </div>
       </div>

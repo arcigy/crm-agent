@@ -208,7 +208,7 @@ export function DealsTable({
                   {isOverdue ? "Po splatnosti" : "Čaká na platbu"}
                 </span>
               </div>
-              {deal.due_date && (
+              {deal.due_date && !isNaN(new Date(deal.due_date).getTime()) && (
                 <span className="text-[9px] font-bold opacity-60 ml-1 italic">
                   Splatnosť:{" "}
                   {format(new Date(deal.due_date), "d. MMM", { locale: sk })}
@@ -317,6 +317,7 @@ export function DealsTable({
   return (
     <>
       <ProjectDetailModal
+        key={fullDetailProject?.id}
         project={fullDetailProject}
         isOpen={!!fullDetailProject}
         onClose={() => setFullDetailProject(null)}

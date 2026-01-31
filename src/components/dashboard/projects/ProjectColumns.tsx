@@ -20,16 +20,24 @@ export const getProjectColumns = (
   columnHelper.accessor("date_created", {
     header: "Dátum vytvorenia",
     cell: (info) => {
-      const d = new Date(info.getValue());
-      const iso = d.toISOString().split("T")[0];
+      const val = info.getValue();
+      const d = new Date(val);
+      const isValid = val && !isNaN(d.getTime());
+      const iso = isValid ? d.toISOString().split("T")[0] : "";
       return (
         <Link
-          href={`/dashboard/calendar?date=${iso}`}
+          href={iso ? `/dashboard/calendar?date=${iso}` : "#"}
           className="flex items-center gap-1.5 text-xs group hover:text-blue-600 transition-colors"
+          onClick={(e) => !iso && e.preventDefault()}
         >
           <Calendar className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-400" />
           <span className="font-medium text-foreground group-hover:text-blue-700 dark:group-hover:text-blue-400 hover:underline">
-            {d.toLocaleDateString("sk-SK", { day: "numeric", month: "short" })}
+            {isValid
+              ? d.toLocaleDateString("sk-SK", {
+                  day: "numeric",
+                  month: "short",
+                })
+              : "—"}
           </span>
         </Link>
       );
@@ -128,7 +136,7 @@ export const getProjectColumns = (
             className={`w-4 h-4 ${isOverdue ? "text-red-400" : "text-gray-400"} group-hover:text-blue-400`}
           />
           <span className="font-medium group-hover:text-blue-600">
-            {d.toLocaleDateString("sk-SK")}
+            {isValidDate ? d.toLocaleDateString("sk-SK") : "—"}
           </span>
           {isOverdue && (
             <span className="text-[10px] font-black text-red-500 uppercase">

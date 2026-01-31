@@ -51,7 +51,9 @@ export function ContactActivity({ contact }: { contact: Lead }) {
                   {a.subject || "Interaction"}
                 </span>
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-slate-800 px-2 py-0.5 rounded transition-colors">
-                  {new Date(a.date).toLocaleDateString()}
+                  {a.date && !isNaN(new Date(a.date).getTime())
+                    ? new Date(a.date).toLocaleDateString("sk-SK")
+                    : "—"}
                 </span>
               </div>
               <p className="text-xs text-gray-500 leading-relaxed bg-gray-50/50 dark:bg-slate-900/50 p-3 rounded-lg border border-transparent group-hover:border-border transition-all">
