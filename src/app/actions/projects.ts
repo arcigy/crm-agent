@@ -38,7 +38,7 @@ export async function getProject(id: string | number): Promise<{
     const project = await directus.request(
       readItems("projects", {
         filter: { id: { _eq: id } },
-        fields: ["*", { contact_id: ["first_name", "last_name"] }],
+        fields: ["*", { contact_id: ["id", "first_name", "last_name"] }],
         limit: 1,
       }),
     );

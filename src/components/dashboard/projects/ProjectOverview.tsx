@@ -31,7 +31,7 @@ export function ProjectOverview({ project, onClose }: ProjectOverviewProps) {
   );
 
   return (
-    <div className="overflow-y-auto p-8 bg-zinc-50/30 dark:bg-zinc-900/10 transition-colors custom-scrollbar h-full">
+    <div className="overflow-y-auto p-8 bg-zinc-50/30 dark:bg-zinc-900/10 transition-colors custom-scrollbar h-full select-none">
       <div className="grid grid-cols-12 gap-6">
         {/* KPI Row */}
         <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">

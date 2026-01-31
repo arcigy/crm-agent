@@ -49,7 +49,7 @@ export function RelatedTasks({ entityId, type }: RelatedTasksProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 select-none">
       {tasks.map((task) => (
         <div
           key={task.id}

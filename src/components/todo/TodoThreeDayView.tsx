@@ -65,22 +65,22 @@ export function TodoThreeDayView({
   const tomorrowTasks = getTasksForDate(tomorrow);
 
   return (
-    <div className="flex flex-col h-full gap-6">
+    <div className="flex flex-col h-full gap-6 select-none">
       {/* Navigation Header - Centered for Today */}
       <div className="flex items-center justify-between px-4">
         <button
           onClick={() => onDateChange(format(yesterday, "yyyy-MM-dd"))}
-          className="text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-600 flex items-center gap-1"
+          className="text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-600 flex items-center gap-1 select-none"
         >
           <ChevronLeft size={16} /> Včera
         </button>
 
-        <div className="flex flex-col items-center relative gap-1">
-          <div className="flex items-center gap-2 select-text">
-            <h2 className="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tight selection:bg-blue-500 selection:text-white">
+        <div className="flex flex-col items-center relative gap-1 select-none">
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tight">
               {format(current, "EEEE", { locale: sk })}
             </h2>
-            <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-widest flex items-center gap-1 selection:bg-blue-600 selection:text-white">
+            <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-widest flex items-center gap-1">
               {format(current, "d. MMMM", { locale: sk })}
             </div>
           </div>
@@ -110,7 +110,7 @@ export function TodoThreeDayView({
 
         <button
           onClick={() => onDateChange(format(tomorrow, "yyyy-MM-dd"))}
-          className="text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-600 flex items-center gap-1"
+          className="text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-600 flex items-center gap-1 select-none"
         >
           Zajtra <ChevronRight size={16} />
         </button>

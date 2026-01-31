@@ -12,23 +12,35 @@ import {
 } from "lucide-react";
 
 import { Project, PROJECT_STAGES } from "@/types/project";
+import { useContactPreview } from "@/components/providers/ContactPreviewProvider";
 
 interface ProjectProfileSidebarProps {
   project: Project;
   onClose: () => void;
-  onTabChange?: (tab: "overview" | "tasks" | "documents") => void; // Added onTabChange
+  onTabChange?: (tab: "overview" | "tasks" | "documents") => void;
 }
 
 export function ProjectProfileSidebar({
   project,
   onClose,
-  onTabChange, // Destructured onTabChange
+  onTabChange,
 }: ProjectProfileSidebarProps) {
+  const { openContact } = useContactPreview();
   const initials = project.project_type?.[0] || project.name?.[0] || "P";
   const stageInfo = PROJECT_STAGES.find((s) => s.value === project.stage);
 
+  const handleContactClick = () => {
+    if (project.contact_id) {
+      const cid =
+        typeof project.contact_id === "object"
+          ? (project.contact_id as any).id
+          : project.contact_id;
+      if (cid) openContact(cid);
+    }
+  };
+
   return (
-    <div className="w-80 lg:w-96 bg-sidebar border-r border-border flex flex-col shrink-0 overflow-y-auto transition-all duration-300">
+    <div className="w-80 lg:w-96 bg-sidebar border-r border-border flex flex-col shrink-0 overflow-y-auto transition-all duration-300 select-none">
       <div className="h-32 bg-gradient-to-br from-purple-800 to-indigo-900 relative">
         <button
           onClick={onClose}
@@ -87,9 +99,10 @@ export function ProjectProfileSidebar({
             value={project.contact_name || "Nezadaný kontakt"}
             valueClass={
               project.contact_name
-                ? "text-blue-600 dark:text-blue-400"
+                ? "text-blue-600 dark:text-blue-400 group-hover:underline"
                 : "text-zinc-400 font-medium"
             }
+            onClick={project.contact_id ? handleContactClick : undefined}
           />
           <InfoRow
             icon={<Clock />}
@@ -125,10 +138,13 @@ export function ProjectProfileSidebar({
   );
 }
 
-function InfoRow({ icon, label, value, copyable, valueClass }: any) {
+function InfoRow({ icon, label, value, copyable, valueClass, onClick }: any) {
   return (
-    <div className="flex items-center gap-3 group">
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 bg-card border border-border shadow-sm shrink-0 transition-colors">
+    <div
+      onClick={onClick}
+      className={`flex items-center gap-3 group select-none ${onClick ? "cursor-pointer active:opacity-70" : ""}`}
+    >
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 bg-card border border-border shadow-sm shrink-0 transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-500">
         {React.cloneElement(icon, { className: "w-3.5 h-3.5" })}
       </div>
       <div className="min-w-0 flex-1">
@@ -143,7 +159,10 @@ function InfoRow({ icon, label, value, copyable, valueClass }: any) {
       </div>
       {copyable && value && (
         <button
-          onClick={() => navigator.clipboard.writeText(value)}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(value);
+          }}
           className="opacity-0 group-hover:opacity-100 p-1.5 text-xs text-zinc-400 hover:text-foreground transition-all"
         >
           Copy
