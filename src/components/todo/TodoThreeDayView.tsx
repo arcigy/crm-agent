@@ -75,27 +75,37 @@ export function TodoThreeDayView({
           <ChevronLeft size={16} /> Včera
         </button>
 
-        <div className="flex flex-col items-center relative group">
-          <div className="flex items-center gap-2 cursor-pointer">
-            <h2 className="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tight">
+        <div className="flex flex-col items-center relative gap-1">
+          <div className="flex items-center gap-2 select-text">
+            <h2 className="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tight selection:bg-blue-500 selection:text-white">
               {format(current, "EEEE", { locale: sk })}
             </h2>
-            <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-widest flex items-center gap-1">
-              <CalendarIcon size={12} />
+            <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-widest flex items-center gap-1 selection:bg-blue-600 selection:text-white">
               {format(current, "d. MMMM", { locale: sk })}
             </div>
           </div>
 
-          {/* Invisible Date Picker Overlay */}
-          <input
-            type="date"
-            className="absolute inset-0 opacity-0 cursor-pointer text-center w-full h-full z-10"
-            value={currentDate}
-            onChange={(e) => onDateChange(e.target.value)}
-          />
-          <span className="text-[10px] text-zinc-400 font-bold opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-4 whitespace-nowrap">
-            Klikni pre zmenu dátumu
-          </span>
+          <div className="relative group flex items-center gap-1.5">
+            <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest transition-all group-hover:text-blue-500 whitespace-nowrap">
+              {format(current, "dd. MM. yyyy")}
+            </span>
+            <div className="relative cursor-pointer p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors">
+              <CalendarIcon
+                size={14}
+                className="text-zinc-400 group-hover:text-blue-500"
+              />
+              <input
+                type="date"
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                value={currentDate}
+                onChange={(e) => onDateChange(e.target.value)}
+              />
+            </div>
+
+            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] font-black uppercase tracking-widest text-blue-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap">
+              Zmeniť dátum
+            </span>
+          </div>
         </div>
 
         <button

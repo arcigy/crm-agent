@@ -33,6 +33,7 @@ export async function getProject(id: string | number): Promise<{
   error?: string;
 }> {
   try {
+    // 1. Fetch project with potential relation
     // @ts-ignore
     const project = await directus.request(
       readItems("projects", {
@@ -47,7 +48,34 @@ export async function getProject(id: string | number): Promise<{
     }
 
     const p = project[0] as any;
-    // If contact_name is missing but contact_id is an object (joined), reconstruct it
+
+    // 2. Fallback: If contact_id is just an ID (not expanded), and we need the name
+    if (
+      (!p.contact_name || p.contact_name === "Neznámy") &&
+      p.contact_id &&
+      (typeof p.contact_id === "string" || typeof p.contact_id === "number")
+    ) {
+      try {
+        // @ts-ignore
+        const contact = (await directus.request(
+          readItems("contacts", {
+            filter: { id: { _eq: p.contact_id } },
+            fields: ["first_name", "last_name"],
+            limit: 1,
+          }),
+        )) as any[];
+
+        if (contact && contact.length > 0) {
+          p.contact_name =
+            `${contact[0].first_name || ""} ${contact[0].last_name || ""}`.trim() ||
+            "Neznámy";
+        }
+      } catch (err) {
+        console.error("Fallback contact fetch failed:", err);
+      }
+    }
+
+    // 3. Reconstruction: If it was expanded automatically
     if (
       (!p.contact_name || p.contact_name === "Neznámy") &&
       p.contact_id &&
