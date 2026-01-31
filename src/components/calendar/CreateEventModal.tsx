@@ -21,6 +21,12 @@ import {
   ContactRelation,
   ProjectRelation,
 } from "@/app/actions/todo-relations";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import { MentionNode } from "@/lib/tiptap-mention-node";
+import { useAutocomplete } from "@/hooks/useAutocomplete";
+import { AutocompleteDropdown } from "@/components/editor/AutocompleteDropdown";
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -67,13 +73,44 @@ export function CreateEventModal({
   const [isAllDay, setIsAllDay] = React.useState(false);
   const [isReminder, setIsReminder] = React.useState(false);
 
-  // Smart Input State
-  const [inputValue, setInputValue] = React.useState("");
+  // Smart Editor State
+  const {
+    suggestions,
+    position,
+    selectedIndex,
+    checkAutocomplete,
+    selectSuggestion,
+    handleKeyDown: handleAutocompleteKeyDown,
+  } = useAutocomplete();
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        bold: false,
+        italic: false,
+        heading: false,
+      }),
+      MentionNode,
+      Placeholder.configure({
+        placeholder: "Stretnutie s...",
+      }),
+    ],
+    editorProps: {
+      attributes: {
+        class:
+          "w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all font-bold text-gray-900 placeholder:font-medium placeholder:text-gray-300 min-h-[60px]",
+      },
+      handleKeyDown: (view, event) => {
+        return handleAutocompleteKeyDown(event, editor);
+      },
+    },
+    onUpdate: ({ editor }) => {
+      checkAutocomplete(editor);
+    },
+  });
+
   const [mentions, setMentions] = React.useState<Mention[]>([]);
-  const [suggestions, setSuggestions] = React.useState<any[]>([]);
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const debounceRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const [relations, setRelations] = React.useState<{
     contacts: ContactRelation[];
@@ -82,16 +119,11 @@ export function CreateEventModal({
 
   // Load relations
   React.useEffect(() => {
-    if (isOpen) {
-      getTodoRelations().then((res) => {
-        if (res.success) setRelations(res.data);
-      });
-      // Reset state when modal opens
-      setInputValue("");
+    if (isOpen && editor) {
+      editor.commands.clearContent();
       setMentions([]);
-      setSuggestions([]);
     }
-  }, [isOpen]);
+  }, [isOpen, editor]);
 
   const [formData, setFormData] = React.useState({
     description: "",
@@ -121,90 +153,13 @@ export function CreateEventModal({
 
   // Build the full summary text (for Google Calendar)
   const buildSummaryText = () => {
-    const mentionTexts = mentions.map((m) => m.label);
-    const parts = [inputValue.trim(), ...mentionTexts].filter(Boolean);
-    return parts.join(" ");
-  };
-
-  // --- Autocomplete Logic ---
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setInputValue(val);
-
-    // Clear previous debounce
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    // Find the word currently being typed
-    const cursorPosition = e.target.selectionStart || 0;
-    const textBeforeCursor = val.slice(0, cursorPosition);
-    const words = textBeforeCursor.split(/\s+/);
-    const lastWord = words[words.length - 1] || "";
-
-    // Only search if word is 3+ characters
-    if (lastWord.length < 3) {
-      setSuggestions([]);
-      setSelectedIndex(0);
-      return;
-    }
-
-    // Debounce 500ms
-    debounceRef.current = setTimeout(() => {
-      const query = normalizeText(lastWord.replace(/^[@#]/, ""));
-
-      const matchedContacts = relations.contacts
-        .filter((c) =>
-          normalizeText(`${c.first_name} ${c.last_name}`).includes(query),
-        )
-        .filter(
-          (c) => !mentions.some((m) => m.id === c.id && m.type === "contact"),
-        )
-        .map((c) => ({
-          id: c.id,
-          label: `${c.first_name} ${c.last_name}`,
-          type: "contact",
-          sub: c.company,
-        }));
-
-      const matchedProjects = relations.projects
-        .filter((p) => normalizeText(p.project_type).includes(query))
-        .filter(
-          (p) => !mentions.some((m) => m.id === p.id && m.type === "project"),
-        )
-        .map((p) => ({
-          id: p.id,
-          label: p.project_type,
-          type: "project",
-          sub: p.stage,
-        }));
-
-      const results = [...matchedContacts, ...matchedProjects].slice(0, 5);
-      setSuggestions(results);
-      setSelectedIndex(0);
-    }, 500);
+    return editor?.getText() || "";
   };
 
   const applySuggestion = (suggestion: any) => {
-    // Add to mentions
-    setMentions((prev) => [
-      ...prev,
-      { id: suggestion.id, label: suggestion.label, type: suggestion.type },
-    ]);
+    if (!editor) return;
 
-    // Remove the partial word from input
-    const cursorPosition =
-      inputRef.current?.selectionStart || inputValue.length;
-    const textBefore = inputValue.slice(0, cursorPosition);
-    const textAfter = inputValue.slice(cursorPosition);
-
-    const words = textBefore.split(/\s+/);
-    words.pop(); // remove partial word
-    const newTextBefore = words.join(" ") + (words.length > 0 ? " " : "");
-
-    setInputValue(newTextBefore + textAfter);
-    setSuggestions([]);
+    selectSuggestion(suggestion, editor);
 
     // Auto-add to description
     setFormData((prev) => ({
@@ -214,46 +169,7 @@ export function CreateEventModal({
           `\n${suggestion.type === "contact" ? "Kontakt" : "Projekt"}: ${suggestion.label}`
         : `${suggestion.type === "contact" ? "Kontakt" : "Projekt"}: ${suggestion.label}`,
     }));
-
-    setTimeout(() => inputRef.current?.focus(), 0);
   };
-
-  const removeMention = (mentionToRemove: Mention) => {
-    setMentions((prev) =>
-      prev.filter(
-        (m) =>
-          !(m.id === mentionToRemove.id && m.type === mentionToRemove.type),
-      ),
-    );
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (suggestions.length === 0) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev + 1) % suggestions.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSelectedIndex(
-        (prev) => (prev - 1 + suggestions.length) % suggestions.length,
-      );
-    } else if (e.key === "Enter" && suggestions.length > 0) {
-      e.preventDefault();
-      applySuggestion(suggestions[selectedIndex]);
-    } else if (e.key === "Escape") {
-      setSuggestions([]);
-    }
-  };
-
-  // Cleanup debounce on unmount
-  React.useEffect(() => {
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, []);
 
   // --- End Autocomplete Logic ---
 
@@ -353,88 +269,19 @@ export function CreateEventModal({
           onSubmit={handleSubmit}
           className="p-8 space-y-6 overflow-y-auto custom-scrollbar"
         >
-          {/* Title with Mention Badges */}
           <div className="relative">
             <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 block px-1">
               Názov udalosti
             </label>
 
-            {/* Mention Badges */}
-            {mentions.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {mentions.map((mention, idx) => (
-                  <span
-                    key={`${mention.type}-${mention.id}-${idx}`}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition-all group cursor-default ${
-                      mention.type === "contact"
-                        ? "bg-blue-100 text-blue-700 border border-blue-200"
-                        : "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                    }`}
-                  >
-                    {mention.type === "contact" ? (
-                      <User className="w-3.5 h-3.5" />
-                    ) : (
-                      <FolderKanban className="w-3.5 h-3.5" />
-                    )}
-                    {mention.label}
-                    <button
-                      type="button"
-                      onClick={() => removeMention(mention)}
-                      className="ml-1 p-0.5 rounded-full hover:bg-black/10 transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
+            <EditorContent editor={editor} />
 
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder={
-                mentions.length > 0 ? "Pridať ďalší text..." : "Stretnutie s..."
-              }
-              className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all font-bold text-gray-900 placeholder:font-medium placeholder:text-gray-300"
-              value={inputValue}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              autoComplete="off"
+            <AutocompleteDropdown
+              suggestions={suggestions}
+              position={position}
+              selectedIndex={selectedIndex}
+              onSelect={applySuggestion}
             />
-
-            {/* Suggestions Dropdown */}
-            {suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden divide-y divide-gray-100">
-                {suggestions.map((s, i) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => applySuggestion(s)}
-                    className={`w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-2 transition-colors ${i === selectedIndex ? "bg-blue-50" : ""}`}
-                  >
-                    <span
-                      className={`flex items-center justify-center w-7 h-7 rounded-lg ${s.type === "contact" ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"}`}
-                    >
-                      {s.type === "contact" ? (
-                        <User className="w-4 h-4" />
-                      ) : (
-                        <FolderKanban className="w-4 h-4" />
-                      )}
-                    </span>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-gray-700">
-                        {s.label}
-                      </span>
-                      {s.sub && (
-                        <span className="text-[10px] text-gray-400 font-bold uppercase">
-                          {s.sub}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Toggles */}
