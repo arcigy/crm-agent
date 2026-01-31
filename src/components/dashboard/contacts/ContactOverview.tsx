@@ -28,35 +28,6 @@ export function ContactOverview({
 
   return (
     <div className="flex-1 flex flex-col bg-background overflow-hidden relative transition-colors duration-300">
-      <div className="h-16 border-b border-border flex items-center justify-between px-8 bg-background shrink-0 transition-colors">
-        <div className="flex items-center gap-6">
-          <button className="text-sm font-bold text-foreground border-b-2 border-primary pb-5 pt-5">
-            Overview
-          </button>
-          <button className="text-sm font-medium text-gray-500 hover:text-foreground transition-colors pb-5 pt-5">
-            Documents
-          </button>
-          <button className="text-sm font-medium text-gray-500 hover:text-foreground transition-colors pb-5 pt-5">
-            Invoices
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="p-2 text-gray-400 hover:text-foreground hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-all">
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all">
-            <Trash2 className="w-4 h-4" />
-          </button>
-          <div className="w-px h-4 bg-border mx-1"></div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-foreground hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-all"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
       <div className="flex-1 overflow-y-auto p-8 bg-slate-50/30 dark:bg-slate-900/10 transition-colors">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">

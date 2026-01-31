@@ -24,13 +24,28 @@ export async function getContact(id: string | number) {
     )) as unknown as ContactItem;
 
     if (contact) {
-      // Manually fetch projects for this contact
-      const projects = await directus.request(
-        readItems("projects", {
-          filter: { contact_id: { _eq: id } },
-        }),
-      );
+      // Parallel fetch for speed
+      const [projects, deals, activities] = await Promise.all([
+        directus.request(
+          readItems("projects", {
+            filter: { contact_id: { _eq: id } },
+          }),
+        ),
+        directus.request(
+          readItems("deals", {
+            filter: { contact_id: { _eq: id } },
+          }),
+        ),
+        directus.request(
+          readItems("activities", {
+            filter: { contact_id: { _eq: id } },
+          }),
+        ),
+      ]);
+
       contact.projects = projects as unknown as any[];
+      contact.deals = deals as unknown as any[];
+      contact.activities = activities as unknown as any[];
     }
 
     return { success: true, data: contact };

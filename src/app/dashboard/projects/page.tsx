@@ -53,6 +53,30 @@ export default async function ProjectsPage() {
           });
           contacts = Array.from(uniqueContactsMap.values());
 
+          // ENRICH CONTACTS WITH THEIR PROJECTS (for robust modal display)
+          contacts = Array.from(uniqueContactsMap.values()).map((contact) => {
+            const normalize = (s: string) =>
+              (s || "")
+                .toString()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .trim()
+                .toLowerCase();
+
+            const fn = contact.first_name || "";
+            const ln = contact.last_name || "";
+            const fullName = normalize(`${fn} ${ln}`);
+
+            const contactProjects = (realProjects as any[]).filter((p) => {
+              const isIdMatch = String(p.contact_id) === String(contact.id);
+              const isNameMatch =
+                p.contact_name && normalize(p.contact_name) === fullName;
+              return isIdMatch || isNameMatch;
+            });
+
+            return { ...contact, projects: contactProjects };
+          });
+
           // ENRICH PROJECTS WITH CONTACT NAMES
           projects = (realProjects as any[]).map((p: any) => {
             const contact = contacts.find(
@@ -62,7 +86,7 @@ export default async function ProjectsPage() {
               ...p,
               contact_name: contact
                 ? `${contact.first_name} ${contact.last_name}`
-                : "Neznámy kontakt",
+                : p.contact_name || "Neznámy kontakt",
             };
           });
         } else {
