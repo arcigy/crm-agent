@@ -11,6 +11,7 @@ import { ContactActivity } from "./contacts/ContactActivity";
 import { ContactDealsNotes } from "./contacts/ContactDealsNotes";
 import { ContactInvoices } from "./contacts/ContactInvoices";
 import { ContactDocuments } from "./contacts/ContactDocuments";
+import { ContactEvents } from "./contacts/ContactEvents";
 import { RelatedTasks } from "./RelatedTasks";
 import { X } from "lucide-react";
 
@@ -28,7 +29,7 @@ export function ContactDetailModal({
   const [emailMode, setEmailMode] = React.useState(false);
   const [smsMode, setSmsMode] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<
-    "overview" | "tasks" | "documents" | "invoices"
+    "overview" | "tasks" | "documents" | "invoices" | "events"
   >("overview");
   const [detailedContact, setDetailedContact] = React.useState<Lead | null>(
     null,
@@ -118,6 +119,16 @@ export function ContactDetailModal({
               >
                 Faktúry
               </button>
+              <button
+                onClick={() => {
+                  setActiveTab("events");
+                  setEmailMode(false);
+                  setSmsMode(false);
+                }}
+                className={`text-sm font-bold transition-all border-b-2 pb-5 pt-5 ${activeTab === "events" ? "text-foreground border-primary" : "text-zinc-500 border-transparent hover:text-foreground"}`}
+              >
+                Udalosti
+              </button>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -166,6 +177,10 @@ export function ContactDetailModal({
             ) : activeTab === "invoices" ? (
               <div className="h-full overflow-y-auto bg-zinc-50/10 transition-all">
                 <ContactInvoices contact={currentContact} />
+              </div>
+            ) : activeTab === "events" ? (
+              <div className="h-full overflow-y-auto bg-zinc-50/10 transition-all">
+                <ContactEvents contact={currentContact} />
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-zinc-400 opacity-40">
