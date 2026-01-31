@@ -125,11 +125,27 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
           "outline-none min-h-[12rem] px-8 py-8 pt-16 pb-24 text-xl font-normal text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold",
       },
       handleKeyDown: (view, event) => {
-        return handleKeyDown(
+        // First try autocomplete keyboard navigation
+        const handledByAutocomplete = handleKeyDown(
           event,
           view.state.hasOwnProperty("selection") ? (view as any) : editor,
         );
+
+        if (handledByAutocomplete) return true;
+
+        // If Enter is pressed (without Shift) and autocomplete didn't take it, submit
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          // We must use a small timeout or wait for the next tick to ensure
+          // any pending onUpdate changes are processed if needed,
+          // though handleSubmit gets content directly from editor.
+          handleSubmit();
+          return true;
+        }
+
+        return false;
       },
+
       handleClick: (view, pos, event) => {
         const target = event.target as HTMLElement;
         const link = target.closest("a");
@@ -210,12 +226,23 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
 
   const loadRelations = async () => {
     try {
+      console.log("Loading relations for TodoSmartInput...");
       const res = await getTodoRelations();
+      console.log("Relations loaded:", res);
       if (res.success && res.data) {
         setRelations(res.data);
+        import("sonner").then(({ toast }) => toast.success("Dáta načítané"));
+      } else {
+        const err = (res as any).error || "Neznáma chyba";
+        import("sonner").then(({ toast }) =>
+          toast.error(`Chyba načítania: ${err}`),
+        );
       }
     } catch (error) {
       console.error("Error loading relations:", error);
+      import("sonner").then(({ toast }) =>
+        toast.error("Chyba spojenia s databázou"),
+      );
     }
   };
 
@@ -226,7 +253,11 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   ) => {
     if (!editor) return;
 
-    selectSuggestion({ id: id as number, label: text, type }, editor);
+    selectSuggestion(
+      { id: id as number, label: text, type },
+      editor,
+      false, // Do not attempt to replace adjacent word
+    );
 
     setActivePicker(null);
   };
@@ -244,13 +275,30 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (editor && !editor.isEmpty) {
-      const html = editor.getHTML();
+    if (!editor) return;
+
+    const html = editor.getHTML();
+    const text = editor.getText().trim();
+    const hasMentions = html.includes("data-mention-component");
+
+    console.log("Submitting task:", { html, text, hasMentions, time });
+
+    if (text || hasMentions) {
+      // Import toast dynamically or use prop if available.
+      // Assuming toast from sonner is available globally or via import.
+      import("sonner").then(({ toast }) => toast.info("Ukladám úlohu..."));
+
       onAdd(html, time);
       editor.commands.clearContent();
       setTime("");
       localStorage.removeItem("todo-draft");
+      setIsFocused(false);
       setActivePicker(null);
+    } else {
+      console.warn("Task is empty, not submitting.");
+      import("sonner").then(({ toast }) =>
+        toast.error("Nemožno uložiť prázdnu úlohu"),
+      );
     }
   };
 
@@ -434,7 +482,11 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
         {/* Floating Submit Button */}
         <button
           onClick={(e) => handleSubmit(e)}
-          disabled={editor.isEmpty}
+          disabled={
+            !editor ||
+            (editor.isEmpty &&
+              !editor.getHTML().includes("data-mention-component"))
+          }
           className="absolute bottom-6 right-6 w-14 h-14 bg-gray-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-2xl flex items-center justify-center shadow-xl transition-all hover:scale-110 active:scale-90 disabled:opacity-20 z-20"
         >
           <Plus size={32} />

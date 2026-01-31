@@ -77,7 +77,9 @@ export function useAutocomplete() {
     }
 
     const timer = setTimeout(() => {
-      const q = query.toLowerCase();
+      // Strip leading triggers like @, #, $, ! for filtering
+      const q = query.replace(/^[@#$!]/, "").toLowerCase();
+
       const contacts: Suggestion[] = relations.contacts
         .filter((c) =>
           `${c.first_name} ${c.last_name}`.toLowerCase().includes(q),
@@ -106,26 +108,36 @@ export function useAutocomplete() {
   }, [query, relations]);
 
   const selectSuggestion = useCallback(
-    (suggestion: Suggestion, editor: Editor | null) => {
+    (
+      suggestion: Suggestion,
+      editor: Editor | null,
+      replaceWord: boolean = true,
+    ) => {
       if (!editor) return;
 
       const { state } = editor;
       const { selection } = state;
       const { $from } = selection;
 
-      const textBefore = $from.parent.textBetween(
-        Math.max(0, $from.parentOffset - 20),
-        $from.parentOffset,
-        undefined,
-        "\ufffc",
-      );
+      let from = $from.pos;
+      let to = $from.pos;
 
-      const match = textBefore.match(/(\S+)$/);
-      if (!match) return;
+      if (replaceWord) {
+        // Scan backwards from cursor to find word start
+        const textBefore = $from.parent.textBetween(
+          Math.max(0, $from.parentOffset - 20),
+          $from.parentOffset,
+          undefined,
+          "\ufffc",
+        );
 
-      const word = match[0];
-      const from = $from.pos - word.length;
-      const to = $from.pos;
+        const match = textBefore.match(/(\S+)$/);
+        if (match) {
+          const word = match[0];
+          from = $from.pos - word.length;
+          to = $from.pos;
+        }
+      }
 
       const marks = state.storedMarks || $from.marks();
 

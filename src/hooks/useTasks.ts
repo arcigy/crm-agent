@@ -27,13 +27,15 @@ export function useTasks(date?: string) {
   }, [refreshTasks]);
 
   const add = async (title: string, dueDate?: string) => {
+    console.log("Adding task in useTasks hook:", { title, dueDate });
     const res = await createTask(title, dueDate);
+    console.log("createTask response:", res);
     if (res.success) {
       setTasks((prev) => [...prev, res.data]);
       toast.success("Úloha pridaná");
       return true;
     }
-    toast.error("Chyba pri pridávaní úlohy");
+    toast.error(`Chyba: ${res.error || "Nepodarilo sa vytvoriť úlohu"}`);
     return false;
   };
 
