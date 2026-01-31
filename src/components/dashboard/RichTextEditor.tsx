@@ -124,6 +124,15 @@ export default function RichTextEditor({
   onChange,
   placeholder,
 }: RichTextEditorProps) {
+  const {
+    suggestions,
+    position,
+    selectedIndex,
+    checkAutocomplete,
+    selectSuggestion,
+    handleKeyDown,
+  } = useAutocomplete();
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -148,11 +157,14 @@ export default function RichTextEditor({
         class:
           "prose prose-sm sm:prose-base lg:prose-md xl:prose-lg focus:outline-none max-w-none p-8 min-h-[300px] overflow-y-auto custom-scrollbar font-medium text-foreground dark:prose-invert",
       },
+      handleKeyDown: (view, event) => {
+        return handleKeyDown(
+          event,
+          view.state.hasOwnProperty("selection") ? (view as any) : editor,
+        );
+      },
     },
   });
-
-  const { suggestions, position, checkAutocomplete, selectSuggestion } =
-    useAutocomplete(editor);
 
   // Update content if it changes externally
   React.useEffect(() => {
@@ -168,7 +180,8 @@ export default function RichTextEditor({
       <AutocompleteDropdown
         suggestions={suggestions}
         position={position}
-        onSelect={selectSuggestion}
+        onSelect={(s) => selectSuggestion(s, editor)}
+        selectedIndex={selectedIndex}
       />
 
       <style jsx global>{`

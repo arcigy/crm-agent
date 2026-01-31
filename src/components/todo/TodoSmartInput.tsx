@@ -87,6 +87,15 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     openContact = ctx.openContact;
   } catch (e) {}
 
+  const {
+    suggestions,
+    position,
+    selectedIndex,
+    checkAutocomplete,
+    selectSuggestion,
+    handleKeyDown,
+  } = useAutocomplete();
+
   // Initialize Tiptap Editor
   const editor = useEditor({
     extensions: [
@@ -115,6 +124,12 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
         class:
           "outline-none min-h-[12rem] px-8 py-8 pt-16 pb-24 text-xl font-normal text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold",
       },
+      handleKeyDown: (view, event) => {
+        return handleKeyDown(
+          event,
+          view.state.hasOwnProperty("selection") ? (view as any) : editor,
+        );
+      },
       handleClick: (view, pos, event) => {
         const target = event.target as HTMLElement;
         const link = target.closest("a");
@@ -139,9 +154,6 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
       checkAutocomplete(editor);
     },
   });
-
-  const { suggestions, position, checkAutocomplete, selectSuggestion } =
-    useAutocomplete(editor);
 
   // Load draft from localStorage on mount
   useEffect(() => {
@@ -214,19 +226,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   ) => {
     if (!editor) return;
 
-    editor
-      .chain()
-      .focus()
-      .insertContent({
-        type: "mentionComponent",
-        attrs: {
-          id: id,
-          label: text,
-          type: type,
-        },
-      })
-      .insertContent(" ")
-      .run();
+    selectSuggestion({ id: id as number, label: text, type }, editor);
 
     setActivePicker(null);
   };
@@ -333,7 +333,8 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
         <AutocompleteDropdown
           suggestions={suggestions}
           position={position}
-          onSelect={selectSuggestion}
+          onSelect={(s) => selectSuggestion(s, editor)}
+          selectedIndex={selectedIndex}
         />
 
         {/* Bottom Actions Toolbar */}

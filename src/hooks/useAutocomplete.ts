@@ -15,9 +15,10 @@ export interface Suggestion {
   type: "contact" | "project";
 }
 
-export function useAutocomplete(editor: Editor | null) {
+export function useAutocomplete() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [position, setPosition] = useState<{
     top: number;
     left: number;
@@ -62,14 +63,15 @@ export function useAutocomplete(editor: Editor | null) {
     } else {
       setQuery("");
       setSuggestions([]);
+      setSelectedIndex(0);
     }
   }, []);
 
   useEffect(() => {
-    // We clear suggestions immediately if query is too short
     if (!query || query.length < 3) {
       if (suggestions.length > 0) {
         setSuggestions([]);
+        setSelectedIndex(0);
       }
       return;
     }
@@ -97,23 +99,20 @@ export function useAutocomplete(editor: Editor | null) {
         }));
 
       setSuggestions([...contacts, ...projects].slice(0, 5));
+      setSelectedIndex(0);
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [query, relations, suggestions.length]);
+  }, [query, relations]);
 
   const selectSuggestion = useCallback(
-    (suggestion: Suggestion) => {
+    (suggestion: Suggestion, editor: Editor | null) => {
       if (!editor) return;
-
-      const { selection } = editor.state;
-      const { $from } = selection;
 
       const { state } = editor;
       const { selection } = state;
       const { $from } = selection;
 
-      // Scan backwards from cursor to find word start
       const textBefore = $from.parent.textBetween(
         Math.max(0, $from.parentOffset - 20),
         $from.parentOffset,
@@ -128,7 +127,6 @@ export function useAutocomplete(editor: Editor | null) {
       const from = $from.pos - word.length;
       const to = $from.pos;
 
-      // Extract current formatting marks to preserve them after insertion
       const marks = state.storedMarks || $from.marks();
 
       editor
@@ -150,14 +148,51 @@ export function useAutocomplete(editor: Editor | null) {
 
       setQuery("");
       setSuggestions([]);
+      setSelectedIndex(0);
     },
-    [editor],
+    [],
+  );
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent, editor: Editor | null): boolean => {
+      if (suggestions.length === 0) return false;
+
+      if (event.key === "ArrowDown") {
+        setSelectedIndex((prev) => (prev + 1) % suggestions.length);
+        event.preventDefault();
+        return true;
+      }
+
+      if (event.key === "ArrowUp") {
+        setSelectedIndex(
+          (prev) => (prev - 1 + suggestions.length) % suggestions.length,
+        );
+        event.preventDefault();
+        return true;
+      }
+
+      if (event.key === "Enter") {
+        selectSuggestion(suggestions[selectedIndex], editor);
+        event.preventDefault();
+        return true;
+      }
+
+      if (event.key === "Escape") {
+        setSuggestions([]);
+        return true;
+      }
+
+      return false;
+    },
+    [suggestions, selectedIndex, selectSuggestion],
   );
 
   return {
     suggestions,
     position,
+    selectedIndex,
     checkAutocomplete,
     selectSuggestion,
+    handleKeyDown,
   };
 }
