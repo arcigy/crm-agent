@@ -5,6 +5,8 @@ import { OnboardingScene } from "@/components/dashboard/OnboardingScene";
 import { ContactPreviewProvider } from "@/components/providers/ContactPreviewProvider";
 import { ProjectPreviewProvider } from "@/components/providers/ProjectPreviewProvider";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: {
