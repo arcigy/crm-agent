@@ -28,6 +28,7 @@ import {
   DealRelation,
 } from "@/app/actions/todo-relations";
 import { useContactPreview } from "@/components/providers/ContactPreviewProvider";
+import { useProjectPreview } from "@/components/providers/ProjectPreviewProvider";
 
 import { MentionNode } from "@/lib/tiptap-mention-node";
 import { useAutocomplete } from "@/hooks/useAutocomplete";
@@ -80,11 +81,18 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     deals: [],
   });
 
-  // Contact preview context
+  // Preview contexts
   let openContact: ((id: string | number) => void) | undefined;
+  let openProject: ((id: string | number) => void) | undefined;
+
   try {
-    const ctx = useContactPreview();
-    openContact = ctx.openContact;
+    const contactCtx = useContactPreview();
+    openContact = contactCtx.openContact;
+  } catch (e) {}
+
+  try {
+    const projectCtx = useProjectPreview();
+    openProject = projectCtx.openProject;
   } catch (e) {}
 
   const {
@@ -148,16 +156,23 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
         const mention = target.closest("[data-contact-id]");
         if (mention) {
           const id = mention.getAttribute("data-contact-id");
-          if (id && openContact) {
+          const type = mention.getAttribute("data-type") || "contact";
+
+          if (id) {
             event.preventDefault();
             event.stopPropagation();
-            openContact(id);
+            if (type === "project" && openProject) {
+              openProject(id);
+            } else if (openContact) {
+              openContact(id);
+            }
             return true;
           }
         }
         return false;
       },
     },
+
     onFocus: () => setIsFocused(true),
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();

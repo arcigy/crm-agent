@@ -25,6 +25,7 @@ import { useAutocomplete } from "@/hooks/useAutocomplete";
 import { AutocompleteDropdown } from "@/components/editor/AutocompleteDropdown";
 import { Editor } from "@tiptap/react";
 import { useContactPreview } from "@/components/providers/ContactPreviewProvider";
+import { useProjectPreview } from "@/components/providers/ProjectPreviewProvider";
 
 interface RichTextEditorProps {
   content: string;
@@ -125,11 +126,18 @@ export default function RichTextEditor({
   onChange,
   placeholder,
 }: RichTextEditorProps) {
-  // Contact preview context
+  // Preview contexts
   let openContact: ((id: string | number) => void) | undefined;
+  let openProject: ((id: string | number) => void) | undefined;
+
   try {
-    const ctx = useContactPreview();
-    openContact = ctx.openContact;
+    const contactCtx = useContactPreview();
+    openContact = contactCtx.openContact;
+  } catch (e) {}
+
+  try {
+    const projectCtx = useProjectPreview();
+    openProject = projectCtx.openProject;
   } catch (e) {}
 
   const {
@@ -173,10 +181,16 @@ export default function RichTextEditor({
         const mention = target.closest("[data-contact-id]");
         if (mention) {
           const id = mention.getAttribute("data-contact-id");
-          if (id && openContact) {
+          const type = mention.getAttribute("data-type") || "contact";
+
+          if (id && (openContact || openProject)) {
             event.preventDefault();
             event.stopPropagation();
-            openContact(id);
+            if (type === "project" && openProject) {
+              openProject(id);
+            } else if (openContact) {
+              openContact(id);
+            }
             return true;
           }
         }

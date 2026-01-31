@@ -46,10 +46,12 @@ export const MentionNode = Node.create({
         href: "#",
         "data-mention-component": "",
         "data-contact-id": HTMLAttributes.id,
+        "data-type": type,
         // user-select: all helps treat it as one block for selection/deletion
         class: `inline-flex items-center gap-1 px-1.5 py-0.5 rounded border font-black text-[10px] uppercase tracking-tight transition-all mx-1 ${colorClass} cursor-pointer align-middle no-underline select-all`,
         contenteditable: "false",
       }),
+
       type === "contact" ? "👤 " : "📁 ",
       HTMLAttributes.label,
     ];

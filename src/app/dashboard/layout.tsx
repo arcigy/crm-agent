@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/dashboard/Sidebar";
 import { checkOnboardingStatus } from "@/app/actions/onboarding";
 import { OnboardingScene } from "@/components/dashboard/OnboardingScene";
 import { ContactPreviewProvider } from "@/components/providers/ContactPreviewProvider";
+import { ProjectPreviewProvider } from "@/components/providers/ProjectPreviewProvider";
 
 export default async function DashboardLayout({
   children,
@@ -13,13 +14,15 @@ export default async function DashboardLayout({
 
   return (
     <ContactPreviewProvider>
-      <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300">
-        {!completed && <OnboardingScene />}
-        <Sidebar />
-        <main className="flex-1 min-w-0 h-full overflow-y-auto bg-background transition-colors duration-300">
-          <div className="p-4 md:p-8">{children}</div>
-        </main>
-      </div>
+      <ProjectPreviewProvider>
+        <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300">
+          {!completed && <OnboardingScene />}
+          <Sidebar />
+          <main className="flex-1 min-w-0 h-full overflow-y-auto bg-background transition-colors duration-300">
+            <div className="p-4 md:p-8">{children}</div>
+          </main>
+        </div>
+      </ProjectPreviewProvider>
     </ContactPreviewProvider>
   );
 }

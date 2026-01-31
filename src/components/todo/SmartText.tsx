@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useContactPreview } from "@/components/providers/ContactPreviewProvider";
+import { useProjectPreview } from "@/components/providers/ProjectPreviewProvider";
 
 interface SmartTextProps {
   text: string;
@@ -9,19 +10,22 @@ interface SmartTextProps {
 }
 
 export function SmartText({ text, className = "" }: SmartTextProps) {
-  // Use context for opening contact details
-  // We explicitly try to get context, but if it fails (not in provider), we degrade gracefully
+  // Use context for opening details
   let openContact: ((id: string | number) => void) | undefined;
+  let openProject: ((id: string | number) => void) | undefined;
+
   try {
-    const ctx = useContactPreview();
-    openContact = ctx.openContact;
-  } catch (e) {
-    // Ignore if provider missing
-  }
+    const contactCtx = useContactPreview();
+    openContact = contactCtx.openContact;
+  } catch (e) {}
+
+  try {
+    const projectCtx = useProjectPreview();
+    openProject = projectCtx.openProject;
+  } catch (e) {}
 
   // 1. Convert legacy syntax @[...] to HTML
   const processText = (input: string) => {
-    // 1. First, handle legacy syntax: @[Name](id), #[Name](id), $[Name](id), ![Time]
     const legacyRegex = /([@#$])\[(.*?)\]\((.*?)\)|(!\[(.*?)\])/g;
     const html = input.replace(
       legacyRegex,
@@ -33,9 +37,11 @@ export function SmartText({ text, className = "" }: SmartTextProps) {
             $: "bg-emerald-500/10 text-emerald-600 border-emerald-200 hover:bg-emerald-500 hover:text-white",
           };
           const colorClass = colors[type as keyof typeof colors] || "";
-          const dataAttr = type === "@" ? `data-contact-id="${id}"` : "";
+          // Legacy type mapping: @=contact, #=project, $=deal
+          const mentionType =
+            type === "@" ? "contact" : type === "#" ? "project" : "deal";
 
-          return `<span data-mention-component ${dataAttr} class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border font-black text-[10px] uppercase tracking-tight transition-all mx-1 ${colorClass} cursor-pointer no-underline">
+          return `<span data-mention-component data-contact-id="${id}" data-type="${mentionType}" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border font-black text-[10px] uppercase tracking-tight transition-all mx-1 ${colorClass} cursor-pointer no-underline">
                 ${type === "@" ? "👤" : type === "#" ? "📁" : "💼"} ${name}
             </span>`;
         } else {
@@ -56,12 +62,18 @@ export function SmartText({ text, className = "" }: SmartTextProps) {
     const mention = target.closest("[data-mention-component]");
 
     if (mention) {
-      const contactId = mention.getAttribute("data-contact-id");
+      const id = mention.getAttribute("data-contact-id");
+      const type = mention.getAttribute("data-type") || "contact";
 
-      if (contactId && openContact) {
+      if (id) {
         e.preventDefault();
         e.stopPropagation();
-        openContact(contactId);
+
+        if (type === "project" && openProject) {
+          openProject(id);
+        } else if (openContact) {
+          openContact(id);
+        }
         return;
       }
     }

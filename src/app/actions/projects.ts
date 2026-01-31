@@ -27,6 +27,31 @@ export async function getProjects(): Promise<{
   }
 }
 
+export async function getProject(id: string | number): Promise<{
+  data: Project | null;
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // @ts-ignore
+    const project = await directus.request(
+      readItems("projects", {
+        filter: { id: { _eq: id } },
+        limit: 1,
+      }),
+    );
+
+    if (!project || project.length === 0) {
+      return { data: null, success: false, error: "Project not found" };
+    }
+
+    return { data: project[0] as Project, success: true };
+  } catch (e: any) {
+    console.error("Fetch project failed:", e);
+    return { data: null, success: false, error: e.message };
+  }
+}
+
 export async function createProject(data: any) {
   try {
     const user = await currentUser();
