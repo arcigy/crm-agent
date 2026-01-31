@@ -5,22 +5,29 @@ import { readItems, createItem, updateItem, deleteItem } from "@directus/sdk";
 import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
+export interface Task {
+  id: string;
+  title: string;
+  completed: boolean;
+  due_date: string | null;
+  user_email: string;
+}
+
 export async function getTasks(date?: string) {
   try {
     const user = await currentUser();
-    if (!user) return { success: false, error: "Unauthorized" };
+    if (!user) return { success: false as const, error: "Unauthorized" };
 
     const email = user.emailAddresses[0]?.emailAddress;
-    const filter: any = { user_email: { _eq: email } };
+    const filter: Record<string, unknown> = { user_email: { _eq: email } };
 
     if (date) {
-      // Directus filter for date (assuming YYYY-MM-DD format)
       filter._and = [
         { user_email: { _eq: email } },
         {
           _or: [
             { due_date: { _starts_with: date } },
-            { due_date: { _null: true } }, // Show floating tasks too
+            { due_date: { _null: true } },
           ],
         },
       ];
@@ -28,23 +35,26 @@ export async function getTasks(date?: string) {
 
     const data = await directus.request(
       readItems("crm_tasks", {
-        filter,
-        sort: ["date_created"],
+        filter: filter as any,
+        sort: ["date_created"] as string[],
         limit: -1,
       }),
     );
 
-    return { success: true, data: data as any[] };
-  } catch (error: any) {
+    return { success: true as const, data: data as unknown as Task[] };
+  } catch (error) {
     console.error("Get Tasks Error:", error);
-    return { success: false, error: error.message };
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
 export async function createTask(title: string, dueDate?: string) {
   try {
     const user = await currentUser();
-    if (!user) return { success: false, error: "Unauthorized" };
+    if (!user) return { success: false as const, error: "Unauthorized" };
 
     const email = user.emailAddresses[0]?.emailAddress;
 
@@ -58,38 +68,45 @@ export async function createTask(title: string, dueDate?: string) {
     );
 
     revalidatePath("/dashboard/todo");
-    return { success: true, data: task };
-  } catch (error: any) {
+    return { success: true as const, data: task as unknown as Task };
+  } catch (error) {
     console.error("Create Task Error:", error);
-    return { success: false, error: error.message };
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
 export async function toggleTaskStatus(id: string, completed: boolean) {
   try {
     await directus.request(
-      // @ts-ignore
       updateItem("crm_tasks", id, {
         completed,
       }),
     );
 
     revalidatePath("/dashboard/todo");
-    return { success: true };
-  } catch (error: any) {
+    return { success: true as const };
+  } catch (error) {
     console.error("Toggle Task Error:", error);
-    return { success: false, error: error.message };
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
 export async function removeTask(id: string) {
   try {
-    // @ts-ignore
     await directus.request(deleteItem("crm_tasks", id));
     revalidatePath("/dashboard/todo");
-    return { success: true };
-  } catch (error: any) {
+    return { success: true as const };
+  } catch (error) {
     console.error("Delete Task Error:", error);
-    return { success: false, error: error.message };
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,11 +8,10 @@ import {
   CheckCircle2,
   Circle,
   Clock,
-  MoreHorizontal,
   Trash2,
 } from "lucide-react";
 import { SmartText } from "./SmartText";
-import { format, addDays, subDays, isSameDay, parseISO } from "date-fns";
+import { format, addDays, subDays, parseISO } from "date-fns";
 import { sk } from "date-fns/locale";
 
 interface Task {
@@ -258,8 +257,6 @@ function TaskItem({
   onDelete: (id: string) => void;
   isCenter: boolean;
 }) {
-  const [showActions, setShowActions] = useState(false);
-
   // Extract time if exists in due_date (YYYY-MM-DDTHH:mm:ss)
   const time =
     task.due_date && task.due_date.includes("T")
@@ -275,8 +272,6 @@ function TaskItem({
             ? "bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 shadow-sm hover:border-blue-200 dark:hover:border-blue-900"
             : "bg-white/50 dark:bg-zinc-900/50 border-transparent hover:bg-white"
       }`}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
     >
       <div className="flex items-start gap-3">
         <button

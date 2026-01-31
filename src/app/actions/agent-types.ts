@@ -11,7 +11,7 @@ export interface ToolDefinition {
           type: string;
           description?: string;
           enum?: string[];
-          default?: any;
+          default?: unknown;
         }
       >;
       required?: string[];
@@ -21,9 +21,9 @@ export interface ToolDefinition {
 
 export interface AgentStep {
   tool: string;
-  args?: Record<string, any>;
+  args?: Record<string, unknown>;
   status?: "running" | "done" | "error";
-  result?: any;
+  result?: unknown;
 }
 
 export interface ChatMessage {
@@ -42,7 +42,7 @@ export interface AgentChat {
 
 export interface ChatVerdict {
   intent: "INFO_ONLY" | "ACTION";
-  extracted_data: Record<string, any>;
+  extracted_data: Record<string, unknown>;
   reason?: string;
 }
 
@@ -63,5 +63,5 @@ export interface ActionResult {
   success: boolean;
   error?: string;
   message?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }

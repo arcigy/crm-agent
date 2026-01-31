@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { Node, mergeAttributes } from "@tiptap/core";
+import { Node as TiptapNode, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import LinkExtension from "@tiptap/extension-link";
@@ -22,36 +21,26 @@ import {
   List,
   Palette,
 } from "lucide-react";
-import { getTodoRelations } from "@/app/actions/todo-relations";
+import {
+  getTodoRelations,
+  ContactRelation,
+  ProjectRelation,
+  DealRelation,
+} from "@/app/actions/todo-relations";
 import { useContactPreview } from "@/components/providers/ContactPreviewProvider";
 
 import { MentionNode } from "@/lib/tiptap-mention-node";
-import { Suggestion, useAutocomplete } from "@/hooks/useAutocomplete";
+import { useAutocomplete } from "@/hooks/useAutocomplete";
 import { AutocompleteDropdown } from "@/components/editor/AutocompleteDropdown";
 
 interface TodoSmartInputProps {
   onAdd: (title: string, time?: string) => void;
 }
 
-type PickerType = "contact" | "project" | "deal" | null;
-
-interface Contact {
-  id: number;
-  first_name: string;
-  last_name: string;
-  company?: string;
-}
-
-interface Project {
-  id: number;
-  project_type: string;
-  stage?: string;
-}
-
 interface Relations {
-  contacts: Contact[];
-  projects: Project[];
-  deals: unknown[];
+  contacts: ContactRelation[];
+  projects: ProjectRelation[];
+  deals: DealRelation[];
 }
 
 const COLORS = [
@@ -81,7 +70,9 @@ const CustomLink = LinkExtension.extend({
 export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   const [time, setTime] = useState("");
   const [isFocused, setIsFocused] = useState(false);
-  const [activePicker, setActivePicker] = useState<PickerType>(null);
+  const [activePicker, setActivePicker] = useState<
+    "contact" | "project" | "deal" | null
+  >(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [relations, setRelations] = useState<Relations>({
     contacts: [],
@@ -89,25 +80,11 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     deals: [],
   });
 
-  // Autocomplete state
-  const [autocompleteQuery, setAutocompleteQuery] = useState("");
-  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<
-    Suggestion[]
-  >([]);
-  const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => setIsMounted(true), []);
-
-  const [autocompletePosition, setAutocompletePosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
-
   // Contact preview context
   let openContact: ((id: string | number) => void) | undefined;
   try {
     const ctx = useContactPreview();
     openContact = ctx.openContact;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {}
 
   // Initialize Tiptap Editor
@@ -136,7 +113,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     editorProps: {
       attributes: {
         class:
-          "outline-none min-h-[12rem] px-8 py-8 pt-16 pb-24 text-xl font-normal text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold [&_.font-medium]:font-medium [&_.font-black]:font-black",
+          "outline-none min-h-[12rem] px-8 py-8 pt-16 pb-24 text-xl font-normal text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold",
       },
       handleClick: (view, pos, event) => {
         const target = event.target as HTMLElement;
@@ -209,11 +186,10 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
+        !containerRef.current.contains(event.target as globalThis.Node)
       ) {
         setIsFocused(false);
         setActivePicker(null);
-        setAutocompleteSuggestions([]);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -221,15 +197,10 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   }, []);
 
   const loadRelations = async () => {
-    console.log("Loading relations...");
     try {
       const res = await getTodoRelations();
-      console.log("Relations response:", res);
-      if (res.success) {
+      if (res.success && res.data) {
         setRelations(res.data);
-        console.log("Relations loaded:", res.data);
-      } else {
-        console.error("Failed to load relations:", res);
       }
     } catch (error) {
       console.error("Error loading relations:", error);

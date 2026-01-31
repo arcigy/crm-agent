@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getTodoRelations } from "@/app/actions/todo-relations";
+import {
+  getTodoRelations,
+  ContactRelation,
+  ProjectRelation,
+} from "@/app/actions/todo-relations";
+import { Editor } from "@tiptap/react";
 
 export interface Suggestion {
   id: number;
@@ -10,7 +15,7 @@ export interface Suggestion {
   type: "contact" | "project";
 }
 
-export function useAutocomplete(editor: any) {
+export function useAutocomplete(editor: Editor | null) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [position, setPosition] = useState<{
@@ -18,8 +23,8 @@ export function useAutocomplete(editor: any) {
     left: number;
   } | null>(null);
   const [relations, setRelations] = useState<{
-    contacts: any[];
-    projects: any[];
+    contacts: ContactRelation[];
+    projects: ProjectRelation[];
   }>({
     contacts: [],
     projects: [],
@@ -36,7 +41,7 @@ export function useAutocomplete(editor: any) {
     load();
   }, []);
 
-  const checkAutocomplete = useCallback((editor: any) => {
+  const checkAutocomplete = useCallback((editor: Editor) => {
     if (!editor) return;
     const { selection } = editor.state;
     const { $from } = selection;
@@ -61,18 +66,21 @@ export function useAutocomplete(editor: any) {
   }, []);
 
   useEffect(() => {
+    // We clear suggestions immediately if query is too short
     if (!query || query.length < 3) {
-      setSuggestions([]);
+      if (suggestions.length > 0) {
+        setSuggestions([]);
+      }
       return;
     }
 
     const timer = setTimeout(() => {
       const q = query.toLowerCase();
       const contacts: Suggestion[] = relations.contacts
-        .filter((c: any) =>
+        .filter((c) =>
           `${c.first_name} ${c.last_name}`.toLowerCase().includes(q),
         )
-        .map((c: any) => ({
+        .map((c) => ({
           id: c.id,
           label: `${c.first_name} ${c.last_name}`,
           sub: c.company,
@@ -80,8 +88,8 @@ export function useAutocomplete(editor: any) {
         }));
 
       const projects: Suggestion[] = relations.projects
-        .filter((p: any) => p.project_type.toLowerCase().includes(q))
-        .map((p: any) => ({
+        .filter((p) => p.project_type.toLowerCase().includes(q))
+        .map((p) => ({
           id: p.id,
           label: p.project_type,
           sub: p.stage,
@@ -92,7 +100,7 @@ export function useAutocomplete(editor: any) {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [query, relations]);
+  }, [query, relations, suggestions.length]);
 
   const selectSuggestion = useCallback(
     (suggestion: Suggestion) => {

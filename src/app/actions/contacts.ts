@@ -4,10 +4,22 @@ import { revalidatePath } from "next/cache";
 import directus from "@/lib/directus";
 import { createItem, updateItem, readItems, readItem } from "@directus/sdk";
 
+export interface ContactItem {
+  id: string | number;
+  first_name: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  status?: string;
+  comments?: string;
+  date_created?: string;
+}
+
 export async function getContact(id: string | number) {
   try {
     const contact = await directus.request(readItem("contacts", id));
-    return { success: true, data: contact };
+    return { success: true, data: contact as unknown as ContactItem };
   } catch (error) {
     console.error(`Failed to fetch contact ${id}:`, error);
     return { success: false, error: String(error) };
@@ -21,11 +33,11 @@ export async function getContacts() {
         filter: {
           deleted_at: { _null: true },
         },
-        sort: ["-date_created"],
+        sort: ["-date_created"] as string[],
         limit: -1,
       }),
     );
-    return { success: true, data: contacts as any[] };
+    return { success: true, data: contacts as unknown as ContactItem[] };
   } catch (error) {
     console.error("Failed to fetch contacts:", error);
     return {
@@ -35,7 +47,7 @@ export async function getContacts() {
   }
 }
 
-export async function createContact(data: any) {
+export async function createContact(data: Partial<ContactItem>) {
   try {
     if (!data.first_name) {
       throw new Error("First name is required");
@@ -51,11 +63,11 @@ export async function createContact(data: any) {
         company: data.company || "",
         status: data.status || "lead",
         comments: data.comments || "",
-      } as any),
+      }),
     );
 
     revalidatePath("/dashboard/contacts");
-    return { success: true, contact: drContact };
+    return { success: true, contact: drContact as unknown as ContactItem };
   } catch (error) {
     console.error("Failed to create contact:", error);
     return {
@@ -66,9 +78,12 @@ export async function createContact(data: any) {
   }
 }
 
-export async function updateContact(id: number | string, data: any) {
+export async function updateContact(
+  id: number | string,
+  data: Partial<ContactItem>,
+) {
   try {
-    await directus.request(updateItem("contacts", id, data as any));
+    await directus.request(updateItem("contacts", id, data));
     revalidatePath("/dashboard/contacts");
     return { success: true };
   } catch (error) {
@@ -82,9 +97,7 @@ export async function updateContact(id: number | string, data: any) {
 
 export async function updateContactComments(id: number, comments: string) {
   try {
-    await directus.request(
-      updateItem("contacts", id, { comments: comments } as any),
-    );
+    await directus.request(updateItem("contacts", id, { comments: comments }));
     revalidatePath("/dashboard/contacts");
     return { success: true };
   } catch (error) {
@@ -138,7 +151,7 @@ export async function uploadVCard(formData: FormData) {
             phone: (phone || "").replace(/\s/g, ""),
             company: org || "",
             status: "lead",
-          } as any),
+          }),
         );
         successCount++;
       } catch (e) {
@@ -160,15 +173,14 @@ export async function bulkCreateContacts(contacts: any[]) {
   try {
     let successCount = 0;
 
-    // Fetch existing emails to avoid duplicates in this batch
     const existingContacts = await directus.request(
       readItems("contacts", {
-        fields: ["email"] as any,
+        fields: ["email"] as string[],
         limit: -1,
       }),
     );
     const existingEmails = new Set(
-      (existingContacts as any[])
+      (existingContacts as unknown as ContactItem[])
         .map((c) => c.email?.toLowerCase())
         .filter(Boolean),
     );
@@ -204,8 +216,7 @@ export async function bulkCreateContacts(contacts: any[]) {
             phone: phone ? String(phone).replace(/\s/g, "") : "",
             company: company ? String(company) : "",
             status: contact.status || "lead",
-            ...contact,
-          } as any),
+          }),
         );
         successCount++;
         if (normalizedEmail) existingEmails.add(normalizedEmail);
@@ -229,26 +240,24 @@ export async function importGoogleContacts() {
     const user = await currentUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
-    // 1. Get tokens from Directus
-    const tokensRes = (await directus.request(
+    const tokensRes = await directus.request(
       readItems("google_tokens", {
-        filter: { user_id: { _eq: user.id } } as any,
+        filter: { user_id: { _eq: user.id } },
         limit: 1,
       }),
-    )) as any[];
+    );
 
-    if (!tokensRes || tokensRes.length === 0) {
+    const tokens = (tokensRes as any[])[0];
+    if (!tokens) {
       return {
         success: false,
         error: "Google account not connected or tokens missing.",
       };
     }
 
-    const tokens = tokensRes[0];
     const { getPeopleClient } = await import("@/lib/google");
     const people = getPeopleClient(tokens.access_token, tokens.refresh_token);
 
-    // 2. Fetch contacts from Google
     const response = await people.people.connections.list({
       resourceName: "people/me",
       pageSize: 1000,
@@ -268,21 +277,15 @@ export async function importGoogleContacts() {
         const company = orgs[0]?.name || "";
         return { name, email, phone, company };
       })
-      .filter((c) => c.email || c.phone); // Only meaningful ones
+      .filter((c) => c.email || c.phone);
 
-    if (googleContacts.length === 0) {
-      return {
-        success: true,
-        count: 0,
-        message: "No contacts found in Google.",
-      };
-    }
-
-    // 3. Save to CRM
     return await bulkCreateContacts(googleContacts);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Google Import Error:", error);
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 

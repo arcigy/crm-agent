@@ -3,6 +3,25 @@
 import directus from "@/lib/directus";
 import { readItems } from "@directus/sdk";
 
+export interface ContactRelation {
+  id: number;
+  first_name: string;
+  last_name: string;
+  company?: string;
+}
+
+export interface ProjectRelation {
+  id: number;
+  project_type: string;
+  stage?: string;
+}
+
+export interface DealRelation {
+  id: number;
+  name: string;
+  value?: number;
+}
+
 export async function getTodoRelations() {
   try {
     const [contacts, projects, deals] = await Promise.all([
@@ -18,15 +37,18 @@ export async function getTodoRelations() {
     ]);
 
     return {
-      success: true,
+      success: true as const,
       data: {
-        contacts: contacts as any[],
-        projects: projects as any[],
-        deals: deals as any[],
+        contacts: contacts as ContactRelation[],
+        projects: projects as ProjectRelation[],
+        deals: deals as DealRelation[],
       },
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Get Todo Relations Error:", error);
-    return { success: false, error: error.message };
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }

@@ -18,12 +18,12 @@ import {
   Quote,
   Undo,
   Redo,
-  Type,
   Highlighter,
 } from "lucide-react";
 import { MentionNode } from "@/lib/tiptap-mention-node";
 import { useAutocomplete } from "@/hooks/useAutocomplete";
 import { AutocompleteDropdown } from "@/components/editor/AutocompleteDropdown";
+import { Editor } from "@tiptap/react";
 
 interface RichTextEditorProps {
   content: string;
@@ -31,7 +31,7 @@ interface RichTextEditorProps {
   placeholder?: string;
 }
 
-const MenuBar = ({ editor }: { editor: any }) => {
+const MenuBar = ({ editor }: { editor: Editor | null }) => {
   if (!editor) return null;
 
   return (

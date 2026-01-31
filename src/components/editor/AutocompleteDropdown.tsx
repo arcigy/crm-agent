@@ -16,10 +16,9 @@ export function AutocompleteDropdown({
   position,
   onSelect,
 }: AutocompleteDropdownProps) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
-  if (!mounted || suggestions.length === 0 || !position) return null;
+  if (suggestions.length === 0 || !position || typeof window === "undefined") {
+    return null;
+  }
 
   return createPortal(
     <div
