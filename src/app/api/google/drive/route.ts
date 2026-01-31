@@ -40,7 +40,14 @@ export async function GET(req: Request) {
     }
 
     if (search) {
+      console.log(`[Drive API] Searching for: "${search}"`);
       const folders = await searchFoldersByDescription(token, search);
+      console.log(`[Drive API] Found ${folders.length} folders`);
+      if (folders.length > 0) {
+        console.log(
+          `[Drive API] First folder: ${folders[0].name} (ID: ${folders[0].id})`,
+        );
+      }
       return NextResponse.json({ isConnected: true, files: folders });
     }
 

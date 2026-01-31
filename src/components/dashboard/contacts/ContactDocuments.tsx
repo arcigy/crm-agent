@@ -17,31 +17,52 @@ export function ContactDocuments({ contact }: { contact: Lead }) {
     const fetchFoldersAndChildren = async () => {
       setIsLoading(true);
       try {
-        // 1. Search for project root folders
-        const searchTerm =
-          `Client: ${contact.first_name || ""} ${contact.last_name || ""}`.trim();
-        const res = await fetch(
-          `/api/google/drive?search=${encodeURIComponent(searchTerm)}`,
+        const contactName =
+          `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
+
+        // 1. First approach: Search by description tag "Client: Name"
+        const searchRes = await fetch(
+          `/api/google/drive?search=${encodeURIComponent(`Client: ${contactName}`)}`,
         );
-        const result = await res.json();
+        const searchResult = await searchRes.json();
 
-        if (result.isConnected && result.files) {
-          const folders = result.files;
+        let folders = searchResult.files || [];
 
-          // 2. For each root folder, fetch its direct children
+        // 2. Second approach (Fallback): If search returned nothing,
+        // try to catch projects that are already linked in the database
+        if (folders.length === 0 && contact.projects?.length) {
+          folders = contact.projects
+            .filter((p) => p.drive_folder_id)
+            .map((p) => ({
+              id: p.drive_folder_id,
+              name: p.project_type || p.name || "Projekt",
+              mimeType: "application/vnd.google-apps.folder",
+            }));
+        }
+
+        // 3. For all found folders, fetch their direct children (subfolders)
+        if (folders.length > 0) {
           const enriched = await Promise.all(
             folders.map(async (folder: any) => {
-              const childRes = await fetch(
-                `/api/google/drive?folderId=${folder.id}`,
-              );
-              const childData = await childRes.json();
-              return {
-                ...folder,
-                subfolders: childData.files || [],
-              };
+              try {
+                const childRes = await fetch(
+                  `/api/google/drive?folderId=${folder.id}`,
+                );
+                const childData = await childRes.json();
+                return {
+                  ...folder,
+                  subfolders: (childData.files || []).filter((f: any) =>
+                    f.mimeType.includes("folder"),
+                  ),
+                };
+              } catch (e) {
+                return { ...folder, subfolders: [] };
+              }
             }),
           );
           setProjectsData(enriched);
+        } else {
+          setProjectsData([]);
         }
       } catch (err) {
         console.error("Fetch folders failed:", err);
