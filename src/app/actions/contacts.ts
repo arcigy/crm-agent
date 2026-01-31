@@ -18,7 +18,11 @@ export interface ContactItem {
 
 export async function getContact(id: string | number) {
   try {
-    const contact = await directus.request(readItem("contacts", id));
+    const contact = await directus.request(
+      readItem("contacts", id, {
+        fields: ["*", { projects: ["*"] }],
+      }),
+    );
     return { success: true, data: contact as unknown as ContactItem };
   } catch (error) {
     console.error(`Failed to fetch contact ${id}:`, error);
@@ -33,6 +37,7 @@ export async function getContacts() {
         filter: {
           deleted_at: { _null: true },
         },
+        fields: ["*", { projects: ["*"] }],
         sort: ["-date_created"] as string[],
         limit: -1,
       }),
