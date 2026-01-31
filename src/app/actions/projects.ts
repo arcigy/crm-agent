@@ -5,7 +5,10 @@ import { readItems, createItem, updateItem } from "@directus/sdk";
 import { revalidatePath } from "next/cache";
 import type { Project, ProjectStage } from "@/types/project";
 import { currentUser, clerkClient } from "@clerk/nextjs/server";
-import { setupProjectStructure } from "@/lib/google-drive";
+import {
+  setupProjectStructure,
+  updateFolderDescription,
+} from "@/lib/google-drive";
 import { getCalendarClient } from "@/lib/google";
 
 export async function getProjects(): Promise<{
@@ -191,5 +194,70 @@ export async function deleteProject(id: number) {
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e.message };
+  }
+}
+
+export async function syncAllProjectDescriptions() {
+  try {
+    const user = await currentUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const client = await clerkClient();
+    const tokenRes = await client.users.getUserOauthAccessToken(
+      user.id,
+      "oauth_google",
+    );
+    const token = tokenRes.data[0]?.token;
+    if (!token) throw new Error("Google Token not found");
+
+    // 1. Fetch all projects
+    const { data: projects } = await getProjects();
+    if (!projects) return { success: false, message: "No projects found" };
+
+    // 2. Fetch all contacts to have names ready
+    const contacts = (await directus.request(
+      readItems("contacts", {
+        fields: ["id", "first_name", "last_name"],
+        limit: -1,
+      }),
+    )) as any[];
+
+    const results = { total: 0, updated: 0, failed: 0 };
+
+    // 3. Update each project's drive folder
+    for (const p of projects) {
+      if (p.drive_folder_id) {
+        results.total++;
+        try {
+          // Find contact name
+          let name = p.contact_name;
+          if (!name || name === "Neznámy") {
+            const c = contacts.find(
+              (c: any) => String(c.id) === String(p.contact_id),
+            );
+            if (c) name = `${c.first_name || ""} ${c.last_name || ""}`.trim();
+          }
+
+          if (name && name !== "Neznámy") {
+            await updateFolderDescription(
+              token,
+              p.drive_folder_id,
+              `Client: ${name}`,
+            );
+            results.updated++;
+          } else {
+            results.failed++;
+          }
+        } catch (err) {
+          console.error(`[Sync] Failed project ${p.id}:`, err);
+          results.failed++;
+        }
+      }
+    }
+
+    return { success: true, results };
+  } catch (error: any) {
+    console.error("Sync failed:", error);
+    return { success: false, error: error.message };
   }
 }

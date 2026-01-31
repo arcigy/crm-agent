@@ -281,3 +281,16 @@ export async function searchFoldersByDescription(
     throw err;
   }
 }
+
+export async function updateFolderDescription(
+  token: string,
+  fileId: string,
+  description: string,
+) {
+  const drive = await getDriveClient(token);
+  await drive.files.update({
+    fileId,
+    requestBody: { description },
+  });
+  return true;
+}
