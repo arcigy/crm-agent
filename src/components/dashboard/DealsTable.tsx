@@ -28,6 +28,9 @@ import { PaymentModal } from "./deals/PaymentModal";
 import { DealsFilters } from "./deals/DealsFilters";
 import { useDealsTable } from "@/hooks/useDealsTable";
 
+import { ContactDetailModal } from "./ContactDetailModal";
+import { ProjectDetailModal } from "./ProjectDetailModal";
+
 import { Deal } from "@/types/deal";
 import { Project, PROJECT_STAGES } from "@/types/project";
 import { StageBadge } from "./projects/StageBadge";
@@ -62,6 +65,10 @@ export function DealsTable({
     setInvoicingProject,
     payingProject,
     setPayingProject,
+    detailContact,
+    setDetailContact,
+    fullDetailProject,
+    setFullDetailProject,
     handleUpdateProjectStage,
     handleUpdateProjectValue,
     handleTogglePaidStatus,
@@ -73,8 +80,14 @@ export function DealsTable({
     columnHelper.accessor("name", {
       header: "Projekt / Obchod",
       cell: (info) => (
-        <div className="flex flex-col">
-          <span className="font-black text-foreground text-[11px] uppercase tracking-tighter italic">
+        <div
+          className="flex flex-col cursor-pointer group/name"
+          onClick={() => {
+            const p = info.row.original.project;
+            if (p) setFullDetailProject(p);
+          }}
+        >
+          <span className="font-black text-foreground text-[11px] uppercase tracking-tighter italic group-hover/name:text-blue-600 transition-colors">
             {info.row.original.project?.name || info.getValue()}
           </span>
           <div className="flex items-center gap-1 opacity-50">
@@ -87,18 +100,27 @@ export function DealsTable({
     }),
     columnHelper.accessor("contact_id", {
       header: "Kontakt",
-      cell: (info) => (
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[10px] font-black text-blue-500">
-            {info.row.original.project?.contact_name
-              ?.substring(0, 2)
-              .toUpperCase() || "??"}
+      cell: (info) => {
+        const p = info.row.original.project;
+        return (
+          <div
+            className="flex items-center gap-2 cursor-pointer group/contact"
+            onClick={() => {
+              const c = contacts.find(
+                (c) => String(c.id) === String(p?.contact_id),
+              );
+              if (c) setDetailContact(c);
+            }}
+          >
+            <div className="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[10px] font-black text-blue-500 group-hover/contact:scale-110 transition-transform">
+              {p?.contact_name?.substring(0, 2).toUpperCase() || "??"}
+            </div>
+            <span className="font-bold text-xs text-foreground/80 group-hover/contact:text-blue-600 transition-colors">
+              {p?.contact_name || "Neznámy"}
+            </span>
           </div>
-          <span className="font-bold text-xs text-foreground/80">
-            {info.row.original.project?.contact_name || "Neznámy"}
-          </span>
-        </div>
-      ),
+        );
+      },
     }),
     columnHelper.accessor("project.stage", {
       header: "Štádium",
@@ -319,6 +341,18 @@ export function DealsTable({
           onConfirm={() => handleTogglePaidStatus(payingProject.id, true)}
         />
       )}
+
+      <ContactDetailModal
+        contact={detailContact}
+        isOpen={!!detailContact}
+        onClose={() => setDetailContact(null)}
+      />
+
+      <ProjectDetailModal
+        project={fullDetailProject}
+        isOpen={!!fullDetailProject}
+        onClose={() => setFullDetailProject(null)}
+      />
 
       <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden transition-colors duration-300">
         <DealsFilters

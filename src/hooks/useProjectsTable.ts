@@ -13,6 +13,9 @@ export function useProjectsTable(data: Project[], contacts: Lead[]) {
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [detailContact, setDetailContact] = React.useState<Lead | null>(null);
+  const [driveProject, setDriveProject] = React.useState<Project | null>(null);
+  const [fullDetailProject, setFullDetailProject] =
+    React.useState<Project | null>(null);
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -33,6 +36,12 @@ export function useProjectsTable(data: Project[], contacts: Lead[]) {
       );
     };
   }, []);
+
+  const handleStageChange = async (id: number, stage: any) => {
+    const { updateProjectStage } = await import("@/app/actions/projects");
+    await updateProjectStage(id, stage);
+    toast.success("Štádium upravené");
+  };
 
   const handleExport = () => {
     const headers = [
@@ -84,6 +93,11 @@ export function useProjectsTable(data: Project[], contacts: Lead[]) {
     setIsModalOpen,
     detailContact,
     setDetailContact,
+    driveProject,
+    setDriveProject,
+    fullDetailProject,
+    setFullDetailProject,
+    handleStageChange,
     handleExport,
   };
 }

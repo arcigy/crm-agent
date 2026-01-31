@@ -14,6 +14,8 @@ import { Lead } from "@/types/contact";
 import { CreateProjectModal } from "./projects/CreateProjectModal";
 import { getProjectColumns } from "./projects/ProjectColumns";
 import { useProjectsTable } from "@/hooks/useProjectsTable";
+import { ProjectDriveModal } from "./ProjectDriveModal";
+import { ProjectDetailModal } from "./ProjectDetailModal";
 
 export function ProjectsTable({
   data,
@@ -32,10 +34,32 @@ export function ProjectsTable({
     setIsModalOpen,
     detailContact,
     setDetailContact,
+    driveProject,
+    setDriveProject,
+    fullDetailProject,
+    setFullDetailProject,
+    handleStageChange,
     handleExport,
   } = useProjectsTable(data, contacts);
 
-  const columns = React.useMemo(() => getProjectColumns(), []);
+  const columns = React.useMemo(
+    () =>
+      getProjectColumns(
+        contacts,
+        handleStageChange,
+        (contact) => setDetailContact(contact),
+        (project) => setDriveProject(project),
+        (project) => setFullDetailProject(project),
+      ),
+    [
+      contacts,
+      handleStageChange,
+      setDetailContact,
+      setDriveProject,
+      setFullDetailProject,
+    ],
+  );
+
   const table = useReactTable({
     data,
     columns,
@@ -63,6 +87,18 @@ export function ProjectsTable({
         contact={detailContact}
         isOpen={!!detailContact}
         onClose={() => setDetailContact(null)}
+      />
+      <ProjectDriveModal
+        isOpen={!!driveProject}
+        onClose={() => setDriveProject(null)}
+        projectId={driveProject?.id || 0}
+        projectName={driveProject?.name || ""}
+        folderId={driveProject?.drive_folder_id}
+      />
+      <ProjectDetailModal
+        project={fullDetailProject}
+        isOpen={!!fullDetailProject}
+        onClose={() => setFullDetailProject(null)}
       />
 
       <div className="p-6 border-b border-border bg-muted/20 flex flex-wrap items-center justify-between gap-4">

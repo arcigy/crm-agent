@@ -15,6 +15,7 @@ export const getProjectColumns = (
   onStageChange: (id: number, stage: any) => Promise<void>,
   onContactClick: (contact: Lead) => void,
   onDriveClick: (project: Project) => void,
+  onProjectClick?: (project: Project) => void,
 ) => [
   columnHelper.accessor("date_created", {
     header: "Dátum vytvorenia",
@@ -37,8 +38,11 @@ export const getProjectColumns = (
   columnHelper.accessor("name", {
     header: "Projekt / Typ",
     cell: (info) => (
-      <div className="flex flex-col">
-        <span className="font-black text-foreground text-[11px] uppercase tracking-tight italic">
+      <div
+        className="flex flex-col cursor-pointer group/name"
+        onClick={() => onProjectClick?.(info.row.original)}
+      >
+        <span className="font-black text-foreground text-[11px] uppercase tracking-tight italic group-hover/name:text-blue-600 transition-colors">
           {info.getValue() || info.row.original.project_type}
         </span>
         <div className="flex items-center gap-1 opacity-50">
@@ -51,6 +55,7 @@ export const getProjectColumns = (
     ),
   }),
   columnHelper.accessor("contact_name", {
+    // ... (rest is same, but I'll update the cell to be sure)
     header: "Kontakt",
     cell: (info) => {
       const name = info.getValue();
@@ -106,22 +111,26 @@ export const getProjectColumns = (
           </span>
         );
       const d = new Date(val);
+      const iso = d.toISOString().split("T")[0];
       const isOverdue =
         d < new Date() && info.row.original.stage !== "completed";
       return (
-        <div
-          className={`flex items-center gap-2 text-sm ${isOverdue ? "text-red-500" : "text-foreground"}`}
+        <Link
+          href={`/dashboard/calendar?date=${iso}`}
+          className={`flex items-center gap-2 text-sm group hover:underline ${isOverdue ? "text-red-500" : "text-foreground"}`}
         >
           <Calendar
-            className={`w-4 h-4 ${isOverdue ? "text-red-400" : "text-gray-400"}`}
+            className={`w-4 h-4 ${isOverdue ? "text-red-400" : "text-gray-400"} group-hover:text-blue-400`}
           />
-          <span className="font-medium">{d.toLocaleDateString("sk-SK")}</span>
+          <span className="font-medium group-hover:text-blue-600">
+            {d.toLocaleDateString("sk-SK")}
+          </span>
           {isOverdue && (
             <span className="text-[10px] font-black text-red-500 uppercase">
               Meškanie!
             </span>
           )}
-        </div>
+        </Link>
       );
     },
   }),
@@ -130,7 +139,10 @@ export const getProjectColumns = (
     header: "Súbory",
     cell: (info) => (
       <button
-        onClick={() => onDriveClick(info.row.original)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDriveClick(info.row.original);
+        }}
         className={`p-1.5 rounded-lg border border-border transition-colors ${info.row.original.drive_folder_id ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white" : "bg-gray-50 dark:bg-slate-800 text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700"}`}
       >
         <HardDrive className="w-3.5 h-3.5" />
