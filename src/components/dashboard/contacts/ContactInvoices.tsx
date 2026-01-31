@@ -27,49 +27,92 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const fetchInvoicesForProject = async (
+  const fetchFilesFromFolder = async (
+    folderId: string,
+    projectName: string,
+    projectId: number,
+  ) => {
+    try {
+      const res = await fetch(`/api/google/drive?folderId=${folderId}`);
+      const data = await res.json();
+
+      if (!data.isConnected || !data.files) return [];
+
+      return data.files
+        .filter((f: any) => f.mimeType !== "application/vnd.google-apps.folder")
+        .map((f: any) => ({
+          ...f,
+          projectName,
+          projectId,
+        }));
+    } catch (err) {
+      console.error(`Failed to fetch files from folder ${folderId}:`, err);
+      return [];
+    }
+  };
+
+  const fetchDocumentsForProject = async (
     projectId: number,
     folderId: string,
     projectName: string,
   ) => {
-    // We'll search for files that are inside folders containing these names
-    const keywords = [
-      "faktury",
-      "faktúry",
-      "invoices",
-      "zmluvy",
-      "zmluva",
-      "contract",
-    ];
-
     try {
-      const res = await fetch(
-        `/api/google/drive?folderId=${folderId}&recursive=true`,
-      );
-      const result = await res.json();
+      // 1. Get all folders in the project root
+      const rootRes = await fetch(`/api/google/drive?folderId=${folderId}`);
+      const rootData = await rootRes.json();
 
-      if (result.isConnected && result.files) {
-        return result.files
-          .filter((f: any) => {
-            const isFile = f.mimeType !== "application/vnd.google-apps.folder";
-            const pathLower = (f.path || "").toLowerCase();
-            const nameLower = (f.name || "").toLowerCase();
-            const hasKeyword = keywords.some(
-              (keyword) =>
-                pathLower.includes(keyword) || nameLower.includes(keyword),
-            );
-            return isFile && hasKeyword;
-          })
-          .map((f: any) => ({
-            ...f,
-            projectName,
-            projectId,
-          }));
-      }
-      return [];
+      if (!rootData.isConnected || !rootData.files)
+        return { zmluvy: [], faktury: [] };
+
+      // 2. Find the "01_Zmluvy_a_Faktury" folder
+      const financeFolder = rootData.files.find(
+        (f: any) =>
+          f.mimeType === "application/vnd.google-apps.folder" &&
+          f.name.toLowerCase().includes("zmluvy") &&
+          f.name.toLowerCase().includes("faktury"),
+      );
+
+      if (!financeFolder) return { zmluvy: [], faktury: [] };
+
+      // 3. Get subfolders of "01_Zmluvy_a_Faktury"
+      const subRes = await fetch(
+        `/api/google/drive?folderId=${financeFolder.id}`,
+      );
+      const subData = await subRes.json();
+
+      if (!subData.isConnected || !subData.files)
+        return { zmluvy: [], faktury: [] };
+
+      // 4. Find "Zmluvy" and "Faktúry" subfolders
+      const zmluvyFolder = subData.files.find(
+        (f: any) =>
+          f.mimeType === "application/vnd.google-apps.folder" &&
+          f.name.toLowerCase().includes("zmluv") &&
+          !f.name.toLowerCase().includes("faktúr"),
+      );
+
+      const fakturyFolder = subData.files.find(
+        (f: any) =>
+          f.mimeType === "application/vnd.google-apps.folder" &&
+          f.name.toLowerCase().includes("faktúr"),
+      );
+
+      // 5. Fetch files from each subfolder
+      const zmluvyFiles = zmluvyFolder
+        ? await fetchFilesFromFolder(zmluvyFolder.id, projectName, projectId)
+        : [];
+
+      const fakturyFiles = fakturyFolder
+        ? await fetchFilesFromFolder(fakturyFolder.id, projectName, projectId)
+        : [];
+
+      return { zmluvy: zmluvyFiles, faktury: fakturyFiles };
     } catch (err) {
-      console.error(`Failed to fetch for project ${projectName}:`, err);
-      return [];
+      console.error(
+        `Failed to fetch documents for project ${projectName}:`,
+        err,
+      );
+      return { zmluvy: [], faktury: [] };
     }
   };
 
@@ -88,43 +131,42 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
         const results = await Promise.all(
           contact.projects.map((p) => {
             if (p.drive_folder_id) {
-              return fetchInvoicesForProject(
+              return fetchDocumentsForProject(
                 p.id,
                 p.drive_folder_id,
                 p.project_type,
               );
             }
-            return Promise.resolve([]);
+            return Promise.resolve({ zmluvy: [], faktury: [] });
           }),
         );
 
-        const flattened = results.flat();
-        const unique = flattened.filter(
+        // Combine all zmluvy and faktury from all projects
+        const allZmluvy: InvoiceFile[] = [];
+        const allFaktury: InvoiceFile[] = [];
+
+        results.forEach((result) => {
+          allZmluvy.push(...result.zmluvy);
+          allFaktury.push(...result.faktury);
+        });
+
+        // Remove duplicates
+        const uniqueZmluvy = allZmluvy.filter(
           (v, i, a) => a.findIndex((t) => t.id === v.id) === i,
         );
-
-        // Categorize
-        const zmluvy: InvoiceFile[] = [];
-        const faktury: InvoiceFile[] = [];
-
-        unique.forEach((f) => {
-          const lower = (f.name + (f as any).path).toLowerCase();
-          if (lower.includes("zmluv") || lower.includes("contract")) {
-            zmluvy.push(f);
-          } else {
-            faktury.push(f);
-          }
-        });
+        const uniqueFaktury = allFaktury.filter(
+          (v, i, a) => a.findIndex((t) => t.id === v.id) === i,
+        );
 
         // Sort by modified time (newest first)
         const sorter = (a: any, b: any) =>
           new Date(b.modifiedTime).getTime() -
           new Date(a.modifiedTime).getTime();
-        zmluvy.sort(sorter);
-        faktury.sort(sorter);
+        uniqueZmluvy.sort(sorter);
+        uniqueFaktury.sort(sorter);
 
-        setContractFiles(zmluvy);
-        setInvoiceFiles(faktury);
+        setContractFiles(uniqueZmluvy);
+        setInvoiceFiles(uniqueFaktury);
       } catch (err) {
         setError("Nepodarilo sa načítať dokumenty z Google Drive.");
         toast.error("Chyba pri načítaní dokumentov");
@@ -275,7 +317,7 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
 
       <div className="mt-4 p-6 bg-zinc-50 dark:bg-zinc-900/30 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800 text-center">
         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-          Všetky údaje sú načítané z Google Drive priečinka
+          Zmluvy z priečinka "Zmluvy" a faktúry z priečinka "Faktúry" v rámci
           "01_Zmluvy_a_Faktury"
         </p>
       </div>
