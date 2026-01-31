@@ -32,14 +32,9 @@ export const MentionNode = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const type = HTMLAttributes.type;
-    const colors = {
-      contact:
-        "bg-blue-500/10 text-blue-600 border-blue-200 hover:bg-blue-500 hover:text-white",
-      project:
-        "bg-purple-500/10 text-purple-600 border-purple-200 hover:bg-purple-500 hover:text-white",
-    };
-    const colorClass = colors[type as keyof typeof colors] || "";
+    const type = HTMLAttributes.type || "contact";
+    const typeClass =
+      type === "project" ? "mention-tag-project" : "mention-tag-contact";
 
     return [
       "a",
@@ -48,8 +43,7 @@ export const MentionNode = Node.create({
         "data-mention-component": "",
         "data-contact-id": HTMLAttributes.id,
         "data-type": type,
-        // user-select: all helps treat it as one block for selection/deletion
-        class: `inline-flex items-center gap-1 px-1.5 py-0.5 rounded border font-black text-[10px] uppercase tracking-tight transition-all mx-1 ${colorClass} cursor-pointer align-middle no-underline select-none`,
+        class: `mention-tag ${typeClass}`,
         contenteditable: "false",
         style: "user-select: none;",
       }),

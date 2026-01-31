@@ -1,6 +1,9 @@
 "use server";
 
-import directus from "@/lib/directus";
+import directus, {
+  getDirectusErrorMessage,
+  getDirectusErrorMessage,
+} from "@/lib/directus";
 import { readItems, createItem, updateItem, deleteItem } from "@directus/sdk";
 import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
@@ -46,7 +49,7 @@ export async function getTasks(date?: string) {
     console.error("Get Tasks Error:", error);
     return {
       success: false as const,
-      error: error instanceof Error ? error.message : String(error),
+      error: getDirectusErrorMessage(error),
     };
   }
 }
@@ -82,7 +85,7 @@ export async function getTasksForEntity(
     return { success: true as const, data: data as unknown as Task[] };
   } catch (error) {
     console.error("Get Related Tasks Error:", error);
-    return { success: false as const, error: String(error) };
+    return { success: false as const, error: getDirectusErrorMessage(error) };
   }
 }
 
@@ -108,7 +111,7 @@ export async function createTask(title: string, dueDate?: string) {
     console.error("Create Task Error:", error);
     return {
       success: false as const,
-      error: error instanceof Error ? error.message : String(error),
+      error: getDirectusErrorMessage(error),
     };
   }
 }
@@ -127,7 +130,7 @@ export async function toggleTaskStatus(id: string, completed: boolean) {
     console.error("Toggle Task Error:", error);
     return {
       success: false as const,
-      error: error instanceof Error ? error.message : String(error),
+      error: getDirectusErrorMessage(error),
     };
   }
 }
@@ -141,7 +144,7 @@ export async function removeTask(id: string) {
     console.error("Delete Task Error:", error);
     return {
       success: false as const,
-      error: error instanceof Error ? error.message : String(error),
+      error: getDirectusErrorMessage(error),
     };
   }
 }

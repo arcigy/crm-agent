@@ -31,17 +31,14 @@ export function SmartText({ text, className = "" }: SmartTextProps) {
       legacyRegex,
       (match, type, name, id, timeMatch, time) => {
         if (type) {
-          const colors = {
-            "@": "bg-blue-500/10 text-blue-600 border-blue-200 hover:bg-blue-500 hover:text-white",
-            "#": "bg-purple-500/10 text-purple-600 border-purple-200 hover:bg-purple-500 hover:text-white",
-            $: "bg-emerald-500/10 text-emerald-600 border-emerald-200 hover:bg-emerald-500 hover:text-white",
-          };
-          const colorClass = colors[type as keyof typeof colors] || "";
-          // Legacy type mapping: @=contact, #=project, $=deal
           const mentionType =
             type === "@" ? "contact" : type === "#" ? "project" : "deal";
+          const typeClass =
+            mentionType === "project"
+              ? "mention-tag-project"
+              : "mention-tag-contact";
 
-          return `<span data-mention-component data-contact-id="${id}" data-type="${mentionType}" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border font-black text-[10px] uppercase tracking-tight transition-all mx-1 ${colorClass} cursor-pointer no-underline select-none">
+          return `<span data-mention-component data-contact-id="${id}" data-type="${mentionType}" class="mention-tag ${typeClass}">
                 ${type === "@" ? "👤" : type === "#" ? "📁" : "💼"} ${name}
             </span>`;
         } else {

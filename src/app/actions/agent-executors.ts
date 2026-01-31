@@ -1,5 +1,7 @@
 "use server";
 
+import { getDirectusErrorMessage } from "@/lib/directus";
+
 import { executeGmailTool } from "./executors-gmail";
 import { executeDbContactTool } from "./executors-db-contacts";
 import { executeDbProjectTool } from "./executors-db-projects";
@@ -102,7 +104,7 @@ export async function executeAtomicTool(
     console.error("Executor Error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : JSON.stringify(error),
+      error: getDirectusErrorMessage(error),
     };
   }
 }
