@@ -55,9 +55,10 @@ export function useDriveFiles(
         }
 
         const res = await fetch(url);
+        if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
 
-        if (data.isConnected) {
+        if (data && data.isConnected) {
           setFiles(data.files || []);
         } else {
           toast.error("Google Drive nie je prepojený");

@@ -68,7 +68,7 @@ export function RelatedTasks({ entityId, type }: RelatedTasksProps) {
                 text={task.title}
                 className={`text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-100 ${task.completed ? "line-through opacity-50" : ""}`}
               />
-              {task.due_date && (
+              {task.due_date && !isNaN(new Date(task.due_date).getTime()) && (
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] font-black uppercase text-zinc-400 tracking-wider">
                   <Clock className="w-3 h-3" />
                   {new Date(task.due_date).toLocaleDateString("sk-SK")}

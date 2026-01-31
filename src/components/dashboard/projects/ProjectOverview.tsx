@@ -26,9 +26,12 @@ interface ProjectOverviewProps {
 export function ProjectOverview({ project, onClose }: ProjectOverviewProps) {
   // Simple age calculation
   const createdDate = new Date(project.date_created);
-  const ageDays = Math.floor(
-    (new Date().getTime() - createdDate.getTime()) / (1000 * 3600 * 24),
-  );
+  const isValidCreated = !isNaN(createdDate.getTime());
+  const ageDays = isValidCreated
+    ? Math.floor(
+        (new Date().getTime() - createdDate.getTime()) / (1000 * 3600 * 24),
+      )
+    : 0;
 
   return (
     <div className="overflow-y-auto p-8 bg-zinc-50/30 dark:bg-zinc-900/10 transition-colors custom-scrollbar h-full select-none">
@@ -52,7 +55,11 @@ export function ProjectOverview({ project, onClose }: ProjectOverviewProps) {
             label="Vek Projektu"
             value={`${ageDays} dní`}
             icon={<Clock className="w-4 h-4 text-purple-600" />}
-            trend={`Vytvorené ${createdDate.toLocaleDateString("sk-SK")}`}
+            trend={
+              isValidCreated
+                ? `Vytvorené ${createdDate.toLocaleDateString("sk-SK")}`
+                : "Dátum neznámy"
+            }
           />
           <KpiCard
             label="Identifikátor"
@@ -84,7 +91,8 @@ export function ProjectOverview({ project, onClose }: ProjectOverviewProps) {
               <DetailBox
                 label="Dátum fakturácie"
                 value={
-                  project.invoice_date
+                  project.invoice_date &&
+                  !isNaN(new Date(project.invoice_date).getTime())
                     ? new Date(project.invoice_date).toLocaleDateString("sk-SK")
                     : "—"
                 }
@@ -93,7 +101,8 @@ export function ProjectOverview({ project, onClose }: ProjectOverviewProps) {
               <DetailBox
                 label="Splatnosť faktúry"
                 value={
-                  project.due_date
+                  project.due_date &&
+                  !isNaN(new Date(project.due_date).getTime())
                     ? new Date(project.due_date).toLocaleDateString("sk-SK")
                     : "—"
                 }

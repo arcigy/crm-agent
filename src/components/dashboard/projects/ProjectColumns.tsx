@@ -74,6 +74,7 @@ export const getProjectColumns = (
         <div
           className="flex items-center gap-2 cursor-pointer group"
           onClick={() => {
+            if (!contacts) return;
             const c = contacts.find(
               (c) => String(c.id) === String(info.row.original.contact_id),
             );
@@ -111,13 +112,17 @@ export const getProjectColumns = (
           </span>
         );
       const d = new Date(val);
-      const iso = d.toISOString().split("T")[0];
+      const isValidDate = !isNaN(d.getTime());
+      const iso = isValidDate ? d.toISOString().split("T")[0] : "";
       const isOverdue =
-        d < new Date() && info.row.original.stage !== "completed";
+        isValidDate &&
+        d < new Date() &&
+        info.row.original.stage !== "completed";
       return (
         <Link
-          href={`/dashboard/calendar?date=${iso}`}
+          href={iso ? `/dashboard/calendar?date=${iso}` : "#"}
           className={`flex items-center gap-2 text-sm group hover:underline ${isOverdue ? "text-red-500" : "text-foreground"}`}
+          onClick={(e) => !iso && e.preventDefault()}
         >
           <Calendar
             className={`w-4 h-4 ${isOverdue ? "text-red-400" : "text-gray-400"} group-hover:text-blue-400`}

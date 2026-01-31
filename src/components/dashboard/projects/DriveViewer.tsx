@@ -50,9 +50,10 @@ export function DriveViewer({
         const res = await fetch(
           `/api/google/drive?folderId=${folderId}&recursive=true`,
         );
+        if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
 
-        if (data.isConnected && data.files) {
+        if (data && data.isConnected && data.files) {
           // Build hierarchical structure
           const fileMap = new Map<string, FileNode>();
           const rootChildren: FileNode[] = [];

@@ -108,7 +108,7 @@ export function ProjectProfileSidebar({
             icon={<Clock />}
             label="Termín dokončenia"
             value={
-              project.end_date
+              project.end_date && !isNaN(new Date(project.end_date).getTime())
                 ? new Date(project.end_date).toLocaleDateString("sk-SK")
                 : "Termín neurčený"
             }
@@ -123,15 +123,20 @@ export function ProjectProfileSidebar({
           <InfoRow
             icon={<Calendar />}
             label="Vytvorené"
-            value={new Date(project.date_created).toLocaleDateString("sk-SK")}
+            value={
+              !isNaN(new Date(project.date_created).getTime())
+                ? new Date(project.date_created).toLocaleDateString("sk-SK")
+                : "Dátum neznámy"
+            }
           />
-          {project.updated_at && (
-            <InfoRow
-              icon={<ExternalLink />}
-              label="Posledná úprava"
-              value={new Date(project.updated_at).toLocaleDateString("sk-SK")}
-            />
-          )}
+          {project.updated_at &&
+            !isNaN(new Date(project.updated_at).getTime()) && (
+              <InfoRow
+                icon={<ExternalLink />}
+                label="Posledná úprava"
+                value={new Date(project.updated_at).toLocaleDateString("sk-SK")}
+              />
+            )}
         </div>
       </div>
     </div>
