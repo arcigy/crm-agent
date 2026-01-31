@@ -1,9 +1,6 @@
 "use server";
 
-import directus, {
-  getDirectusErrorMessage,
-  getDirectusErrorMessage,
-} from "@/lib/directus";
+import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { readItems, createItem, updateItem, deleteItem } from "@directus/sdk";
 import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
