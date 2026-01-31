@@ -129,7 +129,7 @@ export function ToolsDebugger() {
         return;
       }
 
-      // Universal Mode: If JSON contains "tool" and "args", use them
+      // Universal Mode: If JSON contains "tool" and ("args" or "arguments"), use them
       let toolToRun = selectedTool;
       let argsToRun = payload;
 
@@ -137,14 +137,15 @@ export function ToolsDebugger() {
         payload &&
         typeof payload === "object" &&
         "tool" in payload &&
-        "args" in payload
+        ("args" in payload || "arguments" in payload)
       ) {
         const uPayload = payload as {
           tool: string;
-          args: Record<string, unknown>;
+          args?: Record<string, unknown>;
+          arguments?: Record<string, unknown>;
         };
         toolToRun = uPayload.tool;
-        argsToRun = uPayload.args;
+        argsToRun = uPayload.args || uPayload.arguments || {};
         setSelectedTool(toolToRun); // Sync sidebar UI
       }
 
