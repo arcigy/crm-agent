@@ -8,27 +8,6 @@ import {
   MapPin,
   AlignLeft,
   Loader2,
-} from "lucide-react";
-import { format } from "date-fns";
-import { toast } from "sonner";
-
-interface CreateEventModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  initialDate?: Date;
-}
-
-("use client");
-
-import * as React from "react";
-import {
-  X,
-  Calendar as CalendarIcon,
-  Clock,
-  MapPin,
-  AlignLeft,
-  Loader2,
   Repeat,
   Bell,
   Check,
@@ -158,12 +137,16 @@ export function CreateEventModal({
     if (suggestion.type === "project") {
       setFormData((prev) => ({
         ...prev,
-        description: prev.description + `\nProjekt: ${suggestion.label}`,
+        description: prev.description
+          ? prev.description + `\nProjekt: ${suggestion.label}`
+          : `Projekt: ${suggestion.label}`,
       }));
     } else {
       setFormData((prev) => ({
         ...prev,
-        description: prev.description + `\nKontakt: ${suggestion.label}`,
+        description: prev.description
+          ? prev.description + `\nKontakt: ${suggestion.label}`
+          : `Kontakt: ${suggestion.label}`,
       }));
     }
   };
