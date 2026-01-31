@@ -57,12 +57,21 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
     projectName: string,
   ) => {
     try {
+      console.log(`[Finance] Fetching for project: ${projectName}`);
+
       // 1. Get all folders in the project root
       const rootRes = await fetch(`/api/google/drive?folderId=${folderId}`);
       const rootData = await rootRes.json();
 
-      if (!rootData.isConnected || !rootData.files)
+      if (!rootData.isConnected || !rootData.files) {
+        console.log(`[Finance] No root files for ${projectName}`);
         return { zmluvy: [], faktury: [] };
+      }
+
+      console.log(
+        `[Finance] Root folders:`,
+        rootData.files.map((f: any) => f.name),
+      );
 
       // 2. Find the "01_Zmluvy_a_Faktury" folder
       const financeFolder = rootData.files.find(
@@ -72,7 +81,12 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
           f.name.toLowerCase().includes("faktury"),
       );
 
-      if (!financeFolder) return { zmluvy: [], faktury: [] };
+      if (!financeFolder) {
+        console.log(`[Finance] No finance folder found in ${projectName}`);
+        return { zmluvy: [], faktury: [] };
+      }
+
+      console.log(`[Finance] Found finance folder: ${financeFolder.name}`);
 
       // 3. Get subfolders of "01_Zmluvy_a_Faktury"
       const subRes = await fetch(
@@ -80,8 +94,15 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
       );
       const subData = await subRes.json();
 
-      if (!subData.isConnected || !subData.files)
+      if (!subData.isConnected || !subData.files) {
+        console.log(`[Finance] No subfolders in finance folder`);
         return { zmluvy: [], faktury: [] };
+      }
+
+      console.log(
+        `[Finance] Subfolders:`,
+        subData.files.map((f: any) => f.name),
+      );
 
       // 4. Find "Zmluvy" and "Faktúry" subfolders
       const zmluvyFolder = subData.files.find(
@@ -97,6 +118,15 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
           f.name.toLowerCase().includes("faktúr"),
       );
 
+      console.log(
+        `[Finance] Zmluvy folder:`,
+        zmluvyFolder?.name || "NOT FOUND",
+      );
+      console.log(
+        `[Finance] Faktury folder:`,
+        fakturyFolder?.name || "NOT FOUND",
+      );
+
       // 5. Fetch files from each subfolder
       const zmluvyFiles = zmluvyFolder
         ? await fetchFilesFromFolder(zmluvyFolder.id, projectName, projectId)
@@ -105,6 +135,10 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
       const fakturyFiles = fakturyFolder
         ? await fetchFilesFromFolder(fakturyFolder.id, projectName, projectId)
         : [];
+
+      console.log(
+        `[Finance] Found ${zmluvyFiles.length} contracts, ${fakturyFiles.length} invoices`,
+      );
 
       return { zmluvy: zmluvyFiles, faktury: fakturyFiles };
     } catch (err) {
