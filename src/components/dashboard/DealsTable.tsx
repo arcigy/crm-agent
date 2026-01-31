@@ -22,8 +22,7 @@ import {
 import { format, isBefore } from "date-fns";
 import { sk } from "date-fns/locale";
 import { toast } from "sonner";
-import { ProjectDriveModal } from "./ProjectDriveModal";
-import { InvoiceModal, InvoiceModal } from "./deals/InvoiceModal";
+import { InvoiceModal } from "./deals/InvoiceModal";
 import { PaymentModal } from "./deals/PaymentModal";
 import { DealsFilters } from "./deals/DealsFilters";
 import { useDealsTable } from "@/hooks/useDealsTable";

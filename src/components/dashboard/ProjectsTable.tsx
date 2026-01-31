@@ -14,7 +14,6 @@ import { Lead } from "@/types/contact";
 import { CreateProjectModal } from "./projects/CreateProjectModal";
 import { getProjectColumns } from "./projects/ProjectColumns";
 import { useProjectsTable } from "@/hooks/useProjectsTable";
-import { ProjectDriveModal } from "./ProjectDriveModal";
 import { ProjectDetailModal } from "./ProjectDetailModal";
 
 export function ProjectsTable({
