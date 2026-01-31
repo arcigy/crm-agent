@@ -37,6 +37,7 @@ export async function getProject(id: string | number): Promise<{
     const project = await directus.request(
       readItems("projects", {
         filter: { id: { _eq: id } },
+        fields: ["*", { contact_id: ["first_name", "last_name"] }],
         limit: 1,
       }),
     );
@@ -45,7 +46,19 @@ export async function getProject(id: string | number): Promise<{
       return { data: null, success: false, error: "Project not found" };
     }
 
-    return { data: project[0] as Project, success: true };
+    const p = project[0] as any;
+    // If contact_name is missing but contact_id is an object (joined), reconstruct it
+    if (
+      (!p.contact_name || p.contact_name === "Neznámy") &&
+      p.contact_id &&
+      typeof p.contact_id === "object"
+    ) {
+      p.contact_name =
+        `${p.contact_id.first_name || ""} ${p.contact_id.last_name || ""}`.trim() ||
+        "Neznámy";
+    }
+
+    return { data: p as Project, success: true };
   } catch (e: any) {
     console.error("Fetch project failed:", e);
     return { data: null, success: false, error: e.message };

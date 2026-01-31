@@ -51,6 +51,41 @@ export async function getTasks(date?: string) {
   }
 }
 
+export async function getTasksForEntity(
+  id: string | number,
+  type: "contact" | "project",
+) {
+  try {
+    const user = await currentUser();
+    if (!user) return { success: false as const, error: "Unauthorized" };
+    const email = user.emailAddresses[0]?.emailAddress;
+
+    // Search for mention tag in HTML content
+    // Format: data-contact-id="ID" data-type="TYPE"
+    const searchString = `data-contact-id="${id}"`;
+    const typeString = `data-type="${type}"`;
+
+    const data = await directus.request(
+      readItems("crm_tasks", {
+        filter: {
+          _and: [
+            { user_email: { _eq: email } },
+            { title: { _contains: searchString } },
+            { title: { _contains: typeString } },
+          ],
+        },
+        sort: ["-date_created"] as string[],
+        limit: -1,
+      }),
+    );
+
+    return { success: true as const, data: data as unknown as Task[] };
+  } catch (error) {
+    console.error("Get Related Tasks Error:", error);
+    return { success: false as const, error: String(error) };
+  }
+}
+
 export async function createTask(title: string, dueDate?: string) {
   try {
     const user = await currentUser();

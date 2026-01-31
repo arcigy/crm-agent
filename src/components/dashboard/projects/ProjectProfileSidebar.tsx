@@ -5,22 +5,24 @@ import {
   FolderKanban,
   Calendar,
   ExternalLink,
-  Tag,
   Clock,
   DollarSign,
   X,
-  FileCode,
+  User,
 } from "lucide-react";
+
 import { Project, PROJECT_STAGES } from "@/types/project";
 
 interface ProjectProfileSidebarProps {
   project: Project;
   onClose: () => void;
+  onTabChange?: (tab: "overview" | "tasks" | "documents") => void; // Added onTabChange
 }
 
 export function ProjectProfileSidebar({
   project,
   onClose,
+  onTabChange, // Destructured onTabChange
 }: ProjectProfileSidebarProps) {
   const initials = project.project_type?.[0] || project.name?.[0] || "P";
   const stageInfo = PROJECT_STAGES.find((s) => s.value === project.stage);
@@ -44,66 +46,79 @@ export function ProjectProfileSidebar({
         </div>
 
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-foreground leading-tight mb-1">
+          <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
+            Projekt #{project.id}
+          </div>
+          <h2 className="text-2xl font-bold text-foreground leading-tight mb-2">
             {project.project_type || project.name}
           </h2>
-          <p
-            className={`text-xs font-black uppercase px-2 py-0.5 rounded-full inline-block ${stageInfo?.color || "bg-gray-100"}`}
+          <div
+            className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 ${stageInfo?.color || "bg-zinc-100 dark:bg-zinc-800"}`}
           >
+            <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
             {stageInfo?.label || project.stage}
-          </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-8 relative">
           <button
-            onClick={() =>
-              project.drive_folder_id &&
-              window.open(
-                `https://drive.google.com/drive/folders/${project.drive_folder_id}`,
-                "_blank",
-              )
-            }
-            className="flex items-center justify-center gap-2 p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-all active:scale-95 disabled:opacity-50"
-            disabled={!project.drive_folder_id}
+            onClick={() => onTabChange?.("documents")}
+            className="flex items-center justify-center gap-2 p-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl shadow-sm transition-all active:scale-95"
           >
             <FolderKanban className="w-4 h-4" />{" "}
-            <span className="text-xs font-bold">Files</span>
+            <span className="text-xs font-bold">Súbory</span>
           </button>
-          <button className="flex items-center justify-center gap-2 p-2.5 bg-card border border-border hover:bg-slate-50 dark:hover:bg-slate-800 text-foreground rounded-xl shadow-sm transition-colors">
+          <button
+            onClick={() => onTabChange?.("tasks")}
+            className="flex items-center justify-center gap-2 p-2.5 bg-card border border-border hover:bg-zinc-50 dark:hover:bg-zinc-800 text-foreground rounded-xl shadow-sm transition-colors"
+          >
             <Calendar className="w-4 h-4" />{" "}
-            <span className="text-xs font-bold">Event</span>
+            <span className="text-xs font-bold">Úlohy</span>
           </button>
         </div>
 
         <div className="space-y-4 mb-8">
           <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-            Project Info
+            Projektové detaily
           </h3>
           <InfoRow
-            icon={<FileCode />}
-            label="Type"
-            value={project.project_type}
+            icon={<User />}
+            label="Zodpovedný kontakt"
+            value={project.contact_name || "Nezadaný kontakt"}
+            valueClass={
+              project.contact_name
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-zinc-400 font-medium"
+            }
           />
           <InfoRow
             icon={<Clock />}
-            label="Due Date"
+            label="Termín dokončenia"
             value={
               project.end_date
                 ? new Date(project.end_date).toLocaleDateString("sk-SK")
-                : "—"
+                : "Termín neurčený"
             }
           />
           <InfoRow
             icon={<DollarSign />}
-            label="Budget"
-            value={project.value ? `${project.value} €` : "—"}
-            valueClass="text-emerald-600 font-black"
+            label="Rozpočet / Hodnota"
+            value={project.value ? `${project.value} €` : "Bez hodnoty"}
+            valueClass={project.value ? "text-emerald-600 font-bold" : ""}
           />
+          <div className="w-full h-px bg-zinc-100 dark:bg-zinc-800 my-2" />
           <InfoRow
-            icon={<Tag />}
-            label="Contact"
-            value={project.contact_name}
+            icon={<Calendar />}
+            label="Vytvorené"
+            value={new Date(project.date_created).toLocaleDateString("sk-SK")}
           />
+          {project.updated_at && (
+            <InfoRow
+              icon={<ExternalLink />}
+              label="Posledná úprava"
+              value={new Date(project.updated_at).toLocaleDateString("sk-SK")}
+            />
+          )}
         </div>
       </div>
     </div>
