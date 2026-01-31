@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Lead } from "@/types/contact";
 import { toast } from "sonner";
+import { DriveFileIcon } from "../projects/DriveFileIcon";
 
 interface InvoiceFile {
   id: string;
@@ -295,16 +296,15 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
       className="group flex items-center gap-4 p-4 bg-white dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all cursor-pointer"
       onClick={() => window.open(file.webViewLink, "_blank")}
     >
-      <div className="w-12 h-12 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors overflow-hidden">
-        {file.iconLink ? (
-          <img
-            src={file.iconLink}
-            alt="icon"
-            className="w-6 h-6 opacity-70 group-hover:invert group-hover:brightness-0 group-hover:contrast-200"
-          />
-        ) : (
-          <FileText className="w-6 h-6" />
-        )}
+      <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110">
+        <DriveFileIcon
+          file={{
+            id: file.id,
+            name: file.name,
+            mimeType: file.mimeType || "application/octet-stream",
+          }}
+          className="w-10 h-10"
+        />
       </div>
 
       <div className="flex-1 min-w-0">
