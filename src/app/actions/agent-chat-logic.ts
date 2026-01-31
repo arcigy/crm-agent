@@ -1,4 +1,4 @@
-"use client";
+"use server";
 
 import { createStreamableValue } from "@ai-sdk/rsc";
 import { currentUser } from "@clerk/nextjs/server";

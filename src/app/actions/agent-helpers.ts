@@ -1,3 +1,5 @@
+"use server";
+
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createStreamableValue } from "@ai-sdk/rsc";

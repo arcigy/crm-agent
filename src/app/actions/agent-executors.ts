@@ -1,3 +1,5 @@
+"use server";
+
 import { executeGmailTool } from "./executors-gmail";
 import { executeDbContactTool } from "./executors-db-contacts";
 import { executeDbProjectTool } from "./executors-db-projects";

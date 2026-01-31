@@ -1,3 +1,5 @@
+"use server";
+
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createStreamableValue } from "@ai-sdk/rsc";
