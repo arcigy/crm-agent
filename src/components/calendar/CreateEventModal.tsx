@@ -9,7 +9,6 @@ import {
   AlignLeft,
   Loader2,
   Repeat,
-  Bell,
   Check,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -43,6 +42,13 @@ const RECURRENCE = [
   { label: "Ročne", value: "RRULE:FREQ=YEARLY" },
 ];
 
+const normalizeText = (text: string) => {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+};
+
 export function CreateEventModal({
   isOpen,
   onClose,
@@ -51,14 +57,19 @@ export function CreateEventModal({
 }: CreateEventModalProps) {
   const [loading, setLoading] = React.useState(false);
   const [isAllDay, setIsAllDay] = React.useState(false);
-  const [isReminder, setIsReminder] = React.useState(false); // Single time point logic
+  const [isReminder, setIsReminder] = React.useState(false);
+
+  // Autocomplete state
   const [suggestions, setSuggestions] = React.useState<any[]>([]);
+  const [selectedIndex, setSelectedIndex] = React.useState(0);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
   const [relations, setRelations] = React.useState<{
     contacts: ContactRelation[];
     projects: ProjectRelation[];
   }>({ contacts: [], projects: [] });
 
-  // Load relations for autocomplete
+  // Load relations
   React.useEffect(() => {
     if (isOpen) {
       getTodoRelations().then((res) => {
@@ -94,62 +105,112 @@ export function CreateEventModal({
     }
   }, [initialDate, isOpen]);
 
-  // Autocomplete Logic
+  // --- Autocomplete Logic ---
+
   const handleSummaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setFormData((prev) => ({ ...prev, summary: val }));
 
-    // Simple logic: if type 3 chars look for match
-    const words = val.split(" ");
-    const lastWord = words[words.length - 1];
+    const cursorPosition = e.target.selectionStart || 0;
+    const textBeforeCursor = val.slice(0, cursorPosition);
+    const match = textBeforeCursor.match(/([@#])(\S*)$/);
 
-    if (lastWord.length >= 2) {
-      const query = lastWord.toLowerCase().replace(/^[@#]/, "");
-      const matchedContacts = relations.contacts
-        .filter((c) =>
-          `${c.first_name} ${c.last_name}`.toLowerCase().includes(query),
-        )
-        .map((c) => ({
-          label: `${c.first_name} ${c.last_name}`,
-          type: "contact",
-        }))
-        .slice(0, 3);
+    if (match) {
+      const trigger = match[1]; // @ or #
+      const query = normalizeText(match[2]);
 
-      const matchedProjects = relations.projects
-        .filter((p) => p.project_type.toLowerCase().includes(query))
-        .map((p) => ({ label: p.project_type, type: "project" }))
-        .slice(0, 3);
+      let results: any[] = [];
 
-      setSuggestions([...matchedContacts, ...matchedProjects]);
+      if (trigger === "@") {
+        results = relations.contacts
+          .filter((c) =>
+            normalizeText(`${c.first_name} ${c.last_name}`).includes(query),
+          )
+          .map((c) => ({
+            id: c.id,
+            label: `${c.first_name} ${c.last_name}`,
+            type: "contact",
+            sub: c.company,
+          }))
+          .slice(0, 5);
+      } else if (trigger === "#") {
+        results = relations.projects
+          .filter((p) => normalizeText(p.project_type).includes(query))
+          .map((p) => ({
+            id: p.id,
+            label: p.project_type,
+            type: "project",
+            sub: p.stage,
+          }))
+          .slice(0, 5);
+      }
+
+      setSuggestions(results);
+      setSelectedIndex(0);
     } else {
       setSuggestions([]);
     }
   };
 
-  const applySuggestion = (suggestion: { label: string; type: string }) => {
-    const words = formData.summary.split(" ");
-    words.pop(); // remove partial word
-    const newSummary = [...words, suggestion.label].join(" ") + " ";
-    setFormData((prev) => ({ ...prev, summary: newSummary }));
+  const applySuggestion = (suggestion: any) => {
+    const cursorPosition =
+      inputRef.current?.selectionStart || formData.summary.length;
+    const textBefore = formData.summary.slice(0, cursorPosition);
+    const textAfter = formData.summary.slice(cursorPosition);
+
+    // Find the start of the trigger word
+    const match = textBefore.match(/([@#])(\S*)$/);
+    if (!match) return;
+
+    const triggerIndex = match.index!;
+    const newTextBefore =
+      textBefore.substring(0, triggerIndex) +
+      (suggestion.type === "contact" ? "@" : "#") +
+      suggestion.label +
+      " ";
+
+    const newSummary = newTextBefore + textAfter;
+    setFormData((prev) => ({
+      ...prev,
+      summary: newSummary,
+      // Auto append to description
+      description: prev.description
+        ? prev.description +
+          `\n${suggestion.type === "contact" ? "Kontakt" : "Projekt"}: ${suggestion.label}`
+        : `${suggestion.type === "contact" ? "Kontakt" : "Projekt"}: ${suggestion.label}`,
+    }));
+
     setSuggestions([]);
 
-    // Auto-add description context
-    if (suggestion.type === "project") {
-      setFormData((prev) => ({
-        ...prev,
-        description: prev.description
-          ? prev.description + `\nProjekt: ${suggestion.label}`
-          : `Projekt: ${suggestion.label}`,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        description: prev.description
-          ? prev.description + `\nKontakt: ${suggestion.label}`
-          : `Kontakt: ${suggestion.label}`,
-      }));
+    // Restore focus and cursor (approximate)
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        // inputRef.current.setSelectionRange(newTextBefore.length, newTextBefore.length);
+      }
+    }, 0);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (suggestions.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex(
+        (prev) => (prev - 1 + suggestions.length) % suggestions.length,
+      );
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      applySuggestion(suggestions[selectedIndex]);
+    } else if (e.key === "Escape") {
+      setSuggestions([]);
     }
   };
+
+  // --- End Autocomplete Logic ---
 
   if (!isOpen) return null;
 
@@ -161,15 +222,13 @@ export function CreateEventModal({
       let start, end;
 
       if (isAllDay) {
-        // All day event: ONLY DATE, no time part
         start = { date: formData.startDate };
-        end = { date: formData.endDate };
-        // Note: Google Calendar requires end date to be exclusive for all-day events, usually +1 day
-        // But let's verify if simple date works. Usually end date should be startDate + 1 day for single day event.
         if (formData.startDate === formData.endDate) {
           const d = new Date(formData.endDate);
           d.setDate(d.getDate() + 1);
           end = { date: format(d, "yyyy-MM-dd") };
+        } else {
+          end = { date: formData.endDate };
         }
       } else {
         start = {
@@ -177,9 +236,7 @@ export function CreateEventModal({
             `${formData.startDate}T${formData.startTime}:00`,
           ).toISOString(),
         };
-
         if (isReminder) {
-          // Reminder logic: Same start and end time (instant)
           end = { dateTime: start.dateTime };
         } else {
           end = {
@@ -248,30 +305,40 @@ export function CreateEventModal({
               Názov udalosti
             </label>
             <input
+              ref={inputRef}
               required
               type="text"
-              placeholder="Stretnutie s @... alebo #..."
+              placeholder="Stretnutie @..."
               className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all font-bold text-gray-900 placeholder:font-medium placeholder:text-gray-300"
               value={formData.summary}
               onChange={handleSummaryChange}
+              onKeyDown={handleKeyDown}
+              autoComplete="off"
             />
             {suggestions.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden divide-y divide-gray-100">
                 {suggestions.map((s, i) => (
                   <button
-                    key={i}
+                    key={s.id}
                     type="button"
                     onClick={() => applySuggestion(s)}
-                    className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-2 transition-colors"
+                    className={`w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-2 transition-colors ${i === selectedIndex ? "bg-blue-50" : ""}`}
                   >
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded ${s.type === "contact" ? "bg-indigo-100 text-indigo-700" : "bg-emerald-100 text-emerald-700"} font-bold uppercase`}
                     >
                       {s.type === "contact" ? "@" : "#"}
                     </span>
-                    <span className="text-sm font-medium text-gray-700">
-                      {s.label}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-700">
+                        {s.label}
+                      </span>
+                      {s.sub && (
+                        <span className="text-[10px] text-gray-400 font-bold uppercase">
+                          {s.sub}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -348,7 +415,7 @@ export function CreateEventModal({
                     }
                     disabled={
                       isAllDay && formData.startDate === formData.endDate
-                    } // Auto-handle same day logic visually
+                    }
                   />
                   {!isAllDay && (
                     <input
@@ -401,8 +468,12 @@ export function CreateEventModal({
                   <button
                     key={loc.value}
                     type="button"
+                    // TOGGLE LOGIC HERE
                     onClick={() =>
-                      setFormData((prev) => ({ ...prev, location: loc.value }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        location: prev.location === loc.value ? "" : loc.value,
+                      }))
                     }
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all ${isSelected ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100"}`}
                   >
