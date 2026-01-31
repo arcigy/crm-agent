@@ -47,16 +47,27 @@ async function ContactsListing() {
           .replace(/[\u0300-\u036f]/g, "")
           .trim()
           .toLowerCase();
-      contacts = (contactsResult.data as any[]).map((contact) => {
+
+      const rawData = contactsResult.data as any[];
+      console.log(
+        `[Contacts Hub] Processing ${rawData.length} contacts and ${projectsData.length} projects`,
+      );
+
+      contacts = rawData.map((contact) => {
         const fn = contact.first_name || "";
         const ln = contact.last_name || "";
         const fullName = normalize(`${fn} ${ln}`);
+
         const contactProjects = ((projectsData as any[]) || []).filter(
           (p: any) => {
-            return (
-              String(p.contact_id) === String(contact.id) ||
-              (p.contact_name && normalize(p.contact_name) === fullName)
-            );
+            const isIdMatch = String(p.contact_id) === String(contact.id);
+            const isNameMatch =
+              p.contact_name && normalize(p.contact_name) === fullName;
+            if (isIdMatch || isNameMatch) {
+              // console.log(`[Match] Contact ${contact.id} (${fn} ${ln}) -> Project ${p.id} (ID Match: ${isIdMatch}, Name Match: ${isNameMatch})`);
+              return true;
+            }
+            return false;
           },
         );
         return { ...contact, projects: contactProjects };
@@ -69,16 +80,11 @@ async function ContactsListing() {
         contactsRes.status === "rejected"
           ? (contactsRes.reason as any)?.message
           : contactsResult?.error;
-      console.error("Directus fetch failed:", reason);
-      if (reason.includes("Timeout")) {
-        errorMsg =
-          "Databáza neodpovedá (Timeout). Skontrolujte, či Directus beží na Railway.";
-      } else {
-        errorMsg = "Chyba spojenia s databázou: " + reason;
-      }
+      console.error("[Contacts Hub] Directus fetch failed:", reason);
+      errorMsg = "Chyba spojenia s databázou: " + reason;
     }
   } catch (e: any) {
-    console.error("Contacts fetch crash:", e);
+    console.error("[Contacts Hub] Crash:", e);
     errorMsg = "Nepodarilo sa načítať hub: " + e.message;
   }
 

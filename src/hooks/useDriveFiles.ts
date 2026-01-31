@@ -32,11 +32,12 @@ export function useDriveFiles(
   >([]);
   const [isUploading, setIsUploading] = React.useState(false);
 
+  const isRecursive = !!options.recursive;
+
   const fetchFiles = React.useCallback(
     async (targetId?: string) => {
       setLoading(true);
       try {
-        // We use the passed targetId if available, or the one from props if it's the initial load
         const idToFetch = targetId;
         const isInitialLoad = !targetId;
 
@@ -46,12 +47,11 @@ export function useDriveFiles(
             ? `/api/google/drive?folderId=${folderId}`
             : `/api/google/drive?projectName=${encodeURIComponent(projectName)}`;
 
-        // Only use subfolderName on the very first load if we don't have a direct folderId
         if (subfolderName && isInitialLoad && !idToFetch) {
           url += `&subfolderName=${encodeURIComponent(subfolderName)}`;
         }
 
-        if (options.recursive) {
+        if (isRecursive) {
           url += `&recursive=true`;
         }
 
@@ -59,7 +59,7 @@ export function useDriveFiles(
         const data = await res.json();
 
         if (data.isConnected) {
-          if (options.recursive) {
+          if (isRecursive) {
             setAllFiles(data.files || []);
             setFiles(data.files || []);
           } else {
@@ -74,7 +74,7 @@ export function useDriveFiles(
         setLoading(false);
       }
     },
-    [projectName, subfolderName, options.recursive, folderId],
+    [projectName, subfolderName, isRecursive, folderId],
   );
 
   const deleteFile = async (fileId: string, name: string) => {

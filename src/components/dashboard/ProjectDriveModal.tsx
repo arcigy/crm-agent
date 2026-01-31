@@ -34,6 +34,8 @@ export function ProjectDriveModal({
   folderId,
   subfolderName,
 }: ProjectDriveModalProps) {
+  const driveOptions = React.useMemo(() => ({ recursive: true }), []);
+
   const {
     files,
     loading,
@@ -47,9 +49,13 @@ export function ProjectDriveModal({
     deleteFile,
     renameFile,
     performClipboardAction,
-  } = useDriveFiles(projectId, projectName, folderId, subfolderName, {
-    recursive: true,
-  });
+  } = useDriveFiles(
+    projectId,
+    projectName,
+    folderId,
+    subfolderName,
+    driveOptions,
+  );
 
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("list");
@@ -72,12 +78,15 @@ export function ProjectDriveModal({
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  const lastOpenRef = React.useRef(false);
+
   React.useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !lastOpenRef.current) {
       setCurrentFolderId(folderId);
       setFolderHistory([]);
       fetchFiles(folderId);
     }
+    lastOpenRef.current = isOpen;
   }, [isOpen, folderId, fetchFiles, setCurrentFolderId, setFolderHistory]);
 
   if (!isOpen) return null;
@@ -89,7 +98,6 @@ export function ProjectDriveModal({
 
     // Filter files that have 'parentId' in their parents array
     return files.filter((f: any) => {
-      // Safety: check if parents exists and is an array
       if (!f || !f.parents || !Array.isArray(f.parents)) return false;
       return f.parents.includes(parentId);
     });
