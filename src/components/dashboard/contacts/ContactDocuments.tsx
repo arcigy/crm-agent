@@ -11,7 +11,7 @@ import {
   Search,
 } from "lucide-react";
 import { Lead } from "@/types/contact";
-import { DriveFileIcon } from "./DriveFileIcon";
+import { DriveFileIcon } from "../projects/DriveFileIcon";
 
 interface FileNode {
   id: string;
