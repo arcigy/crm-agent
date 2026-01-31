@@ -19,6 +19,9 @@ import {
   Undo,
   Redo,
   Highlighter,
+  Type,
+  Baseline,
+  Link as LinkIcon,
 } from "lucide-react";
 import { MentionNode } from "@/lib/tiptap-mention-node";
 import { useAutocomplete } from "@/hooks/useAutocomplete";
@@ -33,75 +36,144 @@ interface RichTextEditorProps {
   placeholder?: string;
 }
 
-const MenuBar = ({ editor }: { editor: Editor | null }) => {
+const MenuBar = ({ editor, onLinkOpen }: { editor: Editor | null, onLinkOpen: () => void }) => {
   if (!editor) return null;
+
+  const colors = [
+    { name: 'Default', color: 'inherit' },
+    { name: 'Blue', color: '#3b82f6' },
+    { name: 'Green', color: '#10b981' },
+    { name: 'Red', color: '#ef4444' },
+    { name: 'Amber', color: '#f59e0b' },
+    { name: 'Purple', color: '#8b5cf6' },
+  ];
+
+  const highlights = [
+    { name: 'None', color: 'transparent' },
+    { name: 'Yellow', color: '#fef08a' },
+    { name: 'Green', color: '#bbf7d0' },
+    { name: 'Blue', color: '#bfdbfe' },
+    { name: 'Pink', color: '#fbcfe8' },
+  ];
 
   return (
     <div className="flex flex-wrap gap-1 p-2 bg-muted border-b border-border rounded-t-[2.5rem] transition-colors">
       <button
         onClick={() => editor.chain().focus().toggleBold().run()}
-        disabled={!editor.can().chain().focus().toggleBold().run()}
         className={`p-2 rounded-xl transition-all ${editor.isActive("bold") ? "bg-indigo-600 text-white shadow-lg" : "text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border"}`}
+        title="Tučné písmo"
       >
         <Bold className="w-4 h-4" />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleItalic().run()}
-        disabled={!editor.can().chain().focus().toggleItalic().run()}
-        className={`p-2 rounded-xl transition-all ${editor.isActive("italic") ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-gray-400 hover:bg-white hover:text-gray-900 border border-transparent hover:border-gray-200"}`}
+        className={`p-2 rounded-xl transition-all ${editor.isActive("italic") ? "bg-indigo-600 text-white shadow-lg" : "text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border"}`}
+        title="Kurzíva"
       >
         <Italic className="w-4 h-4" />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleUnderline().run()}
-        className={`p-2 rounded-xl transition-all ${editor.isActive("underline") ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-gray-400 hover:bg-white hover:text-gray-900 border border-transparent hover:border-gray-200"}`}
+        className={`p-2 rounded-xl transition-all ${editor.isActive("underline") ? "bg-indigo-600 text-white shadow-lg" : "text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border"}`}
+        title="Podčiarknuté"
       >
         <UnderlineIcon className="w-4 h-4" />
       </button>
-      <button
-        onClick={() => editor.chain().focus().toggleHighlight().run()}
-        className={`p-2 rounded-xl transition-all ${editor.isActive("highlight") ? "bg-amber-400 text-white shadow-lg shadow-amber-100" : "text-gray-400 hover:bg-white hover:text-gray-900 border border-transparent hover:border-gray-200"}`}
-      >
-        <Highlighter className="w-4 h-4" />
-      </button>
 
-      <div className="w-px h-8 bg-gray-200 mx-1 self-center" />
+      <div className="w-px h-8 bg-border/50 mx-1 self-center" />
+
+      {/* Text Color Dropdown */}
+      <div className="group relative">
+        <button className="p-2 rounded-xl text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border transition-all flex items-center gap-1">
+          <Baseline className="w-4 h-4" />
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: editor.getAttributes('textStyle').color || 'currentColor' }} />
+        </button>
+        <div className="absolute top-full left-0 mt-1 hidden group-hover:flex flex-col bg-card border border-border rounded-xl shadow-xl z-50 p-1 min-w-[120px]">
+          {colors.map((c) => (
+            <button
+              key={c.color}
+              onClick={() => editor.chain().focus().setColor(c.color).run()}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold hover:bg-muted rounded-lg transition-colors"
+            >
+              <div className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: c.color === 'inherit' ? 'currentColor' : c.color }} />
+              {c.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Highlight Dropdown */}
+      <div className="group relative">
+        <button className="p-2 rounded-xl text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border transition-all">
+          <Highlighter className="w-4 h-4" />
+        </button>
+        <div className="absolute top-full left-0 mt-1 hidden group-hover:flex flex-col bg-card border border-border rounded-xl shadow-xl z-50 p-1 min-w-[120px]">
+          {highlights.map((h) => (
+            <button
+              key={h.color}
+              onClick={() => editor.chain().focus().setHighlight({ color: h.color }).run()}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold hover:bg-muted rounded-lg transition-colors"
+            >
+              <div className="w-3 h-3 rounded border border-border" style={{ backgroundColor: h.color }} />
+              {h.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="w-px h-8 bg-border/50 mx-1 self-center" />
 
       <button
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all ${editor.isActive("heading", { level: 1 }) ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-gray-400 hover:bg-white hover:text-gray-900 border border-transparent hover:border-gray-200"}`}
+        className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all ${editor.isActive("heading", { level: 1 }) ? "bg-indigo-600 text-white shadow-lg" : "text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border"}`}
+        title="Nadpis 1 (Veľký)"
       >
         H1
       </button>
       <button
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all ${editor.isActive("heading", { level: 2 }) ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-gray-400 hover:bg-white hover:text-gray-900 border border-transparent hover:border-gray-200"}`}
+        className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all ${editor.isActive("heading", { level: 2 }) ? "bg-indigo-600 text-white shadow-lg" : "text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border"}`}
+        title="Nadpis 2 (Stredný)"
       >
         H2
       </button>
 
-      <div className="w-px h-8 bg-gray-200 mx-1 self-center" />
+      <div className="w-px h-8 bg-border/50 mx-1 self-center" />
 
       <button
         onClick={() => editor.chain().focus().toggleBulletList().run()}
-        className={`p-2 rounded-xl transition-all ${editor.isActive("bulletList") ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-gray-400 hover:bg-white hover:text-gray-900 border border-transparent hover:border-gray-200"}`}
+        className={`p-2 rounded-xl transition-all ${editor.isActive("bulletList") ? "bg-indigo-600 text-white shadow-lg" : "text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border"}`}
+        title="Odrážkový zoznam"
       >
         <List className="w-4 h-4" />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        className={`p-2 rounded-xl transition-all ${editor.isActive("orderedList") ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-gray-400 hover:bg-white hover:text-gray-900 border border-transparent hover:border-gray-200"}`}
+        className={`p-2 rounded-xl transition-all ${editor.isActive("orderedList") ? "bg-indigo-600 text-white shadow-lg" : "text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border"}`}
+        title="Číslovaný zoznam"
       >
         <ListOrdered className="w-4 h-4" />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        className={`p-2 rounded-xl transition-all ${editor.isActive("blockquote") ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-gray-400 hover:bg-white hover:text-gray-900 border border-transparent hover:border-gray-200"}`}
+        className={`p-2 rounded-xl transition-all ${editor.isActive("blockquote") ? "bg-indigo-600 text-white shadow-lg" : "text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border"}`}
+        title="Citácia"
       >
         <Quote className="w-4 h-4" />
       </button>
 
-      <div className="w-px h-8 bg-border mx-1 self-center" />
+      <div className="w-px h-8 bg-border/50 mx-1 self-center" />
+
+      <button
+        onClick={onLinkOpen}
+        className={`p-2 rounded-xl text-gray-400 hover:bg-card hover:text-foreground border border-transparent hover:border-border transition-all flex items-center gap-1 font-bold text-xs`}
+        title="Prepojiť (Kontakt, Projekt...)"
+      >
+        <LinkIcon className="w-4 h-4" />
+        <span className="hidden sm:inline">Prepojiť</span>
+      </button>
+
+      <div className="flex-1" />
 
       <button
         onClick={() => editor.chain().focus().undo().run()}
@@ -159,14 +231,14 @@ export default function RichTextEditor({
       TextStyle,
       Color,
       Underline,
-      Highlight,
+      Highlight.configure({ multicolor: true }),
       MentionNode,
       Placeholder.configure({ placeholder: placeholder || "Začnite písať..." }),
     ],
     content: content,
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-      checkAutocomplete(editor);
+    onUpdate: ({ editor: updatedEditor }) => {
+      onChange(updatedEditor.getHTML());
+      checkAutocomplete(updatedEditor);
     },
     editorProps: {
       attributes: {
@@ -174,6 +246,7 @@ export default function RichTextEditor({
           "prose prose-sm sm:prose-base lg:prose-md xl:prose-lg focus:outline-none max-w-none p-8 min-h-[300px] overflow-y-auto custom-scrollbar font-medium text-foreground dark:prose-invert",
       },
       handleKeyDown: (view, event) => {
+        if (!editor) return false;
         return handleKeyDown(event, editor);
       },
       handleClick: (view, pos, event) => {
@@ -208,7 +281,15 @@ export default function RichTextEditor({
 
   return (
     <div className="flex flex-col border border-border rounded-[2.5rem] bg-card shadow-inner min-h-0 flex-1 transition-colors">
-      <MenuBar editor={editor} />
+      <MenuBar editor={editor} onLinkOpen={() => {
+        // Force autocomplete to trigger by inserting a space or special char if needed,
+        // but the best way is to just show that it works via @ typing.
+        // For the "button" style, we can simulate an "@" trigger:
+        if (editor) {
+          editor.chain().focus().insertContent("@").run();
+          checkAutocomplete(editor);
+        }
+      }} />
       <EditorContent editor={editor} className="flex-1 overflow-hidden" />
       <AutocompleteDropdown
         suggestions={suggestions}
@@ -237,10 +318,38 @@ export default function RichTextEditor({
           font-weight: 900;
           letter-spacing: -0.05em;
           font-style: italic;
+          margin-top: 1.5em;
+          margin-bottom: 0.5em;
         }
         .prose h2 {
           font-weight: 800;
           letter-spacing: -0.03em;
+          margin-top: 1.2em;
+          margin-bottom: 0.4em;
+        }
+        .prose ul {
+          list-style-type: disc !important;
+          padding-left: 1.5em !important;
+          margin: 1em 0 !important;
+        }
+        .prose ol {
+          list-style-type: decimal !important;
+          padding-left: 1.5em !important;
+          margin: 1em 0 !important;
+        }
+        .prose li {
+          margin: 0.25em 0 !important;
+          display: list-item !important;
+        }
+        .prose blockquote {
+          border-left: 4px solid #6366f1;
+          padding-left: 1em;
+          font-style: italic;
+          color: #6366f1;
+          background: rgba(99, 102, 241, 0.05);
+          margin: 1.5em 0;
+          padding: 1em;
+          border-radius: 0 1rem 1rem 0;
         }
       `}</style>
     </div>
