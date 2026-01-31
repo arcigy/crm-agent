@@ -259,3 +259,25 @@ export async function downloadFile(token: string, fileId: string) {
 
   return res.data;
 }
+
+export async function searchFoldersByDescription(
+  token: string,
+  searchTerm: string,
+) {
+  const drive = await getDriveClient(token);
+  const escaped = searchTerm.replace(/'/g, "\\'");
+  const q = `mimeType = 'application/vnd.google-apps.folder' and description contains '${escaped}' and trashed = false`;
+
+  try {
+    const res = await drive.files.list({
+      q,
+      fields:
+        "files(id, name, mimeType, webViewLink, webContentLink, iconLink, thumbnailLink, size, modifiedTime, parents, description)",
+      spaces: "drive",
+    });
+    return res.data.files || [];
+  } catch (err: any) {
+    console.error("[Drive Lib] searchFoldersByDescription failed:", err);
+    throw err;
+  }
+}

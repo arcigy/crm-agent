@@ -9,6 +9,7 @@ import {
   renameFile,
   copyFile,
   moveFile,
+  searchFoldersByDescription,
 } from "@/lib/google-drive";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const folderId = searchParams.get("folderId") || undefined;
     const projectName = searchParams.get("projectName");
+    const search = searchParams.get("search");
 
     const user = await currentUser();
     if (!user)
@@ -35,6 +37,11 @@ export async function GET(req: Request) {
         isConnected: false,
         error: "Google account not linked",
       });
+    }
+
+    if (search) {
+      const folders = await searchFoldersByDescription(token, search);
+      return NextResponse.json({ isConnected: true, files: folders });
     }
 
     let targetFolderId = folderId;

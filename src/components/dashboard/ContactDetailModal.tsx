@@ -9,8 +9,8 @@ import { ContactOverview } from "./contacts/ContactOverview";
 import { ContactProjects } from "./contacts/ContactProjects";
 import { ContactActivity } from "./contacts/ContactActivity";
 import { ContactDealsNotes } from "./contacts/ContactDealsNotes";
-import { ContactDriveFiles } from "./contacts/ContactDriveFiles";
 import { ContactInvoices } from "./contacts/ContactInvoices";
+import { ContactDocuments } from "./contacts/ContactDocuments";
 import { RelatedTasks } from "./RelatedTasks";
 import { X } from "lucide-react";
 
@@ -149,7 +149,6 @@ export function ContactDetailModal({
                   </div>
                   <div className="col-span-12 lg:col-span-4 space-y-6">
                     <ContactDealsNotes contact={currentContact} />
-                    <ContactDriveFiles contact={currentContact} />
                   </div>
                 </ContactOverview>
               </div>
@@ -159,6 +158,10 @@ export function ContactDetailModal({
                   Prepojené Úlohy
                 </h3>
                 <RelatedTasks entityId={currentContact.id} type="contact" />
+              </div>
+            ) : activeTab === "documents" ? (
+              <div className="h-full overflow-y-auto">
+                <ContactDocuments contact={currentContact} />
               </div>
             ) : activeTab === "invoices" ? (
               <div className="h-full overflow-y-auto bg-zinc-50/10 transition-all">
