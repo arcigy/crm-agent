@@ -1,186 +1,261 @@
-import { google } from 'googleapis';
+import { google } from "googleapis";
 
 export async function getDriveClient(token: string) {
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: token });
-    return google.drive({ version: 'v3', auth });
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: token });
+  return google.drive({ version: "v3", auth });
 }
 
-export async function findFolder(token: string, name: string, parentId?: string) {
-    const drive = await getDriveClient(token);
-    let q = `name = '${name.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-    if (parentId) {
-        q += ` and '${parentId}' in parents`;
-    }
+export async function findFolder(
+  token: string,
+  name: string,
+  parentId?: string,
+) {
+  const drive = await getDriveClient(token);
+  let q = `name = '${name.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+  if (parentId) {
+    q += ` and '${parentId}' in parents`;
+  }
 
-    const res = await drive.files.list({
-        q,
-        fields: 'files(id, name)',
-        spaces: 'drive'
-    });
+  const res = await drive.files.list({
+    q,
+    fields: "files(id, name)",
+    spaces: "drive",
+  });
 
-    return res.data.files?.[0] || null;
+  return res.data.files?.[0] || null;
 }
 
-export async function ensureFolder(token: string, name: string, parentId?: string) {
-    const existing = await findFolder(token, name, parentId);
-    if (existing) return existing.id!;
-    return await createFolder(token, name, parentId);
+export async function ensureFolder(
+  token: string,
+  name: string,
+  parentId?: string,
+) {
+  const existing = await findFolder(token, name, parentId);
+  if (existing) return existing.id!;
+  return await createFolder(token, name, parentId);
 }
 
 export async function listFiles(token: string, folderId?: string) {
-    const drive = await getDriveClient(token);
-    const q = folderId ? `'${folderId}' in parents and trashed = false` : "'root' in parents and trashed = false";
+  const drive = await getDriveClient(token);
+  const q = folderId
+    ? `'${folderId}' in parents and trashed = false`
+    : "'root' in parents and trashed = false";
 
-    try {
-        const res = await drive.files.list({
-            q,
-            fields: 'files(id, name, mimeType, webViewLink, webContentLink, iconLink, thumbnailLink, size, modifiedTime)',
-            orderBy: 'folder, name',
-            pageSize: 100
-        });
-        return res.data.files || [];
-    } catch (err: any) {
-        console.error('[Drive Lib] listFiles failed:', err.response?.data || err.message);
-        throw err;
-    }
+  try {
+    const res = await drive.files.list({
+      q,
+      fields:
+        "files(id, name, mimeType, webViewLink, webContentLink, iconLink, thumbnailLink, size, modifiedTime, parents)",
+      orderBy: "folder, name",
+      pageSize: 100,
+    });
+    return res.data.files || [];
+  } catch (err: any) {
+    console.error(
+      "[Drive Lib] listFiles failed:",
+      err.response?.data || err.message,
+    );
+    throw err;
+  }
 }
 
-export async function createFolder(token: string, name: string, parentId?: string, description?: string) {
-    const drive = await getDriveClient(token);
-    const fileMetadata: any = {
-        name,
-        mimeType: 'application/vnd.google-apps.folder',
-        parents: parentId ? [parentId] : undefined,
-    };
-    if (description) {
-        fileMetadata.description = description;
-    }
+export async function listFilesRecursive(token: string, folderId: string) {
+  const drive = await getDriveClient(token);
+  const allFiles: any[] = [];
 
-    const res = await drive.files.create({
-        requestBody: fileMetadata,
-        fields: 'id',
+  async function scan(currentId: string, currentPath: string = "") {
+    const res = await drive.files.list({
+      q: `'${currentId}' in parents and trashed = false`,
+      fields:
+        "files(id, name, mimeType, webViewLink, webContentLink, iconLink, thumbnailLink, size, modifiedTime, parents)",
+      orderBy: "folder, name",
     });
 
-    return res.data.id!;
+    const files = res.data.files || [];
+    for (const file of files) {
+      const fileWithPath = { ...file, path: currentPath + "/" + file.name };
+      allFiles.push(fileWithPath);
+      if (file.mimeType === "application/vnd.google-apps.folder") {
+        await scan(file.id!, fileWithPath.path);
+      }
+    }
+  }
+
+  await scan(folderId);
+  return allFiles;
+}
+
+export async function createFolder(
+  token: string,
+  name: string,
+  parentId?: string,
+  description?: string,
+) {
+  const drive = await getDriveClient(token);
+  const fileMetadata: any = {
+    name,
+    mimeType: "application/vnd.google-apps.folder",
+    parents: parentId ? [parentId] : undefined,
+  };
+  if (description) {
+    fileMetadata.description = description;
+  }
+
+  const res = await drive.files.create({
+    requestBody: fileMetadata,
+    fields: "id",
+  });
+
+  return res.data.id!;
 }
 
 /**
  * Creates the full project hierarchy:
  * CRM Root -> Year -> Project Folder -> Deep Subfolders
  */
-export async function setupProjectStructure(token: string, data: {
-    projectName: string,
-    projectNumber: string,
-    year: string,
-    contactName: string
-}) {
-    // 1. Ensure Main Root (ArciGy CRM Files)
-    const rootId = await ensureFolder(token, 'ArciGy CRM Files');
+export async function setupProjectStructure(
+  token: string,
+  data: {
+    projectName: string;
+    projectNumber: string;
+    year: string;
+    contactName: string;
+  },
+) {
+  // 1. Ensure Main Root (ArciGy CRM Files)
+  const rootId = await ensureFolder(token, "ArciGy CRM Files");
 
-    // 2. Ensure Year Folder (e.g., 2025)
-    const yearId = await ensureFolder(token, data.year, rootId);
+  // 2. Ensure Year Folder (e.g., 2025)
+  const yearId = await ensureFolder(token, data.year, rootId);
 
-    // 3. Create Project Folder (001_Project_Name)
-    const folderName = `${data.projectNumber}_${data.projectName.replace(/\s+/g, '_')}`;
-    const projectId = await createFolder(token, folderName, yearId, `Client: ${data.contactName}`);
+  // 3. Create Project Folder (001_Project_Name)
+  const folderName = `${data.projectNumber}_${data.projectName.replace(/\s+/g, "_")}`;
+  const projectId = await createFolder(
+    token,
+    folderName,
+    yearId,
+    `Client: ${data.contactName}`,
+  );
 
-    // 4. Create Deep Subfolders Structure
-    // 01_Zmluvy_a_Faktury
-    const f01 = await createFolder(token, '01_Zmluvy_a_Faktury', projectId);
-    await createFolder(token, 'Zmluvy', f01);
-    await createFolder(token, 'Faktury', f01);
+  // 4. Create Deep Subfolders Structure
+  // 01_Zmluvy_a_Faktury
+  const f01 = await createFolder(token, "01_Zmluvy_a_Faktury", projectId);
+  await createFolder(token, "Zmluvy", f01);
+  await createFolder(token, "Faktury", f01);
 
-    // 02_Podklady_od_Klienta
-    await createFolder(token, '02_Podklady_od_Klienta', projectId);
+  // 02_Podklady_od_Klienta
+  await createFolder(token, "02_Podklady_od_Klienta", projectId);
 
-    // 03_Pracovna_Zlozka
-    const f03 = await createFolder(token, '03_Pracovna_Zlozka', projectId);
-    await createFolder(token, 'Docasne_Slozka', f03);
-    await createFolder(token, 'Trvale_Slozka', f03);
+  // 03_Pracovna_Zlozka
+  const f03 = await createFolder(token, "03_Pracovna_Zlozka", projectId);
+  await createFolder(token, "Docasne_Slozka", f03);
+  await createFolder(token, "Trvale_Slozka", f03);
 
-    // 04_Finalne_Vystupy
-    await createFolder(token, '04_Finalne_Vystupy', projectId);
+  // 04_Finalne_Vystupy
+  await createFolder(token, "04_Finalne_Vystupy", projectId);
 
-    return projectId;
+  return projectId;
 }
 
-export async function createFile(token: string, name: string, mimeType: string, content: string | Buffer, parentId?: string) {
-    const drive = await getDriveClient(token);
-    const fileMetadata = {
-        name,
-        parents: parentId ? [parentId] : undefined,
-    };
-    const media = {
-        mimeType,
-        body: content,
-    };
+export async function createFile(
+  token: string,
+  name: string,
+  mimeType: string,
+  content: string | Buffer,
+  parentId?: string,
+) {
+  const drive = await getDriveClient(token);
+  const fileMetadata = {
+    name,
+    parents: parentId ? [parentId] : undefined,
+  };
+  const media = {
+    mimeType,
+    body: content,
+  };
 
-    const res = await drive.files.create({
-        requestBody: fileMetadata,
-        media: media,
-        fields: 'id, webViewLink',
-    });
+  const res = await drive.files.create({
+    requestBody: fileMetadata,
+    media: media,
+    fields: "id, webViewLink",
+  });
 
-    return res.data;
+  return res.data;
 }
 
 export async function deleteFile(token: string, fileId: string) {
-    const drive = await getDriveClient(token);
-    await drive.files.delete({ fileId });
-    return true;
+  const drive = await getDriveClient(token);
+  await drive.files.delete({ fileId });
+  return true;
 }
 
-export async function renameFile(token: string, fileId: string, newName: string) {
-    const drive = await getDriveClient(token);
-    await drive.files.update({
-        fileId,
-        requestBody: { name: newName }
-    });
-    return true;
+export async function renameFile(
+  token: string,
+  fileId: string,
+  newName: string,
+) {
+  const drive = await getDriveClient(token);
+  await drive.files.update({
+    fileId,
+    requestBody: { name: newName },
+  });
+  return true;
 }
 
-export async function copyFile(token: string, fileId: string, parentId: string, name?: string) {
-    const drive = await getDriveClient(token);
-    const res = await drive.files.copy({
-        fileId,
-        requestBody: {
-            name,
-            parents: [parentId]
-        },
-        fields: 'id, name, mimeType, webViewLink, iconLink, thumbnailLink'
-    });
-    return res.data;
+export async function copyFile(
+  token: string,
+  fileId: string,
+  parentId: string,
+  name?: string,
+) {
+  const drive = await getDriveClient(token);
+  const res = await drive.files.copy({
+    fileId,
+    requestBody: {
+      name,
+      parents: [parentId],
+    },
+    fields: "id, name, mimeType, webViewLink, iconLink, thumbnailLink",
+  });
+  return res.data;
 }
 
-export async function moveFile(token: string, fileId: string, destinationFolderId: string) {
-    const drive = await getDriveClient(token);
+export async function moveFile(
+  token: string,
+  fileId: string,
+  destinationFolderId: string,
+) {
+  const drive = await getDriveClient(token);
 
-    // 1. Get current parents to remove
-    const file = await drive.files.get({
-        fileId,
-        fields: 'parents'
-    });
+  // 1. Get current parents to remove
+  const file = await drive.files.get({
+    fileId,
+    fields: "parents",
+  });
 
-    const previousParents = file.data.parents?.join(',') || '';
+  const previousParents = file.data.parents?.join(",") || "";
 
-    // 2. Update with new parent
-    const res = await drive.files.update({
-        fileId,
-        addParents: destinationFolderId,
-        removeParents: previousParents,
-        fields: 'id, parents'
-    });
+  // 2. Update with new parent
+  const res = await drive.files.update({
+    fileId,
+    addParents: destinationFolderId,
+    removeParents: previousParents,
+    fields: "id, parents",
+  });
 
-    return res.data;
+  return res.data;
 }
 
 export async function downloadFile(token: string, fileId: string) {
-    const drive = await getDriveClient(token);
-    const res = await drive.files.get({
-        fileId,
-        alt: 'media'
-    }, { responseType: 'stream' });
+  const drive = await getDriveClient(token);
+  const res = await drive.files.get(
+    {
+      fileId,
+      alt: "media",
+    },
+    { responseType: "stream" },
+  );
 
-    return res.data;
+  return res.data;
 }

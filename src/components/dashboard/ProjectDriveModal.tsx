@@ -47,7 +47,9 @@ export function ProjectDriveModal({
     deleteFile,
     renameFile,
     performClipboardAction,
-  } = useDriveFiles(projectId, projectName, folderId, subfolderName);
+  } = useDriveFiles(projectId, projectName, folderId, subfolderName, {
+    recursive: true,
+  });
 
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("list");
@@ -80,7 +82,19 @@ export function ProjectDriveModal({
 
   if (!isOpen) return null;
 
-  const filtered = files.filter((f) =>
+  // Filter files based on current folder for recursive mode
+  const currentViewFiles = React.useMemo(() => {
+    const parentId = currentFolderId || folderId;
+    if (!parentId) return files;
+
+    // Filter files that have 'parentId' in their parents array
+    return files.filter((f: any) => {
+      if (!f.parents) return false;
+      return f.parents.includes(parentId);
+    });
+  }, [files, currentFolderId, folderId]);
+
+  const filtered = currentViewFiles.filter((f) =>
     f.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 

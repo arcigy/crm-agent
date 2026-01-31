@@ -18,12 +18,21 @@ export interface ContactItem {
 
 export async function getContact(id: string | number) {
   try {
-    const contact = await directus.request(
-      readItem("contacts", id, {
-        fields: ["*", { projects: ["*"] }],
-      }),
-    );
-    return { success: true, data: contact as unknown as ContactItem };
+    const contact = (await directus.request(
+      readItem("contacts", id),
+    )) as unknown as ContactItem;
+
+    if (contact) {
+      // Manually fetch projects for this contact
+      const projects = await directus.request(
+        readItems("projects", {
+          filter: { contact_id: { _eq: id } },
+        }),
+      );
+      contact.projects = projects as unknown as any[];
+    }
+
+    return { success: true, data: contact };
   } catch (error) {
     console.error(`Failed to fetch contact ${id}:`, error);
     return { success: false, error: String(error) };
@@ -32,17 +41,32 @@ export async function getContact(id: string | number) {
 
 export async function getContacts() {
   try {
-    const contacts = await directus.request(
+    const contacts = (await directus.request(
       readItems("contacts", {
         filter: {
           deleted_at: { _null: true },
         },
-        fields: ["*", { projects: ["*"] }],
         sort: ["-date_created"] as string[],
         limit: -1,
       }),
-    );
-    return { success: true, data: contacts as unknown as ContactItem[] };
+    )) as unknown as ContactItem[];
+
+    if (contacts && contacts.length > 0) {
+      // Fetch all projects to batch assign them (more efficient than N queries)
+      const allProjects = (await directus.request(
+        readItems("projects", {
+          filter: { contact_id: { _nnull: true } },
+        }),
+      )) as any[];
+
+      contacts.forEach((contact) => {
+        contact.projects = allProjects.filter(
+          (p) => String(p.contact_id) === String(contact.id),
+        );
+      });
+    }
+
+    return { success: true, data: contacts };
   } catch (error) {
     console.error("Failed to fetch contacts:", error);
     return {

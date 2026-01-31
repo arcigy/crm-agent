@@ -19,8 +19,10 @@ export function useDriveFiles(
   projectName: string,
   folderId?: string,
   subfolderName?: string,
+  options: { recursive?: boolean } = {},
 ) {
   const [files, setFiles] = React.useState<DriveFile[]>([]);
+  const [allFiles, setAllFiles] = React.useState<DriveFile[]>([]); // For recursive mode
   const [loading, setLoading] = React.useState(true);
   const [currentFolderId, setCurrentFolderId] = React.useState<
     string | undefined
@@ -35,29 +37,41 @@ export function useDriveFiles(
       setLoading(true);
       try {
         const idToFetch = targetId || currentFolderId;
+        const isInitialLoad = !targetId && !currentFolderId;
+
         let url = idToFetch
           ? `/api/google/drive?folderId=${idToFetch}`
           : `/api/google/drive?projectName=${encodeURIComponent(projectName)}`;
 
-        if (subfolderName) {
+        // Only use subfolderName on the initial load if we don't have a direct folderId
+        if (subfolderName && isInitialLoad && !targetId) {
           url += `&subfolderName=${encodeURIComponent(subfolderName)}`;
+        }
+
+        if (options.recursive) {
+          url += `&recursive=true`;
         }
 
         const res = await fetch(url);
         const data = await res.json();
 
         if (data.isConnected) {
-          setFiles(data.files || []);
+          if (options.recursive) {
+            setAllFiles(data.files || []);
+            setFiles(data.files || []);
+          } else {
+            setFiles(data.files || []);
+          }
         } else {
           toast.error("Google Drive nie je prepojený");
         }
       } catch (error) {
-        toast.error("Chyba pri načítavaní súborov");
+        toast.error("Chyba pri načítaní súborov");
       } finally {
         setLoading(false);
       }
     },
-    [currentFolderId, projectName],
+    [currentFolderId, projectName, subfolderName, options.recursive],
   );
 
   const deleteFile = async (fileId: string, name: string) => {

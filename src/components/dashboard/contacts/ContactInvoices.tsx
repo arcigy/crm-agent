@@ -31,47 +31,37 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
     folderId: string,
     projectName: string,
   ) => {
-    // We'll try a few common folder names for invoices in Slovak and English
-    // The user mentioned they are "identically named" in every project
-    const possibleFolderNames = [
-      "Faktury",
-      "Faktúry",
-      "Invoices",
-      "01_Zmluvy_a_Faktury",
-    ];
-
-    let allFoundFiles: InvoiceFile[] = [];
+    // We'll search for files that are inside folders containing these names
+    const invoiceKeywords = ["faktury", "faktúry", "invoices", "zmluvy"];
 
     try {
-      // First, let's try to list files directly if the user stores them at root (unlikely but safe)
-      // Actually, user said they are in a specific subfolder.
+      // Use the new recursive API to get EVERYTHING in the project at once
+      const res = await fetch(
+        `/api/google/drive?folderId=${folderId}&recursive=true`,
+      );
+      const result = await res.json();
 
-      for (const subName of possibleFolderNames) {
-        const res = await fetch(
-          `/api/google/drive?folderId=${folderId}&subfolderName=${encodeURIComponent(subName)}`,
-        );
-        const result = await res.json();
+      if (result.isConnected && result.files) {
+        // Filter: 1. Not a folder, 2. Path contains invoice keywords
+        const invoices = result.files
+          .filter((f: any) => {
+            const isFile = f.mimeType !== "application/vnd.google-apps.folder";
+            const pathLower = (f.path || "").toLowerCase();
+            const isInInvoiceFolder = invoiceKeywords.some((keyword) =>
+              pathLower.includes(keyword),
+            );
+            return isFile && isInInvoiceFolder;
+          })
+          .map((f: any) => ({
+            ...f,
+            projectName,
+            projectId,
+          }));
 
-        if (result.isConnected && result.files && result.files.length > 0) {
-          const files = result.files
-            .filter(
-              (f: any) => f.mimeType !== "application/vnd.google-apps.folder",
-            )
-            .map((f: any) => ({
-              ...f,
-              projectName,
-              projectId,
-            }));
-          allFoundFiles = [...allFoundFiles, ...files];
-
-          // If we found a folder named exactly "Faktury" or "Faktúry", we might have found the main source.
-          // But we continue to check "01_Zmluvy_a_Faktury" because it might contain the subfolders.
-          // If we find subfolders inside "01_Zmluvy_a_Faktury", we should ideally recurse,
-          // but for now let's hope the direct hit works or the API handles it.
-        }
+        return invoices;
       }
 
-      return allFoundFiles;
+      return [];
     } catch (err) {
       console.error(
         `Failed to fetch invoices for project ${projectName}:`,

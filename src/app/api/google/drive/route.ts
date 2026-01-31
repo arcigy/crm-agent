@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { currentUser, clerkClient } from "@clerk/nextjs/server";
 import {
   listFiles,
+  listFilesRecursive,
   createFolder,
   findFolder,
   deleteFile,
@@ -38,6 +39,7 @@ export async function GET(req: Request) {
 
     let targetFolderId = folderId;
     const subfolderName = searchParams.get("subfolderName");
+    const recursive = searchParams.get("recursive") === "true";
 
     // If subfolderName is provided, we look for it inside the parent (folderId)
     if (subfolderName && targetFolderId) {
@@ -53,7 +55,18 @@ export async function GET(req: Request) {
       }
     }
 
-    const files = await listFiles(token, targetFolderId);
+    if (!targetFolderId) {
+      return NextResponse.json({
+        isConnected: true,
+        files: [],
+        message: "No folderId or projectName provided",
+      });
+    }
+
+    const files = recursive
+      ? await listFilesRecursive(token, targetFolderId)
+      : await listFiles(token, targetFolderId);
+
     return NextResponse.json({ isConnected: true, files });
   } catch (error: any) {
     console.error("Drive API Error:", error);
