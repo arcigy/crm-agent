@@ -1,93 +1,117 @@
-import { google } from 'googleapis';
+import { google } from "googleapis";
 
 const getBaseUrl = () => {
-    // Hardcoded production URL fallback to eliminate env var mistakes
-    if (process.env.NODE_ENV === 'production') {
-        return process.env.NEXT_PUBLIC_APP_URL || 'https://crm-agent-production-d1eb.up.railway.app';
-    }
-    return 'http://localhost:3000';
+  // Hardcoded production URL fallback to eliminate env var mistakes
+  if (process.env.NODE_ENV === "production") {
+    return (
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "https://crm-agent-production-d1eb.up.railway.app"
+    );
+  }
+  return "http://localhost:3000";
 };
 
 const getRedirectUrl = () => {
-    // FRONTEND-FIRST STRATEGY: Redirect to a visible page, then POST to API
-    return `${getBaseUrl().replace(/\/$/, '')}/oauth-callback`;
+  // FRONTEND-FIRST STRATEGY: Redirect to a visible page, then POST to API
+  return `${(getBaseUrl() || "").toString().replace(/\/$/, "")}/oauth-callback`;
 };
 
 // Funkcia na vytvorenie novej inštancie klienta
 const createOAuthClient = () => {
-    const redirectUrl = getRedirectUrl();
-    console.log('🔧 Creating OAuth Client with Redirect URI:', redirectUrl);
+  const redirectUrl = getRedirectUrl();
+  console.log("🔧 Creating OAuth Client with Redirect URI:", redirectUrl);
 
-    return new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        redirectUrl
-    );
+  return new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    redirectUrl,
+  );
 };
 
 export const oauth2Client = createOAuthClient();
 
 const SCOPES = [
-    'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/userinfo.profile',
-    'https://www.googleapis.com/auth/calendar',
-    'https://www.googleapis.com/auth/gmail.modify',
-    'https://www.googleapis.com/auth/contacts.readonly'
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/userinfo.profile",
+  "https://www.googleapis.com/auth/calendar",
+  "https://www.googleapis.com/auth/gmail.modify",
+  "https://www.googleapis.com/auth/contacts.readonly",
 ];
 
 export function getAuthUrl(state?: string): string {
-    const client = createOAuthClient();
-    return client.generateAuthUrl({
-        access_type: 'offline',
-        scope: SCOPES,
-        prompt: 'consent',
-        state: state || '',
-    });
+  const client = createOAuthClient();
+  return client.generateAuthUrl({
+    access_type: "offline",
+    scope: SCOPES,
+    prompt: "consent",
+    state: state || "",
+  });
 }
 
 export async function getTokensFromCode(code: string) {
-    const client = createOAuthClient();
-    const { tokens } = await client.getToken(code);
-    return tokens;
+  const client = createOAuthClient();
+  const { tokens } = await client.getToken(code);
+  return tokens;
 }
 
 // Helpers for clients...
-const getClientWithCredentials = (accessToken: string, refreshToken?: string) => {
-    // For API calls, redirect URI doesn't matter as much, but we use the same factory
-    const client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET
-    );
-    client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
-    return client;
+const getClientWithCredentials = (
+  accessToken: string,
+  refreshToken?: string,
+) => {
+  // For API calls, redirect URI doesn't matter as much, but we use the same factory
+  const client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+  );
+  client.setCredentials({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  return client;
 };
 
 export function getCalendarClient(accessToken: string, refreshToken?: string) {
-    return google.calendar({ version: 'v3', auth: getClientWithCredentials(accessToken, refreshToken) });
+  return google.calendar({
+    version: "v3",
+    auth: getClientWithCredentials(accessToken, refreshToken),
+  });
 }
 
 export function getGmailClient(accessToken: string, refreshToken?: string) {
-    return google.gmail({ version: 'v1', auth: getClientWithCredentials(accessToken, refreshToken) });
+  return google.gmail({
+    version: "v1",
+    auth: getClientWithCredentials(accessToken, refreshToken),
+  });
 }
 
 export function getPeopleClient(accessToken: string, refreshToken?: string) {
-    return google.people({ version: 'v1', auth: getClientWithCredentials(accessToken, refreshToken) });
+  return google.people({
+    version: "v1",
+    auth: getClientWithCredentials(accessToken, refreshToken),
+  });
 }
 
 export function getDriveClient(accessToken: string, refreshToken?: string) {
-    return google.drive({ version: 'v3', auth: getClientWithCredentials(accessToken, refreshToken) });
+  return google.drive({
+    version: "v3",
+    auth: getClientWithCredentials(accessToken, refreshToken),
+  });
 }
 
 export function getTasksClient(accessToken: string, refreshToken?: string) {
-    return google.tasks({ version: 'v1', auth: getClientWithCredentials(accessToken, refreshToken) });
+  return google.tasks({
+    version: "v1",
+    auth: getClientWithCredentials(accessToken, refreshToken),
+  });
 }
 
 export async function refreshAccessToken(refreshToken: string) {
-    const client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET
-    );
-    client.setCredentials({ refresh_token: refreshToken });
-    const { credentials } = await client.refreshAccessToken();
-    return credentials;
+  const client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+  );
+  client.setCredentials({ refresh_token: refreshToken });
+  const { credentials } = await client.refreshAccessToken();
+  return credentials;
 }

@@ -12,7 +12,7 @@ export async function findFolder(
   parentId?: string,
 ) {
   const drive = await getDriveClient(token);
-  let q = `name = '${name.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+  let q = `name = '${(name || "").toString().replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
   if (parentId) {
     q += ` and '${parentId}' in parents`;
   }
@@ -130,7 +130,7 @@ export async function setupProjectStructure(
   const yearId = await ensureFolder(token, data.year, rootId);
 
   // 3. Create Project Folder (001_Project_Name)
-  const folderName = `${data.projectNumber}_${data.projectName.replace(/\s+/g, "_")}`;
+  const folderName = `${data.projectNumber}_${(data.projectName || "").toString().replace(/\s+/g, "_")}`;
   const projectId = await createFolder(
     token,
     folderName,
@@ -265,7 +265,7 @@ export async function searchFoldersByDescription(
   searchTerm: string,
 ) {
   const drive = await getDriveClient(token);
-  const escaped = searchTerm.replace(/'/g, "\\'");
+  const escaped = (searchTerm || "").toString().replace(/'/g, "\\'");
   const q = `mimeType = 'application/vnd.google-apps.folder' and description contains '${escaped}' and trashed = false`;
 
   try {

@@ -79,11 +79,15 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
               let classification = existing?.classification;
               if (!classification) {
                 // Check DB analyses
-                const dbMatch = dbAnalyses.find(a => a.metadata?.gmail_id === newMsg.id);
+                const dbMatch = dbAnalyses.find(
+                  (a) => a.metadata?.gmail_id === newMsg.id,
+                );
                 if (dbMatch) {
                   classification = dbMatch.metadata.classification;
                 } else {
-                  const saved = localStorage.getItem(`ai_classify_${newMsg.id}`);
+                  const saved = localStorage.getItem(
+                    `ai_classify_${newMsg.id}`,
+                  );
                   if (saved) classification = JSON.parse(saved);
                 }
               }
@@ -157,9 +161,10 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     );
 
     try {
-      let textToAnalyze = msg.body;
+      let textToAnalyze = (msg.body || "").toString();
       if ((!textToAnalyze || textToAnalyze.length < 50) && msg.bodyHtml) {
-        textToAnalyze = msg.bodyHtml
+        textToAnalyze = (msg.bodyHtml || "")
+          .toString()
           .replace(/<[^>]*>?/gm, " ")
           .replace(/\s+/g, " ")
           .trim();
@@ -226,7 +231,10 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const handleDraftReply = async (msg: GmailMessage) => {
     setIsGeneratingDraft(true);
     try {
-      const cleanBody = msg.body.replace(/<[^>]*>?/gm, "").substring(0, 1000);
+      const cleanBody = (msg.body || "")
+        .toString()
+        .replace(/<[^>]*>?/gm, "")
+        .substring(0, 1000);
       const res = await fetch("/api/ai/draft", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -254,7 +262,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     setIsGeneratingDraft(true);
 
     try {
-      const cleanBody = selectedEmail.body
+      const cleanBody = (selectedEmail.body || "")
+        .toString()
         .replace(/<[^>]*>?/gm, "")
         .substring(0, 2000);
 
