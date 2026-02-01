@@ -15,10 +15,13 @@ import {
 import { toast } from "sonner";
 
 export default function PublicBookingPage({
-  params,
+  params: paramsPromise,
 }: {
-  params: { username: string; slug: string };
+  params: Promise<{ username: string; slug: string }>;
 }) {
+  const params = React.use(paramsPromise);
+  const { username, slug } = params;
+
   const [selectedDate, setSelectedDate] = React.useState(startOfToday());
   const [slots, setSlots] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -40,7 +43,7 @@ export default function PublicBookingPage({
     try {
       const dateStr = format(date, "yyyy-MM-dd");
       const res = await fetch(
-        `/api/booking/available?date=${dateStr}&slug=${params.slug}`,
+        `/api/booking/available?date=${dateStr}&slug=${slug}&username=${username}`,
       );
       const data = await res.json();
       setSlots(data.slots || []);
@@ -67,8 +70,8 @@ export default function PublicBookingPage({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          slug: params.slug,
-          username: params.username,
+          slug: slug,
+          username: username,
           start: selectedSlot.start,
           end: selectedSlot.end,
           name: clientName,
@@ -139,7 +142,7 @@ export default function PublicBookingPage({
                 Booking session
               </h2>
               <h1 className="text-4xl lg:text-5xl font-black tracking-tighter leading-none mb-6">
-                {(params.slug || "").replace(/-/g, " ")}
+                {(slug || "").replace(/-/g, " ")}
               </h1>
               <div className="flex items-center gap-3 text-slate-400 font-bold uppercase tracking-widest text-xs">
                 <Clock className="w-4 h-4" /> 30 minút
