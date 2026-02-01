@@ -135,20 +135,19 @@ export async function updateOnboardingSettings(data: {
     if (!user) {
       return { success: false, error: "Užívateľ nenájdený v databáze" };
     }
-      // @ts-ignore
-      await directus.request(
-        updateItem("crm_users", user.id, {
-          company_name: data.company_name,
-          industry: data.industry,
-          nickname: data.nickname,
-          profession: data.profession,
-          about_me: data.about_me,
-          custom_instructions: data.custom_instructions,
-          onboarding_completed: true,
-          date_updated: new Date().toISOString(),
-        }),
-      );
-    }
+    // @ts-ignore
+    await directus.request(
+      updateItem("crm_users", user.id, {
+        company_name: data.company_name,
+        industry: data.industry,
+        nickname: data.nickname,
+        profession: data.profession,
+        about_me: data.about_me,
+        custom_instructions: data.custom_instructions,
+        onboarding_completed: true,
+        date_updated: new Date().toISOString(),
+      }),
+    );
 
     // 2. Update AI Personalization (Business Focus)
     // @ts-ignore
