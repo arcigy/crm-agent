@@ -8,7 +8,6 @@ const isPublicRoute = createRouteMatcher([
   "/oauth-callback",
   "/mobile-setup",
   "/sso-callback(.*)",
-  "/book/(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
