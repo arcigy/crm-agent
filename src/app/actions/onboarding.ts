@@ -45,14 +45,13 @@ export async function checkOnboardingStatus() {
 
     return {
       completed: !!user.onboarding_completed,
-      userId: user.id,
-      email: user.email,
+      userId: user.id || "unknown",
+      email: user.email || email || "",
     };
   } catch (error) {
-    console.error("Check Onboarding Status Error:", error);
     // Returning completed: true as fallback to prevent blocking the entire app,
     // although this might skip onboarding, it's safer than a white screen.
-    return { completed: true };
+    return { completed: true, userId: "error", email: "" };
   }
 }
 
