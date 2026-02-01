@@ -355,16 +355,17 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         : "";
 
     if (!name || !email) {
-      const emailMatch = msg.from.match(/<([^>]+)>/);
+      const originalFrom = (msg.from || "").toString();
+      const emailMatch = originalFrom.match(/<([^>]+)>/);
       if (emailMatch) {
         if (!email) email = emailMatch[1];
         if (!name)
-          name = msg.from
+          name = originalFrom
             .replace(/<[^>]+>/, "")
             .trim()
             .replace(/^"|"$/g, "");
       } else {
-        if (!email) email = msg.from.trim();
+        if (!email) email = originalFrom.trim();
         if (!name) name = email.split("@")[0];
       }
     }

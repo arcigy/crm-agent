@@ -18,6 +18,7 @@ export interface Suggestion {
 
 // Helper to normalize text for diacritics-insensitive search
 const normalizeText = (text: string) => {
+  if (!text || typeof text !== "string") return "";
   return text
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")

@@ -100,22 +100,24 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
 
         <div className="flex items-center gap-4 mb-4">
           <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-sm font-black shadow-lg shadow-blue-200">
-            {email.from[0].toUpperCase()}
+            {(email.from || "?")[0].toUpperCase()}
           </div>
           <div className="min-w-0">
             <h3 className="text-sm font-black text-gray-900 leading-tight truncate max-w-[400px]">
-              {email.from}
+              {email.from || "Neznámy odosielateľ"}
             </h3>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
-              {format(new Date(email.date), "d. MMM yyyy HH:mm", {
-                locale: sk,
-              })}
+              {email.date
+                ? format(new Date(email.date), "d. MMM yyyy HH:mm", {
+                    locale: sk,
+                  })
+                : "Neznámy dátum"}
             </p>
           </div>
         </div>
 
         <h2 className="text-xl font-black text-gray-900 leading-tight mb-6">
-          {email.subject}
+          {email.subject || "(Bez predmetu)"}
         </h2>
 
         {/* AI Insights Bar - if exists */}
@@ -246,7 +248,7 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
           <div className="h-full overflow-y-auto bg-gray-50/30">
             <div className="max-w-4xl mx-auto p-12 bg-white min-h-full shadow-sm border-x border-gray-100/50">
               <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap select-text font-mono opacity-90">
-                {email.body}
+                {email.body || "(Prázdny obsah)"}
               </div>
             </div>
           </div>

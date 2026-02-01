@@ -120,7 +120,7 @@ export function LeadsListItem({
                                     ${isActionOpen ? "brightness-[0.98] shadow-inner" : ""}`}
         >
           <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center text-sm font-black text-foreground/60 shadow-sm group-hover:scale-105 transition-transform">
-            {msg.from.substring(0, 1).toUpperCase()}
+            {(msg.from || "?").substring(0, 1).toUpperCase()}
           </div>
 
           <div className="flex-1 min-w-0 grid grid-cols-12 gap-4 items-center">
@@ -128,10 +128,12 @@ export function LeadsListItem({
               <span
                 className={`text-sm truncate block ${!msg.isRead ? "font-black text-foreground" : "font-bold text-foreground/80"}`}
               >
-                {msg.from}
+                {msg.from || "Neznámy odosielateľ"}
               </span>
               <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
-                {format(new Date(msg.date), "d. MMM HH:mm", { locale: sk })}
+                {msg.date
+                  ? format(new Date(msg.date), "d. MMM HH:mm", { locale: sk })
+                  : "Neznámy dátum"}
               </span>
             </div>
 
@@ -259,10 +261,14 @@ export function LeadsListItem({
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center mb-1">
             <span className="text-sm font-black text-gray-900 tracking-tight">
-              {log.phone_number}
+              {log.phone_number || "Neznáme číslo"}
             </span>
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              {format(new Date(log.timestamp), "d. MMM HH:mm", { locale: sk })}
+              {log.timestamp
+                ? format(new Date(log.timestamp), "d. MMM HH:mm", {
+                    locale: sk,
+                  })
+                : "Neznámy čas"}
             </span>
           </div>
           <p className="text-xs font-bold text-gray-500 truncate">

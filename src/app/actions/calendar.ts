@@ -88,21 +88,31 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
           : "Neznámy";
 
         // Add creation date event
-        mergedEvents.push({
-          id: `p-start-${p.id}`,
-          summary: `🚀 START: ${p.project_type || p.name}`,
-          description: `Nový projekt pre ${contactName}.\nŠtádium: ${p.stage}`,
-          start: { dateTime: new Date(p.date_created).toISOString() },
-          end: {
-            dateTime: new Date(
-              new Date(p.date_created).getTime() + 60 * 60 * 1000,
-            ).toISOString(),
-          },
-          colorId: "9", // Blueberry (approx blue)
-          extendedProperties: {
-            private: { type: "project", id: p.id, contactId: p.contact_id },
-          },
-        });
+        try {
+          const creationDate = p.date_created
+            ? new Date(p.date_created).toISOString()
+            : new Date().toISOString();
+          mergedEvents.push({
+            id: `p-start-${p.id}`,
+            summary: `🚀 START: ${p.project_type || p.name || "Projekt"}`,
+            description: `Nový projekt pre ${contactName}.\nŠtádium: ${p.stage}`,
+            start: { dateTime: creationDate },
+            end: {
+              dateTime: new Date(
+                new Date(creationDate).getTime() + 60 * 60 * 1000,
+              ).toISOString(),
+            },
+            colorId: "9", // Blueberry (approx blue)
+            extendedProperties: {
+              private: { type: "project", id: p.id, contactId: p.contact_id },
+            },
+          });
+        } catch (e) {
+          console.error(
+            `Skipping project ${p.id} start event due to invalid date:`,
+            p.date_created,
+          );
+        }
 
         // Add end date event
         if (p.end_date) {
@@ -127,24 +137,31 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
       for (const t of tasksData) {
         const taskDate = t.due_date || t.date_created;
         if (taskDate) {
-          const isDeadline = !!t.due_date;
-          mergedEvents.push({
-            id: `t-${t.id}`,
-            summary: `📝 TODO: ${t.title}`,
-            description: `Úloha z tvojho zoznamu.\nStav: ${t.completed ? "Hotovo" : "Prebieha"}`,
-            start: isDeadline
-              ? { date: t.due_date }
-              : { dateTime: new Date(taskDate).toISOString() },
-            end: isDeadline
-              ? { date: t.due_date }
-              : {
-                  dateTime: new Date(
-                    new Date(taskDate).getTime() + 30 * 60 * 1000,
-                  ).toISOString(),
-                },
-            colorId: t.completed ? "8" : "5", // Gray or Yellow
-            extendedProperties: { private: { type: "task", id: t.id } },
-          });
+          try {
+            const isDeadline = !!t.due_date;
+            const isoDate = new Date(taskDate).toISOString();
+
+            mergedEvents.push({
+              id: `t-${t.id}`,
+              summary: `📝 TODO: ${t.title || "Úloha"}`,
+              description: `Úloha z tvojho zoznamu.\nStav: ${t.completed ? "Hotovo" : "Prebieha"}`,
+              start: isDeadline ? { date: t.due_date } : { dateTime: isoDate },
+              end: isDeadline
+                ? { date: t.due_date }
+                : {
+                    dateTime: new Date(
+                      new Date(taskDate).getTime() + 30 * 60 * 1000,
+                    ).toISOString(),
+                  },
+              colorId: t.completed ? "8" : "5", // Gray or Yellow
+              extendedProperties: { private: { type: "task", id: t.id } },
+            });
+          } catch (e) {
+            console.error(
+              `Skipping task ${t.id} due to invalid date:`,
+              taskDate,
+            );
+          }
         }
       }
     }
