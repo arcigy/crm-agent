@@ -44,7 +44,7 @@ export default function LoginPage() {
               headerSubtitle: "text-gray-500 text-sm",
             },
           }}
-          fallbackRedirectUrl="/dashboard"
+          forceRedirectUrl="/dashboard"
         />
       </div>
 

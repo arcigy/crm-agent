@@ -41,8 +41,8 @@ export default function RootLayout({
     <ClerkProvider
       signInUrl="/login"
       signUpUrl="/login"
-      signInFallbackRedirectUrl="/dashboard"
-      signUpFallbackRedirectUrl="/dashboard"
+      signInForceRedirectUrl="/dashboard"
+      signUpForceRedirectUrl="/dashboard"
     >
       <html lang="sk" suppressHydrationWarning>
         <body
