@@ -9,8 +9,9 @@ export async function checkOnboardingStatus() {
     const clerkUser = await currentUser();
     if (!clerkUser) return { completed: true };
 
-    const email = clerkUser.emailAddresses[0]?.emailAddress;
-    if (!email) return { completed: true };
+    const rawEmail = clerkUser.emailAddresses[0]?.emailAddress;
+    if (!rawEmail) return { completed: true };
+    const email = rawEmail.toLowerCase();
 
     // @ts-ignore
     const users = await directus.request(
@@ -23,6 +24,7 @@ export async function checkOnboardingStatus() {
     let user = users?.[0];
 
     if (!user) {
+      console.log(`Creating new CRM user for ${email}`);
       // @ts-ignore
       user = await directus.request(
         createItem("crm_users", {
@@ -36,13 +38,20 @@ export async function checkOnboardingStatus() {
       );
     }
 
+    if (!user) {
+      console.error("Failed to find or create user record");
+      return { completed: true };
+    }
+
     return {
-      completed: user.onboarding_completed ?? false,
+      completed: !!user.onboarding_completed,
       userId: user.id,
       email: user.email,
     };
   } catch (error) {
     console.error("Check Onboarding Status Error:", error);
+    // Returning completed: true as fallback to prevent blocking the entire app,
+    // although this might skip onboarding, it's safer than a white screen.
     return { completed: true };
   }
 }
@@ -52,7 +61,9 @@ export async function getOnboardingSettings() {
     const clerkUser = await currentUser();
     if (!clerkUser) return null;
 
-    const email = clerkUser.emailAddresses[0]?.emailAddress;
+    const rawEmail = clerkUser.emailAddresses[0]?.emailAddress;
+    if (!rawEmail) return null;
+    const email = rawEmail.toLowerCase();
 
     // 1. Get user profile (Personal Identity)
     // @ts-ignore
@@ -63,6 +74,7 @@ export async function getOnboardingSettings() {
       }),
     );
     const user = users?.[0];
+    if (!user) return null;
 
     // 2. Get AI Personalization (Business & AI Context)
     // @ts-ignore
@@ -107,7 +119,9 @@ export async function updateOnboardingSettings(data: {
   try {
     const clerkUser = await currentUser();
     if (!clerkUser) return { success: false, error: "Unauthorized" };
-    const email = clerkUser.emailAddresses[0]?.emailAddress;
+    const rawEmail = clerkUser.emailAddresses[0]?.emailAddress;
+    if (!rawEmail) return { success: false, error: "No email" };
+    const email = rawEmail.toLowerCase();
 
     // 1. Update Core User Record (Identity)
     // @ts-ignore
@@ -118,7 +132,9 @@ export async function updateOnboardingSettings(data: {
       }),
     );
     const user = users?.[0];
-    if (user) {
+    if (!user) {
+      return { success: false, error: "Užívateľ nenájdený v databáze" };
+    }
       // @ts-ignore
       await directus.request(
         updateItem("crm_users", user.id, {

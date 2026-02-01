@@ -43,7 +43,12 @@ export async function chatWithAgent(messages: ChatMessage[]) {
         superState.error("Unauthorized");
         return;
       }
-      const userEmail = user.emailAddresses[0].emailAddress;
+      const rawEmail = user.emailAddresses[0]?.emailAddress;
+      if (!rawEmail) {
+        superState.error("User email not found");
+        return;
+      }
+      const userEmail = rawEmail.toLowerCase();
       const context = await getIsolatedAIContext(userEmail, "GLOBAL");
 
       startCostSession(userEmail);

@@ -9,11 +9,15 @@ export async function getAgentChats(): Promise<AgentChat[]> {
   const user = await currentUser();
   if (!user) return [];
 
+  const rawEmail = user.emailAddresses[0]?.emailAddress;
+  if (!rawEmail) return [];
+  const email = rawEmail.toLowerCase();
+
   try {
     const list = await directus.request(
       readItems("agent_chats", {
         filter: {
-          user_email: { _eq: user.emailAddresses[0].emailAddress },
+          user_email: { _eq: email },
           status: { _eq: "active" },
         },
         sort: ["-date_created"] as string[],
@@ -44,6 +48,10 @@ export async function saveAgentChat(
   const user = await currentUser();
   if (!user) return null;
 
+  const rawEmail = user.emailAddresses[0]?.emailAddress;
+  if (!rawEmail) return null;
+  const email = rawEmail.toLowerCase();
+
   try {
     const existing = await directus.request(
       readItems("agent_chats", {
@@ -66,7 +74,7 @@ export async function saveAgentChat(
           id,
           title,
           messages,
-          user_email: user.emailAddresses[0].emailAddress,
+          user_email: email,
           status: "active",
           date_created: new Date().toISOString(),
         }),
