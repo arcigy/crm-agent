@@ -1,20 +1,28 @@
-"use server";
-
 import directus from "@/lib/directus";
-import { readItems, createItem, updateItem } from "@directus/sdk";
+import { readItems, createItem, updateItem, readItem } from "@directus/sdk";
 import { revalidatePath } from "next/cache";
 import { Deal } from "@/types/deal";
-import { getProjects } from "./projects";
+import { currentUser } from "@clerk/nextjs/server";
+
+async function getUserEmail() {
+  const user = await currentUser();
+  return user?.emailAddresses[0]?.emailAddress?.toLowerCase();
+}
 
 export async function getDeals(): Promise<{
   data: Deal[] | null;
   error: string | null;
 }> {
   try {
+    const email = await getUserEmail();
+    if (!email) throw new Error("Unauthorized");
+
     // @ts-ignore
     const deals = await directus.request(
       readItems("deals", {
-        filter: { deleted_at: { _null: true } },
+        filter: {
+          _and: [{ deleted_at: { _null: true } }, { user_email: { _eq: email } }],
+        },
         sort: ["-date_created"],
       }),
     );
@@ -27,10 +35,14 @@ export async function getDeals(): Promise<{
 
 export async function createDeal(data: Partial<Deal>) {
   try {
+    const email = await getUserEmail();
+    if (!email) throw new Error("Unauthorized");
+
     // @ts-ignore
     const newDeal = await directus.request(
       createItem("deals", {
         ...data,
+        user_email: email,
         date_created: new Date().toISOString(),
         paid: data.paid || false,
       }),
@@ -44,6 +56,13 @@ export async function createDeal(data: Partial<Deal>) {
 
 export async function updateDeal(id: number, data: Partial<Deal>) {
   try {
+    const email = await getUserEmail();
+    if (!email) throw new Error("Unauthorized");
+
+    // Verify ownership
+    const current = (await directus.request(readItem("deals", id))) as any;
+    if (current.user_email !== email) throw new Error("Access denied");
+
     // @ts-ignore
     await directus.request(
       updateItem("deals", id, {

@@ -123,11 +123,12 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
           class: "cursor-pointer",
         },
       }),
-      Placeholder.configure({
+        Placeholder.configure({
         placeholder: "Čo plánuješ urobiť? (Použi @ pre kontakt, # pre projekt)",
         includeChildren: true,
       }),
     ],
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class:

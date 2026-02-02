@@ -1,7 +1,7 @@
 "use server";
 
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
-import { readItems, createItem, updateItem, deleteItem } from "@directus/sdk";
+import { readItems, createItem, updateItem, deleteItem, readItem } from "@directus/sdk";
 import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
@@ -115,6 +115,16 @@ export async function createTask(title: string, dueDate?: string) {
 
 export async function toggleTaskStatus(id: string, completed: boolean) {
   try {
+    const user = await currentUser();
+    if (!user) return { success: false as const, error: "Unauthorized" };
+    const email = user.emailAddresses[0]?.emailAddress?.toLowerCase();
+
+    // Ownership check
+    const current = (await directus.request(readItem("crm_tasks", id))) as any;
+    if (current.user_email?.toLowerCase() !== email) {
+      throw new Error("Access denied");
+    }
+
     await directus.request(
       updateItem("crm_tasks", id, {
         completed,
@@ -134,6 +144,16 @@ export async function toggleTaskStatus(id: string, completed: boolean) {
 
 export async function removeTask(id: string) {
   try {
+    const user = await currentUser();
+    if (!user) return { success: false as const, error: "Unauthorized" };
+    const email = user.emailAddresses[0]?.emailAddress?.toLowerCase();
+
+    // Ownership check
+    const current = (await directus.request(readItem("crm_tasks", id))) as any;
+    if (current.user_email?.toLowerCase() !== email) {
+      throw new Error("Access denied");
+    }
+
     await directus.request(deleteItem("crm_tasks", id));
     revalidatePath("/dashboard/todo");
     return { success: true as const };

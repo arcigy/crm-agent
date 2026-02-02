@@ -20,13 +20,17 @@ export async function POST(req: Request) {
         const message = payload.message || payload.note || payload.content || '';
         const subject = payload.subject || 'Dopyt z webovej stránky';
         
-        // Target system user for context (optional, can be passed in payload)
-        const target_user = payload.target_user_email;
+        // Target system user for context (mandatory for isolation)
+        const target_user = (payload.target_user_email || payload.target_email || "").toLowerCase();
 
-        console.log(`[ContactForm] New submission from: ${email}`);
+        console.log(`[ContactForm] New submission from: ${email} for user: ${target_user}`);
 
         if (!email || !message) {
             return NextResponse.json({ error: 'Email and message are required' }, { status: 400 });
+        }
+
+        if (!target_user) {
+            return NextResponse.json({ error: 'target_user_email is required for multi-tenant isolation' }, { status: 400 });
         }
 
         // 1. AI Analysis of the form message
@@ -36,23 +40,29 @@ export async function POST(req: Request) {
         let contactId = null;
 
         try {
-            // Check if contact already exists
+            // Check if contact already exists for THIS specific user
             // @ts-ignore
             const existing = await directus.request(readItems('contacts', {
-                filter: { email: { _eq: email } },
+                filter: { 
+                    _and: [
+                        { email: { _eq: email } },
+                        { user_email: { _eq: target_user } }
+                    ]
+                },
                 limit: 1
             }));
 
             if (existing && existing.length > 0) {
                 contactId = existing[0].id;
             } else {
-                // Create new contact
+                // Create new contact tagged with target_user
                 // @ts-ignore
                 const newContact = await directus.request(createItem('contacts', {
                     first_name: name.split(' ')[0],
                     last_name: name.split(' ').slice(1).join(' ') || '—',
                     email: email,
                     phone: phone,
+                    user_email: target_user,
                     status: 'published'
                 }));
                 contactId = (newContact as any).id;
@@ -75,6 +85,7 @@ AI Analýza:
 ${JSON.stringify(classification, null, 2)}
                 `.trim(),
                 contact_id: contactId,
+                user_email: target_user,
                 activity_date: new Date().toISOString(),
                 metadata: {
                     source: 'web_form',

@@ -1,9 +1,7 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getIsolatedAIContext } from "@/lib/ai-context";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function classifyEmail(
   content: string,
@@ -109,31 +107,6 @@ Sender: jan.novak@gmail.com
   }
 }
 
-### Príklad 2: Spam / Newsletter
-**Input:**
-Subject: Výpredaj tonerov -50%!
-Body: Vážený zákazník, nenechajte si ujsť našu jarnú akciu na všetky tonery HP a Canon. Kliknite sem pre zľavu.
-Sender: promo@tonery-lacno.sk
-
-**Output:**
-{
-  "intent": "spam",
-  "priority": "nizka",
-  "sentiment": "neutralny",
-  "service_category": "—",
-  "summary": "Filter: Spam/Newsletter",
-  "estimated_budget": "—",
-  "next_step": "—",
-  "deadline": "—",
-  "entities": {
-      "contact_name": "—",
-      "company_name": "—",
-      "phone": "—",
-      "email": "promo@tonery-lacno.sk",
-      "website": "—"
-  }
-}
-
 ---
 
 ## 5. Vstup na analýzu
@@ -159,24 +132,19 @@ Vráť čistý JSON. Odpovedaj v slovenčine.
 `;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Si expert na analýzu obchodnej komunikácie. Odpovedáš striktne v JSON formáte.",
-        },
-        { role: "user", content: prompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0,
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0,
+      },
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    const response = await model.generateContent(prompt);
+    const result = JSON.parse(response.response.text() || "{}");
     return result;
   } catch (error) {
-    console.error("AI Classification Error:", error);
+    console.error("AI Classification Error (Gemini):", error);
     return null;
   }
 }

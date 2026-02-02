@@ -9,12 +9,21 @@ import { clerkClient } from "@clerk/nextjs/server";
 export async function executeDbProjectTool(
   name: string,
   args: Record<string, any>,
+  userEmail?: string,
   userId?: string,
 ) {
+  if (!userEmail) throw new Error("Unauthorized access to DB Project Tool");
+
   switch (name) {
     case "db_fetch_projects":
       const prRes = (await directus.request(
         readItems("projects", {
+          filter: {
+            _and: [
+              { user_email: { _eq: userEmail } },
+              { deleted_at: { _null: true } },
+            ],
+          },
           limit: args.limit || 20,
         }),
       )) as any[];
@@ -34,6 +43,7 @@ export async function executeDbProjectTool(
           value: args.value || 0,
           stage: args.stage || "planning",
           end_date: args.end_date || null,
+          user_email: userEmail,
           date_created: new Date().toISOString(),
         } as any),
       )) as any;
@@ -65,7 +75,6 @@ export async function executeDbProjectTool(
           }
         } catch (err) {
           console.error("Agent Project Automation failed:", err);
-          // We don't fail the whole tool call, just log it.
         }
       }
 
@@ -76,6 +85,19 @@ export async function executeDbProjectTool(
       };
 
     case "db_update_project":
+      // Ownership check
+      const current = (await directus.request(
+        readItems("projects", {
+          filter: {
+            _and: [
+              { id: { _eq: args.project_id } },
+              { user_email: { _eq: userEmail } },
+            ],
+          },
+        }),
+      )) as any[];
+      if (current.length === 0) throw new Error("Access denied or not found");
+
       await directus.request(
         updateItem("projects", args.project_id, args as any),
       );
@@ -97,7 +119,9 @@ export async function executeDbProjectTool(
       const vProjId = args.project_id;
       const vProjs = (await directus.request(
         readItems("projects", {
-          filter: { id: { _eq: vProjId } } as any,
+          filter: {
+            _and: [{ id: { _eq: vProjId } }, { user_email: { _eq: userEmail } }],
+          } as any,
         }),
       )) as any[];
       return {

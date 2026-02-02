@@ -19,7 +19,10 @@ function formatPhoneNumber(phone: string | null | undefined): string | null {
 export async function executeDbContactTool(
   name: string,
   args: Record<string, any>,
+  userEmail?: string,
 ) {
+  if (!userEmail) throw new Error("Unauthorized access to DB Contact Tool");
+
   switch (name) {
     case "db_create_contact":
       let firstName = args.first_name || "";
@@ -37,6 +40,7 @@ export async function executeDbContactTool(
           phone: formatPhoneNumber(args.phone),
           company: args.company || null,
           status: args.status || "new",
+          user_email: userEmail,
           date_created: new Date().toISOString(),
         } as any),
       )) as any;
@@ -47,6 +51,19 @@ export async function executeDbContactTool(
       };
 
     case "db_update_contact":
+      // Ownership check for security
+      const current = (await directus.request(
+        readItems("contacts", {
+          filter: {
+            _and: [
+              { id: { _eq: args.contact_id } },
+              { user_email: { _eq: userEmail } },
+            ],
+          },
+        }),
+      )) as any[];
+      if (current.length === 0) throw new Error("Access denied or not found");
+
       await directus.request(
         updateItem("contacts", args.contact_id, args as any),
       );
@@ -60,6 +77,7 @@ export async function executeDbContactTool(
         readItems("contacts", {
           filter: {
             _and: [
+              { user_email: { _eq: userEmail } },
               { status: { _neq: "archived" } },
               {
                 _or: [
@@ -83,7 +101,12 @@ export async function executeDbContactTool(
     case "db_get_all_contacts":
       const allRes = (await directus.request(
         readItems("contacts", {
-          filter: { status: { _neq: "archived" } } as any,
+          filter: {
+            _and: [
+              { user_email: { _eq: userEmail } },
+              { status: { _neq: "archived" } },
+            ],
+          } as any,
           limit: args.limit || 50,
         }),
       )) as any[];
@@ -107,7 +130,14 @@ export async function executeDbContactTool(
 
     case "db_add_contact_comment":
       const contact = (await directus.request(
-        readItems("contacts", { filter: { id: { _eq: args.contact_id } } }),
+        readItems("contacts", {
+          filter: {
+            _and: [
+              { id: { _eq: args.contact_id } },
+              { user_email: { _eq: userEmail } },
+            ],
+          },
+        }),
       )) as any[];
 
       if (contact.length === 0) throw new Error("Contact not found");

@@ -1,7 +1,5 @@
-"use server";
-
 import directus from "@/lib/directus";
-import { readItems, createItem, updateItem } from "@directus/sdk";
+import { readItems, createItem, updateItem, readItem } from "@directus/sdk";
 import { revalidatePath } from "next/cache";
 import type { Project, ProjectStage } from "@/types/project";
 import { currentUser, clerkClient } from "@clerk/nextjs/server";
@@ -11,15 +9,25 @@ import {
 } from "@/lib/google-drive";
 import { getCalendarClient } from "@/lib/google";
 
+async function getUserEmail() {
+  const user = await currentUser();
+  return user?.emailAddresses[0]?.emailAddress?.toLowerCase();
+}
+
 export async function getProjects(): Promise<{
   data: Project[] | null;
   error: string | null;
 }> {
   try {
+    const email = await getUserEmail();
+    if (!email) throw new Error("Unauthorized");
+
     // @ts-ignore
     const projects = await directus.request(
       readItems("projects", {
-        filter: { deleted_at: { _null: true } },
+        filter: {
+          _and: [{ deleted_at: { _null: true } }, { user_email: { _eq: email } }],
+        },
         sort: ["-date_created"],
       }),
     );
@@ -36,11 +44,14 @@ export async function getProject(id: string | number): Promise<{
   error?: string;
 }> {
   try {
+    const email = await getUserEmail();
+    if (!email) throw new Error("Unauthorized");
+
     // 1. Fetch project with potential relation
     // @ts-ignore
     const project = await directus.request(
       readItems("projects", {
-        filter: { id: { _eq: id } },
+        filter: { _and: [{ id: { _eq: id } }, { user_email: { _eq: email } }] },
         fields: ["*", { contact_id: ["id", "first_name", "last_name"] }],
         limit: 1,
       }),
@@ -62,7 +73,12 @@ export async function getProject(id: string | number): Promise<{
         // @ts-ignore
         const contact = (await directus.request(
           readItems("contacts", {
-            filter: { id: { _eq: p.contact_id } },
+            filter: {
+              _and: [
+                { id: { _eq: p.contact_id } },
+                { user_email: { _eq: email } },
+              ],
+            },
             fields: ["first_name", "last_name"],
             limit: 1,
           }),
@@ -100,6 +116,7 @@ export async function createProject(data: any) {
   try {
     const user = await currentUser();
     if (!user) throw new Error("Unauthorized");
+    const email = user.emailAddresses[0].emailAddress.toLowerCase();
 
     // 1. Create in Directus
     // @ts-ignore
@@ -108,6 +125,7 @@ export async function createProject(data: any) {
         ...data,
         contact_name: data.contact_name || "Neznámy",
         stage: data.stage || "planning",
+        user_email: email,
         date_created: new Date().toISOString(),
       }),
     )) as any;
@@ -165,6 +183,13 @@ export async function createProject(data: any) {
 
 export async function updateProject(id: number, data: Partial<Project>) {
   try {
+    const email = await getUserEmail();
+    if (!email) throw new Error("Unauthorized");
+
+    // Verify ownership
+    const current = (await directus.request(readItem("projects", id))) as any;
+    if (current.user_email !== email) throw new Error("Access denied");
+
     // @ts-ignore
     await directus.request(
       updateItem("projects", id, {
@@ -186,6 +211,13 @@ export async function updateProjectStage(id: number, stage: ProjectStage) {
 
 export async function deleteProject(id: number) {
   try {
+    const email = await getUserEmail();
+    if (!email) throw new Error("Unauthorized");
+
+    // Verify ownership
+    const current = (await directus.request(readItem("projects", id))) as any;
+    if (current.user_email !== email) throw new Error("Access denied");
+
     // @ts-ignore
     await directus.request(
       updateItem("projects", id, { deleted_at: new Date().toISOString() }),
@@ -201,6 +233,7 @@ export async function syncAllProjectDescriptions() {
   try {
     const user = await currentUser();
     if (!user) throw new Error("Unauthorized");
+    const email = user.emailAddresses[0].emailAddress.toLowerCase();
 
     const client = await clerkClient();
     const tokenRes = await client.users.getUserOauthAccessToken(
@@ -214,9 +247,10 @@ export async function syncAllProjectDescriptions() {
     const { data: projects } = await getProjects();
     if (!projects) return { success: false, message: "No projects found" };
 
-    // 2. Fetch all contacts to have names ready
+    // 2. Fetch all contacts for THIS USER to have names ready
     const contacts = (await directus.request(
       readItems("contacts", {
+        filter: { user_email: { _eq: email } },
         fields: ["id", "first_name", "last_name"],
         limit: -1,
       }),

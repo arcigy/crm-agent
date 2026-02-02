@@ -4,6 +4,7 @@
 import { revalidatePath } from "next/cache";
 import directus from "@/lib/directus";
 import { createItem, updateItem, readItems, readItem } from "@directus/sdk";
+import { currentUser } from "@clerk/nextjs/server";
 
 export interface ContactItem {
   id: string | number;
@@ -14,26 +15,52 @@ export interface ContactItem {
   company?: string;
   status?: string;
   comments?: string;
+  user_email?: string;
   date_created?: string;
+  projects?: any[];
+  deals?: any[];
+  activities?: any[];
+}
+
+async function getUserEmail() {
+  const user = await currentUser();
+  return user?.emailAddresses[0]?.emailAddress?.toLowerCase();
 }
 
 export async function getContact(id: string | number) {
   try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
     const contact = (await directus.request(
       readItem("contacts", id),
     )) as unknown as ContactItem;
+
+    if (!contact || contact.user_email !== userEmail) {
+      return { success: false, error: "Contact not found or access denied" };
+    }
 
     if (contact) {
       // Parallel fetch for speed
       const [projects, deals, activities] = await Promise.all([
         directus.request(
           readItems("projects", {
-            filter: { contact_id: { _eq: id } },
+            filter: {
+              _and: [
+                { contact_id: { _eq: id } },
+                { user_email: { _eq: userEmail } },
+              ],
+            },
           }),
         ),
         directus.request(
           readItems("deals", {
-            filter: { contact_id: { _eq: id } },
+            filter: {
+              _and: [
+                { contact_id: { _eq: id } },
+                { user_email: { _eq: userEmail } },
+              ],
+            },
           }),
         ),
         directus.request(
@@ -57,10 +84,16 @@ export async function getContact(id: string | number) {
 
 export async function getContacts() {
   try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
     const contacts = (await directus.request(
       readItems("contacts", {
         filter: {
-          deleted_at: { _null: true },
+          _and: [
+            { deleted_at: { _null: true } },
+            { user_email: { _eq: userEmail } },
+          ],
         },
         sort: ["-date_created"] as string[],
         limit: -1,
@@ -68,10 +101,15 @@ export async function getContacts() {
     )) as unknown as ContactItem[];
 
     if (contacts && contacts.length > 0) {
-      // Fetch all projects to batch assign them (more efficient than N queries)
+      // Fetch all projects for this user to batch assign them
       const allProjects = (await directus.request(
         readItems("projects", {
-          filter: { contact_id: { _nnull: true } },
+          filter: {
+            _and: [
+              { contact_id: { _nnull: true } },
+              { user_email: { _eq: userEmail } },
+            ],
+          },
         }),
       )) as any[];
 
@@ -94,6 +132,9 @@ export async function getContacts() {
 
 export async function createContact(data: Partial<ContactItem>) {
   try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
     if (!data.first_name) {
       throw new Error("First name is required");
     }
@@ -108,6 +149,7 @@ export async function createContact(data: Partial<ContactItem>) {
         company: data.company || "",
         status: data.status || "lead",
         comments: data.comments || "",
+        user_email: userEmail,
       }),
     );
 
@@ -128,6 +170,13 @@ export async function updateContact(
   data: Partial<ContactItem>,
 ) {
   try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
+    // Verify ownership before update
+    const current = (await directus.request(readItem("contacts", id))) as any;
+    if (current.user_email !== userEmail) throw new Error("Access denied");
+
     await directus.request(updateItem("contacts", id, data));
     revalidatePath("/dashboard/contacts");
     return { success: true };
@@ -141,21 +190,14 @@ export async function updateContact(
 }
 
 export async function updateContactComments(id: number, comments: string) {
-  try {
-    await directus.request(updateItem("contacts", id, { comments: comments }));
-    revalidatePath("/dashboard/contacts");
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to update comments:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
+  return updateContact(id, { comments });
 }
 
 export async function uploadVCard(formData: FormData) {
   try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
     const file = formData.get("file") as File;
     if (!file) throw new Error("No file provided");
     const vcardContent = await file.text();
@@ -196,6 +238,7 @@ export async function uploadVCard(formData: FormData) {
             phone: (phone || "").replace(/\s/g, ""),
             company: org || "",
             status: "lead",
+            user_email: userEmail,
           }),
         );
         successCount++;
@@ -216,10 +259,14 @@ export async function uploadVCard(formData: FormData) {
 
 export async function bulkCreateContacts(contacts: any[]) {
   try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
     let successCount = 0;
 
     const existingContacts = await directus.request(
       readItems("contacts", {
+        filter: { user_email: { _eq: userEmail } },
         fields: ["email"] as string[],
         limit: -1,
       }),
@@ -261,6 +308,7 @@ export async function bulkCreateContacts(contacts: any[]) {
             phone: phone ? String(phone).replace(/\s/g, "") : "",
             company: company ? String(company) : "",
             status: contact.status || "lead",
+            user_email: userEmail,
           }),
         );
         successCount++;
@@ -281,9 +329,9 @@ export async function bulkCreateContacts(contacts: any[]) {
 
 export async function importGoogleContacts() {
   try {
-    const { currentUser } = await import("@clerk/nextjs/server");
     const user = await currentUser();
     if (!user) return { success: false, error: "Unauthorized" };
+    const userEmail = user.emailAddresses[0]?.emailAddress?.toLowerCase();
 
     const tokensRes = await directus.request(
       readItems("google_tokens", {

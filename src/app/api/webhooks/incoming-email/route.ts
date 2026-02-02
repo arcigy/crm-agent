@@ -30,12 +30,17 @@ export async function POST(req: Request) {
         }
 
         // 2. Persist Result to Directus
-        // First, attempt to find a relevant contact to link this activity to
+        // First, attempt to find a relevant contact to link this activity to for THIS user
         let contactId = null;
         try {
             // @ts-ignore
             const contacts = await directus.request(readItems('contacts', {
-                filter: { email: { _eq: sender } },
+                filter: { 
+                    _and: [
+                        { email: { _eq: sender } },
+                        { user_email: { _eq: user_email.toLowerCase() } }
+                    ]
+                },
                 limit: 1
             }));
             if (contacts && contacts.length > 0) contactId = contacts[0].id;
@@ -47,7 +52,7 @@ export async function POST(req: Request) {
         try {
             // @ts-ignore
             await directus.request(createItem('activities', {
-                type: 'ai_analysis', // Special type for these logs
+                type: 'ai_analysis', 
                 subject: `AI Analysis: ${subject.substring(0, 100)}`,
                 content: `
 Classification:
@@ -57,6 +62,7 @@ Original Message ID: ${message_id}
 Sender: ${sender}
                 `.trim(),
                 contact_id: contactId,
+                user_email: user_email.toLowerCase(),
                 activity_date: new Date().toISOString(),
                 metadata: {
                     gmail_id: message_id,

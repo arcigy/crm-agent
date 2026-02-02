@@ -7,12 +7,19 @@ import { readItems, createItem, updateItem } from "@directus/sdk";
 export async function executeDbVerificationTool(
   name: string,
   args: Record<string, any>,
+  userEmail?: string,
 ) {
+  if (!userEmail)
+    throw new Error("Unauthorized access to DB Verification Tool");
+
   switch (name) {
     case "verify_database_health":
       try {
         const healthCheck = (await directus.request(
-          readItems("contacts", { limit: 1 }),
+          readItems("contacts", {
+            filter: { user_email: { _eq: userEmail } },
+            limit: 1,
+          }),
         )) as any[];
         return {
           success: true,
@@ -37,9 +44,12 @@ export async function executeDbVerificationTool(
       const vId = args.contact_id;
       const vContacts = (await directus.request(
         readItems("contacts", {
-          filter: vId
-            ? ({ id: { _eq: vId } } as any)
-            : ({ email: { _eq: vEmail } } as any),
+          filter: {
+            _and: [
+              { user_email: { _eq: userEmail } },
+              vId ? { id: { _eq: vId } } : { email: { _eq: vEmail } },
+            ],
+          } as any,
         }),
       )) as any[];
       return {
@@ -56,6 +66,7 @@ export async function executeDbVerificationTool(
         readItems("contacts", {
           filter: {
             _and: [
+              { user_email: { _eq: userEmail } },
               { status: { _neq: "archived" } },
               {
                 _or: [
@@ -81,7 +92,12 @@ export async function executeDbVerificationTool(
         readItems("contacts", {
           sort: ["-date_created"] as any,
           limit: args.limit || 5,
-          filter: { status: { _neq: "archived" } } as any,
+          filter: {
+            _and: [
+              { user_email: { _eq: userEmail } },
+              { status: { _neq: "archived" } },
+            ],
+          } as any,
         }),
       )) as any[];
       return {
@@ -94,6 +110,7 @@ export async function executeDbVerificationTool(
       await directus.request(
         createItem("email_analysis", {
           ...args.analysis_data,
+          user_email: userEmail,
           date_created: new Date().toISOString(),
         } as any),
       );
@@ -103,6 +120,20 @@ export async function executeDbVerificationTool(
       };
 
     case "db_update_lead_info":
+      // Ownership check for the contact being updated
+      const currentContact = (await directus.request(
+        readItems("contacts", {
+          filter: {
+            _and: [
+              { id: { _eq: args.contact_id } },
+              { user_email: { _eq: userEmail } },
+            ],
+          },
+        }),
+      )) as any[];
+      if (currentContact.length === 0)
+        throw new Error("Access denied or contact not found");
+
       await directus.request(
         updateItem("contacts", args.contact_id, args.update_data as any),
       );

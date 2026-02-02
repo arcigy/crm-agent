@@ -20,11 +20,13 @@ export async function executeAtomicTool(
   user: { id: string; emailAddresses: { emailAddress: string }[] },
 ) {
   const safeArgs = args as Record<string, any>; // Legacy compat for executors
+  const userEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
+  const userId = user?.id;
 
   try {
     // Gmail Tools
     if (name.startsWith("gmail_")) {
-      return await executeGmailTool(name, safeArgs, user.id);
+      return await executeGmailTool(name, safeArgs, userId);
     }
 
     // Database Tools - Contacts
@@ -36,7 +38,7 @@ export async function executeAtomicTool(
       name.startsWith("db_delete_contact") ||
       name.startsWith("db_add_contact_comment")
     ) {
-      return await executeDbContactTool(name, safeArgs);
+      return await executeDbContactTool(name, safeArgs, userEmail);
     }
 
     // Database Tools - Projects
@@ -47,7 +49,7 @@ export async function executeAtomicTool(
       name.startsWith("db_delete_project") ||
       name.startsWith("verify_project_exists")
     ) {
-      return await executeDbProjectTool(name, safeArgs, user.id);
+      return await executeDbProjectTool(name, safeArgs, userEmail, userId);
     }
 
     // Database Tools - Deals
@@ -55,7 +57,7 @@ export async function executeAtomicTool(
       name.startsWith("db_") &&
       (name.includes("deal") || name.includes("invoice"))
     ) {
-      return await executeDbDealTool(name, safeArgs);
+      return await executeDbDealTool(name, safeArgs, userEmail);
     }
 
     // Database Tools - Verification & Health
@@ -64,7 +66,7 @@ export async function executeAtomicTool(
       name === "db_save_analysis" ||
       name === "db_update_lead_info"
     ) {
-      return await executeDbVerificationTool(name, safeArgs);
+      return await executeDbVerificationTool(name, safeArgs, userEmail);
     }
 
     // System Tools
@@ -74,13 +76,12 @@ export async function executeAtomicTool(
 
     // Drive Tools
     if (name.startsWith("drive_")) {
-      return await executeDriveTool(name, safeArgs, user.id);
+      return await executeDriveTool(name, safeArgs, userId);
     }
 
     // AI Analysis Tool
     if (name === "ai_deep_analyze_lead") {
       const { classifyEmail } = await import("./ai");
-      const userEmail = user?.emailAddresses?.[0]?.emailAddress;
       const analysis = await classifyEmail(
         safeArgs.content,
         userEmail,
