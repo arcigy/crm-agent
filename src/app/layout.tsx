@@ -27,8 +27,7 @@ export const metadata: Metadata = {
   },
 };
 
-// VoiceDictationProvider temporarily disabled due to @ffmpeg/ffmpeg module issue
-// import { VoiceDictationProvider } from '@/components/VoiceDictationProvider';
+
 
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 

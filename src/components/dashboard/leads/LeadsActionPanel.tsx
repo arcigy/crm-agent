@@ -10,7 +10,7 @@ import {
   X,
   RefreshCcw,
 } from "lucide-react";
-import { VoiceInput } from "@/components/VoiceInput";
+
 import { GmailMessage } from "@/types/gmail";
 
 interface LeadsActionPanelProps {
@@ -170,13 +170,8 @@ export function LeadsActionPanel({
                     className="w-full h-full bg-transparent border-none outline-none text-sm text-gray-700 font-medium resize-none placeholder:text-gray-300 pr-10"
                     autoFocus
                   />
-                  <div className="absolute right-4 bottom-4">
-                    <VoiceInput
-                      onTranscription={(text) =>
-                        setCustomPrompt((prev) => (prev + " " + text).trim())
-                      }
-                    />
-                  </div>
+                  {/* Use a simple flex gap as spacer */}
+                  <div className="absolute right-4 bottom-4 w-8 h-8" />
                 </div>
                 <div className="p-3 border-t border-gray-100 bg-gray-50 flex justify-end">
                   <button
