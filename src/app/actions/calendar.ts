@@ -4,6 +4,7 @@ import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { readItems } from "@directus/sdk";
 import { getCalendarClient } from "@/lib/google";
 import { clerkClient, currentUser } from "@clerk/nextjs/server";
+import { getUserEmail } from "@/lib/auth";
 
 async function getAccessToken() {
   const user = await currentUser();
@@ -25,8 +26,7 @@ export async function getCalendarConnectionStatus() {
 export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
   try {
     const token = await getAccessToken();
-    const user = await currentUser();
-    const userEmail = user?.emailAddresses[0]?.emailAddress;
+    const userEmail = await getUserEmail();
 
     let googleEvents: any[] = [];
 
@@ -44,7 +44,6 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
         googleEvents = response.data.items || [];
       } catch (err) {
         console.error("Failed to fetch Google Calendar events:", err);
-        // Don't fail completely, just return non-google events
       }
     }
 
@@ -90,10 +89,9 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
           (c) => String(c.id) === String(p.contact_id),
         );
         const contactName = contact
-          ? `${contact.first_name} ${contact.last_name}`
+          ? `${contact.first_name || ""} ${contact.last_name || ""}`.trim()
           : "Neznámy";
 
-        // Add creation date event
         try {
           const creationDate = p.date_created
             ? new Date(p.date_created).toISOString()
@@ -108,27 +106,23 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
                 new Date(creationDate).getTime() + 60 * 60 * 1000,
               ).toISOString(),
             },
-            colorId: "9", // Blueberry (approx blue)
+            colorId: "9",
             extendedProperties: {
               private: { type: "project", id: p.id, contactId: p.contact_id },
             },
           });
         } catch (e) {
-          console.error(
-            `Skipping project ${p.id} start event due to invalid date:`,
-            p.date_created,
-          );
+          console.error(`Skipping project ${p.id} start event due to invalid date`);
         }
 
-        // Add end date event
         if (p.end_date) {
           mergedEvents.push({
             id: `p-end-${p.id}`,
             summary: `🏁 DEADLINE: ${p.project_type || p.name}`,
             description: `Termín pre ${contactName}.\nStatus: ${p.stage}`,
-            start: { date: p.end_date }, // All day
+            start: { date: p.end_date },
             end: { date: p.end_date },
-            colorId: "11", // Tomato (approx red)
+            colorId: "11",
             extendedProperties: {
               private: { type: "project", id: p.id, contactId: p.contact_id },
             },
@@ -159,14 +153,11 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
                       new Date(taskDate).getTime() + 30 * 60 * 1000,
                     ).toISOString(),
                   },
-              colorId: t.completed ? "8" : "5", // Gray or Yellow
+              colorId: t.completed ? "8" : "5",
               extendedProperties: { private: { type: "task", id: t.id } },
             });
           } catch (e) {
-            console.error(
-              `Skipping task ${t.id} due to invalid date:`,
-              taskDate,
-            );
+            console.error(`Skipping task ${t.id} due to invalid date`);
           }
         }
       }
@@ -184,8 +175,6 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
 }
 
 export async function disconnectGoogle() {
-  // With Clerk, we might not need to explicitly "disconnect" on our side unless we want to revoke token
-  // For now, we'll just simulate success
   return { success: true };
 }
 

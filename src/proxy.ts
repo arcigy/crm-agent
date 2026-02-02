@@ -4,8 +4,8 @@ const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/api(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
-    // We don't use auth.protect() here to avoid potential redirects loops in this env
-    // We'll let the server actions handle the "Unauthorized" check via currentUser()
+    // Force protection to ensure headers are present for Server Actions
+    await auth.protect();
   }
 });
 

@@ -70,6 +70,11 @@ export const contactColumns = [
       );
     },
   }),
+  columnHelper.accessor("company", {
+    header: "Account",
+    cell: (info) =>
+      info.getValue() || <span className="text-gray-400 text-xs">-</span>,
+  }),
   columnHelper.accessor("status", {
     id: "status",
     header: "Status",
@@ -79,11 +84,6 @@ export const contactColumns = [
         currentStatus={info.getValue()} 
       />
     ),
-  }),
-  columnHelper.accessor("company", {
-    header: "Account",
-    cell: (info) =>
-      info.getValue() || <span className="text-gray-400 text-xs">-</span>,
   }),
   columnHelper.accessor("comments", {
     header: "Comments",

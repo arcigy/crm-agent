@@ -2,15 +2,13 @@
 
 import directus from "@/lib/directus";
 import { readItems, createItem, updateItem, deleteItem, readItem } from "@directus/sdk";
-import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { getUserEmail } from "@/lib/auth";
 
 export async function getAIMemories() {
   try {
-    const clerkUser = await currentUser();
-    if (!clerkUser) return [];
-
-    const email = clerkUser.emailAddresses[0]?.emailAddress;
+    const email = await getUserEmail();
+    if (!email) return [];
 
     // @ts-ignore
     return await directus.request(
@@ -27,10 +25,8 @@ export async function getAIMemories() {
 
 export async function addAIMemory(fact: string, category: string = "manual") {
   try {
-    const clerkUser = await currentUser();
-    if (!clerkUser) return { success: false, error: "Unauthorized" };
-
-    const email = clerkUser.emailAddresses[0]?.emailAddress;
+    const email = await getUserEmail();
+    if (!email) return { success: false, error: "Unauthorized" };
 
     // @ts-ignore
     await directus.request(
@@ -52,13 +48,14 @@ export async function addAIMemory(fact: string, category: string = "manual") {
 
 export async function deleteAIMemory(id: string) {
   try {
-    const user = await currentUser();
-    if (!user) return { success: false, error: "Unauthorized" };
-    const email = user.emailAddresses[0]?.emailAddress;
+    const email = await getUserEmail();
+    if (!email) return { success: false, error: "Unauthorized" };
 
     // Verify ownership
     const current = (await directus.request(readItem("ai_memories", id))) as any;
-    if (current.user_email !== email) throw new Error("Access denied");
+    if (current.user_email?.toLowerCase() !== email.toLowerCase()) {
+        throw new Error("Access denied");
+    }
 
     // @ts-ignore
     await directus.request(deleteItem("ai_memories", id));
@@ -72,13 +69,14 @@ export async function deleteAIMemory(id: string) {
 
 export async function updateAIMemory(id: string, fact: string) {
   try {
-    const user = await currentUser();
-    if (!user) return { success: false, error: "Unauthorized" };
-    const email = user.emailAddresses[0]?.emailAddress;
+    const email = await getUserEmail();
+    if (!email) return { success: false, error: "Unauthorized" };
 
     // Verify ownership
     const current = (await directus.request(readItem("ai_memories", id))) as any;
-    if (current.user_email !== email) throw new Error("Access denied");
+    if (current.user_email?.toLowerCase() !== email.toLowerCase()) {
+        throw new Error("Access denied");
+    }
 
     // @ts-ignore
     await directus.request(

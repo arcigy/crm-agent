@@ -1,17 +1,13 @@
 import directus from "@/lib/directus";
 import { readItems, readItem, createItem, updateItem } from "@directus/sdk";
-import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { getUserEmail } from "@/lib/auth";
 
 import { ChatMessage, AgentChat } from "./agent-types";
 
 export async function getAgentChats(): Promise<AgentChat[]> {
-  const user = await currentUser();
-  if (!user) return [];
-
-  const rawEmail = user.emailAddresses[0]?.emailAddress;
-  if (!rawEmail) return [];
-  const email = rawEmail.toLowerCase();
+  const email = await getUserEmail();
+  if (!email) return [];
 
   try {
     const list = await directus.request(
@@ -31,13 +27,12 @@ export async function getAgentChats(): Promise<AgentChat[]> {
 }
 
 export async function getAgentChatById(id: string): Promise<AgentChat | null> {
-  const user = await currentUser();
-  if (!user) return null;
-  const email = user.emailAddresses[0]?.emailAddress?.toLowerCase();
+  const email = await getUserEmail();
+  if (!email) return null;
 
   try {
     const chat = await directus.request(readItem("agent_chats", id)) as any;
-    if (chat.user_email !== email) {
+    if (chat.user_email?.toLowerCase() !== email.toLowerCase()) {
         console.warn(`Access denied to chat ${id} for user ${email}`);
         return null;
     }
@@ -53,12 +48,8 @@ export async function saveAgentChat(
   title: string,
   messages: ChatMessage[],
 ) {
-  const user = await currentUser();
-  if (!user) return null;
-
-  const rawEmail = user.emailAddresses[0]?.emailAddress;
-  if (!rawEmail) return null;
-  const email = rawEmail.toLowerCase();
+  const email = await getUserEmail();
+  if (!email) return null;
 
   try {
     const existing = await directus.request(
@@ -96,13 +87,12 @@ export async function saveAgentChat(
 }
 
 export async function deleteAgentChat(id: string) {
-  const user = await currentUser();
-  if (!user) return { success: false };
-  const email = user.emailAddresses[0]?.emailAddress?.toLowerCase();
+  const email = await getUserEmail();
+  if (!email) return { success: false };
 
   try {
     const current = await directus.request(readItem("agent_chats", id)) as any;
-    if (current.user_email !== email) {
+    if (current.user_email?.toLowerCase() !== email.toLowerCase()) {
         return { success: false };
     }
 

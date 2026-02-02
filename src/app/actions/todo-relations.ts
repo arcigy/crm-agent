@@ -2,6 +2,7 @@
 
 import directus from "@/lib/directus";
 import { readItems } from "@directus/sdk";
+import { getUserEmail } from "@/lib/auth";
 
 export interface ContactRelation {
   id: number;
@@ -22,13 +23,10 @@ export interface DealRelation {
   value?: number;
 }
 
-import { currentUser } from "@clerk/nextjs/server";
-
 export async function getTodoRelations() {
   try {
-    const user = await currentUser();
-    if (!user) return { success: false as const, error: "Unauthorized" };
-    const email = user.emailAddresses[0]?.emailAddress;
+    const email = await getUserEmail();
+    if (!email) return { success: false as const, error: "Unauthorized" };
 
     const [contacts, projects, deals] = await Promise.all([
       directus.request(

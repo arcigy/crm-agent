@@ -2,8 +2,8 @@
 
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { readItems, createItem, updateItem, deleteItem, readItem } from "@directus/sdk";
-import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { getUserEmail } from "@/lib/auth";
 
 export interface Task {
   id: string;
@@ -15,10 +15,9 @@ export interface Task {
 
 export async function getTasks(date?: string) {
   try {
-    const user = await currentUser();
-    if (!user) return { success: false as const, error: "Unauthorized" };
+    const email = await getUserEmail();
+    if (!email) return { success: false as const, error: "Unauthorized" };
 
-    const email = user.emailAddresses[0]?.emailAddress;
     const filter: Record<string, unknown> = { user_email: { _eq: email } };
 
     if (date) {
@@ -56,12 +55,9 @@ export async function getTasksForEntity(
   type: "contact" | "project",
 ) {
   try {
-    const user = await currentUser();
-    if (!user) return { success: false as const, error: "Unauthorized" };
-    const email = user.emailAddresses[0]?.emailAddress;
+    const email = await getUserEmail();
+    if (!email) return { success: false as const, error: "Unauthorized" };
 
-    // Search for mention tag in HTML content
-    // Format: data-contact-id="ID" data-type="TYPE"
     const searchString = `data-contact-id="${id}"`;
     const typeString = `data-type="${type}"`;
 
@@ -88,10 +84,8 @@ export async function getTasksForEntity(
 
 export async function createTask(title: string, dueDate?: string) {
   try {
-    const user = await currentUser();
-    if (!user) return { success: false as const, error: "Unauthorized" };
-
-    const email = user.emailAddresses[0]?.emailAddress;
+    const email = await getUserEmail();
+    if (!email) return { success: false as const, error: "Unauthorized" };
 
     const task = await directus.request(
       createItem("crm_tasks", {
@@ -124,13 +118,11 @@ export async function createTask(title: string, dueDate?: string) {
 
 export async function toggleTaskStatus(id: string, completed: boolean) {
   try {
-    const user = await currentUser();
-    if (!user) return { success: false as const, error: "Unauthorized" };
-    const email = user.emailAddresses[0]?.emailAddress?.toLowerCase();
+    const email = await getUserEmail();
+    if (!email) return { success: false as const, error: "Unauthorized" };
 
-    // Ownership check
     const current = (await directus.request(readItem("crm_tasks", id))) as any;
-    if (current.user_email?.toLowerCase() !== email) {
+    if (current.user_email?.toLowerCase() !== email.toLowerCase()) {
       throw new Error("Access denied");
     }
 
@@ -153,13 +145,11 @@ export async function toggleTaskStatus(id: string, completed: boolean) {
 
 export async function removeTask(id: string) {
   try {
-    const user = await currentUser();
-    if (!user) return { success: false as const, error: "Unauthorized" };
-    const email = user.emailAddresses[0]?.emailAddress?.toLowerCase();
+    const email = await getUserEmail();
+    if (!email) return { success: false as const, error: "Unauthorized" };
 
-    // Ownership check
     const current = (await directus.request(readItem("crm_tasks", id))) as any;
-    if (current.user_email?.toLowerCase() !== email) {
+    if (current.user_email?.toLowerCase() !== email.toLowerCase()) {
       throw new Error("Access denied");
     }
 

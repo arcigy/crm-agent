@@ -1,31 +1,54 @@
-import { currentUser, auth } from "@clerk/nextjs/server";
+import { currentUser, auth, clerkClient } from "@clerk/nextjs/server";
 
 /**
- * Gets the current user's email with retry logic and fallback
- * to handle flaky Clerk sessions on refresh.
+ * Gets the current user's email with high reliability.
+ * Uses multiple strategies: standard currentUser(), session fallback,
+ * and direct management API fetch as a last resort.
  */
-export async function getUserEmail(retries = 2): Promise<string | null> {
+export async function getUserEmail(retries = 3): Promise<string | null> {
+  const session = await auth();
+  const userId = session.userId;
+  
+  if (!userId) {
+    console.warn("[Auth] No session found, user is definitely not logged in.");
+    return null;
+  }
+
   for (let i = 0; i <= retries; i++) {
     try {
+      // Strategy 1: Standard currentUser hook (uses internal session token)
       const user = await currentUser();
       const email = user?.emailAddresses[0]?.emailAddress?.toLowerCase();
       
-      if (email) return email;
+      if (email) {
+        if (i > 0) console.log(`[Auth] User email recovered via currentUser on attempt ${i + 1}`);
+        return email;
+      }
       
-      // If we have a userId but no user object, Clerk might be slow
-      const session = await auth();
-      if (!session.userId) return null; // Definitely not logged in
+      // Strategy 2: Direct API fetch (more expensive but bypasses cookie sync issues)
+      try {
+        const client = await clerkClient();
+        const fullUser = await client.users.getUser(userId);
+        const directEmail = fullUser.emailAddresses[0]?.emailAddress?.toLowerCase();
+        
+        if (directEmail) {
+          console.log(`[Auth] User email recovered via direct clerkClient on attempt ${i + 1}`);
+          return directEmail;
+        }
+      } catch (apiErr) {
+        console.warn("[Auth] Direct API fetch failed, retrying...", apiErr);
+      }
       
-      // If we have userId but no email yet, wait a bit and retry
       if (i < retries) {
-        console.log(`[Auth] Retry ${i + 1} for user email...`);
-        await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+        const delay = 400 * (i + 1);
+        await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
     } catch (err) {
-      console.error("[Auth] Error fetching user email:", err);
-      if (i === retries) return null;
+      console.error(`[Auth] Error in attempt ${i + 1}:`, err);
     }
   }
+  
+  console.error(`[Auth] Failed to authorize user ${userId} after ${retries + 1} attempts`);
   return null;
 }
