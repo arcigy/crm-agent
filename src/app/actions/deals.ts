@@ -4,12 +4,7 @@ import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { readItems, createItem, updateItem, readItem } from "@directus/sdk";
 import { revalidatePath } from "next/cache";
 import { Deal } from "@/types/deal";
-import { currentUser } from "@clerk/nextjs/server";
-
-async function getUserEmail() {
-  const user = await currentUser();
-  return user?.emailAddresses[0]?.emailAddress?.toLowerCase();
-}
+import { getUserEmail } from "@/lib/auth";
 
 export async function getDeals(): Promise<{
   data: Deal[] | null;

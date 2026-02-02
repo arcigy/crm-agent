@@ -8,11 +8,17 @@ import {
   MapPin,
   Globe,
   Briefcase,
-  X,
   MessageSquare,
+  Edit2,
+  Check,
+  ShieldCheck,
+  Trash2,
+  X,
 } from "lucide-react";
 import { Lead } from "@/types/contact";
 import { QRCodeSVG } from "qrcode.react";
+import { updateContact, deleteContact } from "@/app/actions/contacts";
+import { toast } from "sonner";
 
 interface ContactProfileSidebarProps {
   contact: Lead;
@@ -30,8 +36,51 @@ export function ContactProfileSidebar({
   emailMode,
 }: ContactProfileSidebarProps) {
   const [showQr, setShowQr] = React.useState(false);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [formData, setFormData] = React.useState({
+    first_name: contact.first_name || "",
+    last_name: contact.last_name || "",
+    email: contact.email || "",
+    phone: contact.phone || "",
+    company: contact.company || "",
+    status: contact.status || "lead",
+  });
+
   const initials =
-    (contact.first_name?.[0] || "") + (contact.last_name?.[0] || "");
+    (formData.first_name?.[0] || "") + (formData.last_name?.[0] || "");
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const res = await updateContact(contact.id, formData);
+      if (res.success) {
+        toast.success("Kontakt bol aktualizovaný");
+        setIsEditing(false);
+      } else {
+        toast.error(res.error || "Chyba pri ukladaní");
+      }
+    } catch {
+      toast.error("Nepodarilo sa uložiť zmeny");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Naozaj chcete zmazať tento kontakt?")) return;
+    try {
+      const res = await deleteContact(contact.id);
+      if (res.success) {
+        toast.success("Kontakt bol zmazaný");
+        onClose();
+      } else {
+        toast.error(res.error || "Chyba pri mazaní");
+      }
+    } catch {
+      toast.error("Nepodarilo sa zmazať kontakt");
+    }
+  };
 
   return (
     <div
@@ -44,6 +93,27 @@ export function ContactProfileSidebar({
         >
           <X className="w-5 h-5" />
         </button>
+        <button
+          onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
+          disabled={isSaving}
+          className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-md border border-white/20 transition-all active:scale-95"
+          title={isEditing ? "Save" : "Edit Details"}
+        >
+          {isEditing ? (
+            <Check className="w-4 h-4" />
+          ) : (
+            <Edit2 className="w-4 h-4" />
+          )}
+        </button>
+        {isEditing && (
+          <button
+            onClick={() => setIsEditing(false)}
+            className="absolute top-4 right-14 p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-md border border-white/20 transition-all active:scale-95"
+            title="Cancel"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       <div className="px-6 relative">
@@ -54,13 +124,49 @@ export function ContactProfileSidebar({
         </div>
 
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-foreground leading-tight mb-1">
-            {contact.first_name} {contact.last_name}
-          </h2>
-          <p className="text-sm font-medium text-gray-500 flex items-center gap-1.5">
-            <Building2 className="w-3.5 h-3.5" />
-            {contact.company || "Private Contact"}
-          </p>
+          {isEditing ? (
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <input
+                type="text"
+                value={formData.first_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, first_name: e.target.value })
+                }
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg p-2 text-sm font-bold placeholder:text-gray-400"
+                placeholder="First Name"
+              />
+              <input
+                type="text"
+                value={formData.last_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, last_name: e.target.value })
+                }
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg p-2 text-sm font-bold placeholder:text-gray-400"
+                placeholder="Last Name"
+              />
+            </div>
+          ) : (
+            <h2 className="text-2xl font-bold text-foreground leading-tight mb-1">
+              {formData.first_name} {formData.last_name}
+            </h2>
+          )}
+          
+          {isEditing ? (
+            <input
+              type="text"
+              value={formData.company}
+              onChange={(e) =>
+                setFormData({ ...formData, company: e.target.value })
+              }
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg p-2 text-xs font-medium placeholder:text-gray-400"
+              placeholder="Company Name"
+            />
+          ) : (
+            <p className="text-sm font-medium text-gray-500 flex items-center gap-1.5 transition-all">
+              <Building2 className="w-3.5 h-3.5" />
+              {formData.company || "Private Contact"}
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-8 relative">
@@ -109,14 +215,31 @@ export function ContactProfileSidebar({
           <InfoRow
             icon={<Mail />}
             label="Email"
-            value={contact.email}
+            value={formData.email}
+            isEditing={isEditing}
+            onChange={(val: string) => setFormData({ ...formData, email: val })}
             copyable
           />
           <InfoRow
             icon={<Phone />}
             label="Phone"
-            value={contact.phone}
+            value={formData.phone}
+            isEditing={isEditing}
+            onChange={(val: string) => setFormData({ ...formData, phone: val })}
             copyable
+          />
+          <InfoRow
+            icon={<ShieldCheck />}
+            label="Status"
+            value={formData.status}
+            isEditing={isEditing}
+            isSelect
+            options={[
+              { label: "Lead", value: "lead" },
+              { label: "Active", value: "active" },
+              { label: "Archived", value: "archived" },
+            ]}
+            onChange={(val: string) => setFormData({ ...formData, status: val })}
           />
           <InfoRow icon={<Briefcase />} label="Role" value="CEO / Owner" />
           <InfoRow icon={<MapPin />} label="Location" value="Slovakia" />
@@ -127,12 +250,44 @@ export function ContactProfileSidebar({
             valueClass="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
           />
         </div>
+
+        <div className="pt-6 border-t border-border mt-auto mb-8">
+          <button
+            onClick={handleDelete}
+            className="w-full flex items-center justify-center gap-2 p-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all font-bold text-xs"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Contact
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function InfoRow({ icon, label, value, copyable, valueClass }: any) {
+interface InfoRowProps {
+  icon: React.ReactElement;
+  label: string;
+  value?: string;
+  copyable?: boolean;
+  valueClass?: string;
+  isEditing?: boolean;
+  isSelect?: boolean;
+  options?: { label: string; value: string }[];
+  onChange?: (val: string) => void;
+}
+
+function InfoRow({
+  icon,
+  label,
+  value,
+  copyable,
+  valueClass,
+  isEditing,
+  isSelect,
+  options,
+  onChange,
+}: InfoRowProps) {
   return (
     <div className="flex items-center gap-3 group">
       <div className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 bg-card border border-border shadow-sm shrink-0 transition-colors">
@@ -142,11 +297,35 @@ function InfoRow({ icon, label, value, copyable, valueClass }: any) {
         <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">
           {label}
         </p>
-        <p
-          className={`text-xs font-semibold text-foreground truncate ${valueClass || ""}`}
-        >
-          {value || "—"}
-        </p>
+        {isEditing && onChange ? (
+          isSelect ? (
+            <select
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              className="w-full bg-transparent border-none p-0 text-xs font-semibold text-foreground focus:ring-0 outline-none cursor-pointer"
+            >
+              {(options || []).map((opt: any) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={value || ""}
+              onChange={(e) => onChange(e.target.value)}
+              className="w-full bg-transparent border-none p-0 text-xs font-semibold text-foreground focus:ring-0 outline-none"
+              placeholder={`Enter ${label}...`}
+            />
+          )
+        ) : (
+          <p
+            className={`text-xs font-semibold text-foreground truncate ${valueClass || ""}`}
+          >
+            {value || "—"}
+          </p>
+        )}
       </div>
       {copyable && value && (
         <button

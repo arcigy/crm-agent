@@ -90,7 +90,7 @@ export function ContactsTable({
     getGroupedRowModel: getGroupedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    initialState: { expanded: true, columnVisibility: { status: false } },
+    initialState: { expanded: true },
   });
 
   if (!isMounted)

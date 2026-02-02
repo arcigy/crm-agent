@@ -117,30 +117,55 @@ export function GoogleImportModal({ isOpen, onClose }: { isOpen: boolean; onClos
                             className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all"
                         />
                     </div>
-                    <button
-                        onClick={async () => {
-                            setLoading(true);
-                            try {
-                                const { syncGoogleContacts } = await import('@/app/actions/contacts');
-                                const res = await syncGoogleContacts();
-                                if (res.success) {
-                                    toast.success(`Synchronizácia hotová: +${res.imported} importovaných, +${res.exported} exportovaných.`);
-                                    fetchContacts();
-                                } else {
-                                    toast.error(res.error || 'Synchronizácia zlyhala');
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={async () => {
+                                setLoading(true);
+                                try {
+                                    const { createTestGoogleContact } = await import('@/app/actions/contacts');
+                                    const res = await createTestGoogleContact();
+                                    if (res.success) {
+                                        toast.success('Testovací kontakt vytvorený v Google!');
+                                        fetchContacts();
+                                    } else {
+                                        toast.error(res.error || 'Test zlyhal');
+                                    }
+                                } catch (err) {
+                                    toast.error('Chyba pri teste');
+                                } finally {
+                                    setLoading(false);
                                 }
-                            } catch (err) {
-                                toast.error('Chyba pri synchronizácii');
-                            } finally {
-                                setLoading(false);
-                            }
-                        }}
-                        disabled={loading || !isConnected}
-                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50 active:scale-95 whitespace-nowrap"
-                    >
-                        <RefreshCcw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                        Sync všetko
-                    </button>
+                            }}
+                            disabled={loading || !isConnected}
+                            className="flex items-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50 active:scale-95 whitespace-nowrap"
+                        >
+                            Test Create
+                        </button>
+                        <button
+                            onClick={async () => {
+                                setLoading(true);
+                                try {
+                                    const { syncGoogleContacts } = await import('@/app/actions/contacts');
+                                    const res = await syncGoogleContacts();
+                                    if (res.success) {
+                                        toast.success(`Synchronizácia hotová: +${res.imported} importovaných, +${res.exported} exportovaných.`);
+                                        fetchContacts();
+                                    } else {
+                                        toast.error(res.error || 'Synchronizácia zlyhala');
+                                    }
+                                } catch {
+                                    toast.error('Chyba pri synchronizácii');
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                            disabled={loading || !isConnected}
+                            className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50 active:scale-95 whitespace-nowrap"
+                        >
+                            <RefreshCcw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                            Sync všetko
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content */}
@@ -158,7 +183,7 @@ export function GoogleImportModal({ isOpen, onClose }: { isOpen: boolean; onClos
                                         const res = await fetch('/api/google/auth-url');
                                         const { url } = await res.json();
                                         if (url) window.location.href = url;
-                                    } catch (err) {
+                                    } catch {
                                         toast.error('Nepodarilo sa vygenerovať link');
                                     }
                                 }}

@@ -1,9 +1,10 @@
 "use server";
-// Build trigger: 2026-01-31 13:30 - Stability & Mapping Update
+// Build trigger: 2026-02-02 - Robust Auth Update
 
 import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, updateItem, readItems, readItem } from "@directus/sdk";
+import { getUserEmail } from "@/lib/auth";
 import { currentUser } from "@clerk/nextjs/server";
 
 export interface ContactItem {
@@ -22,11 +23,6 @@ export interface ContactItem {
   activities?: any[];
 }
 
-async function getUserEmail() {
-  const user = await currentUser();
-  return user?.emailAddresses[0]?.emailAddress?.toLowerCase();
-}
-
 export async function getContact(id: string | number) {
   try {
     const userEmail = await getUserEmail();
@@ -41,7 +37,6 @@ export async function getContact(id: string | number) {
     }
 
     if (contact) {
-      // Parallel fetch for speed
       const [projects, deals, activities] = await Promise.all([
         directus.request(
           readItems("projects", {
@@ -101,7 +96,6 @@ export async function getContacts() {
     )) as unknown as ContactItem[];
 
     if (contacts && contacts.length > 0) {
-      // Fetch all projects for this user to batch assign them
       const allProjects = (await directus.request(
         readItems("projects", {
           filter: {
@@ -139,7 +133,6 @@ export async function createContact(data: Partial<ContactItem>) {
       throw new Error("First name is required");
     }
 
-    // Save to Directus
     const drContact = await directus.request(
       createItem("contacts", {
         first_name: data.first_name,
@@ -154,6 +147,8 @@ export async function createContact(data: Partial<ContactItem>) {
     );
 
     revalidatePath("/dashboard/contacts");
+    await syncContactToGoogle(drContact.id);
+
     return { 
         success: true, 
         contact: {
@@ -181,11 +176,12 @@ export async function updateContact(
     const userEmail = await getUserEmail();
     if (!userEmail) throw new Error("Unauthorized");
 
-    // Verify ownership before update
     const current = (await directus.request(readItem("contacts", id))) as any;
     if (current.user_email !== userEmail) throw new Error("Access denied");
 
     await directus.request(updateItem("contacts", id, data));
+    await syncContactToGoogle(id);
+
     revalidatePath("/dashboard/contacts");
     return { success: true };
   } catch (error: any) {
@@ -194,6 +190,29 @@ export async function updateContact(
       success: false,
       error: getDirectusErrorMessage(error)
     };
+  }
+}
+
+export async function deleteContact(id: string | number) {
+  try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
+    const current = (await directus.request(readItem("contacts", id))) as any;
+    if (current.user_email !== userEmail) throw new Error("Access denied");
+
+    await directus.request(updateItem("contacts", id, {
+      status: "archived",
+      deleted_at: new Date().toISOString()
+    } as any));
+
+    syncContactToGoogle(id).catch(err => console.error("[Sync] Immediate delete sync failed:", err));
+
+    revalidatePath("/dashboard/contacts");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to delete contact:", error);
+    return { success: false, error: getDirectusErrorMessage(error) };
   }
 }
 
@@ -286,14 +305,11 @@ export async function bulkCreateContacts(contacts: any[]) {
     );
 
     for (const contact of contacts) {
-      // Basic validation: skip if everything important is empty
       const hasName = String(contact.name || contact.first_name || contact.last_name || "").trim().length > 0;
       const hasEmail = String(contact.email || "").trim().length > 0;
       const hasPhone = String(contact.phone || contact.tel || "").trim().length > 0;
 
-      if (!hasName && !hasEmail && !hasPhone) {
-        continue; // Skip completely empty entry
-      }
+      if (!hasName && !hasEmail && !hasPhone) continue;
 
       const rawName = contact.name || contact.first_name || "Neznámy";
       const nameParts = String(rawName).split(" ");
@@ -301,20 +317,12 @@ export async function bulkCreateContacts(contacts: any[]) {
         nameParts.length > 1 ? nameParts.pop() : contact.last_name || "";
       const firstName = nameParts.join(" ");
 
-      const email = Array.isArray(contact.email)
-        ? contact.email[0]
-        : contact.email || "";
-      const phone = Array.isArray(contact.phone || contact.tel)
-        ? (contact.phone || contact.tel)[0]
-        : contact.phone || contact.tel || "";
+      const email = Array.isArray(contact.email) ? contact.email[0] : contact.email || "";
+      const phone = Array.isArray(contact.phone || contact.tel) ? (contact.phone || contact.tel)[0] : contact.phone || contact.tel || "";
       const company = contact.company || contact.org || "";
 
-      const normalizedEmail = String(email || "")
-        .toLowerCase()
-        .trim();
-      if (normalizedEmail && existingEmails.has(normalizedEmail)) {
-        continue; // Skip duplicates
-      }
+      const normalizedEmail = String(email || "").toLowerCase().trim();
+      if (normalizedEmail && existingEmails.has(normalizedEmail)) continue;
 
       try {
         await directus.request(
@@ -338,10 +346,7 @@ export async function bulkCreateContacts(contacts: any[]) {
     return { success: true, count: successCount };
   } catch (e: any) {
     console.error("Bulk create failed:", e);
-    return {
-      success: false,
-      error: getDirectusErrorMessage(e),
-    };
+    return { success: false, error: getDirectusErrorMessage(e) };
   }
 }
 
@@ -349,30 +354,22 @@ export async function importGoogleContacts() {
   try {
     const user = await currentUser();
     if (!user) return { success: false, error: "Unauthorized" };
+    const userEmail = user.emailAddresses[0].emailAddress.toLowerCase();
     
-    // 1. Try Clerk Token
     const { clerkClient } = await import("@clerk/nextjs/server");
     const client = await clerkClient();
     const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
     let tokens = tokenResponse.data[0]?.token;
 
-    // 2. Fallback to Directus google_tokens
     if (!tokens) {
         const dbTokens = await directus.request(readItems("google_tokens", {
             filter: { user_id: { _eq: user.id } },
             limit: 1
         })) as any[];
-        if (dbTokens && dbTokens[0]) {
-            tokens = dbTokens[0].access_token;
-        }
+        if (dbTokens && dbTokens[0]) tokens = dbTokens[0].access_token;
     }
 
-    if (!tokens) {
-      return {
-        success: false,
-        error: "Google account not connected. Please connect your account first.",
-      };
-    }
+    if (!tokens) return { success: false, error: "Google not connected" };
 
     const { getPeopleClient } = await import("@/lib/google");
     const people = getPeopleClient(tokens);
@@ -382,29 +379,83 @@ export async function importGoogleContacts() {
       pageSize: 1000,
       personFields: "names,emailAddresses,phoneNumbers,organizations",
     });
-
     const connections = response.data.connections || [];
-    const googleContacts = connections
-      .map((person) => {
-        const names = person.names || [];
-        const name = names[0]?.displayName || "Google Contact";
-        const emails = person.emailAddresses || [];
-        const email = emails[0]?.value || "";
-        const phones = person.phoneNumbers || [];
-        const phone = phones[0]?.value || "";
-        const orgs = person.organizations || [];
-        const company = orgs[0]?.name || "";
-        return { name, email, phone, company };
-      })
-      .filter((c) => c.email || c.phone);
 
-    return await bulkCreateContacts(googleContacts);
+    const crmContacts = (await directus.request(readItems("contacts", {
+        filter: { user_email: { _eq: userEmail } },
+        fields: ["id", "email", "google_id", "first_name", "last_name"],
+        limit: -1
+    }))) as any[];
+
+    const idMap = new Map();
+    const emailMap = new Map();
+    crmContacts.forEach(c => {
+        if (c.google_id) idMap.set(c.google_id, c);
+        if (c.email) emailMap.set(c.email.toLowerCase().trim(), c);
+    });
+
+    let importCount = 0;
+    const activeGoogleIds = new Set();
+
+    for (const person of connections) {
+        if (!person.resourceName) continue;
+        const googleId = person.resourceName;
+        activeGoogleIds.add(googleId);
+
+        const name = (person.names || [])[0]?.displayName || "Google Contact";
+        const email = (person.emailAddresses || [])[0]?.value?.toLowerCase().trim() || "";
+        const phone = (person.phoneNumbers || [])[0]?.value?.replace(/\s/g, "") || "";
+        const company = (person.organizations || [])[0]?.name || "";
+
+        const contactData: any = {
+            first_name: name.split(" ")[0] || "Unknown",
+            last_name: name.split(" ").slice(1).join(" ") || "",
+            email: email,
+            phone: phone,
+            company: company,
+            google_id: googleId,
+            user_email: userEmail,
+            status: "active",
+            deleted_at: null
+        };
+
+        const existing = idMap.get(googleId) || (email ? emailMap.get(email) : null);
+
+        if (existing) {
+            const needsUpdate = existing.first_name !== contactData.first_name || 
+                               existing.email !== contactData.email || 
+                               existing.google_id !== contactData.google_id ||
+                               existing.status === "archived";
+            if (needsUpdate) {
+                await directus.request(updateItem("contacts", existing.id, contactData));
+            }
+        } else {
+            try {
+                const created = await directus.request(createItem("contacts", contactData));
+                idMap.set(googleId, created);
+                if (email) emailMap.set(email, created);
+                importCount++;
+            } catch (err: any) {
+                if (!err.message?.includes("UNIQUE")) console.error("[Google Sync] Failed to create contact:", err);
+            }
+        }
+    }
+
+    const toArchive = crmContacts.filter(c => c.google_id && !activeGoogleIds.has(c.google_id));
+    if (toArchive.length > 0) {
+        for (const c of toArchive) {
+            await directus.request(updateItem("contacts", c.id, {
+                status: "archived",
+                deleted_at: new Date().toISOString()
+            } as any));
+        }
+    }
+
+    revalidatePath("/dashboard/contacts");
+    return { success: true, count: importCount };
   } catch (error) {
     console.error("Google Import Error:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
+    return { success: false, error: String(error) };
   }
 }
 
@@ -413,97 +464,222 @@ export async function exportContactsToGoogle() {
     const user = await currentUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
-    // 1. Try Clerk Token
     const { clerkClient } = await import("@clerk/nextjs/server");
     const client = await clerkClient();
     const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
     let tokens = tokenResponse.data[0]?.token;
 
-    // 2. Fallback to Directus google_tokens
     if (!tokens) {
         const dbTokens = await directus.request(readItems("google_tokens", {
             filter: { user_id: { _eq: user.id } },
             limit: 1
         })) as any[];
-        if (dbTokens && dbTokens[0]) {
-            tokens = dbTokens[0].access_token;
-        }
+        if (dbTokens && dbTokens[0]) tokens = dbTokens[0].access_token;
     }
 
-    if (!tokens) {
-      return {
-        success: false,
-        error: "Google account not connected or tokens missing.",
-      };
-    }
+    if (!tokens) return { success: false, error: "Google not connected" };
 
     const { getPeopleClient } = await import("@/lib/google");
     const people = getPeopleClient(tokens);
 
-    // 2. Get All CRM Contacts
-    const contactsRes = await getContacts();
-    if (!contactsRes.success || !contactsRes.data) {
-      return { success: false, error: "Failed to fetch CRM contacts" };
-    }
+    const crmContacts = (await directus.request(readItems("contacts", {
+        filter: {
+            _and: [
+                { user_email: { _eq: user.emailAddresses[0].emailAddress.toLowerCase() } },
+                { status: { _eq: "active" } },
+                { google_id: { _null: true } },
+                { deleted_at: { _null: true } }
+            ]
+        },
+        limit: -1
+    }))) as any[];
 
-    const crmContacts = contactsRes.data;
+    if (crmContacts.length === 0) return { success: true, count: 0 };
 
-    // 3. Get existing Google Contacts to avoid obvious duplicates by email
     const googleRes = await people.people.connections.list({
       resourceName: "people/me",
       pageSize: 1000,
       personFields: "emailAddresses",
     });
     
-    const existingGoogleEmails = new Set();
+    const existingEmails = new Set();
     (googleRes.data.connections || []).forEach(p => {
         p.emailAddresses?.forEach(e => {
-            if (e.value) existingGoogleEmails.add(e.value.toLowerCase());
+            if (e.value) existingEmails.add(e.value.toLowerCase().trim());
         });
     });
 
     let exportedCount = 0;
     for (const contact of crmContacts) {
-        const contactEmail = contact.email?.toLowerCase().trim();
+        const email = contact.email?.toLowerCase().trim();
+        if (email && existingEmails.has(email)) continue;
         
-        // Skip if email exists in Google already
-        if (contactEmail && existingGoogleEmails.has(contactEmail)) continue;
-        
-        // Create in Google
         try {
-            await people.people.createContact({
+            const res = await people.people.createContact({
                 requestBody: {
                     names: [{ givenName: contact.first_name, familyName: contact.last_name || "" }],
                     emailAddresses: contact.email ? [{ value: contact.email }] : [],
                     phoneNumbers: contact.phone ? [{ value: contact.phone }] : [],
                     organizations: contact.company ? [{ name: contact.company }] : [],
+                    biographies: [{ value: "Synchronizované z Agentic CRM" }]
                 }
             });
+            const googleId = (res.data as any).resourceName;
+            await directus.request(updateItem("contacts", contact.id, { google_id: googleId }));
             exportedCount++;
         } catch (err) {
-            console.error(`Failed to export contact ${contact.email}:`, err);
+            console.error(`[Google Sync] Failed to export ${contact.email}:`, err);
         }
     }
 
     return { success: true, count: exportedCount };
   } catch (error) {
     console.error("Google Export Error:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
+    return { success: false, error: String(error) };
   }
 }
 
 export async function syncGoogleContacts() {
-  // Bi-directional sync
-  const importResult = await importGoogleContacts();
-  const exportResult = await exportContactsToGoogle();
-  
-  return {
-      success: true,
-      imported: importResult.success ? (importResult as any).count : 0,
-      exported: exportResult.success ? (exportResult as any).count : 0,
-      error: !importResult.success ? importResult.error : (!exportResult.success ? exportResult.error : null)
-  };
+  try {
+    const user = await currentUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+    const userId = user.id;
+
+    const dbTokens = await directus.request(readItems("google_tokens", {
+        filter: { user_id: { _eq: userId } },
+        limit: 1
+    })) as any[];
+
+    const now = new Date();
+    if (dbTokens && dbTokens[0]) {
+        const lastSync = dbTokens[0].last_sync ? new Date(dbTokens[0].last_sync) : null;
+        if (lastSync && (now.getTime() - lastSync.getTime()) < 30000) return { success: true, imported: 0, exported: 0, throttled: true };
+        await directus.request(updateItem("google_tokens", dbTokens[0].id, { last_sync: now.toISOString() }));
+    }
+
+    const importResult = await importGoogleContacts();
+    const exportResult = await exportContactsToGoogle();
+    
+    return {
+        success: true,
+        imported: importResult.success ? (importResult as any).count : 0,
+        exported: exportResult.success ? (exportResult as any).count : 0,
+        error: !importResult.success ? importResult.error : (!exportResult.success ? exportResult.error : null)
+    };
+  } catch (error) {
+    console.error("Sync Error:", error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function createTestGoogleContact() {
+    try {
+        const user = await currentUser();
+        if (!user) return { success: false, error: "Unauthorized" };
+
+        const { clerkClient } = await import("@clerk/nextjs/server");
+        const client = await clerkClient();
+        const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
+        let token = tokenResponse.data[0]?.token;
+
+        if (!token) {
+            const dbTokens = await directus.request(readItems("google_tokens", {
+                filter: { user_id: { _eq: user.id } },
+                limit: 1
+            })) as any[];
+            if (dbTokens && dbTokens[0]) token = dbTokens[0].access_token;
+        }
+
+        if (!token) return { success: false, error: "No Google Token" };
+
+        const { getPeopleClient } = await import("@/lib/google");
+        const people = getPeopleClient(token);
+
+        const res = await people.people.createContact({
+            requestBody: {
+                names: [{ givenName: "Test", familyName: "Agentic CRM" }],
+                emailAddresses: [{ value: "test@example.com" }],
+                phoneNumbers: [{ value: "+421900111222" }],
+                biographies: [{ value: "Tento kontakt bol vytvorený automaticky testovacím tlačidlom." }]
+            }
+        });
+
+        // @ts-expect-error - Google API typing
+        const personData = res.data || res;
+        return { success: true, data: personData };
+    } catch (error: any) {
+        console.error("Test Create Error:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function syncContactToGoogle(contactId: string | number) {
+    try {
+        const user = await currentUser();
+        if (!user) return { success: false, error: "Unauthorized" };
+
+        const { clerkClient } = await import("@clerk/nextjs/server");
+        const client = await clerkClient();
+        const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
+        let token = tokenResponse.data[0]?.token;
+
+        if (!token) {
+            const dbTokens = await directus.request(readItems("google_tokens", {
+                filter: { user_id: { _eq: user.id } },
+                limit: 1
+            })) as any[];
+            if (dbTokens && dbTokens[0]) token = dbTokens[0].access_token;
+        }
+        if (!token) return { success: false, error: "No Google connection" };
+
+        const { getPeopleClient } = await import("@/lib/google");
+        const people = getPeopleClient(token);
+
+        const contact = (await directus.request(readItem("contacts", contactId))) as any;
+        if (!contact) return { success: false, error: "Contact not found" };
+
+        if (contact.status === "archived" || contact.deleted_at) {
+            if (contact.google_id) {
+                try {
+                    await people.people.deleteContact({ resourceName: contact.google_id });
+                    await directus.request(updateItem("contacts", contactId, { google_id: null }));
+                } catch (err: any) {
+                    if (err.code !== 404) console.error("[Google Sync] Delete failed:", err);
+                }
+            }
+            return { success: true };
+        }
+
+        const requestBody = {
+            names: [{ givenName: contact.first_name, familyName: contact.last_name || "" }],
+            emailAddresses: contact.email ? [{ value: contact.email }] : [],
+            phoneNumbers: contact.phone ? [{ value: contact.phone }] : [],
+            organizations: contact.company ? [{ name: contact.company }] : [],
+            biographies: [{ value: "Synchronizované z Agentic CRM" }]
+        };
+
+        if (contact.google_id) {
+            try {
+                await people.people.updateContact({
+                    resourceName: contact.google_id,
+                    updatePersonFields: "names,emailAddresses,phoneNumbers,organizations,biographies",
+                    requestBody
+                });
+            } catch (err: any) {
+                if (err.code === 404) {
+                    const res = await people.people.createContact({ requestBody });
+                    const newGoogleId = (res.data as any).resourceName;
+                    await directus.request(updateItem("contacts", contactId, { google_id: newGoogleId }));
+                }
+            }
+        } else {
+            const res = await people.people.createContact({ requestBody });
+            const googleId = (res.data as any).resourceName;
+            await directus.request(updateItem("contacts", contactId, { google_id: googleId }));
+        }
+
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 }

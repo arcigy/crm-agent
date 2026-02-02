@@ -21,7 +21,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'f
         email: '',
         phone: '',
         company: '',
-        status: 'published'
+        status: 'active'
     });
 
     React.useEffect(() => {
@@ -189,8 +189,8 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'f
                                     value={formData.status}
                                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                 >
-                                    <option value="published">🟢 Aktívny (Published)</option>
-                                    <option value="draft">🟡 Neaktívny (Draft)</option>
+                                    <option value="active">🟢 Active Participant</option>
+                                    <option value="lead">🟡 New Lead</option>
                                 </select>
                             </div>
                         </>

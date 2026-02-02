@@ -10,6 +10,7 @@ import {
   EmptyStateActions,
 } from "@/components/dashboard/ContactActionButtons";
 import { ErrorState } from "@/components/dashboard/ErrorState";
+import { GoogleSyncAutomation } from "@/components/dashboard/contacts/GoogleSyncAutomation";
 
 export const dynamic = "force-dynamic";
 
@@ -19,18 +20,10 @@ async function ContactsListing() {
   let isBlackBox = false;
 
   try {
-    const withTimeout = (promise: Promise<any>, timeoutMs: number) =>
-      Promise.race([
-        promise,
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Database Timeout")), timeoutMs),
-        ),
-      ]);
-
-    // Parallel fetch for speed
+    // Parallel fetch for speed - removing withTimeout to avoid stream corruption in Next 16/React 19
     const [projectsRes, contactsRes] = await Promise.allSettled([
-      withTimeout(getProjects(), 3000),
-      withTimeout(getContacts(), 3000),
+      getProjects(),
+      getContacts(),
     ]);
 
     const projectsData =
@@ -111,6 +104,7 @@ function ContactLoader() {
 export default function ContactsPage() {
   return (
     <div className="space-y-6 h-screen flex flex-col pt-6 bg-background transition-colors duration-300">
+      <GoogleSyncAutomation />
       {/* TOP HEADER SECTION */}
       <div className="flex items-center justify-between px-8 mb-4">
         <div className="flex flex-col gap-1">

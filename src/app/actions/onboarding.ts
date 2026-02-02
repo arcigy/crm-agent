@@ -1,28 +1,30 @@
 "use server";
 
 import directus from "@/lib/directus";
-import { readItems, updateItem, deleteItems, createItem } from "@directus/sdk";
+import { readItems, updateItem, createItem } from "@directus/sdk";
 import { currentUser } from "@clerk/nextjs/server";
+import { getUserEmail } from "@/lib/auth";
 
 export async function checkOnboardingStatus() {
   try {
-    console.log("[Onboarding] Fetching current clerk user...");
+    const email = await getUserEmail();
+    if (!email) return { completed: true };
+
     const clerkUser = await currentUser();
-    console.log("[Onboarding] Clerk user:", clerkUser?.emailAddresses[0]?.emailAddress);
-    if (!clerkUser) return { completed: true };
 
-    const rawEmail = clerkUser.emailAddresses[0]?.emailAddress;
-    if (!rawEmail) return { completed: true };
-    const email = rawEmail.toLowerCase();
-
+    // Safety timeout for database request
     // @ts-ignore
-    const users = await directus.request(
-      readItems("crm_users", {
-        filter: { email: { _eq: email } },
-        limit: 1,
-      }),
-    );
+    const usersRes = await Promise.race([
+      directus.request(
+        readItems("crm_users", {
+          filter: { email: { _eq: email } },
+          limit: 1,
+        }),
+      ),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Database Timeout")), 5000))
+    ]);
 
+    const users = usersRes as any[];
     let user = users?.[0];
 
     if (!user) {
@@ -31,8 +33,8 @@ export async function checkOnboardingStatus() {
       user = await directus.request(
         createItem("crm_users", {
           email: email,
-          first_name: clerkUser.firstName || "",
-          last_name: clerkUser.lastName || "",
+          first_name: clerkUser?.firstName || "",
+          last_name: clerkUser?.lastName || "",
           role: "user",
           status: "active",
           onboarding_completed: false,
@@ -52,22 +54,14 @@ export async function checkOnboardingStatus() {
     };
   } catch (error) {
     console.error("Onboarding Status Check Error:", error);
-    // Returning completed: true as fallback to prevent blocking the entire app,
-    // but the user wants to see it, so if they are logged in, we should try to show it.
-    // Let's keep it as is for now to avoid breaking the dashboard during transit,
-    // but since I reset the DB status to 'false', it should show up normally now.
     return { completed: true, userId: "error", email: "" };
   }
 }
 
 export async function getOnboardingSettings() {
   try {
-    const clerkUser = await currentUser();
-    if (!clerkUser) return null;
-
-    const rawEmail = clerkUser.emailAddresses[0]?.emailAddress;
-    if (!rawEmail) return null;
-    const email = rawEmail.toLowerCase();
+    const email = await getUserEmail();
+    if (!email) return null;
 
     // 1. Get user profile (Personal Identity)
     // @ts-ignore
@@ -121,11 +115,8 @@ export async function updateOnboardingSettings(data: {
   focus: string;
 }) {
   try {
-    const clerkUser = await currentUser();
-    if (!clerkUser) return { success: false, error: "Unauthorized" };
-    const rawEmail = clerkUser.emailAddresses[0]?.emailAddress;
-    if (!rawEmail) return { success: false, error: "No email" };
-    const email = rawEmail.toLowerCase();
+    const email = await getUserEmail();
+    if (!email) return { success: false, error: "Unauthorized" };
 
     // 1. Update Core User Record (Identity)
     // @ts-ignore

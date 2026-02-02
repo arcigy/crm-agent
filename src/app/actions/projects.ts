@@ -10,11 +10,7 @@ import {
   updateFolderDescription,
 } from "@/lib/google-drive";
 import { getCalendarClient } from "@/lib/google";
-
-async function getUserEmail() {
-  const user = await currentUser();
-  return user?.emailAddresses[0]?.emailAddress?.toLowerCase();
-}
+import { getUserEmail } from "@/lib/auth";
 
 export async function getProjects(): Promise<{
   data: Project[] | null;
@@ -116,9 +112,12 @@ export async function getProject(id: string | number): Promise<{
 
 export async function createProject(data: any) {
   try {
+    const email = await getUserEmail();
+    if (!email) throw new Error("Unauthorized");
+    
+    // We also need clerkUser for some automations, but let's see if we can get it inside
     const user = await currentUser();
     if (!user) throw new Error("Unauthorized");
-    const email = user.emailAddresses[0].emailAddress.toLowerCase();
 
     // 1. Create in Directus
     // @ts-ignore
@@ -244,9 +243,11 @@ export async function deleteProject(id: number) {
 
 export async function syncAllProjectDescriptions() {
   try {
+    const email = await getUserEmail();
+    if (!email) throw new Error("Unauthorized");
+    
     const user = await currentUser();
     if (!user) throw new Error("Unauthorized");
-    const email = user.emailAddresses[0].emailAddress.toLowerCase();
 
     const client = await clerkClient();
     const tokenRes = await client.users.getUserOauthAccessToken(

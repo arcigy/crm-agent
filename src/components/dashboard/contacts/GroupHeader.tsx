@@ -17,9 +17,38 @@ export function GroupHeader({ row, columnsCount }: GroupHeaderProps) {
     id: `group-${status}`,
     data: {
       type: "group",
-      status: status === "published" ? "published" : "draft",
+      status: status,
     },
   });
+
+  const getLabel = (s: string) => {
+    switch (s) {
+      case "active":
+        return "Active Participants";
+      case "lead":
+        return "Leads / New";
+      case "archived":
+        return "Archived";
+      case "published":
+        return "Active Participants"; // legacy support
+      default:
+        return "Inactive Pipeline";
+    }
+  };
+
+  const getStyles = (s: string) => {
+    switch (s) {
+      case "active":
+      case "published":
+        return "text-emerald-500 bg-emerald-500/10";
+      case "lead":
+        return "text-blue-500 bg-blue-500/10";
+      case "archived":
+        return "text-slate-500 bg-slate-500/10";
+      default:
+        return "text-foreground/80 bg-muted";
+    }
+  };
 
   return (
     <tr
@@ -43,13 +72,11 @@ export function GroupHeader({ row, columnsCount }: GroupHeaderProps) {
           <div
             className={`
                         flex items-center gap-2 px-3 py-1 rounded-md text-sm font-black tracking-tight transition-all
-                        ${status === "published" ? "text-green-500 bg-green-500/10" : "text-foreground/80 bg-muted"}
+                        ${getStyles(status)}
                         ${isOver ? "scale-110 shadow-lg" : ""}
                     `}
           >
-            {status === "published"
-              ? "Active Participants"
-              : "Inactive Pipeline"}
+            {getLabel(status)}
             <span className="font-bold text-muted-foreground/60 ml-1 text-xs px-1.5 py-0.5 bg-card rounded border border-border">
               {row.subRows.length}
             </span>

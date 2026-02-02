@@ -38,7 +38,7 @@ export async function POST(req: Request) {
         if (Array.isArray(existing) && existing.length > 0) {
             await directus.request(updateItem('google_tokens', existing[0].id, tokenData));
         } else {
-            // @ts-ignore
+            // @ts-expect-error - Directus SDK types
             await directus.request(createItem('google_tokens', {
                 ...tokenData,
                 date_created: new Date().toISOString()

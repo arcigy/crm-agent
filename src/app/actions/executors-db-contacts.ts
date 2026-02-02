@@ -2,6 +2,7 @@
 
 import directus from "@/lib/directus";
 import { readItems, createItem, updateItem } from "@directus/sdk";
+import { syncContactToGoogle } from "./contacts";
 
 /**
  * Formats phone number to international format.
@@ -46,10 +47,14 @@ export async function executeDbContactTool(
           date_created: new Date().toISOString(),
         } as any),
       )) as any;
+      const newContactId = newContact.id;
+      // Real-time sync to Google
+      await syncContactToGoogle(newContactId);
+
       return {
         success: true,
-        data: { contact_id: newContact.id },
-        message: "Kontakt bol úspešne vytvorený v CRM.",
+        data: { contact_id: newContactId },
+        message: "Kontakt bol úspešne vytvorený v CRM a Google.",
       };
 
     case "db_update_contact":
@@ -69,9 +74,12 @@ export async function executeDbContactTool(
       await directus.request(
         updateItem("contacts", args.contact_id, args as any),
       );
+      // Real-time sync to Google
+      await syncContactToGoogle(args.contact_id);
+
       return {
         success: true,
-        message: "Údaje kontaktu boli úspešne aktualizované.",
+        message: "Údaje kontaktu boli úspešne aktualizované v CRM aj Google.",
       };
 
     case "db_search_contacts":

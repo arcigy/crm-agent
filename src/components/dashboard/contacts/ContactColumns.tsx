@@ -5,6 +5,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { Lead } from "@/types/contact";
 import { FlagBadge } from "./FlagBadge";
 import { EditableComment } from "./EditableComment";
+import { StatusBadge } from "./StatusBadge";
 
 const columnHelper = createColumnHelper<Lead>();
 
@@ -69,15 +70,20 @@ export const contactColumns = [
       );
     },
   }),
+  columnHelper.accessor("status", {
+    id: "status",
+    header: "Status",
+    cell: (info) => (
+      <StatusBadge 
+        contactId={info.row.original.id} 
+        currentStatus={info.getValue()} 
+      />
+    ),
+  }),
   columnHelper.accessor("company", {
     header: "Account",
     cell: (info) =>
       info.getValue() || <span className="text-gray-400 text-xs">-</span>,
-  }),
-  columnHelper.accessor("status", {
-    id: "status",
-    header: "Status",
-    enableHiding: true,
   }),
   columnHelper.accessor("comments", {
     header: "Comments",
