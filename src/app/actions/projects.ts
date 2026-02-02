@@ -1,6 +1,6 @@
 "use server";
 
-import directus from "@/lib/directus";
+import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { readItems, createItem, updateItem, readItem } from "@directus/sdk";
 import { revalidatePath } from "next/cache";
 import type { Project, ProjectStage } from "@/types/project";
@@ -177,9 +177,18 @@ export async function createProject(data: any) {
     }
 
     revalidatePath("/dashboard/projects");
-    return { success: true, data: newProject };
+    return { 
+        success: true, 
+        data: {
+            id: newProject.id,
+            name: newProject.name,
+            project_type: newProject.project_type,
+            user_email: newProject.user_email
+        }
+    };
   } catch (e: any) {
-    return { success: false, error: e.message };
+    console.error("Create project failed:", e);
+    return { success: false, error: getDirectusErrorMessage(e) };
   }
 }
 
@@ -203,7 +212,8 @@ export async function updateProject(id: number, data: Partial<Project>) {
     revalidatePath("/dashboard/deals");
     return { success: true };
   } catch (e: any) {
-    return { success: false, error: e.message };
+    console.error("Update project failed:", e);
+    return { success: false, error: getDirectusErrorMessage(e) };
   }
 }
 
@@ -227,7 +237,8 @@ export async function deleteProject(id: number) {
     revalidatePath("/dashboard/projects");
     return { success: true };
   } catch (e: any) {
-    return { success: false, error: e.message };
+    console.error("Delete project failed:", e);
+    return { success: false, error: getDirectusErrorMessage(e) };
   }
 }
 

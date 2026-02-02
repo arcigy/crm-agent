@@ -103,8 +103,17 @@ export async function createTask(title: string, dueDate?: string) {
     );
 
     revalidatePath("/dashboard/todo");
-    return { success: true as const, data: task as unknown as Task };
-  } catch (error) {
+    return {
+        success: true as const,
+        data: {
+            id: task.id,
+            title: task.title,
+            completed: task.completed,
+            due_date: task.due_date,
+            user_email: task.user_email
+        } as Task
+    };
+  } catch (error: any) {
     console.error("Create Task Error:", error);
     return {
       success: false as const,
@@ -157,7 +166,7 @@ export async function removeTask(id: string) {
     await directus.request(deleteItem("crm_tasks", id));
     revalidatePath("/dashboard/todo");
     return { success: true as const };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Delete Task Error:", error);
     return {
       success: false as const,

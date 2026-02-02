@@ -286,6 +286,15 @@ export async function bulkCreateContacts(contacts: any[]) {
     );
 
     for (const contact of contacts) {
+      // Basic validation: skip if everything important is empty
+      const hasName = String(contact.name || contact.first_name || contact.last_name || "").trim().length > 0;
+      const hasEmail = String(contact.email || "").trim().length > 0;
+      const hasPhone = String(contact.phone || contact.tel || "").trim().length > 0;
+
+      if (!hasName && !hasEmail && !hasPhone) {
+        continue; // Skip completely empty entry
+      }
+
       const rawName = contact.name || contact.first_name || "Neznámy";
       const nameParts = String(rawName).split(" ");
       const lastName =
@@ -327,10 +336,11 @@ export async function bulkCreateContacts(contacts: any[]) {
     }
     revalidatePath("/dashboard/contacts");
     return { success: true, count: successCount };
-  } catch (e) {
+  } catch (e: any) {
+    console.error("Bulk create failed:", e);
     return {
       success: false,
-      error: e instanceof Error ? e.message : String(e),
+      error: getDirectusErrorMessage(e),
     };
   }
 }

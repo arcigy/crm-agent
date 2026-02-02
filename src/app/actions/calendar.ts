@@ -1,6 +1,6 @@
 "use server";
 
-import directus from "@/lib/directus";
+import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { readItems } from "@directus/sdk";
 import { getCalendarClient } from "@/lib/google";
 import { clerkClient, currentUser } from "@clerk/nextjs/server";
@@ -179,7 +179,7 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
     };
   } catch (error: any) {
     console.error("Calendar Fetch Error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getDirectusErrorMessage(error) };
   }
 }
 
@@ -217,9 +217,17 @@ export async function createCalendarEvent(eventData: {
       },
     });
 
-    return { success: true, event: response.data };
+    return { 
+        success: true, 
+        event: {
+            id: response.data.id,
+            summary: response.data.summary,
+            start: response.data.start,
+            end: response.data.end
+        }
+    };
   } catch (error: any) {
     console.error("Create Event Error:", error);
-    return { success: false, error: error.message || "Failed to create event" };
+    return { success: false, error: getDirectusErrorMessage(error) };
   }
 }

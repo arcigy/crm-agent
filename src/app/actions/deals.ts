@@ -1,6 +1,6 @@
 "use server";
 
-import directus from "@/lib/directus";
+import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { readItems, createItem, updateItem, readItem } from "@directus/sdk";
 import { revalidatePath } from "next/cache";
 import { Deal } from "@/types/deal";
@@ -50,9 +50,17 @@ export async function createDeal(data: Partial<Deal>) {
       }),
     );
     revalidatePath("/dashboard/deals");
-    return { success: true, data: newDeal };
+    return { 
+        success: true, 
+        data: {
+            id: newDeal.id,
+            name: newDeal.name,
+            user_email: newDeal.user_email
+        }
+    };
   } catch (e: any) {
-    return { success: false, error: e.message };
+    console.error("Create deal failed:", e);
+    return { success: false, error: getDirectusErrorMessage(e) };
   }
 }
 
@@ -76,7 +84,8 @@ export async function updateDeal(id: number, data: Partial<Deal>) {
     revalidatePath("/dashboard/projects");
     return { success: true };
   } catch (e: any) {
-    return { success: false, error: e.message };
+    console.error("Update deal failed:", e);
+    return { success: false, error: getDirectusErrorMessage(e) };
   }
 }
 
