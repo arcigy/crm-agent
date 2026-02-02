@@ -36,6 +36,7 @@ export default function RegisterPage() {
               headerSubtitle: "text-gray-500 text-sm",
             },
           }}
+          path="/register"
           fallbackRedirectUrl="/dashboard"
         />
       </div>
