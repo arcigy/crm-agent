@@ -1,10 +1,25 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
+// Public routes that don't require authentication
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/login(.*)",
+  "/register(.*)",
+  "/api/health",
+  "/api/webhooks(.*)",
+  "/oauth-callback"
+]);
+
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/api(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
+  // If it's a public route, don't protect it
+  if (isPublicRoute(req)) {
+    return;
+  }
+
+  // Protect dashboard and other API routes
   if (isProtectedRoute(req)) {
-    // Force protection to ensure headers are present for Server Actions
     await auth.protect();
   }
 });
