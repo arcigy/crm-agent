@@ -1,3 +1,5 @@
+"use server";
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getIsolatedAIContext } from "@/lib/ai-context";
 
