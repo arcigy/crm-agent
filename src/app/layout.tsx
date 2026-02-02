@@ -27,8 +27,6 @@ export const metadata: Metadata = {
   },
 };
 
-
-
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 export default function RootLayout({
