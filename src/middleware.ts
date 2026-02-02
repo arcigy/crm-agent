@@ -3,6 +3,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
 const isPublicRoute = createRouteMatcher([
   "/login(.*)",
+  "/register(.*)",
   "/",
   "/api/(.*)",
   "/oauth-callback",
