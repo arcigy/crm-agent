@@ -61,9 +61,9 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
       </div>
 
       <div className="grid grid-cols-7 text-center mb-1">
-        {["p", "u", "s", "š", "p", "s", "n"].map((day) => (
+        {["p", "u", "s", "š", "p", "s", "n"].map((day, index) => (
           <div
-            key={day}
+            key={`${day}-${index}`}
             className="text-[10px] font-bold text-gray-400 uppercase"
           >
             {day}

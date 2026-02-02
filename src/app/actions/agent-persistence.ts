@@ -31,9 +31,17 @@ export async function getAgentChats(): Promise<AgentChat[]> {
 }
 
 export async function getAgentChatById(id: string): Promise<AgentChat | null> {
+  const user = await currentUser();
+  if (!user) return null;
+  const email = user.emailAddresses[0]?.emailAddress?.toLowerCase();
+
   try {
-    const chat = await directus.request(readItem("agent_chats", id));
-    return chat as unknown as AgentChat;
+    const chat = await directus.request(readItem("agent_chats", id)) as any;
+    if (chat.user_email !== email) {
+        console.warn(`Access denied to chat ${id} for user ${email}`);
+        return null;
+    }
+    return chat as AgentChat;
   } catch (err) {
     console.error("Failed to load chat:", err);
     return null;
@@ -88,7 +96,16 @@ export async function saveAgentChat(
 }
 
 export async function deleteAgentChat(id: string) {
+  const user = await currentUser();
+  if (!user) return { success: false };
+  const email = user.emailAddresses[0]?.emailAddress?.toLowerCase();
+
   try {
+    const current = await directus.request(readItem("agent_chats", id)) as any;
+    if (current.user_email !== email) {
+        return { success: false };
+    }
+
     await directus.request(
       updateItem("agent_chats", id, { status: "archived" }),
     );

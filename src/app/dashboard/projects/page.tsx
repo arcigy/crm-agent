@@ -11,9 +11,8 @@ import { MOCK_PROJECTS, MOCK_CONTACTS } from "@/types/mockData";
 export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
-  let projects: Project[] = MOCK_PROJECTS;
-  let contacts: Lead[] = MOCK_CONTACTS;
-  let usingMockData = true;
+  let projects: Project[] = [];
+  let contacts: Lead[] = [];
 
   // Pokúsiť sa načítať skutočné dáta z databázy
   try {
@@ -29,78 +28,62 @@ export default async function ProjectsPage() {
       data: [],
       error: "timeout",
     }));
-    const { data, error } = projectsResult;
 
-    if (!error && data && data.length > 0) {
-      const realProjects = data;
-      usingMockData = false;
+    if (projectsResult.data) {
+      const realProjects = projectsResult.data;
 
-      // Načítať kontakty z Directus
-      try {
-        // @ts-ignore
-        const rawContacts = await withTimeout(
-          directus.request(readItems("contacts")),
-          5000,
-        ).catch(() => []);
+      // Načítať kontakty pre tento účet (cez getContacts akciu pre bezpečnosť)
+      const { getContacts } = await import("@/app/actions/contacts");
+      const contactsRes = await withTimeout(getContacts(), 5000).catch(() => ({ success: false, data: [] }));
 
-        if (rawContacts && rawContacts.length > 0) {
-          const uniqueContactsMap = new Map();
-          (rawContacts as any[]).forEach((contact) => {
-            const email = contact.email;
-            if (email && !uniqueContactsMap.has(email)) {
-              uniqueContactsMap.set(email, contact);
-            }
-          });
-          contacts = Array.from(uniqueContactsMap.values());
+      if (contactsRes.success && contactsRes.data) {
+        const rawContacts = contactsRes.data;
+        
+        // Mapovanie kontaktov k projektom
+        const uniqueContactsMap = new Map();
+        (rawContacts as any[]).forEach((contact) => {
+          uniqueContactsMap.set(String(contact.id), contact);
+        });
+        
+        const normalize = (s: string) =>
+          (s || "")
+            .toString()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim()
+            .toLowerCase();
 
-          // ENRICH CONTACTS WITH THEIR PROJECTS (for robust modal display)
-          contacts = Array.from(uniqueContactsMap.values()).map((contact) => {
-            const normalize = (s: string) =>
-              (s || "")
-                .toString()
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .trim()
-                .toLowerCase();
+        // Obohatiť kontakty o ich projekty
+        contacts = Array.from(uniqueContactsMap.values()).map((contact) => {
+          const fn = contact.first_name || "";
+          const ln = contact.last_name || "";
+          const fullName = normalize(`${fn} ${ln}`);
 
-            const fn = contact.first_name || "";
-            const ln = contact.last_name || "";
-            const fullName = normalize(`${fn} ${ln}`);
-
-            const contactProjects = (realProjects as any[]).filter((p) => {
-              const isIdMatch = String(p.contact_id) === String(contact.id);
-              const isNameMatch =
-                p.contact_name && normalize(p.contact_name) === fullName;
-              return isIdMatch || isNameMatch;
-            });
-
-            return { ...contact, projects: contactProjects };
+          const contactProjects = (realProjects as any[]).filter((p) => {
+            const isIdMatch = String(p.contact_id) === String(contact.id);
+            const isNameMatch = p.contact_name && normalize(p.contact_name) === fullName;
+            return isIdMatch || isNameMatch;
           });
 
-          // ENRICH PROJECTS WITH CONTACT NAMES
-          projects = (realProjects as any[]).map((p: any) => {
-            const contact = contacts.find(
-              (c) => String(c.id) === String(p.contact_id),
-            );
-            return {
-              ...p,
-              contact_name: contact
-                ? `${contact.first_name} ${contact.last_name}`
-                : p.contact_name || "Neznámy kontakt",
-            };
-          });
-        } else {
-          projects = realProjects;
-        }
-      } catch (e) {
-        console.log("Enrichment failed, using raw projects");
+          return { ...contact, projects: contactProjects };
+        });
+
+        // Obohatiť projekty o mená kontaktov
+        projects = (realProjects as any[]).map((p: any) => {
+          const contact = contacts.find((c) => String(c.id) === String(p.contact_id));
+          return {
+            ...p,
+            contact_name: contact
+              ? `${contact.first_name} ${contact.last_name}`.trim()
+              : p.contact_name || "Neznámy",
+          };
+        });
+      } else {
         projects = realProjects;
       }
-    } else {
-      console.log("Using mock projects (DB error or empty)");
     }
   } catch (e) {
-    console.log("Using mock projects data (Top level error)");
+    console.error("[Projects Hub] Initial load failed:", e);
   }
 
   return (

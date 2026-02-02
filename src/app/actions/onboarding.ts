@@ -6,7 +6,9 @@ import { currentUser } from "@clerk/nextjs/server";
 
 export async function checkOnboardingStatus() {
   try {
+    console.log("[Onboarding] Fetching current clerk user...");
     const clerkUser = await currentUser();
+    console.log("[Onboarding] Clerk user:", clerkUser?.emailAddresses[0]?.emailAddress);
     if (!clerkUser) return { completed: true };
 
     const rawEmail = clerkUser.emailAddresses[0]?.emailAddress;

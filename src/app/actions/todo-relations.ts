@@ -22,17 +22,45 @@ export interface DealRelation {
   value?: number;
 }
 
+import { currentUser } from "@clerk/nextjs/server";
+
 export async function getTodoRelations() {
   try {
+    const user = await currentUser();
+    if (!user) return { success: false as const, error: "Unauthorized" };
+    const email = user.emailAddresses[0]?.emailAddress;
+
     const [contacts, projects, deals] = await Promise.all([
       directus.request(
-        readItems("contacts", { limit: 10, sort: ["-date_created"] }),
+        readItems("contacts", {
+          filter: { user_email: { _eq: email } },
+          limit: 50,
+          sort: ["-date_created"],
+        }),
       ),
       directus.request(
-        readItems("projects", { limit: 10, sort: ["-date_created"] }),
+        readItems("projects", {
+          filter: {
+            _and: [
+              { user_email: { _eq: email } },
+              { deleted_at: { _null: true } },
+            ],
+          },
+          limit: 50,
+          sort: ["-date_created"],
+        }),
       ),
       directus.request(
-        readItems("deals", { limit: 10, sort: ["-date_created"] }),
+        readItems("deals", {
+          filter: {
+            _and: [
+              { user_email: { _eq: email } },
+              { deleted_at: { _null: true } },
+            ],
+          },
+          limit: 50,
+          sort: ["-date_created"],
+        }),
       ),
     ]);
 

@@ -2,7 +2,7 @@
 // Build trigger: 2026-01-31 13:30 - Stability & Mapping Update
 
 import { revalidatePath } from "next/cache";
-import directus from "@/lib/directus";
+import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, updateItem, readItems, readItem } from "@directus/sdk";
 import { currentUser } from "@clerk/nextjs/server";
 
@@ -154,13 +154,21 @@ export async function createContact(data: Partial<ContactItem>) {
     );
 
     revalidatePath("/dashboard/contacts");
-    return { success: true, contact: drContact as unknown as ContactItem };
-  } catch (error) {
+    return { 
+        success: true, 
+        contact: {
+            id: drContact.id,
+            first_name: drContact.first_name,
+            last_name: drContact.last_name,
+            email: drContact.email,
+            user_email: drContact.user_email
+        } as ContactItem 
+    };
+  } catch (error: any) {
     console.error("Failed to create contact:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to create contact",
+      error: getDirectusErrorMessage(error)
     };
   }
 }
@@ -180,11 +188,11 @@ export async function updateContact(
     await directus.request(updateItem("contacts", id, data));
     revalidatePath("/dashboard/contacts");
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to update contact:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: getDirectusErrorMessage(error)
     };
   }
 }

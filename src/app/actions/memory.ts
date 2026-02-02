@@ -1,7 +1,7 @@
 "use server";
 
 import directus from "@/lib/directus";
-import { readItems, createItem, updateItem, deleteItem } from "@directus/sdk";
+import { readItems, createItem, updateItem, deleteItem, readItem } from "@directus/sdk";
 import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
@@ -52,6 +52,14 @@ export async function addAIMemory(fact: string, category: string = "manual") {
 
 export async function deleteAIMemory(id: string) {
   try {
+    const user = await currentUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+    const email = user.emailAddresses[0]?.emailAddress;
+
+    // Verify ownership
+    const current = (await directus.request(readItem("ai_memories", id))) as any;
+    if (current.user_email !== email) throw new Error("Access denied");
+
     // @ts-ignore
     await directus.request(deleteItem("ai_memories", id));
     revalidatePath("/dashboard/settings/memory");
@@ -64,6 +72,14 @@ export async function deleteAIMemory(id: string) {
 
 export async function updateAIMemory(id: string, fact: string) {
   try {
+    const user = await currentUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+    const email = user.emailAddresses[0]?.emailAddress;
+
+    // Verify ownership
+    const current = (await directus.request(readItem("ai_memories", id))) as any;
+    if (current.user_email !== email) throw new Error("Access denied");
+
     // @ts-ignore
     await directus.request(
       updateItem("ai_memories", id, {

@@ -95,6 +95,7 @@ export function CreateEventModal({
         placeholder: "Stretnutie s...",
       }),
     ],
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class:

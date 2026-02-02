@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server';
 import directus from '@/lib/directus';
 import { createItem } from '@directus/sdk';
 
+import { currentUser } from '@clerk/nextjs/server';
+
 export async function POST(req: Request) {
     try {
+        const user = await currentUser();
+        const userEmail = user?.emailAddresses[0]?.emailAddress;
+        if (!userEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
         const body = await req.json();
 
         // Basic validation
@@ -18,7 +24,8 @@ export async function POST(req: Request) {
             email: body.email,
             phone: body.phone,
             company: body.company,
-            status: body.status || 'published'
+            status: body.status || 'published',
+            user_email: userEmail
         }));
 
         return NextResponse.json({ success: true, result });

@@ -48,11 +48,16 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
       }
     }
 
-    // 2. Fetch Projects & Contacts from Directus
+    // 2. Fetch Projects & Contacts from Directus (filtered by user)
     // @ts-ignore
     const projectData = await directus.request(
       readItems("projects", {
-        filter: { deleted_at: { _null: true } },
+        filter: {
+          _and: [
+            { user_email: { _eq: userEmail } },
+            { deleted_at: { _null: true } },
+          ],
+        },
         limit: -1,
       }),
     );
@@ -60,6 +65,7 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
     // @ts-ignore
     const contactsData = await directus.request(
       readItems("contacts", {
+        filter: { user_email: { _eq: userEmail } },
         limit: -1,
       }),
     );

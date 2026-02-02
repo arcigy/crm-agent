@@ -310,6 +310,7 @@ export default function RichTextEditor({
       MentionNode,
       Placeholder.configure({ placeholder: placeholder || "Začnite písať..." }),
     ],
+    immediatelyRender: false,
     content: content,
     onUpdate: ({ editor: updatedEditor }) => {
       onChange(updatedEditor.getHTML());

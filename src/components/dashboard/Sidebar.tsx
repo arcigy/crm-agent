@@ -102,7 +102,7 @@ export function Sidebar({ className }: { className?: string }) {
             )}
             <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent truncate max-w-[140px]">
               {(user as any)?.organization?.name ||
-                user?.fullName?.split(" ")[0] ||
+                user?.firstName ||
                 "CRM"}
             </span>
           </div>

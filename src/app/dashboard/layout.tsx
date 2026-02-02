@@ -12,7 +12,13 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { completed } = await checkOnboardingStatus();
+  let completed = true;
+  try {
+    const status = await checkOnboardingStatus();
+    completed = !!status.completed;
+  } catch (err) {
+    console.error("[Layout] Critical error in checkOnboardingStatus:", err);
+  }
 
   return (
     <ContactPreviewProvider>

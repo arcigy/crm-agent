@@ -61,7 +61,12 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'f
                     alert('Import zlyhal: ' + res.error);
                 }
             } else {
-                await onSubmit(formData);
+                const res = await onSubmit(formData) as any;
+                if (res?.success === false) {
+                    alert('Chyba pri vytváraní: ' + (res.error || 'Neznáma chyba'));
+                    setLoading(false);
+                    return;
+                }
                 onClose();
                 window.location.reload();
             }
