@@ -11,7 +11,20 @@ export async function GET() {
 
         const client = await clerkClient();
         const response = await client.users.getUserOauthAccessToken(user.id, 'oauth_google');
-        const token = response.data[0]?.token;
+        let token = response.data[0]?.token;
+
+        // Fallback to Directus
+        if (!token) {
+            const { default: directus } = await import('@/lib/directus');
+            const { readItems } = await import('@directus/sdk');
+            const dbTokens = await directus.request(readItems('google_tokens', {
+                filter: { user_id: { _eq: user.id } },
+                limit: 1
+            })) as any[];
+            if (dbTokens && dbTokens[0]) {
+                token = dbTokens[0].access_token;
+            }
+        }
 
         if (!token) return NextResponse.json({ isConnected: false });
 

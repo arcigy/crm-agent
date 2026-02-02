@@ -349,25 +349,33 @@ export async function importGoogleContacts() {
   try {
     const user = await currentUser();
     if (!user) return { success: false, error: "Unauthorized" };
-    const userEmail = user.emailAddresses[0]?.emailAddress?.toLowerCase();
+    
+    // 1. Try Clerk Token
+    const { clerkClient } = await import("@clerk/nextjs/server");
+    const client = await clerkClient();
+    const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
+    let tokens = tokenResponse.data[0]?.token;
 
-    const tokensRes = await directus.request(
-      readItems("google_tokens", {
-        filter: { user_id: { _eq: user.id } },
-        limit: 1,
-      }),
-    );
+    // 2. Fallback to Directus google_tokens
+    if (!tokens) {
+        const dbTokens = await directus.request(readItems("google_tokens", {
+            filter: { user_id: { _eq: user.id } },
+            limit: 1
+        })) as any[];
+        if (dbTokens && dbTokens[0]) {
+            tokens = dbTokens[0].access_token;
+        }
+    }
 
-    const tokens = (tokensRes as any[])[0];
     if (!tokens) {
       return {
         success: false,
-        error: "Google account not connected or tokens missing.",
+        error: "Google account not connected. Please connect your account first.",
       };
     }
 
     const { getPeopleClient } = await import("@/lib/google");
-    const people = getPeopleClient(tokens.access_token, tokens.refresh_token);
+    const people = getPeopleClient(tokens);
 
     const response = await people.people.connections.list({
       resourceName: "people/me",
@@ -400,6 +408,102 @@ export async function importGoogleContacts() {
   }
 }
 
+export async function exportContactsToGoogle() {
+  try {
+    const user = await currentUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    // 1. Try Clerk Token
+    const { clerkClient } = await import("@clerk/nextjs/server");
+    const client = await clerkClient();
+    const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
+    let tokens = tokenResponse.data[0]?.token;
+
+    // 2. Fallback to Directus google_tokens
+    if (!tokens) {
+        const dbTokens = await directus.request(readItems("google_tokens", {
+            filter: { user_id: { _eq: user.id } },
+            limit: 1
+        })) as any[];
+        if (dbTokens && dbTokens[0]) {
+            tokens = dbTokens[0].access_token;
+        }
+    }
+
+    if (!tokens) {
+      return {
+        success: false,
+        error: "Google account not connected or tokens missing.",
+      };
+    }
+
+    const { getPeopleClient } = await import("@/lib/google");
+    const people = getPeopleClient(tokens);
+
+    // 2. Get All CRM Contacts
+    const contactsRes = await getContacts();
+    if (!contactsRes.success || !contactsRes.data) {
+      return { success: false, error: "Failed to fetch CRM contacts" };
+    }
+
+    const crmContacts = contactsRes.data;
+
+    // 3. Get existing Google Contacts to avoid obvious duplicates by email
+    const googleRes = await people.people.connections.list({
+      resourceName: "people/me",
+      pageSize: 1000,
+      personFields: "emailAddresses",
+    });
+    
+    const existingGoogleEmails = new Set();
+    (googleRes.data.connections || []).forEach(p => {
+        p.emailAddresses?.forEach(e => {
+            if (e.value) existingGoogleEmails.add(e.value.toLowerCase());
+        });
+    });
+
+    let exportedCount = 0;
+    for (const contact of crmContacts) {
+        const contactEmail = contact.email?.toLowerCase().trim();
+        
+        // Skip if email exists in Google already
+        if (contactEmail && existingGoogleEmails.has(contactEmail)) continue;
+        
+        // Create in Google
+        try {
+            await people.people.createContact({
+                requestBody: {
+                    names: [{ givenName: contact.first_name, familyName: contact.last_name || "" }],
+                    emailAddresses: contact.email ? [{ value: contact.email }] : [],
+                    phoneNumbers: contact.phone ? [{ value: contact.phone }] : [],
+                    organizations: contact.company ? [{ name: contact.company }] : [],
+                }
+            });
+            exportedCount++;
+        } catch (err) {
+            console.error(`Failed to export contact ${contact.email}:`, err);
+        }
+    }
+
+    return { success: true, count: exportedCount };
+  } catch (error) {
+    console.error("Google Export Error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 export async function syncGoogleContacts() {
-  return await importGoogleContacts();
+  // Bi-directional sync
+  const importResult = await importGoogleContacts();
+  const exportResult = await exportContactsToGoogle();
+  
+  return {
+      success: true,
+      imported: importResult.success ? (importResult as any).count : 0,
+      exported: exportResult.success ? (exportResult as any).count : 0,
+      error: !importResult.success ? importResult.error : (!exportResult.success ? exportResult.error : null)
+  };
 }

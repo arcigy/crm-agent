@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { X, Check, Loader2, RefreshCcw, UserPlus, Search, Info } from 'lucide-react';
+import { X, Loader2, RefreshCcw, UserPlus, Search, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface GoogleContact {
@@ -105,9 +105,9 @@ export function GoogleImportModal({ isOpen, onClose }: { isOpen: boolean; onClos
                     </button>
                 </div>
 
-                {/* Search Bar */}
-                <div className="p-6 bg-gray-50/50 border-b border-gray-100">
-                    <div className="relative">
+                {/* Actions Bar */}
+                <div className="px-8 py-4 bg-gray-50/50 border-b border-gray-100 flex items-center gap-4">
+                    <div className="relative flex-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
@@ -117,6 +117,30 @@ export function GoogleImportModal({ isOpen, onClose }: { isOpen: boolean; onClos
                             className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all"
                         />
                     </div>
+                    <button
+                        onClick={async () => {
+                            setLoading(true);
+                            try {
+                                const { syncGoogleContacts } = await import('@/app/actions/contacts');
+                                const res = await syncGoogleContacts();
+                                if (res.success) {
+                                    toast.success(`Synchronizácia hotová: +${res.imported} importovaných, +${res.exported} exportovaných.`);
+                                    fetchContacts();
+                                } else {
+                                    toast.error(res.error || 'Synchronizácia zlyhala');
+                                }
+                            } catch (err) {
+                                toast.error('Chyba pri synchronizácii');
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
+                        disabled={loading || !isConnected}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50 active:scale-95 whitespace-nowrap"
+                    >
+                        <RefreshCcw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                        Sync všetko
+                    </button>
                 </div>
 
                 {/* Content */}
@@ -127,7 +151,21 @@ export function GoogleImportModal({ isOpen, onClose }: { isOpen: boolean; onClos
                                 <Info className="w-8 h-8" />
                             </div>
                             <h4 className="text-lg font-black text-gray-900 mb-2">Google nie je prepojený</h4>
-                            <p className="text-gray-500 text-sm max-w-xs mx-auto mb-6">Povolenie pre prístup ku kontaktom musíte udeliť v nastaveniach profilu (Clerk).</p>
+                            <p className="text-gray-500 text-sm max-w-xs mx-auto mb-6">Pre synchronizáciu kontaktov musíte prepojiť svoj Google účet so systémom CRM.</p>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const res = await fetch('/api/google/auth-url');
+                                        const { url } = await res.json();
+                                        if (url) window.location.href = url;
+                                    } catch (err) {
+                                        toast.error('Nepodarilo sa vygenerovať link');
+                                    }
+                                }}
+                                className="px-8 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all active:scale-95 shadow-xl shadow-gray-200"
+                            >
+                                Pripojiť Google účet
+                            </button>
                         </div>
                     ) : loading ? (
                         <div className="flex flex-col items-center justify-center py-32 gap-4">
