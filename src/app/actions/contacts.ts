@@ -21,6 +21,7 @@ export interface ContactItem {
   projects?: any[];
   deals?: any[];
   activities?: any[];
+  labels?: any[]; // M2M junction items
 }
 
 export async function getContact(id: string | number) {
@@ -90,6 +91,11 @@ export async function getContacts() {
             { user_email: { _eq: userEmail } },
           ],
         },
+        fields: [
+          "*",
+          "labels.contacts_contact_labels_id.*",
+          "labels.contact_labels_id.*",
+        ] as any[],
         sort: ["-date_created"] as string[],
         limit: -1,
       }),
@@ -635,7 +641,9 @@ export async function syncContactToGoogle(contactId: string | number) {
         const { getPeopleClient } = await import("@/lib/google");
         const people = getPeopleClient(token);
 
-        const contact = (await directus.request(readItem("contacts", contactId))) as any;
+        const contact = (await directus.request(readItem("contacts", contactId, {
+            fields: ["*", "labels.contact_labels_id.*"]
+        }))) as any;
         if (!contact) return { success: false, error: "Contact not found" };
 
         if (contact.status === "archived" || contact.deleted_at) {
@@ -650,19 +658,27 @@ export async function syncContactToGoogle(contactId: string | number) {
             return { success: true };
         }
 
+        const memberships = (contact.labels || [])
+            .map((l: any) => l.contact_labels_id?.google_id)
+            .filter(Boolean)
+            .map((gid: string) => ({
+                contactGroupMembership: { contactGroupResourceName: gid }
+            }));
+
         const requestBody = {
             names: [{ givenName: contact.first_name, familyName: contact.last_name || "" }],
             emailAddresses: contact.email ? [{ value: contact.email }] : [],
             phoneNumbers: contact.phone ? [{ value: contact.phone }] : [],
             organizations: contact.company ? [{ name: contact.company }] : [],
-            biographies: [{ value: "Synchronizované z Agentic CRM" }]
+            biographies: [{ value: "Synchronizované z Agentic CRM" }],
+            memberships: memberships.length > 0 ? memberships : undefined
         };
 
         if (contact.google_id) {
             try {
                 await people.people.updateContact({
                     resourceName: contact.google_id,
-                    updatePersonFields: "names,emailAddresses,phoneNumbers,organizations,biographies",
+                    updatePersonFields: "names,emailAddresses,phoneNumbers,organizations,biographies,memberships",
                     requestBody
                 });
             } catch (err: any) {
