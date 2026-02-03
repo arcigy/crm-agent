@@ -189,7 +189,6 @@ export async function exportContactsToGoogle() {
             _and: [
                 { user_email: { _eq: userEmail } },
                 { status: { _eq: "active" } },
-                { google_id: { _null: true } },
                 { deleted_at: { _null: true } }
             ]
         },
@@ -198,41 +197,18 @@ export async function exportContactsToGoogle() {
 
     if (crmContacts.length === 0) return { success: true, count: 0 };
 
-    const googleRes = await people.people.connections.list({
-      resourceName: "people/me",
-      pageSize: 1000,
-      personFields: "emailAddresses",
-    });
-    
-    const existingEmails = new Set();
-    (googleRes.data.connections || []).forEach(p => {
-        p.emailAddresses?.forEach(e => {
-            if (e.value) existingEmails.add(e.value.toLowerCase().trim());
-        });
-    });
-
-    let exportedCount = 0;
+    let processedCount = 0;
     for (const contact of crmContacts) {
-        const email = contact.email?.toLowerCase().trim();
-        if (email && existingEmails.has(email)) continue;
-        
         try {
-            await people.people.createContact({
-                requestBody: {
-                    names: [{ givenName: contact.first_name, familyName: contact.last_name || "" }],
-                    emailAddresses: contact.email ? [{ value: contact.email }] : [],
-                    phoneNumbers: contact.phone ? [{ value: normalizeSlovakPhone(contact.phone) }] : [],
-                    organizations: contact.company ? [{ name: contact.company }] : [],
-                    biographies: [{ value: "Synchronizované z Agentic CRM" }]
-                }
-            });
-            exportedCount++;
+            // Use existing sync logic which handles both create and update
+            await syncContactToGoogle(contact.id);
+            processedCount++;
         } catch (err) {
-            console.error(`[Google Sync] Failed to export ${contact.email}:`, err);
+            console.error(`[Google Sync] Failed to sync ${contact.email || contact.id}:`, err);
         }
     }
 
-    return { success: true, count: exportedCount };
+    return { success: true, count: processedCount };
   } catch (error) {
     console.error("Google Export Error:", error);
     return { success: false, error: String(error) };
