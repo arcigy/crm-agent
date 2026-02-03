@@ -94,6 +94,11 @@ export function ContactsTable({
     onColumnOrderChange: setColumnOrder,
     onColumnSizingChange: setColumnSizing,
     columnResizeMode: "onChange",
+    defaultColumn: {
+      minSize: 40,
+      maxSize: 1000,
+      size: 150,
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getGroupedRowModel: getGroupedRowModel(),
@@ -208,12 +213,18 @@ export function ContactsTable({
             onImportClick={() => setIsImportModalOpen(true)}
           />
           <div className="overflow-auto flex-1 thin-scrollbar">
-            <table className="w-full text-left border-collapse min-w-[1000px]">
+            <table 
+              className="text-left border-collapse"
+              style={{ 
+                width: table.getTotalSize() + 100, // +100 for fixed extra columns
+                tableLayout: "fixed" 
+              }}
+            >
               <thead className="bg-muted/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
-                    <th className="w-10 p-2" />
-                    <th className="w-8 p-2" />
+                    <th style={{ width: "8px" }} className="p-0" />
+                    <th style={{ width: "32px" }} className="p-2" />
                     <SortableContext
                       items={headerGroup.headers.map((h) => h.column.id)}
                       strategy={horizontalListSortingStrategy}
@@ -222,7 +233,7 @@ export function ContactsTable({
                         <DraggableHeader key={header.id} header={header} />
                       ))}
                     </SortableContext>
-                    <th className="w-10 p-2 border-l border-border text-center">
+                    <th style={{ width: "40px" }} className="p-2 border-l border-border text-center">
                       <Plus className="w-4 h-4 text-muted-foreground mx-auto" />
                     </th>
                   </tr>

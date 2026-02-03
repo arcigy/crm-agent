@@ -9,7 +9,7 @@ import { updateContact } from "@/app/actions/contacts";
 
 export function useContactsTable(data: Lead[]) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [grouping, setGrouping] = React.useState<GroupingState>(["status"]);
+  const [grouping, setGrouping] = React.useState<GroupingState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
   const [columnSizing, setColumnSizing] = React.useState({});

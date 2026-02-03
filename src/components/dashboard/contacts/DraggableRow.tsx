@@ -42,7 +42,7 @@ export function DraggableRow({ row }: DraggableRowProps) {
       className={`group bg-card hover:bg-blue-600/5 transition-colors relative ${isDragging ? "shadow-2xl ring-2 ring-blue-500/20 z-50" : ""}`}
     >
       {/* Color strip indicator */}
-      <td className="p-0 relative w-2">
+      <td style={{ width: "8px" }} className="p-0 relative">
         <div
           className={`absolute inset-y-0.5 left-0 w-1.5 rounded-r-md 
                     ${String(row.original.status).toLowerCase() === "published" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-muted"}
@@ -50,7 +50,7 @@ export function DraggableRow({ row }: DraggableRowProps) {
         ></div>
       </td>
       {/* Drag handle */}
-      <td className="p-2 text-center w-8">
+      <td style={{ width: "32px" }} className="p-2 text-center">
         <div
           {...attributes}
           {...listeners}
@@ -69,7 +69,7 @@ export function DraggableRow({ row }: DraggableRowProps) {
         </td>
       ))}
       {/* Add Column Button Placeholder */}
-      <td className="p-2 border-l border-border text-center">
+      <td style={{ width: "40px" }} className="p-2 border-l border-border text-center">
         <div className="w-6 h-6 rounded-full hover:bg-muted flex items-center justify-center cursor-pointer transition-colors mx-auto group-hover:scale-110">
           <span className="text-muted-foreground text-xs">+</span>
         </div>
