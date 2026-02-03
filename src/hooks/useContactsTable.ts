@@ -12,7 +12,7 @@ export function useContactsTable(data: Lead[]) {
   const [grouping, setGrouping] = React.useState<GroupingState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
-  const [columnSizing, setColumnSizing] = React.useState({});
+  const [columnSizing, setColumnSizing] = React.useState<Record<string, number>>({});
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [isMounted, setIsMounted] = React.useState(false);
 
@@ -32,6 +32,18 @@ export function useContactsTable(data: Lead[]) {
 
   React.useEffect(() => {
     setIsMounted(true);
+    
+    // Load persisted table state
+    const savedOrder = localStorage.getItem("contacts_column_order");
+    const savedSizing = localStorage.getItem("contacts_column_sizing");
+    
+    if (savedOrder) {
+      try { setColumnOrder(JSON.parse(savedOrder)); } catch (e) { console.error(e); }
+    }
+    if (savedSizing) {
+      try { setColumnSizing(JSON.parse(savedSizing)); } catch (e) { console.error(e); }
+    }
+
     const handleOpenQr = (e: any) => setQrPhone(e.detail);
     const handleOpenDetail = (e: any) => setDetailContact(e.detail);
     const handleOpenFullDetail = (e: any) => setFullDetailContact(e.detail);
@@ -61,6 +73,19 @@ export function useContactsTable(data: Lead[]) {
       window.removeEventListener("open-import-google", handleOpenGoogleImport);
     };
   }, []);
+
+  // Persist table state changes
+  React.useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem("contacts_column_order", JSON.stringify(columnOrder));
+    }
+  }, [columnOrder, isMounted]);
+
+  React.useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem("contacts_column_sizing", JSON.stringify(columnSizing));
+    }
+  }, [columnSizing, isMounted]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;

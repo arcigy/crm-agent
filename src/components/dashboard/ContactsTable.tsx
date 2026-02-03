@@ -92,7 +92,32 @@ export function ContactsTable({
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
     onColumnOrderChange: setColumnOrder,
-    onColumnSizingChange: setColumnSizing,
+    onColumnSizingChange: (updaterOrValue: any) => {
+      const newSizing = typeof updaterOrValue === 'function' 
+        ? updaterOrValue(columnSizing) 
+        : updaterOrValue;
+      
+      // Compensatory resizing logic (Neighbor shrinks when current grows)
+      const columnIds = table.getVisibleLeafColumns().map(c => c.id);
+      const changedColumnId = Object.keys(newSizing).find(
+        id => newSizing[id] !== columnSizing[id]
+      );
+
+      if (changedColumnId) {
+        const index = columnIds.indexOf(changedColumnId);
+        if (index !== -1 && index < columnIds.length - 1) {
+          const nextColumnId = columnIds[index + 1];
+          const diff = newSizing[changedColumnId] - (columnSizing[changedColumnId] || table.getColumn(changedColumnId)?.getSize() || 150);
+          
+          const currentNextSize = columnSizing[nextColumnId] || table.getColumn(nextColumnId)?.getSize() || 150;
+          const newNextSize = Math.max(40, currentNextSize - diff);
+          
+          newSizing[nextColumnId] = newNextSize;
+        }
+      }
+      
+      setColumnSizing(newSizing);
+    },
     columnResizeMode: "onChange",
     defaultColumn: {
       minSize: 40,
@@ -214,17 +239,34 @@ export function ContactsTable({
           />
           <div className="overflow-auto flex-1 thin-scrollbar">
             <table 
-              className="text-left border-collapse"
+              className="w-full text-left border-collapse"
               style={{ 
-                width: table.getTotalSize() + 100, // +100 for fixed extra columns
-                tableLayout: "fixed" 
+                tableLayout: "fixed",
+                minWidth: "100%"
               }}
             >
               <thead className="bg-muted/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
-                    <th style={{ width: "8px" }} className="p-0" />
-                    <th style={{ width: "32px" }} className="p-2" />
+                    <th style={{ width: "8px" }} className="p-0 bg-muted/80 backdrop-blur-sm sticky left-0 z-20" />
+                    {/* Fixed Selection Header */}
+                    <th style={{ width: "40px" }} className="p-2 bg-muted/80 backdrop-blur-sm sticky left-[8px] z-20 border-r border-border">
+                      <div className="flex items-center justify-center">
+                        <button
+                          onClick={() => table.toggleAllRowsSelected()}
+                          className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center ${
+                            table.getIsAllRowsSelected()
+                              ? "bg-blue-600 border-blue-600"
+                              : "border-muted-foreground/30 hover:border-blue-500"
+                          }`}
+                        >
+                          {table.getIsAllRowsSelected() && (
+                            <div className="w-2 h-2 bg-white rounded-full" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
+                    <th style={{ width: "32px" }} className="p-2 bg-muted/80 backdrop-blur-sm border-r border-border" />
                     <SortableContext
                       items={headerGroup.headers.map((h) => h.column.id)}
                       strategy={horizontalListSortingStrategy}
@@ -233,7 +275,7 @@ export function ContactsTable({
                         <DraggableHeader key={header.id} header={header} />
                       ))}
                     </SortableContext>
-                    <th style={{ width: "40px" }} className="p-2 border-l border-border text-center">
+                    <th style={{ width: "40px" }} className="p-2 border-l border-border text-center bg-muted/80 backdrop-blur-sm">
                       <Plus className="w-4 h-4 text-muted-foreground mx-auto" />
                     </th>
                   </tr>

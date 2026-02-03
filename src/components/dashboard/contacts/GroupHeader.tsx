@@ -56,7 +56,7 @@ export function GroupHeader({ row, columnsCount }: GroupHeaderProps) {
       key={row.id}
       className={`bg-card/50 hover:bg-muted/30 transition-colors ${isOver ? "bg-blue-600/10 ring-2 ring-blue-500 ring-inset" : ""}`}
     >
-      <td colSpan={columnsCount + 3} className="p-4">
+      <td colSpan={columnsCount + 4} className="p-4">
         <div
           className="flex items-center gap-2 cursor-pointer select-none group"
           onClick={row.getToggleExpandedHandler()}
