@@ -51,12 +51,16 @@ export function ContactDetailModal({
           }
         });
       });
+    } else if (!isOpen) {
+      setDetailedContact(null);
     }
   }, [isOpen, contact]);
 
   if (!isOpen || !contact) return null;
 
-  const currentContact = detailedContact || contact;
+  const currentContact = (detailedContact && String(detailedContact.id) === String(contact.id)) 
+    ? detailedContact 
+    : contact;
 
   return (
     <div className="fixed inset-0 z-[270] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
