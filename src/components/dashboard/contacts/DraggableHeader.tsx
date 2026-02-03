@@ -56,6 +56,23 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
         <div
           onMouseDown={header.getResizeHandler()}
           onTouchStart={header.getResizeHandler()}
+          onDoubleClick={() => {
+            const column = header.column;
+            const rows = header.getContext().table.getRowModel().rows;
+            let maxChars = String(column.columnDef.header || "").length;
+            
+            rows.forEach((row) => {
+              const value = row.getValue(column.id);
+              const length = String(value || "").length;
+              if (length > maxChars) maxChars = length;
+            });
+
+            const newSize = Math.min(600, Math.max(60, maxChars * 8 + 32));
+            header.getContext().table.setColumnSizing((prev) => ({
+              ...prev,
+              [column.id]: newSize,
+            }));
+          }}
           className={`resizer absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none hover:bg-blue-500/50 transition-colors ${
             header.column.getIsResizing() ? "bg-blue-500 w-1" : "bg-transparent"
           }`}
