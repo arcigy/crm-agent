@@ -14,11 +14,14 @@ import {
   ShieldCheck,
   Trash2,
   X,
+  Cake,
+  Gift,
 } from "lucide-react";
 import { Lead } from "@/types/contact";
 import { QRCodeSVG } from "qrcode.react";
 import { updateContact, deleteContact } from "@/app/actions/contacts";
 import { toast } from "sonner";
+import { getNameDayDate } from "@/lib/calendar";
 
 interface ContactProfileSidebarProps {
   contact: Lead;
@@ -45,6 +48,8 @@ export function ContactProfileSidebar({
     phone: contact.phone || "",
     company: contact.company || "",
     status: contact.status || "lead",
+    birthday: contact.birthday || "",
+    nameday: contact.nameday || "",
   });
 
   const initials =
@@ -249,6 +254,23 @@ export function ContactProfileSidebar({
             value="www.example.com"
             valueClass="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
           />
+          <div className="pt-2">
+            <InfoRow
+              icon={<Gift />}
+              label="Meniny"
+              value={formData.nameday || getNameDayDate(formData.first_name) || "—"}
+              isEditing={isEditing}
+              onChange={(val: string) => setFormData({ ...formData, nameday: val })}
+            />
+          </div>
+          <InfoRow
+            icon={<Cake />}
+            label="Narodeniny"
+            value={formData.birthday}
+            isEditing={isEditing}
+            onChange={(val: string) => setFormData({ ...formData, birthday: val })}
+            placeholder="Napr. 15. Jún"
+          />
         </div>
 
         <div className="pt-6 border-t border-border mt-auto mb-8">
@@ -275,6 +297,7 @@ interface InfoRowProps {
   isSelect?: boolean;
   options?: { label: string; value: string }[];
   onChange?: (val: string) => void;
+  placeholder?: string;
 }
 
 function InfoRow({
@@ -287,11 +310,12 @@ function InfoRow({
   isSelect,
   options,
   onChange,
+  ...props
 }: InfoRowProps) {
   return (
     <div className="flex items-center gap-3 group">
       <div className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 bg-card border border-border shadow-sm shrink-0 transition-colors">
-        {React.cloneElement(icon, { className: "w-3.5 h-3.5" })}
+        {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "w-3.5 h-3.5" })}
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">
@@ -316,7 +340,7 @@ function InfoRow({
               value={value || ""}
               onChange={(e) => onChange(e.target.value)}
               className="w-full bg-transparent border-none p-0 text-xs font-semibold text-foreground focus:ring-0 outline-none"
-              placeholder={`Enter ${label}...`}
+              placeholder={props.placeholder || `Enter ${label}...`}
             />
           )
         ) : (

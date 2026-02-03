@@ -28,4 +28,6 @@ export interface Lead {
     deals?: Deal[];
     projects?: Project[];
     comments?: string;
+    birthday?: string;
+    nameday?: string;
 }

@@ -89,8 +89,8 @@ export function ContactsTable({
     if (!rowOrder || rowOrder.length === 0) return data;
     const orderMap = new Map(rowOrder.map((id, index) => [id, index]));
     return [...data].sort((a, b) => {
-      const aOrder = orderMap.get(a.id);
-      const bOrder = orderMap.get(b.id);
+      const aOrder = orderMap.get(String(a.id));
+      const bOrder = orderMap.get(String(b.id));
       if (aOrder !== undefined && bOrder !== undefined) return aOrder - bOrder;
       if (aOrder !== undefined) return -1;
       if (bOrder !== undefined) return 1;
