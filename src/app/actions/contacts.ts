@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, updateItem, readItems, readItem } from "@directus/sdk";
 import { getUserEmail } from "@/lib/auth";
-import { currentUser } from "@clerk/nextjs/server";
 
 export interface ContactItem {
   id: string | number;

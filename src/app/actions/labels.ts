@@ -108,7 +108,7 @@ export async function addLabelToContact(contactId: string | number, labelId: str
     );
 
     // Trigger google sync for contact
-    const { syncContactToGoogle } = await import("./contacts");
+    const { syncContactToGoogle } = await import("./google-contacts");
     await syncContactToGoogle(contactId);
 
     revalidatePath("/dashboard/contacts");
@@ -138,7 +138,7 @@ export async function removeLabelFromContact(contactId: string | number, labelId
       await directus.request(deleteItem("contacts_contact_labels", junctions[0].id));
     }
 
-    const { syncContactToGoogle } = await import("./contacts");
+    const { syncContactToGoogle } = await import("./google-contacts");
     await syncContactToGoogle(contactId);
 
     revalidatePath("/dashboard/contacts");

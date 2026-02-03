@@ -55,7 +55,7 @@ export function ContactImportModal({
   const handleGoogleImport = async () => {
     setGoogleStatus("loading");
     try {
-      const { importGoogleContacts } = await import("@/app/actions/contacts");
+      const { importGoogleContacts } = await import("@/app/actions/google-contacts");
       const res = await importGoogleContacts();
 
       if (res.success) {

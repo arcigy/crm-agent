@@ -2,7 +2,7 @@
 
 import directus from "@/lib/directus";
 import { readItems, createItem, updateItem } from "@directus/sdk";
-import { syncContactToGoogle } from "./contacts";
+import { syncContactToGoogle } from "./google-contacts";
 
 /**
  * Formats phone number to international format.
