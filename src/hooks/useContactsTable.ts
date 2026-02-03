@@ -10,6 +10,7 @@ import { updateContact } from "@/app/actions/contacts";
 export function useContactsTable(data: Lead[]) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [grouping, setGrouping] = React.useState<GroupingState>(["status"]);
+  const [rowSelection, setRowSelection] = React.useState({});
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [isMounted, setIsMounted] = React.useState(false);
 
@@ -115,6 +116,8 @@ export function useContactsTable(data: Lead[]) {
     setProjectsContact,
     isGoogleImportOpen,
     setIsGoogleImportOpen,
+    rowSelection,
+    setRowSelection,
     handleDragEnd,
   };
 }

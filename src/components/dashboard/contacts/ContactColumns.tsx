@@ -10,6 +10,44 @@ import { StatusBadge } from "./StatusBadge";
 const columnHelper = createColumnHelper<Lead>();
 
 export const contactColumns = [
+  columnHelper.display({
+    id: "select",
+    header: ({ table }) => (
+      <div className="px-1">
+        <button
+          onClick={() => table.toggleAllRowsSelected()}
+          className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center ${
+            table.getIsAllRowsSelected()
+              ? "bg-blue-600 border-blue-600"
+              : "border-muted-foreground/30 hover:border-blue-500"
+          }`}
+        >
+          {table.getIsAllRowsSelected() && (
+            <div className="w-2 h-2 bg-white rounded-full" />
+          )}
+        </button>
+      </div>
+    ),
+    cell: ({ row }) => (
+      <div className="px-1">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            row.toggleSelected();
+          }}
+          className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center ${
+            row.getIsSelected()
+              ? "bg-blue-600 border-blue-600"
+              : "border-muted-foreground/30 hover:border-blue-500"
+          }`}
+        >
+          {row.getIsSelected() && (
+            <div className="w-2 h-2 bg-white rounded-full" />
+          )}
+        </button>
+      </div>
+    ),
+  }),
   columnHelper.accessor("first_name", {
     id: "contact",
     header: "Contact",

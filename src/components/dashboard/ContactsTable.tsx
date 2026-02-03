@@ -37,6 +37,8 @@ import { ContactsTableToolbar } from "./contacts/ContactsTableToolbar";
 import { DraggableRow } from "./contacts/DraggableRow";
 import { GroupHeader } from "./contacts/GroupHeader";
 import { EmptyStateActions } from "./ContactActionButtons";
+import { BulkActions } from "./contacts/BulkActions";
+import { BulkEditModal } from "./contacts/BulkEditModal";
 import { useContactsTable } from "@/hooks/useContactsTable";
 import { contactColumns } from "./contacts/ContactColumns";
 
@@ -70,21 +72,19 @@ export function ContactsTable({
     setProjectsContact,
     isGoogleImportOpen,
     setIsGoogleImportOpen,
+    rowSelection,
+    setRowSelection,
     handleDragEnd,
   } = useContactsTable(data);
-
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor),
-  );
 
   const table = useReactTable({
     data,
     columns: contactColumns,
-    state: { sorting, grouping, globalFilter },
+    state: { sorting, grouping, globalFilter, rowSelection },
     onSortingChange: setSorting,
     onGroupingChange: setGrouping,
     onGlobalFilterChange: setGlobalFilter,
+    onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getGroupedRowModel: getGroupedRowModel(),
@@ -92,6 +92,15 @@ export function ContactsTable({
     getFilteredRowModel: getFilteredRowModel(),
     initialState: { expanded: true },
   });
+
+  const [isBulkEditOpen, setIsBulkEditOpen] = React.useState(false);
+  const selectedRows = table.getSelectedRowModel().rows;
+  const selectedIds = selectedRows.map(r => r.original.id);
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor),
+  );
 
   if (!isMounted)
     return (
@@ -107,6 +116,21 @@ export function ContactsTable({
       onDragEnd={handleDragEnd}
       collisionDetection={closestCenter}
     >
+      <BulkActions
+        selectedIds={selectedIds}
+        onClear={() => setRowSelection({})}
+        onEdit={() => setIsBulkEditOpen(true)}
+        onSelectAllVisible={() => table.toggleAllRowsSelected(true)}
+        isAllVisibleSelected={table.getIsAllRowsSelected()}
+      />
+
+      <BulkEditModal
+        isOpen={isBulkEditOpen}
+        onClose={() => setIsBulkEditOpen(false)}
+        selectedIds={selectedIds}
+        onSuccess={() => setRowSelection({})}
+      />
+
       <CreateContactModal
         isOpen={isModalOpen}
         initialMode={modalMode}

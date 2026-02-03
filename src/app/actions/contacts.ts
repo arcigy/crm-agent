@@ -683,3 +683,49 @@ export async function syncContactToGoogle(contactId: string | number) {
         return { success: false, error: error.message };
     }
 }
+
+export async function bulkUpdateContacts(ids: (string | number)[], data: Partial<ContactItem>) {
+  try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
+    for (const id of ids) {
+      const current = (await directus.request(readItem("contacts", id))) as any;
+      if (current.user_email === userEmail) {
+        await directus.request(updateItem("contacts", id, data));
+        // We sync individually to Google for now as People API doesn't have a bulk update for multiple different people easily
+        syncContactToGoogle(id).catch(err => console.error(`[Sync] Bulk update sync failed for ${id}:`, err));
+      }
+    }
+
+    revalidatePath("/dashboard/contacts");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Bulk update failed:", error);
+    return { success: false, error: getDirectusErrorMessage(error) };
+  }
+}
+
+export async function bulkDeleteContacts(ids: (string | number)[]) {
+  try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
+    for (const id of ids) {
+      const current = (await directus.request(readItem("contacts", id))) as any;
+      if (current.user_email === userEmail) {
+        await directus.request(updateItem("contacts", id, {
+          status: "archived",
+          deleted_at: new Date().toISOString()
+        } as any));
+        syncContactToGoogle(id).catch(err => console.error(`[Sync] Bulk delete sync failed for ${id}:`, err));
+      }
+    }
+
+    revalidatePath("/dashboard/contacts");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Bulk delete failed:", error);
+    return { success: false, error: getDirectusErrorMessage(error) };
+  }
+}
