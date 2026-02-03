@@ -21,7 +21,7 @@ import { Lead } from "@/types/contact";
 import { QRCodeSVG } from "qrcode.react";
 import { updateContact, deleteContact } from "@/app/actions/contacts";
 import { toast } from "sonner";
-import { getNameDayDate } from "@/lib/calendar";
+import { getNameDayDate, formatSlovakDate } from "@/lib/calendar";
 import { normalizeSlovakPhone } from "@/lib/phone";
 
 interface ContactProfileSidebarProps {
@@ -263,7 +263,7 @@ export function ContactProfileSidebar({
             <InfoRow
               icon={<Gift />}
               label="Meniny"
-              value={formData.nameday || getNameDayDate(formData.first_name) || "—"}
+              value={formatSlovakDate(formData.nameday || getNameDayDate(formData.first_name)) || "—"}
               isEditing={isEditing}
               onChange={(val: string) => setFormData({ ...formData, nameday: val })}
             />
@@ -271,7 +271,7 @@ export function ContactProfileSidebar({
           <InfoRow
             icon={<Cake />}
             label="Narodeniny"
-            value={formData.birthday}
+            value={formatSlovakDate(formData.birthday) || formData.birthday}
             isEditing={isEditing}
             onChange={(val: string) => setFormData({ ...formData, birthday: val })}
             placeholder="Napr. 15. Jún"

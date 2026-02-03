@@ -444,6 +444,53 @@ export const SLOVAK_NAMEDAYS: Record<string, string[]> = {
   "12-31": ["Silvester"],
 };
 
+export const SLOVAK_MONTHS = [
+  "januára", "februára", "marca", "apríla", "mája", "júna",
+  "júla", "augusta", "septembra", "októbra", "novembra", "decembra"
+];
+
+/**
+ * Formats a date string in "MM-DD" or "YYYY-MM-DD" format to Slovak human-readable format.
+ * Example: "02-01" -> "1. februára"
+ */
+export const formatSlovakDate = (dateStr: string | null | undefined): string | null => {
+  if (!dateStr) return null;
+  
+  // 1. Handle "MM-DD" or "YYYY-MM-DD" (Internal/API format)
+  if (dateStr.includes('-')) {
+    const parts = dateStr.split('-');
+    if (parts.length === 2) {
+      // MM-DD
+      const month = parseInt(parts[0]);
+      const day = parseInt(parts[1]);
+      if (!isNaN(month) && !isNaN(day) && month >= 1 && month <= 12) {
+        return `${day}. ${SLOVAK_MONTHS[month - 1]}`;
+      }
+    } else if (parts.length === 3) {
+      // YYYY-MM-DD
+      const month = parseInt(parts[1]);
+      const day = parseInt(parts[2]);
+      if (!isNaN(month) && !isNaN(day) && month >= 1 && month <= 12) {
+        return `${day}. ${SLOVAK_MONTHS[month - 1]}`;
+      }
+    }
+  }
+
+  // 2. Handle "DD.MM." or "DD.MM" (Slovak format)
+  if (dateStr.includes('.')) {
+    const parts = dateStr.split('.').filter(p => p.trim() !== '');
+    if (parts.length >= 2) {
+      const day = parseInt(parts[0]);
+      const month = parseInt(parts[1]);
+      if (!isNaN(month) && !isNaN(day) && month >= 1 && month <= 12) {
+        return `${day}. ${SLOVAK_MONTHS[month - 1]}`;
+      }
+    }
+  }
+
+  return dateStr;
+};
+
 /**
  * Finds the name day for a given name, considering nicknames and accents.
  */
