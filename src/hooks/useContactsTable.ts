@@ -11,6 +11,7 @@ export function useContactsTable(data: Lead[]) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [grouping, setGrouping] = React.useState<GroupingState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
+  const [rowOrder, setRowOrder] = React.useState<string[]>([]);
   const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
   const [columnSizing, setColumnSizing] = React.useState<Record<string, number>>({});
   const [globalFilter, setGlobalFilter] = React.useState("");
@@ -34,41 +35,45 @@ export function useContactsTable(data: Lead[]) {
     setIsMounted(true);
     
     // Load persisted table state
-    const savedOrder = localStorage.getItem("contacts_column_order");
+    const savedColumnOrder = localStorage.getItem("contacts_column_order");
     const savedSizing = localStorage.getItem("contacts_column_sizing");
+    const savedRowOrder = localStorage.getItem("contacts_row_order");
     
-    if (savedOrder) {
-      try { setColumnOrder(JSON.parse(savedOrder)); } catch (e) { console.error(e); }
+    if (savedColumnOrder) {
+      try { setColumnOrder(JSON.parse(savedColumnOrder)); } catch (e) { console.error(e); }
     }
     if (savedSizing) {
       try { setColumnSizing(JSON.parse(savedSizing)); } catch (e) { console.error(e); }
     }
+    if (savedRowOrder) {
+      try { setRowOrder(JSON.parse(savedRowOrder)); } catch (e) { console.error(e); }
+    }
 
-    const handleOpenQr = (e: any) => setQrPhone(e.detail);
-    const handleOpenDetail = (e: any) => setDetailContact(e.detail);
-    const handleOpenFullDetail = (e: any) => setFullDetailContact(e.detail);
-    const handleOpenProjects = (e: any) => setProjectsContact(e.detail);
-    const handleOpenCreate = (e: any) => {
+    const handleOpenQr = (e: CustomEvent) => setQrPhone(e.detail);
+    const handleOpenDetail = (e: CustomEvent) => setDetailContact(e.detail);
+    const handleOpenFullDetail = (e: CustomEvent) => setFullDetailContact(e.detail);
+    const handleOpenProjects = (e: CustomEvent) => setProjectsContact(e.detail);
+    const handleOpenCreate = (e: CustomEvent) => {
       setModalMode(e.detail || "form");
       setIsModalOpen(true);
     };
     const handleOpenImport = () => setIsImportModalOpen(true);
     const handleOpenGoogleImport = () => setIsGoogleImportOpen(true);
 
-    window.addEventListener("open-qr", handleOpenQr);
-    window.addEventListener("open-activity-detail", handleOpenDetail);
-    window.addEventListener("open-contact-detail", handleOpenFullDetail);
-    window.addEventListener("open-project-detail", handleOpenProjects);
-    window.addEventListener("open-create-contact", handleOpenCreate);
+    window.addEventListener("open-qr", handleOpenQr as any);
+    window.addEventListener("open-activity-detail", handleOpenDetail as any);
+    window.addEventListener("open-contact-detail", handleOpenFullDetail as any);
+    window.addEventListener("open-project-detail", handleOpenProjects as any);
+    window.addEventListener("open-create-contact", handleOpenCreate as any);
     window.addEventListener("open-import-contact", handleOpenImport);
     window.addEventListener("open-import-google", handleOpenGoogleImport);
 
     return () => {
-      window.removeEventListener("open-qr", handleOpenQr);
-      window.removeEventListener("open-activity-detail", handleOpenDetail);
-      window.removeEventListener("open-contact-detail", handleOpenFullDetail);
-      window.removeEventListener("open-project-detail", handleOpenProjects);
-      window.removeEventListener("open-create-contact", handleOpenCreate);
+      window.removeEventListener("open-qr", handleOpenQr as any);
+      window.removeEventListener("open-activity-detail", handleOpenDetail as any);
+      window.removeEventListener("open-contact-detail", handleOpenFullDetail as any);
+      window.removeEventListener("open-project-detail", handleOpenProjects as any);
+      window.removeEventListener("open-create-contact", handleOpenCreate as any);
       window.removeEventListener("open-import-contact", handleOpenImport);
       window.removeEventListener("open-import-google", handleOpenGoogleImport);
     };
@@ -87,6 +92,18 @@ export function useContactsTable(data: Lead[]) {
     }
   }, [columnSizing, isMounted]);
 
+  React.useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem("contacts_column_sizing", JSON.stringify(columnSizing));
+    }
+  }, [columnSizing, isMounted]);
+
+  React.useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem("contacts_row_order", JSON.stringify(rowOrder));
+    }
+  }, [rowOrder, isMounted]);
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
@@ -102,7 +119,7 @@ export function useContactsTable(data: Lead[]) {
         toast.promise(promise, {
           loading: "Updating contact status...",
           success: "Status updated successfully",
-          error: (err) => "Failed to update status: " + err.message,
+          error: (err: any) => "Failed to update status: " + err.message,
         });
         await promise;
         window.location.reload();
@@ -111,12 +128,20 @@ export function useContactsTable(data: Lead[]) {
     }
 
     if (active.id !== over.id && overData?.type === "row") {
-      const overContact = overData.contact as Lead;
-      if (contact.status !== overContact.status) {
-        await updateContact(contact.id, { status: overContact.status });
+      const activeId = String(active.id).replace("row-", "");
+      const overId = String(over.id).replace("row-", "");
+      
+      const currentOrder: string[] = (rowOrder.length > 0 ? rowOrder : data.map(d => String(d.id))) as string[];
+      const oldIndex = currentOrder.indexOf(activeId);
+      const newIndex = currentOrder.indexOf(overId);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = [...currentOrder];
+        const [removed] = newOrder.splice(oldIndex, 1);
+        newOrder.splice(newIndex, 0, removed);
+        setRowOrder(newOrder);
+        toast.info("Row order updated locally");
       }
-      toast.info("Sorting saved (Simulated)");
-      window.location.reload();
     }
   };
 
@@ -149,6 +174,8 @@ export function useContactsTable(data: Lead[]) {
     setColumnOrder,
     columnSizing,
     setColumnSizing,
+    rowOrder,
+    setRowOrder,
     handleDragEnd,
   };
 }

@@ -41,42 +41,43 @@ export function DraggableRow({ row }: DraggableRowProps) {
       key={row.id}
       className={`group bg-card hover:bg-blue-600/5 transition-colors relative ${isDragging ? "shadow-2xl ring-2 ring-blue-500/20 z-50" : ""}`}
     >
-      {/* Color strip indicator */}
-      <td style={{ width: "8px" }} className="p-0 relative sticky left-0 z-10 bg-inherit">
-        <div
-          className={`absolute inset-y-0.5 left-0 w-1.5 rounded-r-md 
-                    ${String(row.original.status).toLowerCase() === "published" || String(row.original.status).toLowerCase() === "active" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-muted"}
-                `}
-        ></div>
-      </td>
-      {/* Fixed Selection Cell */}
-      <td style={{ width: "40px" }} className="p-2 text-center sticky left-[8px] z-10 bg-inherit border-r border-border">
-        <div className="flex items-center justify-center">
+      {/* Unified Control Gutter */}
+      <td style={{ width: "72px" }} className="p-0 border-r border-border sticky left-0 z-10 bg-inherit group/gutter">
+        <div className="flex items-center justify-between px-2 h-full">
+          {/* Selection */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               row.toggleSelected();
             }}
-            className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center ${
+            className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
               row.getIsSelected()
                 ? "bg-blue-600 border-blue-600"
                 : "border-muted-foreground/30 hover:border-blue-500"
             }`}
           >
             {row.getIsSelected() && (
-              <div className="w-2 h-2 bg-white rounded-full" />
+              <div className="w-1.5 h-1.5 bg-white rounded-full" />
             )}
           </button>
-        </div>
-      </td>
-      {/* Drag handle */}
-      <td style={{ width: "32px" }} className="p-2 text-center border-r border-border bg-inherit">
-        <div
-          {...attributes}
-          {...listeners}
-          className="opacity-100 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-blue-500 transition-all p-1 hover:bg-blue-600/10 rounded"
-        >
-          ⠿
+
+          {/* Color Strip */}
+          <div className="relative h-8 w-1.5">
+            <div
+              className={`absolute inset-y-0 left-0 w-1.5 rounded-full 
+                        ${String(row.original.status).toLowerCase() === "published" || String(row.original.status).toLowerCase() === "active" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-muted"}
+                    `}
+            ></div>
+          </div>
+
+          {/* Drag Handle */}
+          <div
+            {...attributes}
+            {...listeners}
+            className="opacity-0 group-hover/gutter:opacity-100 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-blue-500 transition-all p-1 hover:bg-blue-600/10 rounded"
+          >
+            ⠿
+          </div>
         </div>
       </td>
       {row.getVisibleCells().map((cell) => (

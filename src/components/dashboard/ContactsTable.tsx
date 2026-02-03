@@ -81,10 +81,25 @@ export function ContactsTable({
     columnSizing,
     setColumnSizing,
     handleDragEnd,
+    rowOrder,
   } = useContactsTable(data);
 
+  // Apply manual row order if exists
+  const sortedData = React.useMemo(() => {
+    if (!rowOrder || rowOrder.length === 0) return data;
+    const orderMap = new Map(rowOrder.map((id, index) => [id, index]));
+    return [...data].sort((a, b) => {
+      const aOrder = orderMap.get(a.id);
+      const bOrder = orderMap.get(b.id);
+      if (aOrder !== undefined && bOrder !== undefined) return aOrder - bOrder;
+      if (aOrder !== undefined) return -1;
+      if (bOrder !== undefined) return 1;
+      return 0;
+    });
+  }, [data, rowOrder]);
+
   const table = useReactTable({
-    data,
+    data: sortedData,
     columns: contactColumns,
     state: { sorting, grouping, globalFilter, rowSelection, columnOrder, columnSizing },
     onSortingChange: setSorting,
@@ -248,25 +263,25 @@ export function ContactsTable({
               <thead className="bg-muted/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
-                    <th style={{ width: "8px" }} className="p-0 bg-muted/80 backdrop-blur-sm sticky left-0 z-20" />
-                    {/* Fixed Selection Header */}
-                    <th style={{ width: "40px" }} className="p-2 bg-muted/80 backdrop-blur-sm sticky left-[8px] z-20 border-r border-border">
-                      <div className="flex items-center justify-center">
+                    {/* Gutter: Consolidated Selection, Strip, Drag */}
+                    <th style={{ width: "72px" }} className="p-0 bg-muted/80 backdrop-blur-sm sticky left-0 z-20 border-r border-border">
+                      <div className="flex items-center justify-between px-2 h-full">
                         <button
                           onClick={() => table.toggleAllRowsSelected()}
-                          className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center ${
+                          className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
                             table.getIsAllRowsSelected()
                               ? "bg-blue-600 border-blue-600"
                               : "border-muted-foreground/30 hover:border-blue-500"
                           }`}
                         >
                           {table.getIsAllRowsSelected() && (
-                            <div className="w-2 h-2 bg-white rounded-full" />
+                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
                           )}
                         </button>
+                        <div className="w-4" /> {/* Space for strip and handle alignment */}
                       </div>
                     </th>
-                    <th style={{ width: "32px" }} className="p-2 bg-muted/80 backdrop-blur-sm border-r border-border" />
+                    
                     <SortableContext
                       items={headerGroup.headers.map((h) => h.column.id)}
                       strategy={horizontalListSortingStrategy}
