@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { syncGoogleContacts } from '@/app/actions/contacts';
+import { syncGoogleContacts } from '@/app/actions/google-contacts';
 
 export function GoogleSyncAutomation() {
     const lastSync = useRef<number>(0);

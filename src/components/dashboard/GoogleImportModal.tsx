@@ -122,7 +122,7 @@ export function GoogleImportModal({ isOpen, onClose }: { isOpen: boolean; onClos
                             onClick={async () => {
                                 setLoading(true);
                                 try {
-                                    const { createTestGoogleContact } = await import('@/app/actions/contacts');
+                                    const { createTestGoogleContact } = await import('@/app/actions/google-contacts');
                                     const res = await createTestGoogleContact();
                                     if (res.success) {
                                         toast.success('Testovací kontakt vytvorený v Google!');
@@ -145,7 +145,7 @@ export function GoogleImportModal({ isOpen, onClose }: { isOpen: boolean; onClos
                             onClick={async () => {
                                 setLoading(true);
                                 try {
-                                    const { syncGoogleContacts } = await import('@/app/actions/contacts');
+                                    const { syncGoogleContacts } = await import('@/app/actions/google-contacts');
                                     const res = await syncGoogleContacts();
                                     if (res.success) {
                                         toast.success(`Synchronizácia hotová: +${res.imported} importovaných, +${res.exported} exportovaných.`);
