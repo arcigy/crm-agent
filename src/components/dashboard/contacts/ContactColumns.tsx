@@ -82,6 +82,7 @@ export const contactColumns = [
     },
   }),
   columnHelper.accessor("email", {
+    id: "email",
     header: "Email",
     cell: (info) => (
       <a
@@ -93,6 +94,7 @@ export const contactColumns = [
     ),
   }),
   columnHelper.accessor("phone", {
+    id: "phone",
     header: "Phone",
     cell: (info) => {
       const phone = info.getValue();
@@ -114,6 +116,7 @@ export const contactColumns = [
     },
   }),
   columnHelper.accessor("company", {
+    id: "company",
     header: "Account",
     cell: (info) =>
       info.getValue() || <span className="text-gray-400 text-xs">-</span>,
@@ -129,6 +132,7 @@ export const contactColumns = [
     ),
   }),
   columnHelper.accessor("comments", {
+    id: "comments",
     header: "Comments",
     cell: (info) => (
       <EditableComment

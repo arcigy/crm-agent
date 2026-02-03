@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  flexRender,
   getCoreRowModel,
   useReactTable,
   getSortedRowModel,
@@ -21,6 +20,8 @@ import {
 import {
   SortableContext,
   verticalListSortingStrategy,
+  horizontalListSortingStrategy,
+  arrayMove,
 } from "@dnd-kit/sortable";
 import { restrictToFirstScrollableAncestor } from "@dnd-kit/modifiers";
 import { Plus } from "lucide-react";
@@ -35,6 +36,7 @@ import { ContactDetailModal } from "./ContactDetailModal";
 import { ContactProjectsModal } from "./contacts/ContactProjectsModal";
 import { ContactsTableToolbar } from "./contacts/ContactsTableToolbar";
 import { DraggableRow } from "./contacts/DraggableRow";
+import { DraggableHeader } from "./contacts/DraggableHeader";
 import { GroupHeader } from "./contacts/GroupHeader";
 import { EmptyStateActions } from "./ContactActionButtons";
 import { BulkActions } from "./contacts/BulkActions";
@@ -74,17 +76,24 @@ export function ContactsTable({
     setIsGoogleImportOpen,
     rowSelection,
     setRowSelection,
+    columnOrder,
+    setColumnOrder,
+    columnSizing,
+    setColumnSizing,
     handleDragEnd,
   } = useContactsTable(data);
 
   const table = useReactTable({
     data,
     columns: contactColumns,
-    state: { sorting, grouping, globalFilter, rowSelection },
+    state: { sorting, grouping, globalFilter, rowSelection, columnOrder, columnSizing },
     onSortingChange: setSorting,
     onGroupingChange: setGrouping,
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
+    onColumnOrderChange: setColumnOrder,
+    onColumnSizingChange: setColumnSizing,
+    columnResizeMode: "onChange",
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getGroupedRowModel: getGroupedRowModel(),
@@ -92,6 +101,26 @@ export function ContactsTable({
     getFilteredRowModel: getFilteredRowModel(),
     initialState: { expanded: true },
   });
+
+  const onDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    // Check if it's a column or row
+    if (active.id !== over.id && !String(active.id).startsWith("row-")) {
+      const oldIndex = columnOrder.indexOf(active.id);
+      const newIndex = columnOrder.indexOf(over.id);
+      
+      const newOrder = arrayMove(
+        columnOrder.length > 0 ? columnOrder : table.getAllLeafColumns().map(c => c.id),
+        oldIndex !== -1 ? oldIndex : table.getAllLeafColumns().findIndex(c => c.id === active.id),
+        newIndex !== -1 ? newIndex : table.getAllLeafColumns().findIndex(c => c.id === over.id)
+      );
+      setColumnOrder(newOrder);
+    } else {
+      handleDragEnd(event);
+    }
+  };
 
   const [isBulkEditOpen, setIsBulkEditOpen] = React.useState(false);
   const selectedRows = table.getSelectedRowModel().rows;
@@ -113,7 +142,7 @@ export function ContactsTable({
     <DndContext
       sensors={sensors}
       modifiers={[restrictToFirstScrollableAncestor]}
-      onDragEnd={handleDragEnd}
+      onDragEnd={onDragEnd}
       collisionDetection={closestCenter}
     >
       <BulkActions
@@ -185,17 +214,14 @@ export function ContactsTable({
                   <tr key={headerGroup.id}>
                     <th className="w-10 p-2" />
                     <th className="w-8 p-2" />
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="px-3 py-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-wider border-r border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
-                      >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                      </th>
-                    ))}
+                    <SortableContext
+                      items={headerGroup.headers.map((h) => h.column.id)}
+                      strategy={horizontalListSortingStrategy}
+                    >
+                      {headerGroup.headers.map((header) => (
+                        <DraggableHeader key={header.id} header={header} />
+                      ))}
+                    </SortableContext>
                     <th className="w-10 p-2 border-l border-border text-center">
                       <Plus className="w-4 h-4 text-muted-foreground mx-auto" />
                     </th>
@@ -217,7 +243,7 @@ export function ContactsTable({
                         <GroupHeader
                           key={row.id}
                           row={row}
-                          columnsCount={contactColumns.length}
+                          columnsCount={table.getVisibleLeafColumns().length}
                         />
                       ) : (
                         <DraggableRow key={row.id} row={row} />

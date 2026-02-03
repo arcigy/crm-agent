@@ -62,6 +62,7 @@ export function DraggableRow({ row }: DraggableRowProps) {
       {row.getVisibleCells().map((cell) => (
         <td
           key={cell.id}
+          style={{ width: cell.column.getSize() }}
           className="px-3 py-1 border-r border-border last:border-0 text-xs text-foreground/90 relative group/cell hover:bg-card/80 transition-colors"
         >
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
