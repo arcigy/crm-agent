@@ -22,6 +22,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { updateContact, deleteContact } from "@/app/actions/contacts";
 import { toast } from "sonner";
 import { getNameDayDate } from "@/lib/calendar";
+import { normalizeSlovakPhone } from "@/lib/phone";
 
 interface ContactProfileSidebarProps {
   contact: Lead;
@@ -58,7 +59,11 @@ export function ContactProfileSidebar({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const res = await updateContact(contact.id, formData);
+      const normalizedFormData = {
+        ...formData,
+        phone: normalizeSlovakPhone(formData.phone)
+      };
+      const res = await updateContact(contact.id, normalizedFormData);
       if (res.success) {
         toast.success("Kontakt bol aktualizovaný");
         setIsEditing(false);

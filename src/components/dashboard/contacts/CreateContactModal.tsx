@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Plus, X, Loader2 } from 'lucide-react';
 import { Lead } from '@/types/contact';
+import { normalizeSlovakPhone } from '@/lib/phone';
 
 interface CreateContactModalProps {
     isOpen: boolean;
@@ -52,7 +53,11 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'f
                 }
 
                 const { bulkCreateContacts } = await import('@/app/actions/contacts');
-                const res = await bulkCreateContacts(parsed);
+                const normalizedParsed = parsed.map(c => ({
+                    ...c,
+                    phone: c.phone ? normalizeSlovakPhone(c.phone) : c.phone
+                }));
+                const res = await bulkCreateContacts(normalizedParsed);
 
                 if (res.success) {
                     onClose();
@@ -61,7 +66,11 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'f
                     alert('Import zlyhal: ' + res.error);
                 }
             } else {
-                const res = await onSubmit(formData) as any;
+                const normalizedData = {
+                    ...formData,
+                    phone: normalizeSlovakPhone(formData.phone)
+                };
+                const res = await onSubmit(normalizedData) as any;
                 if (res?.success === false) {
                     alert('Chyba pri vytváraní: ' + (res.error || 'Neznáma chyba'));
                     setLoading(false);
