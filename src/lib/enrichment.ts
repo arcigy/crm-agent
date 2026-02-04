@@ -124,7 +124,11 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
        - BAD: "sa venujete stavebníctvu." (Obvious)
        - GOOD: "sa pri výstavbe domov sústredíte na nízkoenergetické drevostavby." (Specific)
     4. NO FLUFF: Do not use "kvalitné služby", "komplexné riešenia", "dlhoročné skúsenosti" or "profesionálny prístup". Save the reader's time.
-    5. VOCALIZATION: Write naturally, as if speaking.
+    5. VOCALIZATION (CRITICAL): 
+       - Write naturally, as if speaking to a friend. 
+       - It is OK to break strict grammar rules if it sounds more natural.
+       - Avoid "corporate robot" language. Use human language.
+       - Example tone: "Love that you guys are focusing on X..." -> "Páči sa mi, že sa zameriavate na X..."
     
     6. Backup Strategy: If (and ONLY if) Context INFO is empty/useless, say: "Dobrý deň. Páči sa mi, že v ${businessName} pôsobíte v sektore ${category || 'vášho podnikania'}."
     
