@@ -7,11 +7,12 @@ import {
   Check,
   ArrowRight,
   Loader2,
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
-import { bulkCreateColdLeads } from "@/app/actions/cold-leads";
+import { bulkCreateColdLeads, enrichColdLead, ColdLeadItem } from "@/app/actions/cold-leads";
 
 interface ColdLeadsImportModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ interface ColdLeadsImportModalProps {
   initialListName?: string;
 }
 
-type Step = "upload" | "map" | "confirm";
+type Step = "upload" | "map" | "enrich" | "confirm";
 
 export function ColdLeadsImportModal({
   isOpen,
@@ -35,14 +36,20 @@ export function ColdLeadsImportModal({
     title: "",
     company_name_reworked: "",
     website: "",
+    email: "",
     phone: "",
     city: "",
     category: "",
     abstract: "",
     ai_first_sentence: "",
+    fallback_url: "",
+    google_maps_url: ""
   });
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [processedRows, setProcessedRows] = useState<Record<string, any>[]>([]);
+  
+  // Enrichment State
+  const [enrichmentProgress, setEnrichmentProgress] = useState({ current: 0, total: 0 });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -65,11 +72,14 @@ export function ColdLeadsImportModal({
             if (low.includes("title") || low.includes("názov") || low.includes("original_title")) newMapping.title = h;
             if (low.includes("reworked") || low.includes("meno") || low.includes("final_company_name")) newMapping.company_name_reworked = h;
             if (low.includes("website") || low.includes("web")) newMapping.website = h;
+            if (low.includes("email") || low.includes("e-mail") || low.includes("mail")) newMapping.email = h;
             if (low.includes("phone") || low.includes("tel")) newMapping.phone = h;
             if (low.includes("city") || low.includes("mesto")) newMapping.city = h;
             if (low.includes("category") || low.includes("kategória") || low.includes("industry")) newMapping.category = h;
             if (low.includes("abstract") || low.includes("abstrakt")) newMapping.abstract = h;
             if (low.includes("sentence") || low.includes("icebreaker") || low.includes("veta")) newMapping.ai_first_sentence = h;
+            if (low.includes("drive") || low.includes("fallback") || low.includes("url")) newMapping.fallback_url = h;
+            if (low.includes("maps") || low.includes("google")) newMapping.google_maps_url = h;
           });
           setMapping(newMapping);
           setSelectedRows(new Set(results.data.map((_, i) => i)));
@@ -102,49 +112,84 @@ export function ColdLeadsImportModal({
           title: String(row[mapping.title] || ""),
           company_name_reworked: String(row[mapping.company_name_reworked] || ""),
           website: String(row[mapping.website] || ""),
+          email: String(row[mapping.email] || ""),
           phone: String(row[mapping.phone] || ""),
           city: String(row[mapping.city] || ""),
           category: String(row[mapping.category] || ""),
           abstract: String(row[mapping.abstract] || ""),
           ai_first_sentence: String(row[mapping.ai_first_sentence] || ""),
-          list_name: initialListName || "Zoznam 1"
+          list_name: initialListName || "Zoznam 1",
+          fallback_url: String(row[mapping.fallback_url] || ""),
+          google_maps_url: String(row[mapping.google_maps_url] || "")
         };
       });
 
       const res = await bulkCreateColdLeads(leadsToUpload);
 
-      if (res.success) {
-        toast.success(`Importovaných ${res.count} leadov.`);
-        onSuccess();
-        onClose();
+      if (res.success && res.items) {
+        if (res.duplicates && res.duplicates > 0) {
+            toast.warning(`Preskočených ${res.duplicates} duplikátov (email/web/tel).`);
+        }
+        toast.success(`Úspešne importovaných ${res.count} unikátnych leadov.`);
+        setStep("enrich");
+        startEnrichment(res.items);
+      } else if (res.success) {
+         if (res.duplicates && res.duplicates > 0) {
+            toast.warning(`Ignorovaných ${res.duplicates} duplikátov.`);
+         }
+         toast.success("Import hotový, ale nedá sa spustiť AI enrich (chýbajú ID).");
+         onSuccess();
+         onClose();
       } else {
         toast.error("Import zlyhal: " + res.error);
+        setIsUploading(false);
       }
     } catch (e: any) {
       toast.error("Chyba: " + e.message);
-    } finally {
       setIsUploading(false);
     }
   };
 
+  const startEnrichment = async (items: ColdLeadItem[]) => {
+      setEnrichmentProgress({ current: 0, total: items.length });
+      
+      let completed = 0;
+      
+      for (const item of items) {
+          try {
+             await enrichColdLead(item.id);
+          } catch (e) {
+              console.error(`Failed to enrich ${item.id}`, e);
+          }
+          completed++;
+          setEnrichmentProgress({ current: completed, total: items.length });
+      }
+      
+      toast.success("AI Personalizácia hotová!");
+      onSuccess();
+      onClose();
+  };
+
   return (
     <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <div className="absolute inset-0" onClick={onClose}></div>
+      <div className="absolute inset-0" onClick={isUploading ? undefined : onClose}></div>
       <div className={`bg-white w-full ${step === "map" ? "max-w-4xl" : "max-w-xl"} rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative transform transition-all animate-in zoom-in-95 duration-500 border border-gray-100`}>
         <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
           <div>
             <h3 className="font-black text-xl text-gray-900 tracking-tight">
-              {step === "upload" ? "Import Cold Leads" : step === "map" ? "Priradenie stĺpcov" : "Potvrdenie importu"}
+              {step === "upload" ? "Import Cold Leads" : step === "map" ? "Priradenie stĺpcov" : "AI Personalizácia"}
             </h3>
             <div className="flex gap-2 mt-1">
               <div className={`h-1 w-8 rounded-full ${step === "upload" ? "bg-blue-600" : "bg-green-500"}`} />
-              <div className={`h-1 w-8 rounded-full ${step === "map" ? "bg-blue-600" : step === "confirm" ? "bg-green-500" : "bg-gray-200"}`} />
-              <div className={`h-1 w-8 rounded-full ${step === "confirm" ? "bg-blue-600" : "bg-gray-200"}`} />
+              <div className={`h-1 w-8 rounded-full ${step === "map" ? "bg-blue-600" : step === "enrich" ? "bg-green-500" : "bg-gray-200"}`} />
+              <div className={`h-1 w-8 rounded-full ${step === "enrich" ? "bg-blue-600" : "bg-gray-200"}`} />
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white rounded-xl shadow-sm border border-gray-100 transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
-          </button>
+          {!isUploading && (
+            <button onClick={onClose} className="p-2 hover:bg-white rounded-xl shadow-sm border border-gray-100 transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto max-h-[70vh]">
@@ -212,16 +257,44 @@ export function ColdLeadsImportModal({
               </div>
             </div>
           )}
-        </div>
 
-        <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-4">
-          <button onClick={onClose} className="px-6 py-3 text-xs font-black uppercase tracking-widest text-gray-400">Zrušiť</button>
-          {step !== "upload" && (
-            <button onClick={handleImport} disabled={isUploading} className="px-10 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl flex items-center gap-3">
-              {isUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Spracúvam</> : <>Importovať <ArrowRight className="w-4 h-4" /></>}
-            </button>
+          {step === "enrich" && (
+              <div className="p-8 flex flex-col items-center justify-center min-h-[300px] text-center space-y-6">
+                  <div className="relative">
+                      <div className="absolute inset-0 bg-blue-500 blur-3xl opacity-20 rounded-full animate-pulse"></div>
+                      <div className="w-24 h-24 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-[2.5rem] flex items-center justify-center shadow-xl relative z-10">
+                          <Sparkles className="w-10 h-10 text-white animate-spin-slow" />
+                      </div>
+                  </div>
+                  
+                  <div>
+                      <h3 className="text-2xl font-black text-gray-900 mb-2">Generujem AI Oslovia</h3>
+                      <p className="text-gray-500 font-medium">Analyzujem webstránky a píšem personalizované vety <br/> pomocou <span className="text-blue-600 font-bold">Gemini 2.0 Flash</span>...</p>
+                  </div>
+
+                  <div className="w-full max-w-md bg-gray-100 rounded-full h-4 overflow-hidden relative">
+                      <div 
+                        className="bg-blue-600 h-full transition-all duration-300 ease-out"
+                        style={{ width: `${(enrichmentProgress.current / enrichmentProgress.total) * 100}%` }}
+                      ></div>
+                  </div>
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400">
+                      {enrichmentProgress.current} / {enrichmentProgress.total} hotovo
+                  </p>
+              </div>
           )}
         </div>
+
+        {step !== "enrich" && ( 
+            <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-4">
+            <button onClick={onClose} disabled={isUploading} className="px-6 py-3 text-xs font-black uppercase tracking-widest text-gray-400 disabled:opacity-50">Zrušiť</button>
+            {step !== "upload" && (
+                <button onClick={handleImport} disabled={isUploading} className="px-10 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl flex items-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed">
+                {isUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Spracúvam</> : <>Importovať <ArrowRight className="w-4 h-4" /></>}
+                </button>
+            )}
+            </div>
+        )}
       </div>
     </div>
   );

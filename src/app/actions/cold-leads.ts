@@ -4,12 +4,14 @@ import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, readItems, deleteItem, updateItem, deleteItems, updateItems } from "@directus/sdk";
 import { getUserEmail } from "@/lib/auth";
+import { scrapeWebsite, generatePersonalization } from "@/lib/enrichment";
 
 export interface ColdLeadItem {
   id: string | number;
   title: string;
   company_name_reworked?: string;
   website?: string;
+  email?: string;
   phone?: string;
   city?: string;
   category?: string;
@@ -20,6 +22,8 @@ export interface ColdLeadItem {
   user_email?: string;
   date_created?: string;
   date_updated?: string;
+  fallback_url?: string;
+  google_maps_url?: string;
 }
 
 export interface ColdLeadList {
@@ -36,8 +40,6 @@ export async function getColdLeads(listName?: string) {
       user_email: { _eq: userEmail },
     };
     
-    // Filter by list name if provided, otherwise default to "Zoznam 1" or handle "all" logic in frontend
-    // But backend should filter if param is passed
     if (listName) {
         filter.list_name = { _eq: listName };
     }
@@ -62,8 +64,6 @@ export async function getColdLeads(listName?: string) {
 
 export async function getColdLeadLists() {
     try {
-        // Assume lists are global or filter by ownership if you added user_email to lists
-        // For now fetching all as requested structure was simple
         const lists = await directus.request(readItems("cold_leads_lists", {
             sort: ["id"],
         }));
@@ -90,17 +90,58 @@ export async function bulkCreateColdLeads(leads: Partial<ColdLeadItem>[]) {
     const userEmail = await getUserEmail();
     if (!userEmail) throw new Error("Unauthorized");
 
-    const formattedLeads = leads.map(l => ({
+    // Deduplication Logic - Enhanced with Email and Phone
+    const existing = (await directus.request(
+        readItems("cold_leads", {
+            fields: ["title", "website", "email", "phone"],
+            limit: -1,
+            filter: { user_email: { _eq: userEmail } }
+        })
+    )) as unknown as { title: string; website?: string; email?: string; phone?: string }[];
+
+    const existingWebsites = new Set(existing.map(e => e.website?.toLowerCase().trim()).filter(Boolean));
+    const existingEmails = new Set(existing.map(e => e.email?.toLowerCase().trim()).filter(Boolean));
+    // Clean phone numbers for comparison (remove spaces/dashes)
+    const cleanPhone = (p?: string) => p?.replace(/[\s\-\+\(\)]/g, "") || "";
+    const existingPhones = new Set(existing.map(e => cleanPhone(e.phone)).filter(p => p.length > 5));
+    const existingTitles = new Set(existing.map(e => e.title.toLowerCase().trim()));
+
+    const uniqueLeads: Partial<ColdLeadItem>[] = [];
+    let duplicatesCount = 0;
+
+    for (const lead of leads) {
+        const leadWebsite = lead.website?.toLowerCase().trim();
+        const leadEmail = lead.email?.toLowerCase().trim();
+        const leadPhoneClean = cleanPhone(lead.phone);
+        const leadTitle = lead.title?.toLowerCase().trim();
+
+        if (leadWebsite && existingWebsites.has(leadWebsite)) { duplicatesCount++; continue; }
+        if (leadEmail && existingEmails.has(leadEmail)) { duplicatesCount++; continue; }
+        if (leadPhoneClean && leadPhoneClean.length > 5 && existingPhones.has(leadPhoneClean)) { duplicatesCount++; continue; }
+        if (leadTitle && existingTitles.has(leadTitle)) { duplicatesCount++; continue; }
+
+        uniqueLeads.push(lead);
+        if (leadWebsite) existingWebsites.add(leadWebsite);
+        if (leadEmail) existingEmails.add(leadEmail);
+        if (leadPhoneClean.length > 5) existingPhones.add(leadPhoneClean);
+        if (leadTitle) existingTitles.add(leadTitle);
+    }
+
+    if (uniqueLeads.length === 0) {
+        return { success: true, count: 0, duplicates: duplicatesCount, items: [] };
+    }
+
+    const formattedLeads = uniqueLeads.map(l => ({
       ...l,
       user_email: userEmail,
       status: l.status || "new",
-      list_name: l.list_name || "Zoznam 1" // Default to Zoznam 1
+      list_name: l.list_name || "Zoznam 1"
     }));
 
-    await directus.request(createItem("cold_leads", formattedLeads));
+    const createdItems = await directus.request(createItem("cold_leads", formattedLeads));
     
     revalidatePath("/dashboard/cold-outreach");
-    return { success: true, count: leads.length };
+    return { success: true, count: uniqueLeads.length, duplicates: duplicatesCount, items: createdItems as unknown as ColdLeadItem[] };
   } catch (e: any) {
     console.error("Bulk create cold leads failed:", e);
     return { success: false, error: getDirectusErrorMessage(e) };
@@ -165,5 +206,41 @@ export async function bulkUpdateColdLeads(ids: (string | number)[], data: Partia
     } catch (e: any) {
         console.error("Bulk update failed:", e);
         return { success: false, error: getDirectusErrorMessage(e) };
+    }
+}
+
+export async function enrichColdLead(id: string | number) {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+
+        const items = await directus.request(readItems("cold_leads", { filter: { id: { _eq: id }}}));
+        if (!items || items.length === 0) throw new Error("Lead not found");
+        
+        const lead = items[0] as unknown as ColdLeadItem;
+        
+        // 1. Scrape (Prefer website, fallback to fallback_url)
+        const urlToScrape = lead.website || lead.fallback_url;
+        let markdown = null;
+        if (urlToScrape) {
+            markdown = await scrapeWebsite(urlToScrape);
+        }
+
+        // 2. AI Generate
+        const result = await generatePersonalization(lead, markdown);
+        
+        if (result) {
+            await directus.request(updateItem("cold_leads", id, {
+                company_name_reworked: result.name,
+                ai_first_sentence: result.sentence || undefined
+            }));
+            return { success: true };
+        }
+        
+        return { success: false, error: "AI generation returned nothing" };
+
+    } catch (e: any) {
+        console.error("Enrichment failed:", e);
+        return { success: false, error: e.message || String(e) };
     }
 }
