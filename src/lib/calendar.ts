@@ -472,7 +472,7 @@ export const formatSlovakDate = (dateStr: string | null | undefined): string | n
       const month = parseInt(parts[1]);
       const day = parseInt(parts[2]);
       if (!isNaN(month) && !isNaN(day) && month >= 1 && month <= 12) {
-        const base = `${day}. ${SLOVAK_MONTHS[month - 1]}`;
+        const base = `${day}. ${SLOVAK_MONTHS[month - 1]} ${year}`;
         const date = new Date(year, month - 1, day);
         if (!isNaN(date.getTime())) {
           const days = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
