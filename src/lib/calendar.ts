@@ -475,8 +475,19 @@ export const formatSlovakDate = (dateStr: string | null | undefined): string | n
         const base = `${day}. ${SLOVAK_MONTHS[month - 1]} ${year}`;
         const date = new Date(year, month - 1, day);
         if (!isNaN(date.getTime())) {
+          const today = new Date();
+          let age = today.getFullYear() - year;
+          const m = today.getMonth() - (month - 1);
+          if (m < 0 || (m === 0 && today.getDate() < day)) {
+            age--;
+          }
+          
+          let ageSuffix = "rokov";
+          if (age === 1) ageSuffix = "rok";
+          else if (age >= 2 && age <= 4) ageSuffix = "roky";
+
           const days = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
-          return `${base} (${days[date.getDay()]})`;
+          return `${base} (${days[date.getDay()]}, ${age} ${ageSuffix})`;
         }
         return base;
       }
