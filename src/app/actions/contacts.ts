@@ -203,21 +203,36 @@ export async function deleteContact(id: string | number) {
     const userEmail = await getUserEmail();
     if (!userEmail) throw new Error("Unauthorized");
 
+    // 1. Fetch contact first to verify ownership and get current state (e.g. google_id)
     const current = (await directus.request(readItem("contacts", id))) as any;
-    if (current.user_email !== userEmail) throw new Error("Access denied");
+    if (!current || current.user_email !== userEmail) {
+      throw new Error("Contact not found or access denied");
+    }
 
+    // 2. Soft delete in Directus
     await directus.request(updateItem("contacts", id, {
       status: "archived",
       deleted_at: new Date().toISOString()
     } as any));
 
-    syncContactToGoogle(id).catch(err => console.error("[Sync] Immediate delete sync failed:", err));
+    // 3. Sync deletion to Google Contacts
+    // The syncContactToGoogle function handles deletion internally if status is 'archived'
+    try {
+      await syncContactToGoogle(id);
+    } catch (googleErr) {
+      console.error("[Sync] Google delete failed, but CRM contact was archived:", googleErr);
+      // We don't fail the whole operation if Google sync fails, 
+      // but we log it. The user will see 'Success' because the CRM part worked.
+    }
 
     revalidatePath("/dashboard/contacts");
     return { success: true };
   } catch (error: any) {
     console.error("Failed to delete contact:", error);
-    return { success: false, error: getDirectusErrorMessage(error) };
+    return { 
+      success: false, 
+      error: getDirectusErrorMessage(error) 
+    };
   }
 }
 
