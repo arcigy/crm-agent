@@ -390,6 +390,15 @@ export async function syncContactToGoogle(contactId: string | number) {
         return { success: true };
     } catch (error: any) {
         console.error(`[Google Sync Error] Global catch:`, error.message);
+        
+        // Handle Quota Exceeded specifically
+        if (error.message?.includes('Quota exceeded') || error.code === 429) {
+            return { 
+                success: false, 
+                error: "Google limit bol prekročený (Quota exceeded). Prosím počkajte minútu a skúste znova." 
+            };
+        }
+
         return { success: false, error: error.message };
     }
 }

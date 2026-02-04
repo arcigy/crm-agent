@@ -20,9 +20,8 @@ export async function getLabels() {
     const userEmail = await getUserEmail();
     if (!userEmail) throw new Error("Unauthorized");
 
-    // Sync labels from Google whenever labels are fetched
-    // This ensures labels from Google are available in the CRM
-    await syncLabelsFromGoogle().catch(err => console.error("Sync labels failed:", err));
+    // We no longer sync from Google on every fetch to save quota
+    // await syncLabelsFromGoogle().catch(err => console.error("Sync labels failed:", err));
 
     const labels = (await directus.request(
       readItems("contact_labels", {

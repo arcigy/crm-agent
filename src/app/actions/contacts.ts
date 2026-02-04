@@ -434,18 +434,25 @@ export async function runTestSyncUpdate(id: string | number) {
     const userEmail = await getUserEmail();
     if (!userEmail) throw new Error("Unauthorized");
 
-    const companies = ["Tech Innovations", "Global Logistics", "Digital Agency", "Creative Studio", "Future Systems"];
-    const domains = ["gmail.com", "outlook.com", "arcigy.com", "company.sk", "test.dev"];
-    const descriptions = ["VIP klient", "Potenciálny partner", "Nereaguje na maily", "Záujem o web", "Sleduje nás na LinkedIn"];
+    const companies = [
+      "Tech Innovations", "Global Logistics", "Digital Agency", "Creative Studio", "Future Systems",
+      "NextGen Robotics", "Skyline Architects", "Eco Solutions", "Quantum Soft", "Alpha Media"
+    ];
+    const domains = ["gmail.com", "outlook.com", "arcigy.com", "company.sk", "test.dev", "icloud.com", "proton.me"];
+    const descriptions = [
+      "VIP klient", "Potenciálny partner", "Nereaguje na maily", "Záujem o web", "Sleduje nás na LinkedIn",
+      "Zajtra zavolať", "Stretnutie v Bratislave", "Chce cenovú ponuku", "Dohodnuté demo", "Odoslaný draft zmluvy"
+    ];
 
-    const rIdx = () => Math.floor(Math.random() * 5);
+    const rIdx = (arr: any[]) => Math.floor(Math.random() * arr.length);
+    const rNum = () => Math.floor(Math.random() * 89999 + 10000);
     const randomNum = Math.floor(Math.random() * 900) + 100;
     
     const testData = {
-      phone: `09${Math.floor(Math.random() * 90 + 10)} ${randomNum} ${randomNum}`,
-      email: `user-${randomNum}@${domains[rIdx()]}`,
-      company: `${companies[rIdx()]} ${randomNum}`,
-      comments: `Test (${new Date().toLocaleTimeString()}): ${descriptions[rIdx()]}`
+      phone: `+4219${Math.floor(Math.random() * 89 + 10)}${Math.floor(Math.random() * 899 + 100)}`,
+      email: `test.${rNum()}@${domains[rIdx(domains)]}`,
+      company: `${companies[rIdx(companies)]} ${randomNum}`,
+      comments: `Test ${new Date().toLocaleTimeString()} - ${descriptions[rIdx(descriptions)]}`
     };
 
     const res = await updateContact(id, testData);
