@@ -348,15 +348,17 @@ export async function syncContactToGoogle(contactId: string | number) {
 
         if (contact.google_id) {
             try {
+                console.log(`[Google Sync] Fetching etag for ${contact.google_id}...`);
                 // 1. Get current person to fetch the etag (required for update)
                 const currentPersonRes = await people.people.get({
                     resourceName: contact.google_id,
                     personFields: "names" // fetching just names to get the etag
                 });
                 const etag = currentPersonRes.data.etag;
+                console.log(`[Google Sync] Etag found: ${etag}. Updating...`);
 
                 // 2. Perform the update with the etag
-                await people.people.updateContact({
+                const updateRes = await people.people.updateContact({
                     resourceName: contact.google_id,
                     updatePersonFields: "names,emailAddresses,phoneNumbers,organizations,biographies,memberships",
                     requestBody: {
@@ -364,24 +366,30 @@ export async function syncContactToGoogle(contactId: string | number) {
                         etag
                     }
                 });
+                console.log(`[Google Sync] Update successful for ${contact.google_id}`);
             } catch (err: any) {
+                console.error(`[Google Sync] Update failed for ${contact.google_id}:`, err.message);
                 if (err.code === 404) {
+                    console.log(`[Google Sync] Contact not found (404), creating new...`);
                     const res = await people.people.createContact({ requestBody });
                     const newGoogleId = (res.data as any).resourceName;
                     await directus.request(updateItem("contacts", contactId, { google_id: newGoogleId }));
+                    console.log(`[Google Sync] New contact created: ${newGoogleId}`);
                 } else {
-                    console.error("[Google Sync] Update failed:", err);
                     throw err; // Re-throw to be caught by the outer catch
                 }
             }
         } else {
+            console.log(`[Google Sync] No google_id, creating new contact...`);
             const res = await people.people.createContact({ requestBody });
             const googleId = (res.data as any).resourceName;
             await directus.request(updateItem("contacts", contactId, { google_id: googleId }));
+            console.log(`[Google Sync] Contact created with ID: ${googleId}`);
         }
 
         return { success: true };
     } catch (error: any) {
+        console.error(`[Google Sync Error] Global catch:`, error.message);
         return { success: false, error: error.message };
     }
 }

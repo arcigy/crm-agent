@@ -184,11 +184,22 @@ export async function updateContact(
     const current = (await directus.request(readItem("contacts", id))) as any;
     if (current.user_email !== userEmail) throw new Error("Access denied");
 
+    // Perform the update in CRM
     await directus.request(updateItem("contacts", id, data));
-    await syncContactToGoogle(id);
+    
+    // Now sync to Google and CAPTURE the result
+    const syncRes = await syncContactToGoogle(id);
+    
+    if (!syncRes.success) {
+      console.warn(`[Sync Warning] CRM updated but Google sync failed for contact ${id}:`, syncRes.error);
+    }
 
     revalidatePath("/dashboard/contacts");
-    return { success: true };
+    return { 
+      success: true, 
+      sync: syncRes.success, 
+      syncError: syncRes.error 
+    };
   } catch (error: any) {
     console.error("Failed to update contact:", error);
     return {
@@ -423,19 +434,29 @@ export async function runTestSyncUpdate(id: string | number) {
     const userEmail = await getUserEmail();
     if (!userEmail) throw new Error("Unauthorized");
 
-    const random = Math.floor(Math.random() * 9000) + 1000;
+    const companies = ["Tech Innovations", "Global Logistics", "Digital Agency", "Creative Studio", "Future Systems"];
+    const domains = ["gmail.com", "outlook.com", "arcigy.com", "company.sk", "test.dev"];
+    const descriptions = ["VIP klient", "Potenciálny partner", "Nereaguje na maily", "Záujem o web", "Sleduje nás na LinkedIn"];
+
+    const rIdx = () => Math.floor(Math.random() * 5);
+    const randomNum = Math.floor(Math.random() * 900) + 100;
+    
     const testData = {
-      phone: `+421 9${random} ${random} ${random}`.substring(0, 15),
-      email: `test-${random}@arcigy.com`,
-      company: `Testing Corp ${random}`,
-      comments: `Posledný test syncu: ${new Date().toLocaleTimeString()}`
+      phone: `09${Math.floor(Math.random() * 90 + 10)} ${randomNum} ${randomNum}`,
+      email: `user-${randomNum}@${domains[rIdx()]}`,
+      company: `${companies[rIdx()]} ${randomNum}`,
+      comments: `Test (${new Date().toLocaleTimeString()}): ${descriptions[rIdx()]}`
     };
 
     const res = await updateContact(id, testData);
     if (res.success) {
-      // Re-fetch to return the updated data for local state update if needed
       const updated = await directus.request(readItem("contacts", id));
-      return { success: true, data: updated };
+      return { 
+        success: true, 
+        data: updated, 
+        sync: (res as any).sync,
+        syncError: (res as any).syncError 
+      };
     }
     return res;
   } catch (error: any) {

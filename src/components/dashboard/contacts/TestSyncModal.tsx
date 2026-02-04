@@ -30,15 +30,20 @@ export function TestSyncModal({
         setIsUpdating(true);
         try {
             const res = await runTestSyncUpdate(id);
-            if (res.success) {
-                toast.success('Test synchronizácie prebehol úspešne!');
-                onClose();
-                window.location.reload();
+            const data = res as any;
+            if (data.success) {
+                if (data.sync) {
+                    toast.success('CRM aj Google Contacts boli úspešne aktualizované!');
+                    onClose();
+                    window.location.reload();
+                } else {
+                    toast.warning(`CRM OK, ale Google Sync zlyhal: ${data.syncError || 'Neznáma chyba'}`);
+                }
             } else {
-                toast.error((res as any).error || 'Test zlyhal');
+                toast.error(data.error || 'Test zlyhal');
             }
         } catch {
-            toast.error('Chyba pri teste');
+            toast.error('Chyba pri vykonávaní testu');
         } finally {
             setIsUpdating(false);
         }
