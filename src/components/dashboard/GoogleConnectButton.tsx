@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Cloud, Check, Loader2 } from "lucide-react";
+import { Cloud, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
 
@@ -54,10 +54,10 @@ export function GoogleConnectButton({
     return (
       <button
         disabled
-        className={`flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-sm font-bold text-green-700 shadow-sm cursor-default ${className}`}
+        className={`flex items-center gap-2.5 px-4 py-2 bg-zinc-100/50 border border-zinc-200/50 rounded-full text-[13px] font-semibold text-zinc-700 shadow-sm backdrop-blur-sm cursor-default transition-all ${className}`}
       >
-        <Check className="w-4 h-4" />
-        <span>Google Prepojený (Clerk)</span>
+        <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" />
+        <span>Google Prepojený</span>
       </button>
     );
   }
