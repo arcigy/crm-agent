@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
-import { createItem, readItems, deleteItem, updateItem } from "@directus/sdk";
+import { createItem, readItems, deleteItem, updateItem, deleteItems, updateItems } from "@directus/sdk";
 import { getUserEmail } from "@/lib/auth";
 
 export interface ColdLeadItem {
@@ -16,21 +16,35 @@ export interface ColdLeadItem {
   abstract?: string;
   ai_first_sentence?: string;
   status?: "new" | "contacted" | "replied" | "rejected";
+  list_name?: string;
   user_email?: string;
   date_created?: string;
   date_updated?: string;
 }
 
-export async function getColdLeads() {
+export interface ColdLeadList {
+  id: number;
+  name: string;
+}
+
+export async function getColdLeads(listName?: string) {
   try {
     const userEmail = await getUserEmail();
     if (!userEmail) throw new Error("Unauthorized");
 
+    const filter: any = {
+      user_email: { _eq: userEmail },
+    };
+    
+    // Filter by list name if provided, otherwise default to "Zoznam 1" or handle "all" logic in frontend
+    // But backend should filter if param is passed
+    if (listName) {
+        filter.list_name = { _eq: listName };
+    }
+
     const leads = (await directus.request(
       readItems("cold_leads", {
-        filter: {
-          user_email: { _eq: userEmail },
-        },
+        filter,
         sort: ["-date_created"] as string[],
         limit: -1,
       }),
@@ -46,6 +60,31 @@ export async function getColdLeads() {
   }
 }
 
+export async function getColdLeadLists() {
+    try {
+        // Assume lists are global or filter by ownership if you added user_email to lists
+        // For now fetching all as requested structure was simple
+        const lists = await directus.request(readItems("cold_leads_lists", {
+            sort: ["id"],
+        }));
+        return { success: true, data: lists as unknown as ColdLeadList[] };
+    } catch (e: any) {
+        console.error("Failed to fetch lists:", e);
+        return { success: false, error: getDirectusErrorMessage(e) };
+    }
+}
+
+export async function createColdLeadList(name: string) {
+    try {
+         await directus.request(createItem("cold_leads_lists", { name }));
+         revalidatePath("/dashboard/cold-outreach");
+         return { success: true };
+    } catch (e: any) {
+        console.error("Failed to create list:", e);
+        return { success: false, error: getDirectusErrorMessage(e) };
+    }
+}
+
 export async function bulkCreateColdLeads(leads: Partial<ColdLeadItem>[]) {
   try {
     const userEmail = await getUserEmail();
@@ -54,10 +93,10 @@ export async function bulkCreateColdLeads(leads: Partial<ColdLeadItem>[]) {
     const formattedLeads = leads.map(l => ({
       ...l,
       user_email: userEmail,
-      status: l.status || "new"
+      status: l.status || "new",
+      list_name: l.list_name || "Zoznam 1" // Default to Zoznam 1
     }));
 
-    // Directus supports bulk create via array
     await directus.request(createItem("cold_leads", formattedLeads));
     
     revalidatePath("/dashboard/cold-outreach");
@@ -83,6 +122,22 @@ export async function deleteColdLead(id: string | number) {
   }
 }
 
+export async function bulkDeleteColdLeads(ids: (string | number)[]) {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+        
+        // deleteItems takes array of keys
+        await directus.request(deleteItems("cold_leads", ids));
+        
+        revalidatePath("/dashboard/cold-outreach");
+        return { success: true };
+    } catch (e: any) {
+        console.error("Bulk delete failed:", e);
+        return { success: false, error: getDirectusErrorMessage(e) };
+    }
+}
+
 export async function updateColdLead(id: string | number, data: Partial<ColdLeadItem>) {
   try {
     const userEmail = await getUserEmail();
@@ -96,4 +151,19 @@ export async function updateColdLead(id: string | number, data: Partial<ColdLead
     console.error("Update cold lead failed:", e);
     return { success: false, error: getDirectusErrorMessage(e) };
   }
+}
+
+export async function bulkUpdateColdLeads(ids: (string | number)[], data: Partial<ColdLeadItem>) {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+        
+        await directus.request(updateItems("cold_leads", ids, data));
+        
+        revalidatePath("/dashboard/cold-outreach");
+        return { success: true };
+    } catch (e: any) {
+        console.error("Bulk update failed:", e);
+        return { success: false, error: getDirectusErrorMessage(e) };
+    }
 }

@@ -17,6 +17,7 @@ interface ColdLeadsImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialListName?: string;
 }
 
 type Step = "upload" | "map" | "confirm";
@@ -25,6 +26,7 @@ export function ColdLeadsImportModal({
   isOpen,
   onClose,
   onSuccess,
+  initialListName,
 }: ColdLeadsImportModalProps) {
   const [step, setStep] = useState<Step>("upload");
   const [isUploading, setIsUploading] = useState(false);
@@ -60,8 +62,8 @@ export function ColdLeadsImportModal({
           const newMapping = { ...mapping };
           (results.meta.fields || []).forEach((h) => {
             const low = h.toLowerCase();
-            if (low.includes("title") || low.includes("názov")) newMapping.title = h;
-            if (low.includes("reworked") || low.includes("meno")) newMapping.company_name_reworked = h;
+            if (low.includes("title") || low.includes("názov") || low.includes("original_title")) newMapping.title = h;
+            if (low.includes("reworked") || low.includes("meno") || low.includes("final_company_name")) newMapping.company_name_reworked = h;
             if (low.includes("website") || low.includes("web")) newMapping.website = h;
             if (low.includes("phone") || low.includes("tel")) newMapping.phone = h;
             if (low.includes("city") || low.includes("mesto")) newMapping.city = h;
@@ -105,6 +107,7 @@ export function ColdLeadsImportModal({
           category: String(row[mapping.category] || ""),
           abstract: String(row[mapping.abstract] || ""),
           ai_first_sentence: String(row[mapping.ai_first_sentence] || ""),
+          list_name: initialListName || "Zoznam 1"
         };
       });
 
