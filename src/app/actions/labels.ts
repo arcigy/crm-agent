@@ -4,9 +4,8 @@ import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, updateItem, readItems, readItem, deleteItem } from "@directus/sdk";
 import { getUserEmail } from "@/lib/auth";
-import { currentUser } from "@clerk/nextjs/server";
+import { currentUser, clerkClient } from "@clerk/nextjs/server";
 import { getPeopleClient } from "@/lib/google";
-import { clerkClient } from "@clerk/nextjs/server";
 
 export interface ContactLabel {
   id: string | number;
