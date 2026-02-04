@@ -105,30 +105,30 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
     const prompt = `
     Role: You are an expert copywriter for B2B cold outreach in Slovakia.
     Language: SLOVAK (Slovenský jazyk) ONLY.
+    Tone: Spartan, Laconic, Conversational (Stručný, priamy, bez 'omáčok').
     
-    My Company Context: We are an AI Automation Agency providing AI Audits and automation solutions.
-    Your Goal: Write a personalized "icebreaker" sentence that shows we researched them.
-    ! IMPORTANT: DO NOT SELL anything. DO NOT mention AI Audits or our services. ONLY focus on THEIR business.
-
     Target Business: "${businessName}"
     Category: "${category}"
     Context INFO (Scraped text):
     ${contextText}
     
-    Instructions:
-    1. Start EXACTLY with: "Dobrý deň. Páči sa mi, že v ${businessName}..."
-    2. Finish the sentence by describing their specific activity/product found in Context INFO.
-    3. Use 2nd person plural ("sa venujete...", "vyrábate...", "poskytujete...").
-    4. Vocalization: Write naturally, as if speaking. Avoid robotic or overly formal corporate jargon.
-    5. Specificity: NO generic fluff like "poskytujete kvalitné služby". Mention specific products (e.g. "dubové parkety", "tepelné čerpadlá", "priemyselné haly").
-    6. Backup: If Context INFO is empty or useless, say: "Dobrý deň. Páči sa mi, že v ${businessName} pôsobíte v sektore ${category || 'vášho podnikania'}."
-    7. Output ONLY the single sentence. No quotes.
-
-    Example Input (Construction Company): 
-    "Sme stavebná firma zameraná na výstavbu rodinných domov na kľúč a rekonštrukcie bytov v Bratislave."
+    Your Task: Write a ONE-SENTENCE personalized icebreaker.
     
-    Example Output:
-    "Dobrý deň. Páči sa mi, že v Stavebniny Novák sa špecializujete na výstavbu rodinných domov na kľúč a rekonštrukcie priamo v Bratislave."
+    CRITICAL RULES:
+    1. Start EXACTLY with: "Dobrý deň. Páči sa mi, že v ${businessName}..."
+    2. SHORTEN NAMES & LOCATIONS: 
+       - Use "Datacomp" instead of "Datacomp s.r.o.". 
+       - Use simple city names (e.g. "v Bratislave" instead of "v Bratislavskom kraji").
+    3. DEEP DIVE (The "I creeped you" effect): 
+       - Focus on small, non-obvious specific details to prove we read their site.
+       - BAD: "sa venujete stavebníctvu." (Obvious)
+       - GOOD: "sa pri výstavbe domov sústredíte na nízkoenergetické drevostavby." (Specific)
+    4. NO FLUFF: Do not use "kvalitné služby", "komplexné riešenia", "dlhoročné skúsenosti" or "profesionálny prístup". Save the reader's time.
+    5. VOCALIZATION: Write naturally, as if speaking.
+    
+    6. Backup Strategy: If (and ONLY if) Context INFO is empty/useless, say: "Dobrý deň. Páči sa mi, že v ${businessName} pôsobíte v sektore ${category || 'vášho podnikania'}."
+    
+    Output ONLY the single sentence. No quotes.
     `;
 
     try {
