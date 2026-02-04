@@ -51,15 +51,7 @@ export function GoogleConnectButton({
   if (!isLoaded) return <Loader2 className="w-4 h-4 animate-spin" />;
 
   if (isConnected) {
-    return (
-      <button
-        disabled
-        className={`flex items-center gap-2.5 px-4 py-2 bg-zinc-100/50 border border-zinc-200/50 rounded-full text-[13px] font-semibold text-zinc-700 shadow-sm backdrop-blur-sm cursor-default transition-all ${className}`}
-      >
-        <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" />
-        <span>Google Prepojený</span>
-      </button>
-    );
+    return null;
   }
 
   return (
