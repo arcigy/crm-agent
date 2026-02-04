@@ -46,24 +46,39 @@ async function ContactsListing() {
         `[Contacts Hub] Processing ${rawData.length} contacts and ${projectsData.length} projects`,
       );
 
+      // Create maps for fast lookup
+      const projectsByContactId = new Map<string, any[]>();
+      const projectsByContactName = new Map<string, any[]>();
+
+      ((projectsData as any[]) || []).forEach(p => {
+        if (p.contact_id) {
+          const cid = String(p.contact_id);
+          if (!projectsByContactId.has(cid)) projectsByContactId.set(cid, []);
+          projectsByContactId.get(cid)!.push(p);
+        }
+        if (p.contact_name) {
+          const cname = normalize(p.contact_name);
+          if (!projectsByContactName.has(cname)) projectsByContactName.set(cname, []);
+          projectsByContactName.get(cname)!.push(p);
+        }
+      });
+
       contacts = rawData.map((contact) => {
         const fn = contact.first_name || "";
         const ln = contact.last_name || "";
         const fullName = normalize(`${fn} ${ln}`);
 
-        const contactProjects = ((projectsData as any[]) || []).filter(
-          (p: any) => {
-            const isIdMatch = String(p.contact_id) === String(contact.id);
-            const isNameMatch =
-              p.contact_name && normalize(p.contact_name) === fullName;
-            if (isIdMatch || isNameMatch) {
-              // console.log(`[Match] Contact ${contact.id} (${fn} ${ln}) -> Project ${p.id} (ID Match: ${isIdMatch}, Name Match: ${isNameMatch})`);
-              return true;
-            }
-            return false;
-          },
-        );
-        return { ...contact, projects: contactProjects };
+        // Get projects from ID match OR Name match
+        const byId = projectsByContactId.get(String(contact.id)) || [];
+        const byName = projectsByContactName.get(fullName) || [];
+        
+        // Combine and unique by ID
+        const combined = [...byId];
+        byName.forEach(pn => {
+           if (!combined.some(c => c.id === pn.id)) combined.push(pn);
+        });
+
+        return { ...contact, projects: combined };
       });
     } else if (
       contactsRes.status === "rejected" ||

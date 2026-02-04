@@ -109,13 +109,20 @@ export async function getContacts() {
               { user_email: { _eq: userEmail } },
             ],
           },
+          limit: -1,
         }),
       )) as any[];
 
+      // Create a map for O(1) lookups
+      const projectsByContact = new Map<string, any[]>();
+      allProjects.forEach(p => {
+        const cid = String(p.contact_id);
+        if (!projectsByContact.has(cid)) projectsByContact.set(cid, []);
+        projectsByContact.get(cid)!.push(p);
+      });
+
       contacts.forEach((contact) => {
-        contact.projects = allProjects.filter(
-          (p) => String(p.contact_id) === String(contact.id),
-        );
+        contact.projects = projectsByContact.get(String(contact.id)) || [];
       });
     }
 

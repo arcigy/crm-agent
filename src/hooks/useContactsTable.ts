@@ -4,10 +4,12 @@ import * as React from "react";
 import { SortingState, GroupingState } from "@tanstack/react-table";
 import { DragEndEvent } from "@dnd-kit/core";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { Lead } from "@/types/contact";
 import { updateContact } from "@/app/actions/contacts";
 
 export function useContactsTable(data: Lead[]) {
+  const router = useRouter();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [grouping, setGrouping] = React.useState<GroupingState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
@@ -122,7 +124,7 @@ export function useContactsTable(data: Lead[]) {
           error: (err: any) => "Failed to update status: " + err.message,
         });
         await promise;
-        window.location.reload();
+        router.refresh();
         return;
       }
     }

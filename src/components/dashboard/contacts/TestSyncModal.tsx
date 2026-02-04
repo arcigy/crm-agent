@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import { Lead } from '@/types/contact';
 import { runTestSyncUpdate } from '@/app/actions/contacts';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ export function TestSyncModal({
     onClose: () => void, 
     contacts: Lead[] 
 }) {
+    const router = useRouter();
     const [search, setSearch] = React.useState('');
     const [isUpdating, setIsUpdating] = React.useState(false);
 
@@ -35,7 +37,7 @@ export function TestSyncModal({
                 if (data.sync) {
                     toast.success('CRM aj Google Contacts boli úspešne aktualizované!');
                     onClose();
-                    window.location.reload();
+                    router.refresh();
                 } else {
                     toast.warning(`CRM OK, ale Google Sync zlyhal: ${data.syncError || 'Neznáma chyba'}`);
                 }
