@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase } from "lucide-react";
-import { getColdLeads, deleteColdLead, type ColdLeadItem } from "@/app/actions/cold-leads";
+import { getColdLeads, deleteColdLead, updateColdLead, type ColdLeadItem } from "@/app/actions/cold-leads";
 import { ColdLeadsImportModal } from "@/components/dashboard/ColdLeadsImportModal";
 import { toast } from "sonner";
 
@@ -11,6 +11,11 @@ export default function OutreachLeadsPage() {
   const [loading, setLoading] = useState(true);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Editing state
+  const [editingCell, setEditingCell] = useState<{ id: string | number, field: keyof ColdLeadItem } | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const editInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
   const refreshLeads = async () => {
     setLoading(true);
@@ -28,12 +33,64 @@ export default function OutreachLeadsPage() {
     initLeads();
   }, []);
 
+  useEffect(() => {
+    if (editingCell && editInputRef.current) {
+      editInputRef.current.focus();
+    }
+  }, [editingCell]);
+
   const handleDelete = async (id: string | number) => {
     if (!window.confirm("Naozaj chcete vymazať tento lead?")) return;
     const res = await deleteColdLead(id);
     if (res.success) {
       toast.success("Lead vymazaný");
       refreshLeads();
+    }
+  };
+
+  const startEditing = (lead: ColdLeadItem, field: keyof ColdLeadItem, currentValue: string) => {
+    setEditingCell({ id: lead.id, field });
+    setEditValue(currentValue || "");
+  };
+
+  const cancelEdit = () => {
+    setEditingCell(null);
+    setEditValue("");
+  };
+
+  const saveEdit = async () => {
+    if (!editingCell) return;
+
+    const { id, field } = editingCell;
+    const originalLead = leads.find(l => l.id === id);
+    
+    // Check if value actually changed
+    if (originalLead && originalLead[field] === editValue) {
+      cancelEdit();
+      return;
+    }
+
+    // Optimistic update
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, [field]: editValue } : l));
+
+    const res = await updateColdLead(id, { [field]: editValue });
+    
+    if (res.success) {
+      toast.success("Uložené");
+    } else {
+      toast.error("Chyba pri ukladaní");
+      // Revert on failure
+      refreshLeads();
+    }
+    cancelEdit();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      saveEdit();
+    } else if (e.key === "Escape") {
+      cancelEdit();
     }
   };
 
@@ -113,12 +170,30 @@ export default function OutreachLeadsPage() {
               ) : (
                 filteredLeads.map((lead) => (
                   <tr key={lead.id} className="hover:bg-blue-50/30 transition-colors group">
-                    <td className="px-8 py-6">
-                      <div className="font-black text-gray-900 text-base mb-1">{lead.company_name_reworked || lead.title}</div>
-                      {lead.website && (
-                        <a href={lead.website} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 text-[10px] font-bold flex items-center gap-1 uppercase tracking-widest">
-                          <Link2 className="w-3 h-3" /> {lead.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-                        </a>
+                    <td 
+                      className="px-8 py-6 cursor-pointer"
+                      onDoubleClick={() => startEditing(lead, "company_name_reworked", lead.company_name_reworked || lead.title)}
+                    >
+                      {editingCell?.id === lead.id && editingCell?.field === "company_name_reworked" ? (
+                        <input
+                          ref={editInputRef as React.RefObject<HTMLInputElement>}
+                          className="w-full p-2 border border-blue-500 rounded-md bg-white text-base font-black text-gray-900"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={saveEdit}
+                          onKeyDown={handleKeyDown}
+                        />
+                      ) : (
+                        <>
+                          <div className="font-black text-gray-900 text-base mb-1" title="Dvojklik pre úpravu">
+                            {lead.company_name_reworked || lead.title}
+                          </div>
+                          {lead.website && (
+                            <a href={lead.website} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-blue-500 hover:text-blue-700 text-[10px] font-bold flex items-center gap-1 uppercase tracking-widest">
+                              <Link2 className="w-3 h-3" /> {lead.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                            </a>
+                          )}
+                        </>
                       )}
                     </td>
                     <td className="px-8 py-6">
@@ -129,12 +204,26 @@ export default function OutreachLeadsPage() {
                         <Briefcase className="w-3 h-3" /> {lead.category || "Iné"}
                       </div>
                     </td>
-                    <td className="px-8 py-6 max-w-md">
-                      <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                        <p className="text-[11px] font-bold leading-relaxed text-gray-600 italic">
-                          &quot;{lead.ai_first_sentence}&quot;
-                        </p>
-                      </div>
+                    <td 
+                      className="px-8 py-6 max-w-md cursor-pointer"
+                      onDoubleClick={() => startEditing(lead, "ai_first_sentence", lead.ai_first_sentence || "")}
+                    >
+                      {editingCell?.id === lead.id && editingCell?.field === "ai_first_sentence" ? (
+                        <textarea
+                          ref={editInputRef as React.RefObject<HTMLTextAreaElement>}
+                          className="w-full p-2 border border-blue-500 rounded-md bg-white text-sm font-medium text-gray-700 h-24"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={saveEdit}
+                          onKeyDown={handleKeyDown}
+                        />
+                      ) : (
+                        <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 hover:border-blue-200 transition-colors" title="Dvojklik pre úpravu">
+                          <p className="text-[11px] font-bold leading-relaxed text-gray-600 italic">
+                            &quot;{lead.ai_first_sentence}&quot;
+                          </p>
+                        </div>
+                      )}
                     </td>
                     <td className="px-8 py-6 text-right">
                       <button 

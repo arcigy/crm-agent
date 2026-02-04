@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
-import { createItem, readItems, deleteItem } from "@directus/sdk";
+import { createItem, readItems, deleteItem, updateItem } from "@directus/sdk";
 import { getUserEmail } from "@/lib/auth";
 
 export interface ColdLeadItem {
@@ -79,6 +79,21 @@ export async function deleteColdLead(id: string | number) {
     return { success: true };
   } catch (e: any) {
     console.error("Delete cold lead failed:", e);
+    return { success: false, error: getDirectusErrorMessage(e) };
+  }
+}
+
+export async function updateColdLead(id: string | number, data: Partial<ColdLeadItem>) {
+  try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
+    await directus.request(updateItem("cold_leads", id, data));
+    
+    revalidatePath("/dashboard/cold-outreach");
+    return { success: true };
+  } catch (e: any) {
+    console.error("Update cold lead failed:", e);
     return { success: false, error: getDirectusErrorMessage(e) };
   }
 }
