@@ -357,10 +357,17 @@ export async function syncContactToGoogle(contactId: string | number) {
                 const etag = currentPersonRes.data.etag;
                 console.log(`[Google Sync] Etag found: ${etag}. Updating...`);
 
+                // Dynamically build fields to update
+                const fields = ["names", "emailAddresses", "phoneNumbers", "organizations", "biographies"];
+                // Only include memberships if there are any, to avoid "Contact must always be in at least one contact group"
+                if (memberships.length > 0) {
+                    fields.push("memberships");
+                }
+
                 // 2. Perform the update with the etag
                 const updateRes = await people.people.updateContact({
                     resourceName: contact.google_id,
-                    updatePersonFields: "names,emailAddresses,phoneNumbers,organizations,biographies,memberships",
+                    updatePersonFields: fields.join(","),
                     requestBody: {
                         ...requestBody,
                         etag
