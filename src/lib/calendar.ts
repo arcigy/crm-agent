@@ -468,10 +468,17 @@ export const formatSlovakDate = (dateStr: string | null | undefined): string | n
       }
     } else if (parts.length === 3) {
       // YYYY-MM-DD
+      const year = parseInt(parts[0]);
       const month = parseInt(parts[1]);
       const day = parseInt(parts[2]);
       if (!isNaN(month) && !isNaN(day) && month >= 1 && month <= 12) {
-        return `${day}. ${SLOVAK_MONTHS[month - 1]}`;
+        const base = `${day}. ${SLOVAK_MONTHS[month - 1]}`;
+        const date = new Date(year, month - 1, day);
+        if (!isNaN(date.getTime())) {
+          const days = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
+          return `${base} (${days[date.getDay()]})`;
+        }
+        return base;
       }
     }
   }

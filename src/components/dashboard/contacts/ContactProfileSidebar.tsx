@@ -354,38 +354,55 @@ function BirthdayPicker({
     "Júl", "Aug", "Sep", "Okt", "Nov", "Dec"
   ];
 
+  const getDayOfWeek = () => {
+    if (!d || !m || !y) return null;
+    const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    if (isNaN(date.getTime())) return null;
+    const days = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
+    return days[date.getDay()];
+  };
+
+  const dayOfWeek = getDayOfWeek();
+
   return (
-    <div className="flex gap-1 mt-1">
-      <select 
-        value={d} 
-        onChange={(e) => setD(e.target.value)}
-        className="bg-slate-50 dark:bg-slate-800 border border-border rounded px-1 py-0.5 text-[10px] font-bold outline-none"
-      >
-        <option value="">Deň</option>
-        {Array.from({length: 31}, (_, i) => i + 1).map(day => (
-          <option key={day} value={day}>{day}.</option>
-        ))}
-      </select>
-      <select 
-        value={m} 
-        onChange={(e) => setM(e.target.value)}
-        className="bg-slate-50 dark:bg-slate-800 border border-border rounded px-1 py-0.5 text-[10px] font-bold outline-none"
-      >
-        <option value="">Mesiac</option>
-        {months.map((name, i) => (
-          <option key={i+1} value={i+1}>{name}</option>
-        ))}
-      </select>
-      <select 
-        value={y} 
-        onChange={(e) => setY(e.target.value)}
-        className="bg-slate-50 dark:bg-slate-800 border border-border rounded px-1 py-0.5 text-[10px] font-bold outline-none"
-      >
-        <option value="">Rok</option>
-        {Array.from({length: 100}, (_, i) => new Date().getFullYear() - i).map(year => (
-          <option key={year} value={year}>{year}</option>
-        ))}
-      </select>
+    <div className="flex flex-col gap-1 mt-1">
+      <div className="flex gap-1">
+        <select 
+          value={d} 
+          onChange={(e) => setD(e.target.value)}
+          className="bg-slate-50 dark:bg-slate-800 border border-border rounded px-1 py-0.5 text-[10px] font-bold outline-none"
+        >
+          <option value="">Deň</option>
+          {Array.from({length: 31}, (_, i) => i + 1).map(day => (
+            <option key={day} value={day}>{day}.</option>
+          ))}
+        </select>
+        <select 
+          value={m} 
+          onChange={(e) => setM(e.target.value)}
+          className="bg-slate-50 dark:bg-slate-800 border border-border rounded px-1 py-0.5 text-[10px] font-bold outline-none"
+        >
+          <option value="">Mesiac</option>
+          {months.map((name, i) => (
+            <option key={i+1} value={i+1}>{name}</option>
+          ))}
+        </select>
+        <select 
+          value={y} 
+          onChange={(e) => setY(e.target.value)}
+          className="bg-slate-50 dark:bg-slate-800 border border-border rounded px-1 py-0.5 text-[10px] font-bold outline-none"
+        >
+          <option value="">Rok</option>
+          {Array.from({length: 100}, (_, i) => new Date().getFullYear() - i).map(year => (
+            <option key={year} value={year}>{year}</option>
+          ))}
+        </select>
+      </div>
+      {dayOfWeek && (
+        <p className="text-[10px] font-bold text-blue-500 animate-in fade-in slide-in-from-left-1 duration-300">
+          Bol to: {dayOfWeek}
+        </p>
+      )}
     </div>
   );
 }
