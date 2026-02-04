@@ -13,8 +13,6 @@ import {
   FileText,
   HardDrive,
   Receipt,
-  BrainCircuit,
-  History,
   Settings,
   Zap
 } from "lucide-react";
@@ -36,8 +34,6 @@ const menuItems = [
   { name: "Poznámky", href: "/dashboard/notes", icon: FileText },
   { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
   { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
-  { name: "AI Kontext", href: "/dashboard/settings/ai", icon: BrainCircuit },
-  { name: "Pamäť AI", href: "/dashboard/settings/memory", icon: History },
   { 
     name: "Cold Outreach", 
     href: "/dashboard/outreach", 
@@ -80,7 +76,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Navigácia</span>
         </div>
         
-        <div className="flex-1 overflow-y-auto scrollbar-hide py-6 px-4 space-y-1.5">
+        <div className="flex-1 overflow-y-auto scrollbar-hide py-4 px-4 space-y-1">
           {menuItems
             .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
             .map((item) => (
