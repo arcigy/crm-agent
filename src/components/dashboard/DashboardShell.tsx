@@ -56,57 +56,58 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
       <button
         onClick={() => setIsMenuOpen(!isMenuOpen)}
         className={`
-          fixed top-6 left-6 z-[2100] w-12 h-12 rounded-2xl shadow-2xl flex items-center justify-center transition-all active:scale-90 group
-          ${isMenuOpen ? "bg-slate-900 border border-white/10 text-white" : "bg-card/80 backdrop-blur-xl border border-white/10 text-muted-foreground hover:bg-indigo-600 hover:text-white"}
+          fixed top-6 left-6 z-[2100] w-12 h-12 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-300 active:scale-90 group
+          ${isMenuOpen 
+            ? "bg-slate-900 border border-white/10 text-white hover:bg-slate-800 hover:shadow-indigo-500/20" 
+            : "bg-card/80 backdrop-blur-xl border border-white/10 text-muted-foreground hover:bg-indigo-600 hover:text-white hover:shadow-indigo-600/30"}
         `}
         title="Menu"
       >
-        <Menu className={`w-6 h-6 transition-all duration-300 ${isMenuOpen ? "rotate-90" : ""}`} />
+        <Menu className={`w-6 h-6 transition-all duration-300 ${isMenuOpen ? "rotate-90 text-indigo-400" : "group-hover:text-white"}`} />
       </button>
 
       {/* Full Height Sidebar Menu */}
       <aside 
         className={`
-          fixed inset-y-0 left-0 z-[2000] w-64 bg-[#050409]/95 backdrop-blur-2xl border-r border-white/5 shadow-[20px_0_50px_rgba(0,0,0,0.4)] flex flex-col transition-transform duration-500 ease-in-out font-sans tracking-tight
+          fixed inset-y-0 left-0 z-[2000] w-64 bg-[#050409]/95 backdrop-blur-2xl border-r border-white/5 shadow-[20px_0_50px_rgba(0,0,0,0.4)] flex flex-col transition-transform duration-500 ease-in-out font-sans
           ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        <div className="h-20" /> {/* Spacer for top button */}
-        <div className="px-6 py-4 border-b border-white/5">
-          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Navigácia</span>
-        </div>
+        <div className="h-24" /> {/* Spacer for top button */}
         
         <div className="flex-1 flex flex-col justify-between py-6 px-3 overflow-y-auto scrollbar-hide">
-          {menuItems
-            .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
-            .map((item) => (
-            <Link 
-              key={item.href}
-              href={item.href}
-              className={`
-                flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-300
-                ${pathname === item.href 
-                  ? "bg-zinc-800/50 text-white shadow-lg shadow-black/5 border border-white/5" 
-                  : "text-zinc-500 hover:bg-zinc-800/20 hover:text-zinc-200"
-                }
-              `}
-            >
-              <item.icon className={`w-5 h-5 ${pathname === item.href ? "opacity-100" : "opacity-60"}`} />
-              <span>{item.name}</span>
-            </Link>
-          ))}
+          <div className="flex flex-col gap-2 h-full justify-between">
+            {menuItems
+              .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
+              .map((item) => (
+              <Link 
+                key={item.href}
+                href={item.href}
+                className={`
+                  flex items-center gap-4 px-4 py-3 rounded-xl text-[16px] font-medium tracking-normal transition-all duration-300 group
+                  ${pathname === item.href 
+                    ? "bg-zinc-800/80 text-white shadow-lg shadow-black/10 border border-white/5" 
+                    : "text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200"
+                  }
+                `}
+              >
+                <item.icon className={`w-5 h-5 transition-opacity duration-300 ${pathname === item.href ? "opacity-100 text-indigo-400" : "opacity-60 group-hover:opacity-100 group-hover:text-indigo-300"}`} />
+                <span>{item.name}</span>
+              </Link>
+            ))}
+          </div>
         </div>
 
-        <div className="p-4 border-t border-white/5 bg-black/5 space-y-1.5">
+        <div className="p-4 border-t border-white/5 bg-black/20 space-y-3">
           <ThemeToggle />
           <Link
             href="/dashboard/settings"
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium text-zinc-500 hover:bg-zinc-800/20 hover:text-zinc-200 transition-all group"
+            className="flex items-center gap-4 rounded-xl px-4 py-3 text-[16px] font-medium tracking-normal text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200 transition-all group"
           >
             <Settings className="w-5 h-5 opacity-60 group-hover:rotate-45 transition-transform" />
             <span>Nastavenia</span>
           </Link>
-          <LogoutButton className="flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition-all" />
+          <LogoutButton className="flex items-center gap-4 rounded-xl px-4 py-3 text-[16px] font-medium tracking-normal text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition-all" />
         </div>
       </aside>
 

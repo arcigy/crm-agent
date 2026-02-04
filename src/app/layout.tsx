@@ -1,20 +1,13 @@
 import * as React from "react";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Outfit } from "next/font/google"; // Outfit gives a premium, modern, high-end feel
+
 import { Toaster } from "sonner";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "CRM Agent",
@@ -43,7 +36,7 @@ export default function RootLayout({
     >
       <html lang="sk" suppressHydrationWarning>
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased transition-colors duration-300`}
+          className={`${outfit.variable} font-sans antialiased transition-colors duration-300`}
         >
           <ThemeProvider
             attribute="class"
