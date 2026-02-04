@@ -67,7 +67,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
       {/* Full Height Sidebar Menu */}
       <aside 
         className={`
-          fixed inset-y-0 left-0 z-[2000] w-72 bg-card/95 backdrop-blur-2xl border-r border-white/10 shadow-[20px_0_50px_rgba(0,0,0,0.2)] flex flex-col transition-transform duration-500 ease-in-out
+          fixed inset-y-0 left-0 z-[2000] w-72 bg-card/95 backdrop-blur-2xl border-r border-white/10 shadow-[20px_0_50px_rgba(0,0,0,0.2)] flex flex-col transition-transform duration-500 ease-in-out font-sans tracking-tight
           ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -76,7 +76,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Navigácia</span>
         </div>
         
-        <div className="flex-1 overflow-y-auto scrollbar-hide py-4 px-4 space-y-1">
+        <div className="flex-1 flex flex-col justify-between py-6 px-4 overflow-y-auto scrollbar-hide">
           {menuItems
             .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
             .map((item) => (
@@ -85,11 +85,11 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
               href={item.href}
               onClick={() => setIsMenuOpen(false)}
               className={`
-                flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all
+                flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all
                 ${pathname === item.href ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "text-gray-400 hover:bg-white/5 hover:text-white"}
               `}
             >
-              <item.icon className="w-4 h-4" />
+              <item.icon className="w-5 h-5 opacity-70" />
               <span>{item.name}</span>
             </Link>
           ))}
@@ -116,7 +116,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           ${isMenuOpen ? "ml-72" : "ml-0"}
         `}
       >
-        <div className="p-4 md:p-8 pt-24 md:pt-8">{children}</div>
+        <div className="p-4 md:p-8 pt-24 md:pt-8 pl-24 md:pl-32 transition-all">{children}</div>
       </main>
 
       <FloatingAgentChat isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
