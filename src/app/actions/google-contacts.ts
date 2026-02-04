@@ -337,14 +337,40 @@ export async function syncContactToGoogle(contactId: string | number) {
                 contactGroupMembership: { contactGroupResourceName: gid }
             }));
 
-        const requestBody = {
+        // Date parsing for birthday
+        let birthdays: any[] = [];
+        if (contact.birthday) {
+            try {
+                const date = new Date(contact.birthday);
+                if (!isNaN(date.getTime())) {
+                    birthdays = [{
+                        date: {
+                            year: date.getFullYear(),
+                            month: date.getMonth() + 1,
+                            day: date.getDate()
+                        }
+                    }];
+                }
+            } catch (e) {
+                console.warn("[Sync] Birthday date parse failed", e);
+            }
+        }
+
+        const requestBody: any = {
             names: [{ givenName: contact.first_name, familyName: contact.last_name || "" }],
             emailAddresses: contact.email ? [{ value: contact.email }] : [],
             phoneNumbers: contact.phone ? [{ value: normalizeSlovakPhone(contact.phone) }] : [],
-            organizations: contact.company ? [{ name: contact.company }] : [],
+            organizations: (contact.company || contact.job_title) ? [{ 
+                name: contact.company || "", 
+                title: contact.job_title || "" 
+            }] : [],
             biographies: [{ value: contact.comments || "Synchronizované z Agentic CRM" }],
+            urls: contact.website ? [{ value: contact.website, type: 'website' }] : [],
+            addresses: contact.address ? [{ formattedValue: contact.address, type: 'home' }] : [],
             memberships: memberships.length > 0 ? memberships : undefined
         };
+
+        if (birthdays.length > 0) requestBody.birthdays = birthdays;
 
         if (contact.google_id) {
             try {
@@ -358,7 +384,9 @@ export async function syncContactToGoogle(contactId: string | number) {
                 console.log(`[Google Sync] Etag found: ${etag}. Updating...`);
 
                 // Dynamically build fields to update
-                const fields = ["names", "emailAddresses", "phoneNumbers", "organizations", "biographies"];
+                const fields = ["names", "emailAddresses", "phoneNumbers", "organizations", "biographies", "urls", "addresses"];
+                if (birthdays.length > 0) fields.push("birthdays");
+                
                 // Only include memberships if there are any, to avoid "Contact must always be in at least one contact group"
                 if (memberships.length > 0) {
                     fields.push("memberships");

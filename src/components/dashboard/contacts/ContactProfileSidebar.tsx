@@ -51,6 +51,9 @@ export function ContactProfileSidebar({
     status: contact.status || "lead",
     birthday: contact.birthday || "",
     nameday: contact.nameday || "",
+    job_title: contact.job_title || "",
+    address: contact.address || "",
+    website: contact.website || "",
   });
 
   const initials =
@@ -257,13 +260,33 @@ export function ContactProfileSidebar({
             onChange={(val: string) => setFormData({ ...formData, status: val })}
             onSave={handleSave}
           />
-          <InfoRow icon={<Briefcase />} label="Role" value="CEO / Owner" />
-          <InfoRow icon={<MapPin />} label="Location" value="Slovakia" />
+          <InfoRow
+            icon={<Briefcase />}
+            label="Role"
+            value={formData.job_title}
+            isEditing={isEditing}
+            onChange={(val: string) => setFormData({ ...formData, job_title: val })}
+            onSave={handleSave}
+            placeholder="Napr. CEO / Konateľ"
+          />
+          <InfoRow
+            icon={<MapPin />}
+            label="Location"
+            value={formData.address}
+            isEditing={isEditing}
+            onChange={(val: string) => setFormData({ ...formData, address: val })}
+            onSave={handleSave}
+            placeholder="Napr. Bratislava, SR"
+          />
           <InfoRow
             icon={<Globe />}
             label="Website"
-            value="www.example.com"
+            value={formData.website}
             valueClass="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+            isEditing={isEditing}
+            onChange={(val: string) => setFormData({ ...formData, website: val })}
+            onSave={handleSave}
+            placeholder="www.firma.sk"
           />
           <div className="pt-2">
             <InfoRow

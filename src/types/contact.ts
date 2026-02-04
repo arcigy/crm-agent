@@ -30,4 +30,7 @@ export interface Lead {
     comments?: string;
     birthday?: string;
     nameday?: string;
+    job_title?: string;
+    address?: string;
+    website?: string;
 }

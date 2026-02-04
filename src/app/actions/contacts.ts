@@ -15,6 +15,11 @@ export interface ContactItem {
   company?: string;
   status?: string;
   comments?: string;
+  birthday?: string;
+  nameday?: string;
+  job_title?: string;
+  address?: string;
+  website?: string;
   user_email?: string;
   date_created?: string;
   projects?: any[];
