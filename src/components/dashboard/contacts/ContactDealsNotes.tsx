@@ -1,10 +1,36 @@
 "use client";
 
 import * as React from "react";
-import { Briefcase, Plus, StickyNote } from "lucide-react";
+import { Briefcase, Plus, StickyNote, Loader2 } from "lucide-react";
 import { Lead } from "@/types/contact";
+import { updateContactComments } from "@/app/actions/contacts";
+import { toast } from "sonner";
 
 export function ContactDealsNotes({ contact }: { contact: Lead }) {
+  const [isSaving, setIsSaving] = React.useState(false);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  const handleSave = async () => {
+    if (!textareaRef.current) return;
+    const val = textareaRef.current.value;
+    if (val === contact.comments) return;
+
+    setIsSaving(true);
+    try {
+      const res = await updateContactComments(Number(contact.id), val);
+      if (res.success) {
+        toast.success("Poznámka bola uložená a synchronizovaná");
+      } else {
+        toast.error(res.error || "Chyba pri ukladaní");
+      }
+    } catch (error) {
+      console.error("Save note failed:", error);
+      toast.error("Nepodarilo sa uložiť poznámku");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <section className="bg-card rounded-2xl p-5 border border-border shadow-sm transition-colors duration-300">
@@ -45,20 +71,24 @@ export function ContactDealsNotes({ contact }: { contact: Lead }) {
           <StickyNote className="w-3 h-3" /> Internal Notes
         </h3>
         <textarea
+          ref={textareaRef}
           className="w-full bg-background dark:bg-slate-900 border-0 rounded-xl shadow-sm text-xs text-foreground p-3 min-h-[120px] resize-none focus:ring-1 focus:ring-amber-200 outline-none transition-colors"
-          placeholder="Add private notes about this client..."
+          placeholder="Pridajte súkromné poznámky o klientovi..."
           defaultValue={contact.comments || ""}
-          onKeyDown={async (e) => {
+          onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              const val = e.currentTarget.value;
-              const { updateContactComments } = await import("@/app/actions/contacts");
-              await updateContactComments(contact.id, val);
+              handleSave();
             }
           }}
         />
-        <button className="mt-2 text-[10px] font-bold text-amber-600 hover:text-amber-800 uppercase tracking-wide float-right transition-colors">
-          Save Note
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="mt-2 text-[10px] font-bold text-amber-600 hover:text-amber-800 uppercase tracking-wide float-right transition-all flex items-center gap-1"
+        >
+          {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+          Uložiť poznámku
         </button>
       </section>
     </div>

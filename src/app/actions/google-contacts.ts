@@ -348,16 +348,30 @@ export async function syncContactToGoogle(contactId: string | number) {
 
         if (contact.google_id) {
             try {
+                // 1. Get current person to fetch the etag (required for update)
+                const currentPersonRes = await people.people.get({
+                    resourceName: contact.google_id,
+                    personFields: "names" // fetching just names to get the etag
+                });
+                const etag = currentPersonRes.data.etag;
+
+                // 2. Perform the update with the etag
                 await people.people.updateContact({
                     resourceName: contact.google_id,
                     updatePersonFields: "names,emailAddresses,phoneNumbers,organizations,biographies,memberships",
-                    requestBody
+                    requestBody: {
+                        ...requestBody,
+                        etag
+                    }
                 });
             } catch (err: any) {
                 if (err.code === 404) {
                     const res = await people.people.createContact({ requestBody });
                     const newGoogleId = (res.data as any).resourceName;
                     await directus.request(updateItem("contacts", contactId, { google_id: newGoogleId }));
+                } else {
+                    console.error("[Google Sync] Update failed:", err);
+                    throw err; // Re-throw to be caught by the outer catch
                 }
             }
         } else {
