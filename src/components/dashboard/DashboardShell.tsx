@@ -75,37 +75,39 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
       >
         <div className="h-24" /> {/* Spacer for top button */}
         
-        <div className="flex-1 flex flex-col justify-center py-4 px-3 overflow-y-auto scrollbar-hide space-y-1">
-          {menuItems
-            .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
-            .map((item) => (
-            <Link 
-              key={item.href}
-              href={item.href}
-              className={`
-                flex items-center gap-3 px-4 py-3.5 rounded-xl text-[15px] font-semibold tracking-wide transition-all duration-300
-                ${pathname === item.href 
-                  ? "bg-zinc-800/80 text-white shadow-lg shadow-black/10 border border-white/5" 
-                  : "text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200"
-                }
-              `}
-            >
-              <item.icon className={`w-5 h-5 transition-opacity duration-300 ${pathname === item.href ? "opacity-100 text-indigo-400" : "opacity-60 group-hover:opacity-80"}`} />
-              <span>{item.name}</span>
-            </Link>
-          ))}
+        <div className="flex-1 flex flex-col justify-between py-6 px-3 overflow-y-auto scrollbar-hide">
+          <div className="flex flex-col gap-2 h-full justify-between">
+            {menuItems
+              .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
+              .map((item) => (
+              <Link 
+                key={item.href}
+                href={item.href}
+                className={`
+                  flex items-center gap-4 px-4 py-3 rounded-xl text-[16px] font-medium tracking-normal transition-all duration-300 group
+                  ${pathname === item.href 
+                    ? "bg-zinc-800/80 text-white shadow-lg shadow-black/10 border border-white/5" 
+                    : "text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200"
+                  }
+                `}
+              >
+                <item.icon className={`w-5 h-5 transition-opacity duration-300 ${pathname === item.href ? "opacity-100 text-indigo-400" : "opacity-60 group-hover:opacity-100 group-hover:text-indigo-300"}`} />
+                <span>{item.name}</span>
+              </Link>
+            ))}
+          </div>
         </div>
 
-        <div className="p-4 border-t border-white/5 bg-black/20 space-y-2">
+        <div className="p-4 border-t border-white/5 bg-black/20 space-y-3">
           <ThemeToggle />
           <Link
             href="/dashboard/settings"
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-semibold tracking-wide text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200 transition-all group"
+            className="flex items-center gap-4 rounded-xl px-4 py-3 text-[16px] font-medium tracking-normal text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200 transition-all group"
           >
             <Settings className="w-5 h-5 opacity-60 group-hover:rotate-45 transition-transform" />
             <span>Nastavenia</span>
           </Link>
-          <LogoutButton className="flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition-all" />
+          <LogoutButton className="flex items-center gap-4 rounded-xl px-4 py-3 text-[16px] font-medium tracking-normal text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition-all" />
         </div>
       </aside>
 
