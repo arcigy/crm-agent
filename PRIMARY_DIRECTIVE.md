@@ -2,14 +2,10 @@
 
 Tento súbor obsahuje tvoje primárne inštrukcie. Vždy ich dodržiavaj pri každej interakcii s týmto projektom.
 
-## 🚀 Workflow Protocol (Branching Strategy)
-
+## 🚀 Workflow Protocol (Anti-Conflict)
 Pracujeme na tomto projekte dvaja súčasne. Aby nedošlo k prepísaniu zmien:
-
-1. **PULL MAIN**: Pred začatím práce v novej branchi vždy urob `git pull origin main` na main branchi.
-2. **BRANCHING**: Všetka práca prebieha vo vetve `antigravity-dev` (alebo v špecifických feature branchiach).
-3. **MERGE TO MAIN**: Po dokončení úlohy a tvojom schválení mergnem zmeny do `main`, aby sa spustil deployment na Railway.
-4. **NO AUTO-PUSH**: Pushuj zmeny na branch iba na požiadanie, alebo po dokončení logického celku.
+1. **PULL FIRST**: Pred každou novou úlohou MUSÍŠ vykonať `git pull origin main`, aby si mal najnovšiu verziu kódu.
+2. **NO AUTO-PUSH**: Tento direktív zakazuje automatické pushovanie zmien. Zmeny pushuj IBA na výslovnú žiadosť užívateľa.
 
 ## 🎨 Design & Frontend
 
