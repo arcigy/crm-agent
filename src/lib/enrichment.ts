@@ -132,8 +132,8 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
     `;
 
     try {
-        // Using gemini-2.0-flash-exp if available, otherwise gemini-1.5-flash
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+        // Updated to Gemini 3.0 Flash (Latest 2026 Model)
+        const model = genAI.getGenerativeModel({ model: "gemini-3.0-flash" });
         
         const result = await model.generateContent(prompt);
         const response = await result.response;
