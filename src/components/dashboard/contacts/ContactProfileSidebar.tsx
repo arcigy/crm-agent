@@ -59,6 +59,24 @@ export function ContactProfileSidebar({
   const initials =
     (formData.first_name?.[0] || "") + (formData.last_name?.[0] || "");
 
+  React.useEffect(() => {
+    if (!isEditing) {
+      setFormData({
+        first_name: contact.first_name || "",
+        last_name: contact.last_name || "",
+        email: contact.email || "",
+        phone: contact.phone || "",
+        company: contact.company || "",
+        status: contact.status || "lead",
+        birthday: contact.birthday || "",
+        nameday: contact.nameday || "",
+        job_title: contact.job_title || "",
+        address: contact.address || "",
+        website: contact.website || "",
+      });
+    }
+  }, [contact, isEditing]);
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
