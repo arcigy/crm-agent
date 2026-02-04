@@ -1,5 +1,6 @@
 "use client";
 
+import { SmartText } from "@/components/todo/SmartText";
 import { CheckCircle2, Circle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
@@ -22,7 +23,7 @@ export function TodoListWidget({ tasks }: { tasks: any[] }) {
             <div key={task.id} className="flex items-start gap-3 p-3 rounded-2xl hover:bg-muted/50 transition-colors group">
               <Circle className="w-5 h-5 text-muted-foreground mt-0.5 group-hover:text-blue-500 transition-colors" />
               <div className="flex-1">
-                <p className="text-sm font-bold text-foreground leading-tight">{task.title}</p>
+                <SmartText text={task.title} className="text-sm font-bold text-foreground leading-tight" />
                 <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground font-medium">
                   <Clock className="w-3 h-3" />
                   {task.due_date ? format(new Date(task.due_date), "HH:mm", { locale: sk }) : "Kedykoľvek"}

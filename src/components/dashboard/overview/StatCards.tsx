@@ -45,21 +45,21 @@ export function DashboardStats({ stats }: { stats: any }) {
         value={stats.contactsCount || 0}
         icon={Users}
         color="bg-blue-500"
-        trend="+12% tento mesiac"
+        trend={stats.contactsTrend}
       />
       <StatCard
         label="Projekty"
         value={stats.activeProjects || 0}
         icon={FolderKanban}
         color="bg-indigo-500"
-        trend="5 nových"
+        trend={stats.projectsTrend}
       />
       <StatCard
         label="Hodnota"
         value={`${(stats.totalDealsValue || 0).toLocaleString()} €`}
         icon={TrendingUp}
         color="bg-emerald-500"
-        trend="+2.4k € dnes"
+        trend={stats.dealsTrend}
       />
       <StatCard
         label="Hotové Úlohy"
