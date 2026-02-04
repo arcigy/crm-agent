@@ -48,6 +48,14 @@ export function ContactDealsNotes({ contact }: { contact: Lead }) {
           className="w-full bg-background dark:bg-slate-900 border-0 rounded-xl shadow-sm text-xs text-foreground p-3 min-h-[120px] resize-none focus:ring-1 focus:ring-amber-200 outline-none transition-colors"
           placeholder="Add private notes about this client..."
           defaultValue={contact.comments || ""}
+          onKeyDown={async (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              const val = e.currentTarget.value;
+              const { updateContactComments } = await import("@/app/actions/contacts");
+              await updateContactComments(contact.id, val);
+            }
+          }}
         />
         <button className="mt-2 text-[10px] font-bold text-amber-600 hover:text-amber-800 uppercase tracking-wide float-right transition-colors">
           Save Note

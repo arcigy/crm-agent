@@ -342,7 +342,7 @@ export async function syncContactToGoogle(contactId: string | number) {
             emailAddresses: contact.email ? [{ value: contact.email }] : [],
             phoneNumbers: contact.phone ? [{ value: normalizeSlovakPhone(contact.phone) }] : [],
             organizations: contact.company ? [{ name: contact.company }] : [],
-            biographies: [{ value: "Synchronizované z Agentic CRM" }],
+            biographies: [{ value: contact.comments || "Synchronizované z Agentic CRM" }],
             memberships: memberships.length > 0 ? memberships : undefined
         };
 

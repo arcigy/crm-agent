@@ -139,6 +139,9 @@ export function ContactProfileSidebar({
               <input
                 type="text"
                 value={formData.first_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, first_name: e.target.value })
+                }
                 onKeyDown={(e) => e.key === "Enter" && handleSave()}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg p-2 text-sm font-bold placeholder:text-gray-400"
                 placeholder="First Name"
