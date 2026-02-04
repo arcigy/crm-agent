@@ -43,6 +43,7 @@ import { BulkActions } from "./contacts/BulkActions";
 import { BulkEditModal } from "./contacts/BulkEditModal";
 import { useContactsTable } from "@/hooks/useContactsTable";
 import { contactColumns } from "./contacts/ContactColumns";
+import { TestSyncModal } from "./contacts/TestSyncModal";
 
 export function ContactsTable({
   data,
@@ -51,6 +52,7 @@ export function ContactsTable({
   data: Lead[];
   onCreate?: (data: any) => Promise<any>;
 }) {
+  const [isTestModalOpen, setIsTestModalOpen] = React.useState(false);
   const {
     sorting,
     setSorting,
@@ -131,7 +133,6 @@ export function ContactsTable({
         }
       }
       
-      setColumnSizing(newSizing);
     },
     columnResizeMode: "onChange",
     defaultColumn: {
@@ -234,6 +235,11 @@ export function ContactsTable({
         contact={projectsContact}
         onClose={() => setProjectsContact(null)}
       />
+      <TestSyncModal
+        isOpen={isTestModalOpen}
+        onClose={() => setIsTestModalOpen(false)}
+        contacts={data}
+      />
 
       {data.length === 0 ? (
         <div className="h-full flex flex-col items-center justify-center bg-card rounded-[4rem] border border-border p-24 text-center shadow-sm relative overflow-hidden group transition-all">
@@ -251,6 +257,7 @@ export function ContactsTable({
             totalCount={data.length}
             onNewClick={() => setIsModalOpen(true)}
             onImportClick={() => setIsImportModalOpen(true)}
+            onTestClick={() => setIsTestModalOpen(true)}
           />
           <div className="overflow-auto flex-1 thin-scrollbar">
             <table 

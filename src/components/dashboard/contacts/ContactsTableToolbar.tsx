@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Search, ChevronDown, MoreHorizontal, Smartphone } from 'lucide-react';
+import { Search, ChevronDown, MoreHorizontal, Smartphone, FlaskConical } from 'lucide-react';
 import Link from 'next/link';
 
 interface ContactsTableToolbarProps {
@@ -10,6 +10,7 @@ interface ContactsTableToolbarProps {
     totalCount: number;
     onNewClick: () => void;
     onImportClick: () => void;
+    onTestClick?: () => void;
 }
 
 export function ContactsTableToolbar({
@@ -17,11 +18,12 @@ export function ContactsTableToolbar({
     setGlobalFilter,
     totalCount,
     onNewClick,
-    onImportClick
+    onImportClick,
+    onTestClick
 }: ContactsTableToolbarProps) {
     return (
         <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
                 <button
                     onClick={onNewClick}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 shadow-sm transition-all active:scale-95"
@@ -42,20 +44,29 @@ export function ContactsTableToolbar({
                         placeholder="Search all columns..."
                         value={globalFilter ?? ''}
                         onChange={(e) => setGlobalFilter(e.target.value)}
-                        className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs w-56 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all font-medium placeholder:text-gray-400"
+                        className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs w-48 lg:w-56 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all font-medium placeholder:text-gray-400"
                     />
                 </div>
-                <div className="h-4 w-px bg-gray-200 mx-2"></div>
-                <Link href="/dashboard/settings/sync">
-                    <button className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-200 transition-all">
-                        <Smartphone className="w-3.5 h-3.5" />
-                        Sync to Mobile
+                <div className="h-4 w-px bg-gray-200 mx-1 lg:mx-2"></div>
+                <div className="flex items-center gap-1.5">
+                    <Link href="/dashboard/settings/sync">
+                        <button className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[10px] lg:text-xs font-bold border border-emerald-200 transition-all">
+                            <Smartphone className="w-3.5 h-3.5" />
+                            Sync to Mobile
+                        </button>
+                    </Link>
+                    <button 
+                        onClick={onTestClick}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-[10px] lg:text-xs font-bold border border-amber-200 transition-all"
+                    >
+                        <FlaskConical className="w-3.5 h-3.5" />
+                        Test update
                     </button>
-                </Link>
+                </div>
             </div>
 
             <div className="flex items-center gap-1.5">
-                <div className="text-xs font-bold text-gray-400 uppercase mr-2 tracking-widest hidden sm:block">Total: {totalCount}</div>
+                <div className="text-[10px] font-bold text-gray-400 uppercase mr-2 tracking-widest hidden lg:block">Total: {totalCount}</div>
                 <button className="p-2 hover:bg-gray-100 rounded-md text-gray-400 transition-colors">
                     <MoreHorizontal className="w-5 h-5" />
                 </button>

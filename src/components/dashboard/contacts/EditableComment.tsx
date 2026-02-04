@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Plus, Check, Loader2 } from 'lucide-react';
 import { updateContactComments } from '@/app/actions/contacts';
+import { toast } from 'sonner';
 
 export function EditableComment({ id, initialValue }: { id: number; initialValue: string }) {
     const [isEditing, setIsEditing] = React.useState(false);
@@ -15,20 +16,22 @@ export function EditableComment({ id, initialValue }: { id: number; initialValue
             return;
         }
 
+        setIsEditing(false); // Close immediately as requested
         setStatus('saving');
         try {
             const result = await updateContactComments(id, value);
             if (result.success) {
                 setStatus('saved');
-                setTimeout(() => setStatus('idle'), 2000);
+                setTimeout(() => setStatus('idle'), 1500); // Checkmark for 1.5s
             } else {
                 setStatus('idle');
+                toast.error(result.error || 'Nepodarilo sa uložiť komentár');
             }
         } catch (error) {
             console.error('Failed to save comment:', error);
             setStatus('idle');
+            toast.error('Chyba pri ukladaní');
         }
-        setIsEditing(false);
     };
 
     if (isEditing) {
@@ -58,7 +61,7 @@ export function EditableComment({ id, initialValue }: { id: number; initialValue
             onClick={() => setIsEditing(true)}
         >
             <span className={`text-xs truncate max-w-[150px] ${value ? 'text-gray-600 font-medium' : 'text-gray-300 italic'}`}>
-                {value || 'Add comment...'}
+                {value || 'Pridať komentár...'}
             </span>
             {status === 'saving' && <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />}
             {status === 'saved' && <Check className="w-3 h-3 text-green-500" />}

@@ -417,3 +417,29 @@ export async function bulkDeleteContacts(ids: (string | number)[]) {
     return { success: false, error: getDirectusErrorMessage(error) };
   }
 }
+
+export async function runTestSyncUpdate(id: string | number) {
+  try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
+    const random = Math.floor(Math.random() * 9000) + 1000;
+    const testData = {
+      phone: `+421 9${random} ${random} ${random}`.substring(0, 15),
+      email: `test-${random}@arcigy.com`,
+      company: `Testing Corp ${random}`,
+      comments: `Posledný test syncu: ${new Date().toLocaleTimeString()}`
+    };
+
+    const res = await updateContact(id, testData);
+    if (res.success) {
+      // Re-fetch to return the updated data for local state update if needed
+      const updated = await directus.request(readItem("contacts", id));
+      return { success: true, data: updated };
+    }
+    return res;
+  } catch (error: any) {
+    console.error("Test sync update failed:", error);
+    return { success: false, error: String(error) };
+  }
+}
