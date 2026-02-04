@@ -11,7 +11,7 @@ const INPUT_FILE = "dataset_crawler-google-places_2026-02-04_15-37-26-089.csv";
 const OUTPUT_FILE = "leads_processed.csv";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY,
 });
 
 function reworkCompanyName(name: string): string {
@@ -39,10 +39,10 @@ async function scrapeWebsite(url: string): Promise<string> {
         const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
         const html = await response.text();
         return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                   .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-                   .replace(/<[^>]+>/g, ' ')
-                   .replace(/\s+/g, ' ')
-                   .trim().substring(0, 10000); 
+            .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim().substring(0, 10000);
     } catch (e) { return "no content"; }
 }
 
@@ -65,18 +65,33 @@ async function generateAIContent(reworkedName: string, scrapedContent: string) {
 async function run() {
     const fileContent = fs.readFileSync(path.join(process.cwd(), INPUT_FILE), 'utf-8');
     const parsed = Papa.parse(fileContent, { header: true, skipEmptyLines: true });
-    const records = parsed.data as any[];
-    const AI_LIMIT = 515; 
+    let records = parsed.data as any[];
+
+    // --- Deduplication ---
+    const seen = new Set();
+    const uniqueRecords = [];
+    for (const r of records) {
+        // Deduplicate based on website (if exists) or title
+        const key = r.website && r.website !== "null" ? r.website : r.title;
+        if (!seen.has(key)) {
+            seen.add(key);
+            uniqueRecords.push(r);
+        }
+    }
+    const totalCount = uniqueRecords.length;
+    console.log(`Deduplication: Reduced ${records.length} to ${totalCount} records.`);
+    records = uniqueRecords;
+
+    const AI_LIMIT = 1015; // 515 already done + 500 new
     const finalData = new Array(records.length);
 
     console.log(`Processing total ${records.length} records. AI Limit: ${AI_LIMIT}`);
 
-    // Process AI records in parallel batches
     const BATCH_SIZE = 25;
     for (let i = 0; i < AI_LIMIT; i += BATCH_SIZE) {
         const batch = records.slice(i, Math.min(i + BATCH_SIZE, AI_LIMIT));
         console.log(`Processing batch ${i} to ${i + batch.length}...`);
-        
+
         await Promise.all(batch.map(async (r, idx) => {
             const currentIdx = i + idx;
             const reworked = reworkCompanyName(r.title);
@@ -100,23 +115,23 @@ async function run() {
         }));
     }
 
-    // Process remaining non-AI records
     for (let i = AI_LIMIT; i < records.length; i++) {
         const r = records[i];
-        finalData[i] = {
-            title: r.title,
-            company_name_reworked: reworkCompanyName(r.title),
-            website: r.website,
-            phone: r.phone,
-            city: r.city,
-            category: r.categoryName || r['categories/0'],
-            abstract: "",
-            ai_first_sentence: ""
-        };
-        if (i % 100 === 0) console.log(`Mapped ${i} rows...`);
+        if (!finalData[i]) {
+            finalData[i] = {
+                title: r.title,
+                company_name_reworked: reworkCompanyName(r.title),
+                website: r.website,
+                phone: r.phone,
+                city: r.city,
+                category: r.categoryName || r['categories/0'],
+                abstract: "",
+                ai_first_sentence: ""
+            };
+        }
     }
 
-    fs.writeFileSync(path.join(process.cwd(), OUTPUT_FILE), Papa.unparse(finalData));
+    fs.writeFileSync(path.join(process.cwd(), OUTPUT_FILE), Papa.unparse(finalData.filter(x => x)));
     console.log(`Success! saved to ${OUTPUT_FILE}`);
 }
 
