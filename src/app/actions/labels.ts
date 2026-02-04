@@ -5,6 +5,8 @@ import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, updateItem, readItems, readItem, deleteItem } from "@directus/sdk";
 import { getUserEmail } from "@/lib/auth";
 import { currentUser } from "@clerk/nextjs/server";
+import { getPeopleClient } from "@/lib/google";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export interface ContactLabel {
   id: string | number;
@@ -19,6 +21,10 @@ export async function getLabels() {
     const userEmail = await getUserEmail();
     if (!userEmail) throw new Error("Unauthorized");
 
+    // Sync labels from Google whenever labels are fetched
+    // This ensures labels from Google are available in the CRM
+    await syncLabelsFromGoogle().catch(err => console.error("Sync labels failed:", err));
+
     const labels = (await directus.request(
       readItems("contact_labels", {
         filter: { user_email: { _eq: userEmail } },
@@ -29,6 +35,72 @@ export async function getLabels() {
     return { success: true, data: labels };
   } catch (error) {
     console.error("Failed to fetch labels:", error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function syncLabelsFromGoogle() {
+  try {
+    const user = await currentUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+    const userEmail = user.emailAddresses[0].emailAddress.toLowerCase();
+    const userId = user.id;
+
+    const client = await clerkClient();
+    const tokenResponse = await client.users.getUserOauthAccessToken(userId, "oauth_google");
+    let token = tokenResponse.data[0]?.token;
+
+    if (!token) {
+        // Fallback to database tokens
+        const dbTokens = await directus.request(readItems("google_tokens", {
+            filter: { user_id: { _eq: userId } },
+            limit: 1
+        })) as any[];
+        if (dbTokens && dbTokens[0]) token = dbTokens[0].access_token;
+    }
+
+    if (!token) return { success: false, error: "Google not connected" };
+
+    const people = getPeopleClient(token);
+    const response = await people.contactGroups.list({
+      pageSize: 1000,
+    });
+    
+    const groups = (response.data.contactGroups || []).filter(g => g.groupType !== 'SYSTEM_CONTACT_GROUP');
+
+    // Get existing labels to avoid duplicates
+    const existingLabels = await directus.request(readItems("contact_labels", {
+      filter: { user_email: { _eq: userEmail } },
+      limit: -1
+    })) as any[];
+
+    const googleIdMap = new Map();
+    existingLabels.forEach(l => {
+        if (l.google_id) googleIdMap.set(l.google_id, l);
+    });
+
+    for (const group of groups) {
+      if (!group.resourceName || !group.name) continue;
+      
+      const existing = googleIdMap.get(group.resourceName);
+
+      if (!existing) {
+        await directus.request(createItem("contact_labels", {
+          name: group.name,
+          user_email: userEmail,
+          google_id: group.resourceName,
+          color: "#3b82f6"
+        }));
+      } else if (existing.name !== group.name) {
+        await directus.request(updateItem("contact_labels", existing.id, {
+          name: group.name
+        }));
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Sync Labels Error:", error);
     return { success: false, error: String(error) };
   }
 }
