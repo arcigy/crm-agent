@@ -7,6 +7,7 @@ export interface Tool {
   icon: LucideIcon;
   stripePriceId?: string;
   path: string;
+  allowedEmails?: string[]; // Restricted to these users
 }
 
 export const tools: Tool[] = [
@@ -97,5 +98,13 @@ export const tools: Tool[] = [
     icon: FileSignature,
     stripePriceId: 'price_contracts_premium',
     path: '/dashboard/contracts',
+  },
+  {
+    id: 'outreach',
+    name: 'Cold Outreach',
+    description: 'Automatizovaný cold outreach s AI analýzou odpovedí.',
+    icon: Zap,
+    path: '/dashboard/outreach',
+    allowedEmails: ['branislav@arcigy.group'],
   }
 ];

@@ -22,6 +22,7 @@ import {
   History,
   Bot,
   Terminal,
+  Zap,
 } from "lucide-react";
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
@@ -42,6 +43,12 @@ const navigation = [
   { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
   { name: "AI Kontext", href: "/dashboard/settings/ai", icon: BrainCircuit },
   { name: "Pamäť AI", href: "/dashboard/settings/memory", icon: History },
+  { 
+    name: "Cold Outreach", 
+    href: "/dashboard/outreach", 
+    icon: Zap,
+    allowedEmails: ['branislav@arcigy.group']
+  },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
@@ -110,34 +117,40 @@ export function Sidebar({ className }: { className?: string }) {
 
         {/* Navigation Links */}
         <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-1 scrollbar-hide">
-          {navigation.map((item) => {
-            // Support sub-paths by checking startWith if necessary, but exact match for now
-            const isActive =
-              pathname === item.href || pathname?.startsWith(item.href + "/");
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                prefetch={true}
-                className={`
-                                    group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 w-full relative z-10
-                                    ${
-                                      isActive
-                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
-                                        : "text-gray-400 hover:bg-[#1E293B] hover:text-white"
-                                    }
-                                `}
-              >
-                {Icon && (
-                  <Icon
-                    className={`h-5 w-5 shrink-0 transition-colors ${isActive ? "text-white" : "text-gray-500 group-hover:text-white"}`}
-                  />
-                )}
-                <span>{item.name}</span>
-              </Link>
-            );
-          })}
+          {navigation
+            .filter((item: any) => {
+              if (!item.allowedEmails) return true;
+              const userEmail = user?.primaryEmailAddress?.emailAddress;
+              return item.allowedEmails.includes(userEmail);
+            })
+            .map((item) => {
+              // Support sub-paths by checking startWith if necessary, but exact match for now
+              const isActive =
+                pathname === item.href || pathname?.startsWith(item.href + "/");
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  prefetch={true}
+                  className={`
+                                      group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 w-full relative z-10
+                                      ${
+                                        isActive
+                                          ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                                          : "text-gray-400 hover:bg-[#1E293B] hover:text-white"
+                                      }
+                                  `}
+                >
+                  {Icon && (
+                    <Icon
+                      className={`h-5 w-5 shrink-0 transition-colors ${isActive ? "text-white" : "text-gray-500 group-hover:text-white"}`}
+                    />
+                  )}
+                  <span>{item.name}</span>
+                </Link>
+              );
+            })}
         </nav>
 
         {/* Bottom Actions */}
