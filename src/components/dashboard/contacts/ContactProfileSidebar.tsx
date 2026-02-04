@@ -139,9 +139,7 @@ export function ContactProfileSidebar({
               <input
                 type="text"
                 value={formData.first_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, first_name: e.target.value })
-                }
+                onKeyDown={(e) => e.key === "Enter" && handleSave()}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg p-2 text-sm font-bold placeholder:text-gray-400"
                 placeholder="First Name"
               />
@@ -151,6 +149,7 @@ export function ContactProfileSidebar({
                 onChange={(e) =>
                   setFormData({ ...formData, last_name: e.target.value })
                 }
+                onKeyDown={(e) => e.key === "Enter" && handleSave()}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg p-2 text-sm font-bold placeholder:text-gray-400"
                 placeholder="Last Name"
               />
@@ -168,6 +167,7 @@ export function ContactProfileSidebar({
               onChange={(e) =>
                 setFormData({ ...formData, company: e.target.value })
               }
+              onKeyDown={(e) => e.key === "Enter" && handleSave()}
               className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg p-2 text-xs font-medium placeholder:text-gray-400"
               placeholder="Company Name"
             />
@@ -228,6 +228,7 @@ export function ContactProfileSidebar({
             value={formData.email}
             isEditing={isEditing}
             onChange={(val: string) => setFormData({ ...formData, email: val })}
+            onSave={handleSave}
             copyable
           />
           <InfoRow
@@ -236,6 +237,7 @@ export function ContactProfileSidebar({
             value={formData.phone}
             isEditing={isEditing}
             onChange={(val: string) => setFormData({ ...formData, phone: val })}
+            onSave={handleSave}
             copyable
           />
           <InfoRow
@@ -250,6 +252,7 @@ export function ContactProfileSidebar({
               { label: "Archived", value: "archived" },
             ]}
             onChange={(val: string) => setFormData({ ...formData, status: val })}
+            onSave={handleSave}
           />
           <InfoRow icon={<Briefcase />} label="Role" value="CEO / Owner" />
           <InfoRow icon={<MapPin />} label="Location" value="Slovakia" />
@@ -266,6 +269,7 @@ export function ContactProfileSidebar({
               value={formatSlovakDate(formData.nameday || getNameDayDate(formData.first_name)) || "—"}
               isEditing={isEditing}
               onChange={(val: string) => setFormData({ ...formData, nameday: val })}
+              onSave={handleSave}
             />
           </div>
           <InfoRow
@@ -274,6 +278,7 @@ export function ContactProfileSidebar({
             value={formatSlovakDate(formData.birthday) || formData.birthday}
             isEditing={isEditing}
             onChange={(val: string) => setFormData({ ...formData, birthday: val })}
+            onSave={handleSave}
             placeholder="Napr. 15. Jún"
           />
         </div>
@@ -302,6 +307,7 @@ interface InfoRowProps {
   isSelect?: boolean;
   options?: { label: string; value: string }[];
   onChange?: (val: string) => void;
+  onSave?: () => void;
   placeholder?: string;
 }
 
@@ -315,6 +321,7 @@ function InfoRow({
   isSelect,
   options,
   onChange,
+  onSave,
   ...props
 }: InfoRowProps) {
   return (
@@ -344,6 +351,11 @@ function InfoRow({
               type="text"
               value={value || ""}
               onChange={(e) => onChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && onSave) {
+                  onSave();
+                }
+              }}
               className="w-full bg-transparent border-none p-0 text-xs font-semibold text-foreground focus:ring-0 outline-none"
               placeholder={props.placeholder || `Enter ${label}...`}
             />
