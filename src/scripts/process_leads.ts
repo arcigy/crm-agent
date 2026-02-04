@@ -53,8 +53,8 @@ async function generateAIContent(reworkedName: string, scrapedContent: string) {
         const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
-                { role: "system", content: "Ste expert na personalizovaný outreach. Používajte FORMÁLNY TÓN (vykanie). Výstup JSON." },
-                { role: "user", content: `Web: ${scrapedContent}\n\nFirma: ${reworkedName}\n\n1.Abstrakt (2 odstavce, spartan)\n2.Icebreaker začínajúci: "Dobrý deň. Páči sa mi, že ${prep} ${reworkedName} sa venujete..." (formálne vykanie, žiadne zátvorky, vyplňte detaily).\n\nOutput JSON: {"abstract": "...", "icebreaker": "..."}` }
+                { role: "system", content: "Ste expert na personalizovaný outreach. Používajte FORMÁLNY TÓN (vykanie). Výstup JSON. NEPRIDÁVAJTE žiadne vysvetlivky, poznámky ani text v zátvorkách na koniec vety." },
+                { role: "user", content: `Web: ${scrapedContent}\n\nFirma: ${reworkedName}\n\n1.Abstrakt (2 odstavce, spartan)\n2.Icebreaker začínajúci: \"Dobrý deň. Páči sa mi, že ${prep} ${reworkedName} sa venujete...\" (formálne vykanie, vyplňte detaily).\n\nDÔLEŽITÉ: Výstup nesmie obsahovať žiadne zátvorky ani komentáre k vokalizácii. Len čistý text.\n\nOutput JSON: {\"abstract\": \"...\", \"icebreaker\": \"...\"}` }
             ],
             response_format: { type: "json_object" }
         });
