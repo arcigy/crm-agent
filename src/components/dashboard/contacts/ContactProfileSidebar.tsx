@@ -303,9 +303,13 @@ export function ContactProfileSidebar({
             label="Narodeniny"
             value={formatSlovakDate(formData.birthday) || formData.birthday}
             isEditing={isEditing}
-            onChange={(val: string) => setFormData({ ...formData, birthday: val })}
+            renderEdit={() => (
+              <BirthdayPicker 
+                value={formData.birthday} 
+                onChange={(val) => setFormData({ ...formData, birthday: val })} 
+              />
+            )}
             onSave={handleSave}
-            placeholder="Napr. 15. Jún"
           />
         </div>
 
@@ -323,6 +327,69 @@ export function ContactProfileSidebar({
   );
 }
 
+function BirthdayPicker({ 
+  value, 
+  onChange 
+}: { 
+  value: string; 
+  onChange: (val: string) => void 
+}) {
+  // Parse YYYY-MM-DD
+  const dateObj = value && value.includes('-') ? new Date(value) : null;
+  const [d, setD] = React.useState(dateObj ? dateObj.getDate().toString() : "");
+  const [m, setM] = React.useState(dateObj ? (dateObj.getMonth() + 1).toString() : "");
+  const [y, setY] = React.useState(dateObj ? dateObj.getFullYear().toString() : "");
+
+  React.useEffect(() => {
+    if (d && m && y) {
+      const pad = (n: string) => n.padStart(2, '0');
+      onChange(`${y}-${pad(m)}-${pad(d)}`);
+    } else if (!d && !m && !y) {
+      onChange("");
+    }
+  }, [d, m, y, onChange]);
+
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "Máj", "Jún", 
+    "Júl", "Aug", "Sep", "Okt", "Nov", "Dec"
+  ];
+
+  return (
+    <div className="flex gap-1 mt-1">
+      <select 
+        value={d} 
+        onChange={(e) => setD(e.target.value)}
+        className="bg-slate-50 dark:bg-slate-800 border border-border rounded px-1 py-0.5 text-[10px] font-bold outline-none"
+      >
+        <option value="">Deň</option>
+        {Array.from({length: 31}, (_, i) => i + 1).map(day => (
+          <option key={day} value={day}>{day}.</option>
+        ))}
+      </select>
+      <select 
+        value={m} 
+        onChange={(e) => setM(e.target.value)}
+        className="bg-slate-50 dark:bg-slate-800 border border-border rounded px-1 py-0.5 text-[10px] font-bold outline-none"
+      >
+        <option value="">Mesiac</option>
+        {months.map((name, i) => (
+          <option key={i+1} value={i+1}>{name}</option>
+        ))}
+      </select>
+      <select 
+        value={y} 
+        onChange={(e) => setY(e.target.value)}
+        className="bg-slate-50 dark:bg-slate-800 border border-border rounded px-1 py-0.5 text-[10px] font-bold outline-none"
+      >
+        <option value="">Rok</option>
+        {Array.from({length: 100}, (_, i) => new Date().getFullYear() - i).map(year => (
+          <option key={year} value={year}>{year}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 interface InfoRowProps {
   icon: React.ReactElement;
   label: string;
@@ -335,6 +402,7 @@ interface InfoRowProps {
   onChange?: (val: string) => void;
   onSave?: () => void;
   placeholder?: string;
+  renderEdit?: () => React.ReactNode;
 }
 
 function InfoRow({
@@ -359,8 +427,10 @@ function InfoRow({
         <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">
           {label}
         </p>
-        {isEditing && onChange ? (
-          isSelect ? (
+        {isEditing && (onChange || props.renderEdit) ? (
+          props.renderEdit ? (
+            props.renderEdit()
+          ) : isSelect ? (
             <select
               value={value}
               onChange={(e) => onChange(e.target.value)}
