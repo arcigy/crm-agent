@@ -67,7 +67,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
       {/* Full Height Sidebar Menu */}
       <aside 
         className={`
-          fixed inset-y-0 left-0 z-[2000] w-64 bg-card/95 backdrop-blur-2xl border-r border-white/10 shadow-[20px_0_50px_rgba(0,0,0,0.2)] flex flex-col transition-transform duration-500 ease-in-out font-sans tracking-tight
+          fixed inset-y-0 left-0 z-[2000] w-64 bg-[#050409]/95 backdrop-blur-2xl border-r border-white/5 shadow-[20px_0_50px_rgba(0,0,0,0.4)] flex flex-col transition-transform duration-500 ease-in-out font-sans tracking-tight
           ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -83,11 +83,10 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
             <Link 
               key={item.href}
               href={item.href}
-              onClick={() => setIsMenuOpen(false)}
               className={`
                 flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-300
                 ${pathname === item.href 
-                  ? "bg-zinc-800/50 text-white shadow-lg shadow-black/5" 
+                  ? "bg-zinc-800/50 text-white shadow-lg shadow-black/5 border border-white/5" 
                   : "text-zinc-500 hover:bg-zinc-800/20 hover:text-zinc-200"
                 }
               `}
@@ -102,7 +101,6 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           <ThemeToggle />
           <Link
             href="/dashboard/settings"
-            onClick={() => setIsMenuOpen(false)}
             className="flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium text-zinc-500 hover:bg-zinc-800/20 hover:text-zinc-200 transition-all group"
           >
             <Settings className="w-5 h-5 opacity-60 group-hover:rotate-45 transition-transform" />
