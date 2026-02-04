@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Zap, Upload, Trash2, Search, Filter, Download, Plus, Loader2 } from "lucide-react";
-import { bulkCreateOutreachLeads, getOutreachLeads } from "@/app/actions/outreach";
+import { bulkCreateOutreachLeads, getOutreachLeads, deleteAllLeads } from "@/app/actions/outreach";
 import Papa from "papaparse";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
@@ -62,6 +62,20 @@ export default function OutreachLeadsPage() {
     });
   };
 
+  const handleDeleteAll = async () => {
+    if (!window.confirm("Naozaj chcete vymazať VŠETKY leady z vášho zoznamu? Táto akcia je nevratná.")) return;
+    
+    setLoading(true);
+    const res = await deleteAllLeads();
+    if (res.success) {
+      toast.success("Všetky leady boli odstránené");
+      setLeads([]);
+    } else {
+      toast.error("Chyba pri mazaní: " + res.error);
+    }
+    setLoading(false);
+  };
+
   const filteredLeads = leads.filter(l => 
     l.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.company?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -78,6 +92,16 @@ export default function OutreachLeadsPage() {
           <p className="text-muted-foreground font-medium">Správa separovaných leadov pre cold outreach kampane.</p>
         </div>
         <div className="flex gap-3">
+          {leads.length > 0 && (
+            <button 
+              onClick={handleDeleteAll}
+              disabled={loading}
+              className="bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all active:scale-95 border border-red-500/20"
+            >
+              <Trash2 className="w-5 h-5" />
+              Vymazať všetko
+            </button>
+          )}
           <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-600/20 active:scale-95">
             {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
             Import CSV
