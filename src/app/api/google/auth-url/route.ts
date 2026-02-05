@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getAuthUrl } from '@/lib/google';
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        const url = getAuthUrl();
+        const { origin } = new URL(req.url);
+        const redirectUri = `${origin}/oauth-callback`;
+        const url = getAuthUrl(undefined, redirectUri);
         return NextResponse.json({ url });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
