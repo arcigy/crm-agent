@@ -226,7 +226,6 @@ export function ColdLeadsImportModal({
                   ))}
                 </div>
                 <div className="space-y-6">
-                <div className="space-y-6">
                   <div className="flex items-center justify-between">
                       <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">Náhľad dát ({processedRows.length} riadkov)</h4>
                       <div className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">Vybrané: {selectedRows.size}</div>
