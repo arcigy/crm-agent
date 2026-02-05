@@ -226,7 +226,61 @@ export function ColdLeadsImportModal({
                   ))}
                 </div>
                 <div className="space-y-6">
-                  <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">Náhľad dát ({selectedRows.size})</h4>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">Náhľad dát ({processedRows.length} riadkov)</h4>
+                      <div className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">Vybrané: {selectedRows.size}</div>
+                  </div>
+
+                  {/* Range Selector */}
+                  <div className="bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase text-gray-400">Od:</span>
+                          <input 
+                            type="number" 
+                            min={1} 
+                            max={processedRows.length}
+                            className="w-20 h-8 text-center text-xs font-bold bg-white border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+                            placeholder="1"
+                            id="range-start"
+                            defaultValue={1}
+                          />
+                      </div>
+                      <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase text-gray-400">Do:</span>
+                          <input 
+                            type="number" 
+                            min={1} 
+                            max={processedRows.length}
+                            className="w-20 h-8 text-center text-xs font-bold bg-white border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+                            placeholder={String(processedRows.length)}
+                            id="range-end"
+                            defaultValue={processedRows.length}
+                          />
+                      </div>
+                      <button 
+                        onClick={() => {
+                            const startInput = document.getElementById("range-start") as HTMLInputElement;
+                            const endInput = document.getElementById("range-end") as HTMLInputElement;
+                            const start = parseInt(startInput.value) || 1;
+                            const end = parseInt(endInput.value) || processedRows.length;
+                            
+                            const newSet = new Set<number>();
+                            processedRows.forEach((_, i) => {
+                                // indices are 0-based, range is 1-based logic usually for humans
+                                if (i + 1 >= start && i + 1 <= end) {
+                                    newSet.add(i);
+                                }
+                            });
+                            setSelectedRows(newSet);
+                            toast.success(`Vybraný rozsah ${start} - ${end} (${newSet.size} riadkov)`);
+                        }}
+                        className="ml-auto px-4 py-2 bg-white border border-gray-200 shadow-sm rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 active:scale-95 transition-all"
+                      >
+                        Vybrať
+                      </button>
+                  </div>
+
                   <div className="bg-gray-900 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden border border-white/10">
                     <div className="overflow-x-auto max-h-[400px]">
                       <table className="w-full text-left">
