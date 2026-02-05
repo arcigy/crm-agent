@@ -127,8 +127,8 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
             return score(b) - score(a);
         });
 
-        // 4. Crawl up to 3 top candidates
-        const toCrawl = sortedCandidates.slice(0, 3);
+        // 4. Crawl up to 10 top candidates
+        const toCrawl = sortedCandidates.slice(0, 10);
         
         for (const subUrl of toCrawl) {
             try {
@@ -139,7 +139,6 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
                     }
                     collectedEmails = [...collectedEmails, ...sub.emails];
                 }
-                // Break early if we found a good email? No, collect all to find the best one.
             } catch (e) { /* ignore page fail */ }
         }
 
@@ -148,7 +147,7 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
         // Filter out obviously wrong ones
         const filteredEmails = uniqueEmails.filter(e => {
             const lower = e.toLowerCase();
-            return !lower.includes("wix.com") && !lower.includes("sentry.io") && !lower.includes("example.com");
+            return !lower.includes("wix.com") && !lower.includes("sentry.io") && !lower.includes("example.com") && !lower.includes("domain.com");
         });
 
         const prioritizedEmail = filteredEmails.find(e => 
@@ -156,7 +155,9 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
             e.includes("kontakt@") || 
             e.includes("office@") || 
             e.includes("predaj@") ||
-            e.includes("servis@")
+            e.includes("servis@") ||
+            e.includes("obchod@") ||
+            e.includes("dopyt@")
         ) || filteredEmails[0];
 
         return {
