@@ -24,23 +24,18 @@ export function GoogleConnectButton({
     if (!isLoaded) return;
     setIsLoading(true);
     try {
-      if (!googleAccount) {
-        await user?.createExternalAccount({
-          strategy: "oauth_google",
-          redirectUrl: window.location.href,
-        });
+      // Use our custom flow which now forces 'select_account'
+      const res = await fetch('/api/google/auth-url');
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
       } else {
-        // If already connected but user wants to "fix", currently just show info
-        // In fully custom flows, we might remove and re-add, but that's risky for standard Clerk setups
-        toast.info("Účet je už prepojený", { description: "Pre re-autorizáciu odstráňte prepojenie v profile." });
+        throw new Error("Nepodarilo sa vygenerovať autorizačnú URL");
       }
     } catch (e: unknown) {
       console.error(e);
-      const errorMessage =
-        e instanceof Error ? e.message : "Skontrolujte nastavenia v Clerk";
-      toast.error("Chyba prepojenia", {
-        description: errorMessage,
-      });
+      const errorMessage = e instanceof Error ? e.message : "Chyba prepojenia";
+      toast.error("Chyba prepojenia", { description: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -110,7 +105,7 @@ export function GoogleConnectButton({
       ) : (
         <Cloud className="w-4 h-4 text-orange-500" />
       )}
-      <span>Prepojiť Google (Clerk)</span>
+      <span>Prepojiť Google účet (Výber mailu)</span>
     </button>
   );
 }
