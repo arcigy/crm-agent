@@ -412,6 +412,7 @@ export default function OutreachLeadsPage() {
                             </button>
                         </th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Firma & Detail</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Email</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Personalizácia</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right"></th>
                       </tr>
@@ -487,10 +488,37 @@ export default function OutreachLeadsPage() {
                                     <div className="flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider">
                                         <Briefcase className="w-3 h-3" /> {lead.category?.slice(0, 20) || "Firma"}
                                     </div>
-                               </div>
-                            </td>
-
-                            <td className="px-6 py-6 max-w-lg align-top">
+                                </div>
+                             </td>
+                             <td className="px-6 py-6 align-top">
+                                <div 
+                                    className="cursor-pointer"
+                                    onDoubleClick={() => startEditing(lead, "email", lead.email || "")}
+                                >
+                                    {editingCell?.id === lead.id && editingCell?.field === "email" ? (
+                                        <input
+                                            ref={editInputRef as React.RefObject<HTMLInputElement>}
+                                            className="w-full p-2 border border-blue-500 rounded-lg bg-white text-xs font-bold text-gray-900 shadow-lg ring-4 ring-blue-50 z-20 relative"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            onBlur={saveEdit}
+                                            onKeyDown={handleKeyDown}
+                                        />
+                                    ) : (
+                                        <div className="flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-blue-600 transition-colors">
+                                            {lead.email ? (
+                                                <>
+                                                    <span className="bg-green-50 text-green-700 px-2 py-1 rounded-md text-[10px] uppercase tracking-wider">Mám</span>
+                                                    {lead.email}
+                                                </>
+                                            ) : (
+                                                <span className="text-gray-300 font-medium italic">Chýba</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                             </td>
+                             <td className="px-6 py-6 max-w-lg align-top">
                                 <div 
                                     className="cursor-pointer"
                                     onDoubleClick={() => startEditing(lead, "ai_first_sentence", lead.ai_first_sentence || "")}

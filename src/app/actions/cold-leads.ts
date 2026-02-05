@@ -247,17 +247,38 @@ export async function enrichColdLead(id: string | number) {
             }
         }
 
-        // 2. AI Generate
-        const aiResult = await generatePersonalization(lead, scrapedText);
+        // 2. Logic Decision: Outreach vs Cold Call
+        // If NO website OR NO email (from scrape or already present)
+        const hasEmail = lead.email || scrapeResult?.email;
         
-        // Prepare update data
+        let shouldPersonalize = !!(urlToScrape && hasEmail);
+        
         const updateData: any = {};
-        if (aiResult && aiResult.sentence) {
-            updateData.company_name_reworked = aiResult.name;
-            updateData.ai_first_sentence = aiResult.sentence;
-            debugInfo.aiGenerated = true;
-        } else if (aiResult && aiResult.error) {
-            debugInfo.error = `AI Error: ${aiResult.error}`;
+
+        if (shouldPersonalize) {
+            // AI Generate only if we have both web and email
+            const aiResult = await generatePersonalization(lead, scrapedText);
+            if (aiResult && aiResult.sentence) {
+                updateData.company_name_reworked = aiResult.name;
+                updateData.ai_first_sentence = aiResult.sentence;
+                debugInfo.aiGenerated = true;
+            } else if (aiResult && aiResult.error) {
+                debugInfo.error = `AI Error: ${aiResult.error}`;
+            }
+        } else {
+            // Move to Cold Call list if missing criteria for Cold Outreach
+            updateData.list_name = "Cold Call";
+            debugInfo.error = "No Web/Email -> Moved to Cold Call";
+
+            // Ensure the "Cold Call" list exists so it shows in sidebar
+            try {
+                const existingLists = await directus.request(readItems("cold_leads_lists", { filter: { name: { _eq: "Cold Call" }}}));
+                if (!existingLists || (existingLists as any[]).length === 0) {
+                    await directus.request(createItem("cold_leads_lists", { name: "Cold Call" }));
+                }
+            } catch (listError) {
+                console.error("Failed to ensure Cold Call list exists:", listError);
+            }
         }
 
         // 3. Save Scraped Email if exists and lead had none
@@ -267,6 +288,7 @@ export async function enrichColdLead(id: string | number) {
 
         if (Object.keys(updateData).length > 0) {
             await directus.request(updateItem("cold_leads", id, updateData));
+            // Return success even if skipped AI, because we updated the list_name
             return { success: true, debug: debugInfo };
         }
         
