@@ -1,9 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { Smartphone, Check, Copy, Apple, ArrowRight } from 'lucide-react';
+import { Smartphone, Check, Copy, Apple, ArrowRight, Cloud } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useUser } from '@clerk/nextjs'; // Use Clerk
+import { GoogleConnectButton } from "@/components/dashboard/GoogleConnectButton";
 
 export default function MobileSyncPage() {
     const { user, isLoaded } = useUser(); // Access Clerk user
@@ -37,7 +38,27 @@ export default function MobileSyncPage() {
                 <p className="text-gray-500 font-medium">Synchronizujte svoje kontakty s iPhonom alebo Androidom. Všetky zmeny sa prejavia obojsmerne.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                {/* Google Workspace Card */}
+                <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 flex flex-col relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                     <div className="flex items-center gap-4 mb-6">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
+                            <Cloud className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Google Workspace</h2>
+                            <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Calendar & Gmail</p>
+                        </div>
+                    </div>
+                    <div className="flex-1 flex flex-col justify-between">
+                         <p className="text-sm font-medium text-gray-600 mb-6 leading-relaxed">
+                            Prepojte svoj Google účet pre automatickú synchronizáciu udalostí a emailov priamo v CRM.
+                        </p>
+                        <GoogleConnectButton className="w-full" showManageOptions={true} />
+                    </div>
+                </div>
 
                 {/* iOS Card */}
                 <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 flex flex-col relative overflow-hidden group">
