@@ -267,7 +267,6 @@ export function ColdLeadsImportModal({
                             
                             const newSet = new Set<number>();
                             processedRows.forEach((_, i) => {
-                                // indices are 0-based, range is 1-based logic usually for humans
                                 if (i + 1 >= start && i + 1 <= end) {
                                     newSet.add(i);
                                 }
