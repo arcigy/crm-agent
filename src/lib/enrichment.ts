@@ -1,21 +1,74 @@
 import { ColdLeadItem } from "@/app/actions/cold-leads";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import dns from "dns";
+import net from "net";
 import { promisify } from "util";
 
 const resolveMx = promisify(dns.resolveMx);
 
-// Helper: Guess common emails if none found
+// Helper: Stealth SMTP Recipient Check (without sending)
+async function verifyEmailRecipient(email: string, mxHost: string): Promise<boolean> {
+    return new Promise((resolve) => {
+        const socket = net.createConnection(25, mxHost);
+        let step = 0;
+        socket.setTimeout(4000);
+
+        socket.on('data', (data) => {
+            const response = data.toString();
+            // 220 = Server ready
+            if (step === 0 && response.startsWith('220')) {
+                socket.write(`HELO crm-agent.io\r\n`);
+                step++;
+            } 
+            // 250 = OK
+            else if (step === 1 && response.startsWith('250')) {
+                socket.write(`MAIL FROM:<verify@crm-agent.io>\r\n`);
+                step++;
+            } 
+            else if (step === 2 && response.startsWith('250')) {
+                socket.write(`RCPT TO:<${email}>\r\n`);
+                step++;
+            } 
+            // Final check response (250 = User exists, 550 = No such user)
+            else if (step === 3) {
+                if (response.startsWith('250')) resolve(true);
+                else resolve(false);
+                socket.write('QUIT\r\n');
+                socket.end();
+            }
+        });
+
+        socket.on('error', () => resolve(false));
+        socket.on('timeout', () => { socket.destroy(); resolve(false); });
+    });
+}
+
+// Helper: Guess and VERIFY common emails if none found
 async function guessEmailsForDomain(url: string): Promise<string[]> {
     try {
         const domain = new URL(url).hostname.replace("www.", "");
-        // First check if domain has MX records (can receive email)
+        // 1. Check if domain has MX records
         const mxRecords = await resolveMx(domain).catch(() => []);
         if (mxRecords.length === 0) return [];
 
-        const prefixes = ["info", "kontakt", "office", "servis", "obchod", "predaj", "dopyt"];
-        return prefixes.map(p => `${p}@${domain}`);
-    } catch (e) {
+        const bestMx = mxRecords.sort((a,b) => a.priority - b.priority)[0].exchange;
+        const prefixes = ["info", "kontakt", "office", "servis", "obchod", "predaj"];
+        
+        // 2. Try to verify the first few (parallel)
+        const candidates = prefixes.map(p => `${p}@${domain}`);
+        const results = await Promise.all(
+            candidates.slice(0, 3).map(async (email) => {
+                const isValid = await verifyEmailRecipient(email, bestMx);
+                return isValid ? email : null;
+            })
+        );
+
+        const found = results.filter((e): e is string => e !== null);
+        
+        // Final fallback: if SMTP check was blocked/failed but MX is fine, 
+        // return at least 'info' to keep things working
+        return found.length > 0 ? found : [`info@${domain}`];
+    } catch {
         return [];
     }
 }
@@ -137,7 +190,7 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
                             extractEmails(sText).forEach(e => emails.add(e));
                         }
                     }
-                } catch(err) { /* ignore script fail */ }
+                } catch(err) { /* ignore */ }
             }
 
             // 2. Cloudflare de-obfuscation
@@ -173,7 +226,15 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
 
     try {
         const home = await fetchAndAnalyze(url);
-        if (!home) return null;
+        
+        // --- RESILIENCE: If home fails (403/Blocked), try guessing immediately ---
+        if (!home) {
+            const guessed = await guessEmailsForDomain(url);
+            if (guessed.length > 0) {
+                return { text: "", email: guessed[0] };
+            }
+            return null;
+        }
 
         let combinedText = `--- HOMEPAGE ---\n${home.text}`;
         const collectedEmails = new Set<string>(home.emails);
@@ -239,7 +300,7 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
             email: prioritizedEmail || undefined
         };
 
-    } catch (e) {
+    } catch {
         return null; 
     }
 }
