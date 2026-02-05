@@ -144,13 +144,17 @@ export function ColdLeadsImportModal({
     try {
       const leadsToUpload = Array.from(selectedRows).map((index) => {
         const row = processedRows[index];
+        const website = String(row[mapping.website] || "").trim();
+        // If no website, go straight to Cold Call list
+        const list_name = website ? (initialListName || "Zoznam 1") : "Cold Call";
+        
         return {
           title: String(row[mapping.title] || ""),
-          website: String(row[mapping.website] || ""),
+          website: website,
           phone: String(row[mapping.phone] || ""),
           city: String(row[mapping.city] || ""),
           category: String(row[mapping.category] || ""),
-          list_name: initialListName || "Zoznam 1"
+          list_name: list_name
         };
       });
 
@@ -163,11 +167,20 @@ export function ColdLeadsImportModal({
         
         const newIds = res.items.map(i => i.id);
 
-        if (autoStartEnrichment && newIds.length > 0) {
-            const { bulkUpdateColdLeads } = await import("@/app/actions/cold-leads");
-            await bulkUpdateColdLeads(newIds, { enrichment_status: "pending" });
-            fetch("/api/cron/enrich-leads").catch(console.error);
-            toast.success(`Importované a pridané do fronty (${res.count} leadov)!`);
+        if (autoStartEnrichment) {
+            // Filter only leads that have a website for enrichment
+            const enrichIds = res.items
+                .filter(i => i.website && i.website.length > 3)
+                .map(i => i.id);
+
+            if (enrichIds.length > 0) {
+                const { bulkUpdateColdLeads } = await import("@/app/actions/cold-leads");
+                await bulkUpdateColdLeads(enrichIds, { enrichment_status: "pending" });
+                fetch("/api/cron/enrich-leads").catch(console.error);
+                toast.success(`Importované! ${enrichIds.length} leadov pridaných do fronty.`);
+            } else {
+                toast.success(`Importované! Všetky leady boli pridané do Cold Call zoznamu (bez webu).`);
+            }
         } else {
             toast.success(`Úspešne importovaných ${res.count} leadov.`);
         }
