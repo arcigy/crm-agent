@@ -69,17 +69,20 @@ export function ColdLeadsImportModal({
           const newMapping = { ...mapping };
           (results.meta.fields || []).forEach((h) => {
             const low = h.toLowerCase();
-            if (low.includes("title") || low.includes("názov") || low.includes("original_title")) newMapping.title = h;
+            if (low.includes("title") || low.includes("názov") || low.includes("original_title") || low.includes("name")) newMapping.title = h;
             if (low.includes("reworked") || low.includes("meno") || low.includes("final_company_name")) newMapping.company_name_reworked = h;
-            if (low.includes("website") || low.includes("web")) newMapping.website = h;
+            if (low.includes("website") || low.includes("web") || low.includes("site") || low.includes("domain") || (low === "url") || (low === "link")) newMapping.website = h;
             if (low.includes("email") || low.includes("e-mail") || low.includes("mail")) newMapping.email = h;
-            if (low.includes("phone") || low.includes("tel")) newMapping.phone = h;
-            if (low.includes("city") || low.includes("mesto")) newMapping.city = h;
-            if (low.includes("category") || low.includes("kategória") || low.includes("industry")) newMapping.category = h;
-            if (low.includes("abstract") || low.includes("abstrakt")) newMapping.abstract = h;
+            if (low.includes("phone") || low.includes("tel") || low.includes("mobil")) newMapping.phone = h;
+            if (low.includes("city") || low.includes("mesto") || low.includes("address") || low.includes("adresa")) newMapping.city = h;
+            if (low.includes("category") || low.includes("kategória") || low.includes("industry") || low.includes("odvetvie")) newMapping.category = h;
+            if (low.includes("abstract") || low.includes("abstrakt") || low.includes("description") || low.includes("popis")) newMapping.abstract = h;
             if (low.includes("sentence") || low.includes("icebreaker") || low.includes("veta")) newMapping.ai_first_sentence = h;
-            if (low.includes("drive") || low.includes("fallback") || low.includes("url")) newMapping.fallback_url = h;
-            if (low.includes("maps") || low.includes("google")) newMapping.google_maps_url = h;
+            // Fallback URL logic: prioritizing explicit "fallback" or "drive" or "google", but catch "url" if not mapped to website above?
+            // Actually, if website is already mapped, we don't overwrite. But we loop headers, so order matters.
+            // Let's refine: fallback is mostly for "drive" or explicit fallback columns.
+            if (low.includes("drive") || low.includes("fallback") || (low.includes("url") && !newMapping.website)) newMapping.fallback_url = h;
+            if (low.includes("maps") || (low.includes("google") && low.includes("url")) || low.includes("gmap")) newMapping.google_maps_url = h;
           });
           setMapping(newMapping);
           setSelectedRows(new Set(results.data.map((_, i) => i)));
