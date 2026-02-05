@@ -252,10 +252,12 @@ export async function enrichColdLead(id: string | number) {
         
         // Prepare update data
         const updateData: any = {};
-        if (aiResult) {
+        if (aiResult && aiResult.sentence) {
             updateData.company_name_reworked = aiResult.name;
-            updateData.ai_first_sentence = aiResult.sentence || undefined;
+            updateData.ai_first_sentence = aiResult.sentence;
             debugInfo.aiGenerated = true;
+        } else if (aiResult && aiResult.error) {
+            debugInfo.error = `AI Error: ${aiResult.error}`;
         }
 
         // 3. Save Scraped Email if exists and lead had none
@@ -268,8 +270,7 @@ export async function enrichColdLead(id: string | number) {
             return { success: true, debug: debugInfo };
         }
         
-        debugInfo.error = "No new data generated";
-        return { success: false, error: "No enrichment data generated", debug: debugInfo };
+        return { success: false, error: debugInfo.error || "No enrichment data generated", debug: debugInfo };
 
     } catch (e: any) {
         console.error("Enrichment failed:", e);

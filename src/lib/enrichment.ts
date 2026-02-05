@@ -216,33 +216,36 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
     `;
 
     try {
-        console.log(`[AI] Requesting Gemini for: ${businessName}`);
+        console.log(`[AI] Requesting Gemini 3 Flash for: ${businessName}`);
         
-        // As requested: Using the 2.0 Flash model (latest available)
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        // As requested: Using Gemini 3 Flash (Latest 2026 Model)
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
         
         const result = await model.generateContent(prompt);
         const response = await result.response;
         
-        if (!response) throw new Error("No response from Gemini");
+        if (!response) throw new Error("No response from Gemini API");
         
-        const sentence = response.text().trim();
-        
-        if (!sentence) {
-            console.warn(`[AI] Empty sentence generated for ${businessName}`);
-            return null;
-        }
+        const textResponse = response.text();
+        if (!textResponse) throw new Error("Empty response from Gemini API");
 
+        const sentence = textResponse.trim();
+        
         console.log(`[AI] Successfully generated for ${businessName}`);
 
         return {
             name: businessName,
-            sentence: sentence.replace(/^["']|["']$/g, "")
+            sentence: sentence.replace(/^["']|["']$/g, ""),
+            error: null
         };
 
     } catch (e: any) {
-        console.error(`[AI] ERROR for ${businessName}:`, e.message || e);
-        // Special case: if it's a safety filter or model error, return helpful debug info or null
-        return null;
+        const msg = e.message || String(e);
+        console.error(`[AI] ERROR for ${businessName}:`, msg);
+        return {
+            name: businessName,
+            sentence: null,
+            error: msg
+        };
     }
 }
