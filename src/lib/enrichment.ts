@@ -216,21 +216,36 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
     `;
 
     try {
-        // Updated to Gemini 3.0 Flash (Latest 2026 Model)
-        const model = genAI.getGenerativeModel({ model: "gemini-3.0-flash" });
+        console.log(`[AI] Requesting Gemini 3 Flash for: ${businessName}`);
+        
+        // As requested: Using Gemini 3 Flash (Latest 2026 Model)
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
         
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        const sentence = response.text().trim();
         
+        if (!response) throw new Error("No response from Gemini API");
+        
+        const textResponse = response.text();
+        if (!textResponse) throw new Error("Empty response from Gemini API");
+
+        const sentence = textResponse.trim();
+        
+        console.log(`[AI] Successfully generated for ${businessName}`);
+
         return {
             name: businessName,
-            sentence: sentence ? sentence.replace(/^"|"$/g, "") : null
+            sentence: sentence.replace(/^["']|["']$/g, ""),
+            error: null
         };
 
-    } catch (e) {
-        console.error("AI Gen Error:", e);
-        // Fallback or retry logic could go here
-        return null;
+    } catch (e: any) {
+        const msg = e.message || String(e);
+        console.error(`[AI] ERROR for ${businessName}:`, msg);
+        return {
+            name: businessName,
+            sentence: null,
+            error: msg
+        };
     }
 }

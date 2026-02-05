@@ -164,7 +164,7 @@ export function ColdLeadsImportModal({
                  if (d.emailFound) setLogs(prev => [...prev, `   - Email: NAJDENÝ! (${d.emailFound})`]);
                  
                  if (d.aiGenerated) setLogs(prev => [...prev, `   - AI: Vygenerované 2 vety`]);
-                 else setLogs(prev => [...prev, `   - AI: Nevygenerované`]);
+                 else setLogs(prev => [...prev, `   - AI: Nevygenerované${d.error ? ` (${d.error})` : ''}`]);
 
              } else {
                  setLogs(prev => [...prev, `❌ CHYBA: ${res.error || "Neznáma chyba"}`]);
