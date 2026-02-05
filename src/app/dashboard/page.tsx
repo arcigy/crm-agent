@@ -79,7 +79,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4 border-b-4 border-black border-dotted">
         <div>
-          <h1 className="text-5xl font-black font-serif text-foreground uppercase italic tracking-tighter leading-none">
+          <h1 className="text-4xl md:text-5xl font-light font-sans text-foreground uppercase tracking-[0.2em] leading-tight">
             Centrálna Riadiaca Jednotka
           </h1>
           <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs mt-4">
