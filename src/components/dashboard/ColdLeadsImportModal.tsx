@@ -137,22 +137,46 @@ export function ColdLeadsImportModal({
 
   const startEnrichment = async (items: ColdLeadItem[]) => {
       setEnrichmentProgress({ current: 0, total: items.length });
-      
+      setLogs([]);
       let completed = 0;
       
       for (const item of items) {
           try {
-             await enrichColdLead(item.id);
-          } catch (e) {
+             setLogs(prev => [...prev, `Spúšťam: ${item.title}...`]);
+             
+             // Cast to any because we modified the return type to include 'debug'
+             const res: any = await enrichColdLead(item.id);
+             
+             if (res.success && res.debug) {
+                 const d = res.debug;
+                 setLogs(prev => [...prev, `✅ OK: ${d.name}`]);
+                 if (d.scraped) setLogs(prev => [...prev, `   - Web: načítaný (${d.scrapedLength} znakov)`]);
+                 else setLogs(prev => [...prev, `   - Web: nenačítaný/ignorovaný`]);
+                 
+                 if (d.emailFound) setLogs(prev => [...prev, `   - Email: NAJDENÝ! (${d.emailFound})`]);
+                 
+                 if (d.aiGenerated) setLogs(prev => [...prev, `   - AI: Vygenerované 2 vety`]);
+                 else setLogs(prev => [...prev, `   - AI: Nevygenerované`]);
+
+             } else {
+                 setLogs(prev => [...prev, `❌ CHYBA: ${res.error || "Neznáma chyba"}`]);
+             }
+
+          } catch (e: any) {
+              setLogs(prev => [...prev, `❌ CRITICAL FAIL: ${e.message}`]);
               console.error(`Failed to enrich ${item.id}`, e);
           }
           completed++;
           setEnrichmentProgress({ current: completed, total: items.length });
       }
       
+      setLogs(prev => [...prev, "🏁 HOTOVO! Všetky riadky spracované."]);
       toast.success("AI Personalizácia hotová!");
-      onSuccess();
-      onClose();
+      // Don't close immediately so user can read logs
+      setTimeout(() => {
+          onSuccess();
+          onClose();
+      }, 5000);
   };
 
   return (
@@ -295,8 +319,10 @@ export function ColdLeadsImportModal({
             </div>
           )}
 
+
           {step === "enrich" && (
               <div className="p-8 flex flex-col items-center justify-center min-h-[300px] text-center space-y-6">
+                  {/* Status Visuals */}
                   <div className="relative">
                       <div className="absolute inset-0 bg-blue-500 blur-3xl opacity-20 rounded-full animate-pulse"></div>
                       <div className="w-24 h-24 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-[2.5rem] flex items-center justify-center shadow-xl relative z-10">
@@ -309,15 +335,35 @@ export function ColdLeadsImportModal({
                       <p className="text-gray-500 font-medium">Analyzujem webstránky a píšem personalizované vety <br/> pomocou <span className="text-blue-600 font-bold">Gemini 2.0 Flash</span>...</p>
                   </div>
 
-                  <div className="w-full max-w-md bg-gray-100 rounded-full h-4 overflow-hidden relative">
-                      <div 
-                        className="bg-blue-600 h-full transition-all duration-300 ease-out"
-                        style={{ width: `${(enrichmentProgress.current / enrichmentProgress.total) * 100}%` }}
-                      ></div>
+                  {/* Progress Bar */}
+                  <div className="w-full max-w-md space-y-2">
+                       <div className="bg-gray-100 rounded-full h-4 overflow-hidden relative">
+                          <div 
+                            className="bg-blue-600 h-full transition-all duration-300 ease-out"
+                            style={{ width: `${(enrichmentProgress.current / enrichmentProgress.total) * 100}%` }}
+                          ></div>
+                       </div>
+                       <p className="text-xs font-black uppercase tracking-widest text-gray-400">
+                         {enrichmentProgress.current} / {enrichmentProgress.total} hotovo
+                       </p>
                   </div>
-                  <p className="text-xs font-black uppercase tracking-widest text-gray-400">
-                      {enrichmentProgress.current} / {enrichmentProgress.total} hotovo
-                  </p>
+
+                  {/* CONSOLE OUTPUT */}
+                  <div className="w-full max-w-2xl mt-8 bg-gray-900 rounded-2xl p-4 text-left overflow-hidden border border-white/10 shadow-inner">
+                      <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Live Console</span>
+                          <span className="text-[10px] font-mono text-gray-600">v0.1.0</span>
+                      </div>
+                      <div className="h-40 overflow-y-auto space-y-1 font-mono text-[10px] text-gray-300 overscroll-contain">
+                          {logs.length === 0 && <span className="text-gray-600 italic">Čakám na spustenie...</span>}
+                          {logs.map((log, i) => (
+                              <div key={i} className="whitespace-pre-wrap border-b border-white/5 pb-1">
+                                  <span className="text-blue-500">[{new Date().toLocaleTimeString()}]</span> {log}
+                              </div>
+                          ))}
+                          <div ref={logsEndRef} />
+                      </div>
+                  </div>
               </div>
           )}
         </div>
