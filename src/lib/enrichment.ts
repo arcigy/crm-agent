@@ -336,7 +336,7 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
     // Context Source
     let contextText = "";
     if (scrapedContent && scrapedContent.length > 50) {
-        contextText = `Website/Source Content:\n${scrapedContent.slice(0, 8000)}`; 
+        contextText = `Website/Source Content:\n${scrapedContent.slice(0, 15000)}`;  // Increased token limit for scanning names
     } else if (abstract && abstract.length > 10) {
         contextText = `Abstract:\n${abstract}`;
     } else if (fallback_url) {
@@ -348,24 +348,36 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
     const prompt = `
     Role: You are an expert copywriter for B2B cold outreach in Slovakia.
     Language: SLOVAK (Slovenský jazyk) ONLY.
-    Tone: Spartan, Laconic, Conversational (Stručný, priamy, bez 'omáčok').
+    Tone: Professional yet Conversational (Stručný, priamy, bez 'omáčok').
     
     Target Business: "${businessName}"
     Category: "${category}"
     Context INFO (Scraped text):
     ${contextText}
     
-    Your Task: Write a short personalized opener consisting of TWO SENTENCES.
+    Your Task:
+    1. Scan the text for specific Decision Makers (CEO, Majiteľ, Konateľ, Riaditeľ).
+       - Look for names like "Ján Novák", "Ing. Peter Kováč".
+       - Prioritize hierarchy: Majiteľ/CEO/Konateľ > Riaditeľ > Manažér.
+       - Do NOT invent names. Only use what is explicitly in the text.
+    
+    2. Write a short personalized opener (TWO SENTENCES).
     
     CRITICAL RULES:
-    1. Start EXACTLY with: "Dobrý deň. Páči sa mi, že v ${businessName}..."
-    2. SPECIFICITY IS KEY: 
+    1. SALUTATION MODE:
+       - IF you found a decision maker's name (e.g. Peter Novák), start EXACTLY with:
+         "Dobrý deň, pán Novák. Páči sa mi, že v ${businessName}..." (Use Last Name properly inflected if possible, or just Nominative if unsure, but standard Slovak formal address is "Dobrý deň, pán [Priezvisko]").
+         (Note: If the person is female, use "Dobrý deň, pani [Priezvisko]").
+       - IF NO name found, start EXACTLY with:
+         "Dobrý deň. Páči sa mi, že v ${businessName}..."
+    
+    2. CONTENT SPECIFICITY: 
        - NEVER use generic words like "montáž" or "predaj" alone. ALWAYS specify WHAT (e.g. "montáž plynových kotlov", "predaj dubových parkiet").
-       - From the context, find the specific niche (e.g. don't say "heating", say "industrial heat pumps").
+       - From the context, find the specific niche.
        - The text MUST clearly identify the industry even if I hide the company name.
     
     3. STRUCTURE (2 Sentences):
-       - Sentence 1: "Dobrý deň. Páči sa mi, že v ${businessName} [specific core activity]."
+       - Sentence 1: "[Salutation]. Páči sa mi, že v ${businessName} [specific core activity]."
        - Sentence 2: "[Mention a specific detail, project, technique or specialization found on the site]."
     
     4. VOCALIZATION (CRITICAL): 
