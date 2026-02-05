@@ -12,14 +12,40 @@ export function GoogleConnectButton() {
         if (!isLoaded || !user) return;
         setIsLoading(true);
         try {
-            // Clerk Link Account Logic for Calendar Scopes
-            await user.createExternalAccount({
-                strategy: 'oauth_google',
-                redirectUrl: window.location.href,
-            });
+            const googleAccount = user.externalAccounts.find(acc => acc.provider === 'google');
+            
+            if (!googleAccount) {
+                // Not linked at all in Clerk, try Clerk flow first
+                await user.createExternalAccount({
+                    strategy: 'oauth_google',
+                    redirectUrl: window.location.href,
+                });
+            } else {
+                // Already linked in Clerk but maybe missing scopes?
+                // Use custom flow which is more robust for calendar scopes
+                const res = await fetch('/api/google/auth-url');
+                const { url } = await res.json();
+                if (url) {
+                    window.location.href = url;
+                } else {
+                    throw new Error("Nepodarilo sa vygenerovať autorizačnú URL");
+                }
+            }
         } catch (error: any) {
-            console.error('Failed to connect Google Calendar via Clerk:', error);
-            toast.error('Nepodarilo sa prepojiť s Google');
+            console.error('Failed to connect Google Calendar:', error);
+            // If Clerk throws "strategy already exists", try the custom flow as fallback
+            try {
+                const res = await fetch('/api/google/auth-url');
+                const { url } = await res.json();
+                if (url) {
+                    window.location.href = url;
+                    return;
+                }
+            } catch (e) {}
+            
+            toast.error('Nepodarilo sa prepojiť s Google', {
+                description: error.message || 'Skúste to znova neskôr'
+            });
             setIsLoading(false);
         }
     };
