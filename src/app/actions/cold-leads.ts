@@ -24,6 +24,8 @@ export interface ColdLeadItem {
   date_updated?: string;
   fallback_url?: string;
   google_maps_url?: string;
+  enrichment_status?: "pending" | "processing" | "completed" | "failed";
+  enrichment_error?: string;
 }
 
 export interface ColdLeadList {

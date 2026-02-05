@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, ChevronLeft, ChevronRight, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send } from "lucide-react";
+import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, ChevronLeft, ChevronRight, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, PlayCircle, RefreshCw } from "lucide-react";
 import { 
     getColdLeads, 
     deleteColdLead, 
@@ -50,6 +50,36 @@ export default function OutreachLeadsPage() {
     }
     setLoading(false);
   }, []);
+
+  // Polling for background process status
+  useEffect(() => {
+    const interval = setInterval(() => {
+        const hasPending = leads.some(l => l.enrichment_status === 'pending' || l.enrichment_status === 'processing');
+        if (hasPending) {
+            refreshLeads(activeListName);
+        }
+    }, 5000); // Check every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, [leads, activeListName, refreshLeads]);
+
+  const handleStartBackgroundEnrichment = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    
+    if (!confirm(`Spustiť AI spracovanie na pozadí pre ${ids.length} leadov?`)) return;
+
+    // 1. Mark as pending in UI instantly
+    setLeads(prev => prev.map(l => ids.includes(l.id) ? { ...l, enrichment_status: "pending" } : l));
+    setSelectedIds(new Set());
+
+    // 2. Call server action to update DB
+    await bulkUpdateColdLeads(ids, { enrichment_status: "pending" });
+    toast.success("Úlohy pridané do fronty. Spracovanie beží na pozadí.");
+
+    // 3. Kickstart the Cron
+    fetch("/api/cron/enrich-leads").catch(console.error);
+  };
 
   const initData = React.useCallback(async () => {
       setLoading(true);
@@ -574,10 +604,28 @@ export default function OutreachLeadsPage() {
                                             onKeyDown={handleKeyDown}
                                         />
                                     ) : (
-                                        <div className="bg-gray-50 hover:bg-white hover:shadow-lg hover:shadow-gray-100 p-5 rounded-2xl border border-dashed border-gray-200 hover:border-blue-200 transition-all group/cell">
-                                            <p className="text-[12px] font-medium leading-relaxed text-gray-600 italic">
-                                                &quot;{lead.ai_first_sentence}&quot;
-                                            </p>
+                                        <div className="text-sm text-gray-600 leading-relaxed group-hover:text-gray-900 transition-colors">
+                                           {/* Status Indicators for Enrichment */}
+                                           {lead.enrichment_status === 'pending' && (
+                                                <div className="mb-2 flex items-center gap-2 text-xs font-bold text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg animate-pulse w-fit">
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                    Čaká na spracovanie...
+                                                </div>
+                                           )}
+                                           {lead.enrichment_status === 'processing' && (
+                                                <div className="mb-2 flex items-center gap-2 text-xs font-bold text-violet-600 bg-violet-50 px-3 py-1.5 rounded-lg w-fit">
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                    AI analyzuje web...
+                                                </div>
+                                           )}
+                                           {lead.enrichment_status === 'failed' && lead.enrichment_error && (
+                                                <div className="mb-2 flex items-center gap-2 text-xs font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg w-fit">
+                                                    <X className="w-3 h-3" />
+                                                    Chyba: {lead.enrichment_error.slice(0, 30)}...
+                                                </div>
+                                           )}
+
+                                           {lead.ai_first_sentence || <span className="text-gray-300 italic">Dvakrát kliknite pre napísanie alebo použite AI...</span>}
                                         </div>
                                     )}
                                 </div>
