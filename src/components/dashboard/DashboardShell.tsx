@@ -75,8 +75,8 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
       >
         <div className="h-24" /> {/* Spacer for top button */}
         
-        <div className="flex-1 flex flex-col justify-between py-6 px-3 overflow-y-auto scrollbar-hide">
-          <div className="flex flex-col gap-2 h-full justify-between">
+        <div className="flex-1 flex flex-col justify-between py-3 px-3 overflow-y-auto scrollbar-hide">
+          <div className="flex flex-col gap-1 h-full justify-center">
             {menuItems
               .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
               .map((item) => (
@@ -84,7 +84,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
                 key={item.href}
                 href={item.href}
                 className={`
-                  flex items-center gap-4 px-4 py-3 rounded-xl text-[16px] font-medium tracking-normal transition-all duration-300 group
+                  flex items-center gap-4 px-4 py-2.5 rounded-xl text-[15px] font-medium tracking-normal transition-all duration-300 group
                   ${pathname === item.href 
                     ? "bg-zinc-800/80 text-white shadow-lg shadow-black/10 border border-white/5" 
                     : "text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200"
@@ -98,11 +98,11 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           </div>
         </div>
 
-        <div className="p-4 border-t border-white/5 bg-black/20 space-y-3">
+        <div className="p-4 border-t border-white/5 bg-black/20 space-y-2">
           <ThemeToggle />
           <Link
             href="/dashboard/settings"
-            className="flex items-center gap-4 rounded-xl px-4 py-3 text-[16px] font-medium tracking-normal text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200 transition-all group"
+            className="flex items-center gap-4 rounded-xl px-4 py-2.5 text-[15px] font-medium tracking-normal text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200 transition-all group"
           >
             <Settings className="w-5 h-5 opacity-60 group-hover:rotate-45 transition-transform" />
             <span>Nastavenia</span>

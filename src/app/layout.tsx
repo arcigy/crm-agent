@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google"; // Outfit gives a premium, modern, high-end feel
+import { Outfit, Playfair_Display } from "next/font/google"; // Outfit for UI, Playfair for headlines
 
 import { Toaster } from "sonner";
 import "./globals.css";
@@ -8,6 +8,10 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans" });
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-serif",
+});
 
 export const metadata: Metadata = {
   title: "CRM Agent",
@@ -36,7 +40,7 @@ export default function RootLayout({
     >
       <html lang="sk" suppressHydrationWarning>
         <body
-          className={`${outfit.variable} font-sans antialiased transition-colors duration-300`}
+          className={`${outfit.variable} ${playfair.variable} font-sans antialiased transition-colors duration-300`}
         >
           <ThemeProvider
             attribute="class"
