@@ -219,15 +219,31 @@ export async function enrichColdLead(id: string | number) {
         
         const lead = items[0] as unknown as ColdLeadItem;
         
+        // Debug info accumulator
+        const debugInfo = {
+            id,
+            name: lead.title,
+            urlUsed: "",
+            scraped: false,
+            scrapedLength: 0,
+            emailFound: null as string | null,
+            aiGenerated: false,
+            error: null as string | null
+        };
+
         // 1. Scrape (Prefer website, fallback to fallback_url)
         const urlToScrape = lead.website || lead.fallback_url;
         let scrapeResult = null;
         let scrapedText = null;
 
         if (urlToScrape) {
+            debugInfo.urlUsed = urlToScrape;
             scrapeResult = await scrapeWebsite(urlToScrape);
             if (scrapeResult) {
                 scrapedText = scrapeResult.text;
+                debugInfo.scraped = true;
+                debugInfo.scrapedLength = scrapedText.length;
+                debugInfo.emailFound = scrapeResult.email || null;
             }
         }
 
@@ -239,6 +255,7 @@ export async function enrichColdLead(id: string | number) {
         if (aiResult) {
             updateData.company_name_reworked = aiResult.name;
             updateData.ai_first_sentence = aiResult.sentence || undefined;
+            debugInfo.aiGenerated = true;
         }
 
         // 3. Save Scraped Email if exists and lead had none
@@ -248,13 +265,14 @@ export async function enrichColdLead(id: string | number) {
 
         if (Object.keys(updateData).length > 0) {
             await directus.request(updateItem("cold_leads", id, updateData));
-            return { success: true };
+            return { success: true, debug: debugInfo };
         }
         
-        return { success: false, error: "No enrichment data generated" };
+        debugInfo.error = "No new data generated";
+        return { success: false, error: "No enrichment data generated", debug: debugInfo };
 
     } catch (e: any) {
         console.error("Enrichment failed:", e);
-        return { success: false, error: e.message || String(e) };
+        return { success: false, error: e.message || String(e), debug: { id, error: e.message } };
     }
 }
