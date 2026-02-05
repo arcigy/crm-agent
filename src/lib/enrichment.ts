@@ -35,191 +35,156 @@ function stripCity(name: string, city?: string): string {
     return name;
 }
 
-const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY || "";
-
-// 1. Custom Website Scraper (With Firecrawl Fallback)
+// 1. Custom Website Scraper (Pure Internal Logic)
 export async function scrapeWebsite(url: string): Promise<{ text: string, email?: string } | null> {
     if (!url) return null;
     
-    // Helper to fetch and clean text, and extract emails
+    // Helper: Decode HTML Entities (Catch &#64; etc.)
+    const decodeEntities = (html: string) => {
+        return html.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))
+                   .replace(/&[a-z]+;/gi, (match) => {
+                       const entities: Record<string, string> = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#039;': "'", '&nbsp;': ' ' };
+                       return entities[match] || match;
+                   });
+    };
+
+    // Helper: Extract Emails from ANY string
+    const extractEmails = (input: string) => {
+        const found = new Set<string>();
+        // Standard Regex
+        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}/g;
+        const matches = input.match(emailRegex) || [];
+        matches.forEach(m => found.add(m.toLowerCase()));
+        
+        // Mailto Regex
+        const mailtoRegex = /mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10})/gi;
+        let m;
+        while ((m = mailtoRegex.exec(input)) !== null) {
+            found.add(m[1].toLowerCase());
+        }
+        
+        return Array.from(found).filter(e => {
+            const l = e.toLowerCase();
+            return !l.includes("wix.com") && !l.includes("sentry.io") && !l.includes("example.com") && 
+                   !l.includes(".png") && !l.includes(".jpg") && !l.includes(".js") && !l.includes(".gif");
+        });
+    };
+
     const fetchAndAnalyze = async (targetUrl: string): Promise<{ text: string, html: string, emails: string[] } | null> => {
         try {
-            console.log(`[Scraper] Stage 1 (Fetch): ${targetUrl}`);
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000); 
+            const timeoutId = setTimeout(() => controller.abort(), 10000); 
 
             const res = await fetch(targetUrl, {
                 headers: {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-                    "Accept-Language": "sk,cs;q=0.9,en;q=0.8",
-                    "Cache-Control": "no-cache"
+                    "Accept-Language": "sk-SK,sk;q=0.9,cs;q=0.8,en-US;q=0.7,en;q=0.6",
+                    "Cache-Control": "no-cache",
+                    "Pragma": "no-cache",
+                    "Sec-Fetch-Dest": "document",
+                    "Sec-Fetch-Mode": "navigate",
+                    "Sec-Fetch-Site": "none",
+                    "Upgrade-Insecure-Requests": "1"
                 },
-                redirect: "follow", 
+                redirect: "follow",
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
 
             if (!res.ok) return null;
+            const rawHtml = await res.text();
+            const html = decodeEntities(rawHtml);
             
-            const html = await res.text();
-            
-            const foundEmails = new Set<string>();
-            const emailRegex = /[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}/g;
-            const matches = html.match(emailRegex) || [];
-            matches.forEach(e => foundEmails.add(e));
+            // 1. Emails from raw HTML (catches attributes, comments, scripts)
+            const emails = extractEmails(html);
 
-            const mailtoRegex = /mailto:([a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6})/gi;
-            let m;
-            while ((m = mailtoRegex.exec(html)) !== null) {
-                foundEmails.add(m[1]);
-            }
-
+            // 2. Cloudflare de-obfuscation
             if (html.includes("data-cfemail")) {
-                const cfRegex = /data-cfemail="([^"]+)"/g;
-                let cfMatch;
-                while ((cfMatch = cfRegex.exec(html)) !== null) {
+                const cfMatches = html.match(/data-cfemail="([^"]+)"/g) || [];
+                cfMatches.forEach(cfm => {
                     try {
-                        const encoded = cfMatch[1];
+                        const encoded = cfm.split('"')[1];
                         let r = parseInt(encoded.substr(0, 2), 16), n = "", e = 2;
                         for (; encoded.length - e; e += 2) {
                             n += String.fromCharCode(parseInt(encoded.substr(e, 2), 16) ^ r);
                         }
-                        if (n.includes("@")) foundEmails.add(n);
-                    } catch(err) { /* ignore */ }
-                }
+                        if (n.includes("@")) emails.push(n.toLowerCase());
+                    } catch(err) {}
+                });
             }
 
-            const validEmails = Array.from(foundEmails).filter(e => {
-                const lower = e.toLowerCase();
-                return !lower.endsWith(".png") && !lower.endsWith(".jpg") && !lower.endsWith(".gif") && !lower.endsWith(".js") && !lower.includes("example.com") && !lower.includes("wix.com");
-            });
-
+            // 3. Clean text for AI
             let text = html;
             text = text.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "");
             text = text.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "");
             text = text.replace(/<head\b[^>]*>([\s\S]*?)<\/head>/gim, "");
             text = text.replace(/<!--[\s\S]*?-->/g, "");
             text = text.replace(/<\/div>|<\/p>|<\/li>|<\/h[1-6]>/gim, "\n");
-            text = text.replace(/<br\s*\/?>/gim, "\n");
             text = text.replace(/<[^>]+>/g, " ");
             text = text.replace(/\s+/g, " ").trim();
             
-            return { text, html, emails: validEmails };
+            return { text, html, emails: [...new Set(emails)] };
         } catch (e) {
-            console.error(`Scrape Error (${targetUrl}):`, e);
-            return null;
-        }
-    };
-
-    const scrapeWithFirecrawl = async (targetUrl: string) => {
-        if (!FIRECRAWL_API_KEY) return null;
-        try {
-            console.log(`[Scraper] Stage 2 (Firecrawl - JS Rendering): ${targetUrl}`);
-            const response = await fetch("https://api.firecrawl.dev/v0/scrape", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${FIRECRAWL_API_KEY}`
-                },
-                body: JSON.stringify({
-                    url: targetUrl,
-                    pageOptions: {
-                        onlyMainContent: false,
-                        waitFor: 3000 // Wait for JS/Footer to load
-                    }
-                })
-            });
-
-            if (!response.ok) return null;
-            const data = await response.json();
-            
-            if (data.success && data.data) {
-                const content = data.data.content || "";
-                const html = data.data.html || "";
-                
-                // Extract emails from whatever Firecrawl returned
-                const combined = content + " " + html;
-                const emailRegex = /[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}/g;
-                const found = combined.match(emailRegex) || [];
-                return {
-                    text: content,
-                    emails: [...new Set(found)]
-                };
-            }
-            return null;
-        } catch (e) {
-            console.error("Firecrawl Error:", e);
             return null;
         }
     };
 
     try {
-        // 1. Fetch Homepage (Local)
         const home = await fetchAndAnalyze(url);
         if (!home) return null;
 
         let combinedText = `--- HOMEPAGE ---\n${home.text}`;
         let collectedEmails = [...home.emails];
+        const visited = new Set<string>([url]);
 
-        // 2. Extract and Filter Links
+        // 2. Extract ALL Links
         const linkRegex = /<a\s+(?:[^>]*?\s+)?href=(["'])(.*?)\1/gi;
         let match;
-        const subLinks = new Set<string>();
+        const queue: string[] = [];
         
         while ((match = linkRegex.exec(home.html)) !== null) {
-            const link = match[2];
-            if (!link || link.startsWith("#") || link.startsWith("javascript:") || link.startsWith("tel:")) continue;
-            
             try {
-                const absUrl = new URL(link, url).toString();
-                if (absUrl.startsWith(url) || absUrl.includes(new URL(url).hostname)) {
-                    subLinks.add(absUrl);
+                const link = match[2];
+                if (!link || link.startsWith("#") || link.startsWith("javascript:") || link.startsWith("tel:")) continue;
+                const absUrl = new URL(link, url).toString().split("#")[0];
+                if ((absUrl.startsWith(url) || absUrl.includes(new URL(url).hostname)) && !visited.has(absUrl)) {
+                    queue.push(absUrl);
+                    visited.add(absUrl);
                 }
-            } catch(e) { }
+            } catch(e) {}
         }
 
-        const candidates = Array.from(subLinks).filter(l => l !== url);
-        const sortedCandidates = candidates.sort((a, b) => {
-            const score = (link: string) => {
-                const lower = link.toLowerCase();
-                if (lower.includes("kontakt") || lower.includes("contact")) return 10;
-                if (lower.includes("o-nas") || lower.includes("about")) return 5;
+        // 3. Smart Sorting (Contact pages first)
+        const sortedQueue = queue.sort((a, b) => {
+            const score = (l: string) => {
+                const low = l.toLowerCase();
+                if (low.includes("kontakt") || low.includes("contact")) return 10;
+                if (low.includes("o-nas") || low.includes("about") || low.includes("firma")) return 5;
+                if (low.includes("sluzby") || low.includes("servis") || low.includes("produkty")) return 3;
                 return 0;
             };
             return score(b) - score(a);
         });
 
-        const toCrawl = sortedCandidates.slice(0, 3);
+        // 4. DEEP SCRAPE (Visit up to 15 pages)
+        const toCrawl = sortedQueue.slice(0, 15);
         for (const subUrl of toCrawl) {
             const sub = await fetchAndAnalyze(subUrl);
             if (sub) {
-                if (sub.text.length > 50) combinedText += `\n\n--- SUBPAGE ---\n${sub.text}`;
+                if (sub.text.length > 50) combinedText += `\n\n--- SUBPAGE (${new URL(subUrl).pathname}) ---\n${sub.text}`;
                 collectedEmails = [...collectedEmails, ...sub.emails];
             }
         }
 
-        // --- FALLBACK TO FIRECRAWL ---
-        // If we have no emails after local scraping, use the pro artillery
-        if (collectedEmails.length === 0 && FIRECRAWL_API_KEY) {
-            const fireResult = await scrapeWithFirecrawl(url);
-            if (fireResult) {
-                collectedEmails = [...fireResult.emails];
-                if (fireResult.text.length > 100) {
-                     combinedText += `\n\n--- FIRECRAWL CONTENT ---\n${fireResult.text}`;
-                }
-            }
-        }
-
-        const uniqueEmails = [...new Set(collectedEmails)];
-        const filteredEmails = uniqueEmails.filter(e => {
-            const lower = e.toLowerCase();
-            return !lower.includes("wix.com") && !lower.includes("sentry.io") && !lower.includes("example.com") && !lower.includes("domain.com");
+        const filteredEmails = [...new Set(collectedEmails)].filter(e => {
+            const l = e.toLowerCase();
+            return !l.includes("wix.com") && !l.includes("sentry.io") && !l.includes("example.com") && !l.includes("domain.com");
         });
 
         const prioritizedEmail = filteredEmails.find(e => 
             e.includes("info@") || e.includes("kontakt@") || e.includes("office@") || 
-            e.includes("predaj@") || e.includes("servis@") || e.includes("obchod@")
+            e.includes("servis@") || e.includes("obchod@") || e.includes("predaj@")
         ) || filteredEmails[0];
 
         return {
@@ -228,7 +193,6 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
         };
 
     } catch (e) {
-        console.error("Master Scrape Error:", e);
         return null; 
     }
 }
