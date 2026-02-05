@@ -112,27 +112,26 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
     Context INFO (Scraped text):
     ${contextText}
     
-    Your Task: Write a ONE-SENTENCE personalized icebreaker.
+    Your Task: Write a short personalized opener consisting of TWO SENTENCES.
     
     CRITICAL RULES:
     1. Start EXACTLY with: "Dobrý deň. Páči sa mi, že v ${businessName}..."
-    2. SHORTEN NAMES & LOCATIONS: 
-       - Use "Datacomp" instead of "Datacomp s.r.o.". 
-       - Use simple city names (e.g. "v Bratislave" instead of "v Bratislavskom kraji").
-    3. DEEP DIVE (The "I creeped you" effect): 
-       - Focus on small, non-obvious specific details to prove we read their site.
-       - BAD: "sa venujete stavebníctvu." (Obvious)
-       - GOOD: "sa pri výstavbe domov sústredíte na nízkoenergetické drevostavby." (Specific)
-    4. NO FLUFF: Do not use "kvalitné služby", "komplexné riešenia", "dlhoročné skúsenosti" or "profesionálny prístup". Save the reader's time.
-    5. VOCALIZATION (CRITICAL): 
+    2. SPECIFICITY IS KEY: 
+       - NEVER use generic words like "montáž" or "predaj" alone. ALWAYS specify WHAT (e.g. "montáž plynových kotlov", "predaj dubových parkiet").
+       - From the context, find the specific niche (e.g. don't say "heating", say "industrial heat pumps").
+       - The text MUST clearly identify the industry even if I hide the company name.
+    
+    3. STRUCTURE (2 Sentences):
+       - Sentence 1: "Dobrý deň. Páči sa mi, že v ${businessName} [specific core activity]."
+       - Sentence 2: "[Mention a specific detail, project, technique or specialization found on the site]."
+    
+    4. VOCALIZATION (CRITICAL): 
        - Write naturally, as if speaking to a friend. 
-       - It is OK to break strict grammar rules if it sounds more natural.
        - Avoid "corporate robot" language. Use human language.
-       - Example tone: "Love that you guys are focusing on X..." -> "Páči sa mi, že sa zameriavate na X..."
     
-    6. Backup Strategy: If (and ONLY if) Context INFO is empty/useless, say: "Dobrý deň. Páči sa mi, že v ${businessName} pôsobíte v sektore ${category || 'vášho podnikania'}."
+    5. Backup Strategy: If (and ONLY if) Context INFO is empty/useless, say: "Dobrý deň. Páči sa mi, že v ${businessName} pôsobíte v sektore ${category || 'vášho podnikania'}."
     
-    Output ONLY the single sentence. No quotes.
+    Output ONLY the text. No quotes.
     `;
 
     try {
