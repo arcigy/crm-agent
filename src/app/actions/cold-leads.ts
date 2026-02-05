@@ -221,23 +221,37 @@ export async function enrichColdLead(id: string | number) {
         
         // 1. Scrape (Prefer website, fallback to fallback_url)
         const urlToScrape = lead.website || lead.fallback_url;
-        let markdown = null;
+        let scrapeResult = null;
+        let scrapedText = null;
+
         if (urlToScrape) {
-            markdown = await scrapeWebsite(urlToScrape);
+            scrapeResult = await scrapeWebsite(urlToScrape);
+            if (scrapeResult) {
+                scrapedText = scrapeResult.text;
+            }
         }
 
         // 2. AI Generate
-        const result = await generatePersonalization(lead, markdown);
+        const aiResult = await generatePersonalization(lead, scrapedText);
         
-        if (result) {
-            await directus.request(updateItem("cold_leads", id, {
-                company_name_reworked: result.name,
-                ai_first_sentence: result.sentence || undefined
-            }));
+        // Prepare update data
+        const updateData: any = {};
+        if (aiResult) {
+            updateData.company_name_reworked = aiResult.name;
+            updateData.ai_first_sentence = aiResult.sentence || undefined;
+        }
+
+        // 3. Save Scraped Email if exists and lead had none
+        if (scrapeResult?.email && !lead.email) {
+            updateData.email = scrapeResult.email;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+            await directus.request(updateItem("cold_leads", id, updateData));
             return { success: true };
         }
         
-        return { success: false, error: "AI generation returned nothing" };
+        return { success: false, error: "No enrichment data generated" };
 
     } catch (e: any) {
         console.error("Enrichment failed:", e);

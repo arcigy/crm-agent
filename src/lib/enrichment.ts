@@ -37,14 +37,14 @@ function stripCity(name: string, city?: string): string {
 
 // 1. Custom Website Scraper (No External Service)
 // 1. Custom Website Scraper (No External Service)
-export async function scrapeWebsite(url: string): Promise<string | null> {
+export async function scrapeWebsite(url: string): Promise<{ text: string, email?: string } | null> {
     if (!url) return null;
     
-    // Helper to fetch and clean text
-    const fetchAndClean = async (targetUrl: string): Promise<{ text: string, html: string } | null> => {
+    // Helper to fetch and clean text, and extract emails
+    const fetchAndAnalyze = async (targetUrl: string): Promise<{ text: string, html: string, emails: string[] } | null> => {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout per page
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per page is safer for email hunting
 
             const res = await fetch(targetUrl, {
                 headers: {
@@ -59,6 +59,15 @@ export async function scrapeWebsite(url: string): Promise<string | null> {
             const html = await res.text();
             let text = html;
             
+            // Extract Emails BEFORE cleaning text (from raw HTML to catch mailto: and hidden in tags)
+            const emailRegex = /[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}/g;
+            const foundEmails = html.match(emailRegex) || [];
+            // Basic deduplication and filtering of clearly garbage emails (like example.com or image extensions)
+            const validEmails = [...new Set(foundEmails)].filter(e => {
+                const lower = e.toLowerCase();
+                return !lower.endsWith(".png") && !lower.endsWith(".jpg") && !lower.endsWith(".gif") && !lower.endsWith(".js") && !lower.includes("example.com") && !lower.includes("domain.com");
+            });
+
             // Basic HTML to Text Conversion
             text = text.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "");
             text = text.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "");
@@ -69,7 +78,7 @@ export async function scrapeWebsite(url: string): Promise<string | null> {
             text = text.replace(/<[^>]+>/g, " ");
             text = text.replace(/\s+/g, " ").trim();
             
-            return { text, html };
+            return { text, html, emails: validEmails };
         } catch (e) {
             console.error(`Scrape Error (${targetUrl}):`, e);
             return null;
@@ -78,14 +87,13 @@ export async function scrapeWebsite(url: string): Promise<string | null> {
 
     try {
         // 1. Fetch Homepage
-        const home = await fetchAndClean(url);
+        const home = await fetchAndAnalyze(url);
         if (!home) return null;
 
         let combinedText = `--- HOMEPAGE ---\n${home.text}`;
+        let collectedEmails = [...home.emails];
 
-        // 2. Find meaningful subpage (Services > Products > About)
-        // Regex to find hrefs. 
-        // We look for common keywords in the link URL or checking near the link tag might be too complex for regex, so we rely on URL keywords.
+        // 2. Find meaningful subpage (Priority: CONTACT > Services/About)
         const linkRegex = /<a\s+(?:[^>]*?\s+)?href=(["'])(.*?)\1/gi;
         let match;
         const links: string[] = [];
@@ -94,28 +102,47 @@ export async function scrapeWebsite(url: string): Promise<string | null> {
             links.push(match[2]);
         }
 
-        // Keywords to prioritize
-        const keywords = ["sluzby", "services", "produkty", "products", "o-nas", "about", "offer", "ponuka"];
+        // Keywords to prioritize - CONTACT first for email hunting!
+        const contactKeywords = ["kontakt", "contact", "spojte"];
+        const infoKeywords = ["sluzby", "services", "produkty", "products", "o-nas", "about", "offer", "ponuka"];
+        
         let bestSubLink: string | null = null;
+        let isContactPage = false;
 
-        for (const kw of keywords) {
+        // First pass: Look for Contact page
+        for (const kw of contactKeywords) {
             const found = links.find(l => l.toLowerCase().includes(kw));
             if (found) {
                 bestSubLink = found;
+                isContactPage = true;
                 break;
+            }
+        }
+
+        // Second pass: If no contact page, look for info page
+        if (!bestSubLink) {
+            for (const kw of infoKeywords) {
+                const found = links.find(l => l.toLowerCase().includes(kw));
+                if (found) {
+                    bestSubLink = found;
+                    break;
+                }
             }
         }
 
         // 3. Fetch Subpage if found
         if (bestSubLink) {
             try {
-                // Handle relative URLs
                 const subUrl = new URL(bestSubLink, url).toString();
-                // Avoid scraping the same page or external sites (simple check)
-                if (subUrl !== url && subUrl.startsWith(url) || subUrl.includes(new URL(url).hostname)) {
-                     const sub = await fetchAndClean(subUrl);
-                     if (sub && sub.text.length > 50) {
-                         combinedText += `\n\n--- SUBPAGE (${new URL(subUrl).pathname}) ---\n${sub.text}`;
+                if (subUrl !== url && (subUrl.startsWith(url) || subUrl.includes(new URL(url).hostname))) {
+                     const sub = await fetchAndAnalyze(subUrl);
+                     if (sub) {
+                         // Add text if it's new
+                         if (sub.text.length > 50) {
+                             combinedText += `\n\n--- SUBPAGE (${new URL(subUrl).pathname}) ---\n${sub.text}`;
+                         }
+                         // Collect new emails
+                         collectedEmails = [...collectedEmails, ...sub.emails];
                      }
                 }
             } catch (e) {
@@ -123,11 +150,18 @@ export async function scrapeWebsite(url: string): Promise<string | null> {
             }
         }
 
-        return combinedText;
+        // Return best email (prioritize info@, kontakt@, etc.)
+        const uniqueEmails = [...new Set(collectedEmails)];
+        const prioritizedEmail = uniqueEmails.find(e => e.includes("info@") || e.includes("kontakt@") || e.includes("office@")) || uniqueEmails[0];
+
+        return {
+            text: combinedText,
+            email: prioritizedEmail // Can be undefined
+        };
 
     } catch (e) {
         console.error("Master Scrape Error:", e);
-        return null; // Should not happen as handled inside
+        return null; 
     }
 }
 
