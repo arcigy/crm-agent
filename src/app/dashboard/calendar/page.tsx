@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { CalendarHeader } from "@/components/calendar/CalendarHeader";
 import { CalendarSidebar } from "@/components/calendar/CalendarSidebar";
 import { CalendarView } from "@/components/calendar/CalendarView";
-import { GoogleConnectButton } from "@/components/calendar/GoogleConnectButton";
+import { GoogleConnectButton } from "@/components/dashboard/GoogleConnectButton";
 import { CreateEventModal } from "@/components/calendar/CreateEventModal";
 import { EventDetailModal } from "@/components/calendar/EventDetailModal";
 import { ContactDetailModal } from "@/components/dashboard/ContactDetailModal";

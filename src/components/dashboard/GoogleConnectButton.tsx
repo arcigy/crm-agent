@@ -24,23 +24,18 @@ export function GoogleConnectButton({
     if (!isLoaded) return;
     setIsLoading(true);
     try {
-      if (!googleAccount) {
-        await user?.createExternalAccount({
-          strategy: "oauth_google",
-          redirectUrl: window.location.href,
-        });
+      // Use our custom flow which now forces 'select_account'
+      const res = await fetch('/api/google/auth-url');
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
       } else {
-        // If already connected but user wants to "fix", currently just show info
-        // In fully custom flows, we might remove and re-add, but that's risky for standard Clerk setups
-        toast.info("Účet je už prepojený", { description: "Pre re-autorizáciu odstráňte prepojenie v profile." });
+        throw new Error("Nepodarilo sa vygenerovať autorizačnú URL");
       }
     } catch (e: unknown) {
       console.error(e);
-      const errorMessage =
-        e instanceof Error ? e.message : "Skontrolujte nastavenia v Clerk";
-      toast.error("Chyba prepojenia", {
-        description: errorMessage,
-      });
+      const errorMessage = e instanceof Error ? e.message : "Chyba prepojenia";
+      toast.error("Chyba prepojenia", { description: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -50,19 +45,51 @@ export function GoogleConnectButton({
 
   if (isConnected) {
     if (!showManageOptions) {
-        return null; // Hide in dashboard header as requested
+        return null; // Keep it hidden in header/sidebar if already connected
     }
     
-    // Show detailed status in Settings
+    const handleReauthorize = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch('/api/google/auth-url');
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error("Nepodarilo sa vygenerovať autorizačnú URL");
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Chyba re-autorizácie";
+        toast.error(msg);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     return (
-      <div className={`flex flex-col gap-2 ${className}`}>
-        <div className="flex items-center gap-2.5 px-4 py-2 bg-green-50/50 border border-green-200/50 rounded-lg text-[13px] font-semibold text-green-700 w-full">
+      <div className={`flex flex-col gap-3 ${className}`}>
+        <div className="flex items-center gap-2.5 px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-border rounded-xl text-[13px] font-semibold text-foreground w-full">
             <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" />
-            <span>Prepojené: {googleAccount.emailAddress || "Google účet"}</span>
+            <div className="flex flex-col">
+              <span className="font-bold uppercase tracking-wider text-[10px] text-muted-foreground mb-0.5">Pripojený účet</span>
+              <span className="text-[12px] font-medium">{googleAccount.emailAddress}</span>
+            </div>
         </div>
-        <p className="text-[10px] text-muted-foreground px-1">
-            Ak sa udalosti nezobrazujú, skontrolujte či ste pri prihlasovaní povolili prístup ku Kalendáru.
-        </p>
+        
+        <div className="bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/30 rounded-xl p-4 space-y-3">
+          <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
+            Ak CRM nenačítava emaily alebo kalendár, pravdepodobne ste pri prvom prihlásení neudelili všetky potrebné povolenia.
+          </p>
+          
+          <button
+            onClick={handleReauthorize}
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-800/40 text-amber-900 dark:text-amber-200 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+            Znovu udeliť povolenia (Google Dialóg)
+          </button>
+        </div>
       </div>
     );
   }
@@ -78,7 +105,7 @@ export function GoogleConnectButton({
       ) : (
         <Cloud className="w-4 h-4 text-orange-500" />
       )}
-      <span>Prepojiť Google (Clerk)</span>
+      <span>Prepojiť Google účet (Výber mailu)</span>
     </button>
   );
 }
