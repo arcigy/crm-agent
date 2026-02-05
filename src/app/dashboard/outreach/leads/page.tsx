@@ -628,18 +628,6 @@ export default function OutreachLeadsPage() {
                                            {lead.ai_first_sentence || <span className="text-gray-300 italic">Dvakrát kliknite pre napísanie alebo použite AI...</span>}
                                         </div>
                                     )}
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            onBlur={saveEdit}
-                                            onKeyDown={handleKeyDown}
-                                        />
-                                    ) : (
-                                        <div className="bg-gray-50 hover:bg-white hover:shadow-lg hover:shadow-gray-100 p-5 rounded-2xl border border-dashed border-gray-200 hover:border-blue-200 transition-all group/cell">
-                                            <p className="text-[12px] font-medium leading-relaxed text-gray-600 italic">
-                                                &quot;{lead.ai_first_sentence}&quot;
-                                            </p>
-                                        </div>
-                                    )}
                                 </div>
                             </td>
                              <td className="px-6 py-6 text-right align-middle">
