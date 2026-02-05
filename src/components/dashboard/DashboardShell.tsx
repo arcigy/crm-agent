@@ -49,7 +49,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
   const userEmail = user?.primaryEmailAddress?.emailAddress;
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300 relative">
+    <div className="flex h-screen w-full bg-zinc-50 dark:bg-[#09090b] overflow-hidden transition-colors duration-300 relative">
       {!completed && onboardingScene}
 
       {/* Persistent Hamburger Button */}

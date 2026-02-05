@@ -36,7 +36,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
           {chartData.map((d, i) => (
             <div key={i} className="flex-1 flex flex-col items-center group relative">
               <div 
-                className="w-full bg-gradient-to-t from-blue-600 to-indigo-400 rounded-2xl transition-all duration-500 group-hover:from-blue-500 group-hover:to-indigo-300 group-hover:scale-105 shadow-lg shadow-blue-500/20"
+                className="w-full bg-gradient-to-t from-zinc-900 to-zinc-500 rounded-2xl transition-all duration-500 group-hover:from-zinc-800 group-hover:to-zinc-400 group-hover:scale-105 shadow-lg shadow-black/10"
                 style={{ height: `${d.height}%` }}
               >
                 <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">
@@ -69,7 +69,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
               </div>
               <div className="h-3 bg-muted rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-indigo-600 transition-all duration-1000 ease-out shadow-sm"
+                   className="h-full bg-zinc-800 dark:bg-zinc-200 transition-all duration-1000 ease-out shadow-sm"
                   style={{ width: `${stage.percentage}%` }}
                 />
               </div>
