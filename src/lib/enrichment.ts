@@ -216,21 +216,24 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
     `;
 
     try {
-        // Updated to Gemini 3.0 Flash (Latest 2026 Model)
-        const model = genAI.getGenerativeModel({ model: "gemini-3.0-flash" });
+        console.log(`[AI] Generating for ${businessName}... Context length: ${contextText.length}`);
+        
+        // Use gemini-1.5-flash for reliability and speed in current environments
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const sentence = response.text().trim();
         
+        console.log(`[AI] Success for ${businessName}: ${sentence.slice(0, 50)}...`);
+
         return {
             name: businessName,
-            sentence: sentence ? sentence.replace(/^"|"$/g, "") : null
+            sentence: sentence ? sentence.replace(/^["']|["']$/g, "") : null
         };
 
-    } catch (e) {
-        console.error("AI Gen Error:", e);
-        // Fallback or retry logic could go here
+    } catch (e: any) {
+        console.error(`[AI] Error for ${businessName}:`, e.message || e);
         return null;
     }
 }
