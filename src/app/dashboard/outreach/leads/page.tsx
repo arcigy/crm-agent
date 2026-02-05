@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, ChevronLeft, ChevronRight, Plus, Folder, LayoutGrid, CheckSquare, X, ArrowRightLeft } from "lucide-react";
+import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, ChevronLeft, ChevronRight, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send } from "lucide-react";
 import { 
     getColdLeads, 
     deleteColdLead, 
@@ -10,6 +10,7 @@ import {
     createColdLeadList, 
     bulkDeleteColdLeads, 
     bulkUpdateColdLeads,
+    sendColdLeadEmail,
     type ColdLeadItem, 
     type ColdLeadList 
 } from "@/app/actions/cold-leads";
@@ -24,6 +25,7 @@ export default function OutreachLeadsPage() {
   const [activeListName, setActiveListName] = useState<string>("Zoznam 1");
   const [loading, setLoading] = useState(true);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Pagination
@@ -38,28 +40,7 @@ export default function OutreachLeadsPage() {
   const [editValue, setEditValue] = useState("");
   const editInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
-  const initData = async () => {
-      setLoading(true);
-      
-      // Fetch Lists
-      const listsRes = await getColdLeadLists();
-      if (listsRes.success && listsRes.data) {
-          setLists(listsRes.data);
-          // If active list not in fetched lists (and lists not empty), default to first
-          if (listsRes.data.length > 0 && !listsRes.data.find(l => l.name === activeListName)) {
-              if (activeListName === "Zoznam 1") {
-                   // Keep it, maybe not created yet? But we created it.
-              } else {
-                   setActiveListName(listsRes.data[0].name);
-              }
-          }
-      }
-
-      await refreshLeads(activeListName);
-      setLoading(false);
-  };
-
-  const refreshLeads = async (listName: string) => {
+  const refreshLeads = React.useCallback(async (listName: string) => {
     setLoading(true);
     const res = await getColdLeads(listName);
     if (res.success && res.data) {
@@ -68,15 +49,34 @@ export default function OutreachLeadsPage() {
       setCurrentPage(1);
     }
     setLoading(false);
-  };
+  }, []);
+
+  const initData = React.useCallback(async () => {
+      setLoading(true);
+      
+      const listsRes = await getColdLeadLists();
+      if (listsRes.success && listsRes.data) {
+          setLists(listsRes.data);
+          if (listsRes.data.length > 0 && !listsRes.data.find(l => l.name === activeListName)) {
+              if (activeListName === "Zoznam 1") {
+                   // Keep it
+              } else {
+                   setActiveListName(listsRes.data[0].name);
+              }
+          }
+      }
+
+      await refreshLeads(activeListName);
+      setLoading(false);
+  }, [activeListName, refreshLeads]);
 
   useEffect(() => {
     initData();
-  }, []);
+  }, [initData]);
 
   useEffect(() => {
      refreshLeads(activeListName);
-  }, [activeListName]);
+  }, [activeListName, refreshLeads]);
 
   useEffect(() => {
     if (editingCell && editInputRef.current) {
@@ -156,6 +156,36 @@ export default function OutreachLeadsPage() {
       } else {
           toast.error("Chyba pri presune");
       }
+  };
+
+  const handleSendEmail = async (id: string | number) => {
+      const toastId = toast.loading("Odosielam email...");
+      const res = await sendColdLeadEmail(id);
+      if (res.success) {
+          toast.success("Email odoslaný", { id: toastId });
+          refreshLeads(activeListName);
+      } else {
+          toast.error(res.error || "Chyba pri odosielaní", { id: toastId });
+      }
+  };
+
+  const handleBulkSendEmail = async () => {
+      const ids = Array.from(selectedIds);
+      if (!confirm(`Naozaj odoslať email pre ${ids.length} vybraných leadov?`)) return;
+      
+      setIsSending(true);
+      const toastId = toast.loading(`Odosielam ${ids.length} emailov...`);
+      
+      let successCount = 0;
+      for (const id of ids) {
+          const res = await sendColdLeadEmail(id);
+          if (res.success) successCount++;
+      }
+      
+      toast.success(`${successCount} emailov úspešne odoslaných`, { id: toastId });
+      setIsSending(false);
+      setSelectedIds(new Set());
+      refreshLeads(activeListName);
   };
 
 
@@ -365,6 +395,17 @@ export default function OutreachLeadsPage() {
                          <div className="h-8 w-px bg-gray-100 mx-1"></div>
 
                          <button 
+                             onClick={handleBulkSendEmail}
+                             disabled={isSending}
+                             className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center gap-2 font-black text-xs transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
+                         >
+                             {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                             Odoslať Emaly
+                         </button>
+
+                         <div className="h-8 w-px bg-gray-100 mx-1"></div>
+
+                         <button 
                              onClick={() => setSelectedIds(new Set())}
                              className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
                          >
@@ -541,13 +582,29 @@ export default function OutreachLeadsPage() {
                                     )}
                                 </div>
                             </td>
-                            <td className="px-6 py-6 text-right align-middle">
-                              <button 
-                                onClick={() => handleDelete(lead.id)}
-                                className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                             <td className="px-6 py-6 text-right align-middle">
+                                <div className="flex items-center justify-end gap-2">
+                                    {lead.email && (
+                                        <button
+                                            onClick={() => handleSendEmail(lead.id)}
+                                            className={cn(
+                                                "p-2 rounded-lg transition-all flex items-center gap-2 font-bold text-[10px] uppercase tracking-wider",
+                                                lead.status === "contacted" 
+                                                    ? "bg-green-50 text-green-600 hover:bg-green-100" 
+                                                    : "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-100"
+                                            )}
+                                        >
+                                            <Send className="w-3 h-3" />
+                                            {lead.status === "contacted" ? "Znovu" : "Odoslať"}
+                                        </button>
+                                    )}
+                                    <button 
+                                        onClick={() => handleDelete(lead.id)}
+                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </td>
                           </tr>
                         ))
