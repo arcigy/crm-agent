@@ -87,7 +87,7 @@ function getCleanNameFromDomain(website: string): string | null {
         const parts = clean.split(".");
         let name = parts.length >= 2 ? parts[parts.length - 2] : parts[0];
         
-        const generics = ["gmail", "outlook", "yahoo", "zoznam", "azet", "centrum", "facebook", "instagram", "linkedin", "google"];
+        const generics = ["gmail", "outlook", "yahoo", "zoznam", "azet", "centrum", "facebook", "instagram", "linkedin", "google", "envidom", "websupport"];
         if (generics.includes(name)) return null;
 
         return name.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
@@ -285,19 +285,38 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
             guessed.forEach(e => collectedEmails.add(e));
         }
 
+        const currentDomain = new URL(url).hostname.replace("www.", "").toLowerCase();
+
         const filteredEmails = Array.from(collectedEmails).filter(e => {
             const l = e.toLowerCase();
-            return !l.includes("wix.com") && !l.includes("sentry.io") && !l.includes("example.com") && !l.includes("domain.com");
+            return !l.includes("wix.com") && !l.includes("sentry.io") && !l.includes("example.com") && !l.includes("domain.com") && !l.includes("envidom.sk");
         });
 
-        const prioritizedEmail = filteredEmails.find(e => 
-            e.includes("info@") || e.includes("kontakt@") || e.includes("office@") || 
-            e.includes("servis@") || e.includes("obchod@") || e.includes("predaj@")
-        ) || filteredEmails[0];
+        // --- SORTING LOGIC ---
+        // 1. Domain matches (plynko.sk emails first on plynko.sk)
+        // 2. Prefixes (info, kontakt, etc.)
+        const emailScore = (email: string) => {
+            let score = 0;
+            const l = email.toLowerCase();
+            
+            // Priority 1: Domain match (Very High)
+            if (l.endsWith(`@${currentDomain}`)) score += 1000;
+            
+            // Priority 2: Good prefixes
+            if (l.startsWith("info@")) score += 100;
+            if (l.startsWith("kontakt@") || l.startsWith("contact@")) score += 90;
+            if (l.startsWith("office@")) score += 80;
+            if (l.startsWith("predaj@") || l.startsWith("obchod@")) score += 70;
+            if (l.startsWith("servis@")) score += 60;
+            
+            return score;
+        };
+
+        const topEmail = filteredEmails.sort((a, b) => emailScore(b) - emailScore(a))[0];
 
         return {
             text: combinedText,
-            email: prioritizedEmail || undefined
+            email: topEmail || undefined
         };
 
     } catch {

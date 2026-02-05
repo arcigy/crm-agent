@@ -299,3 +299,82 @@ export async function enrichColdLead(id: string | number) {
         return { success: false, error: e.message || String(e), debug: { id, error: e.message } };
     }
 }
+
+export async function sendColdLeadEmail(id: string | number) {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+
+        // 1. Get Lead Data
+        const items = await directus.request(readItems("cold_leads", { filter: { id: { _eq: id }}}));
+        if (!items || items.length === 0) throw new Error("Lead not found");
+        const lead = items[0] as unknown as ColdLeadItem;
+
+        if (!lead.email) throw new Error("Lead has no email address");
+
+        // 2. Get Gmail Tokens (same logic as sync)
+        const { currentUser, clerkClient } = await import("@clerk/nextjs/server");
+        const user = await currentUser();
+        if (!user) throw new Error("Clerk session not found");
+
+        const client = await clerkClient();
+        const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
+        let token = tokenResponse.data[0]?.token;
+
+        if (!token) {
+            const dbTokens = await directus.request(readItems("google_tokens", {
+                filter: { user_id: { _eq: user.id } },
+                limit: 1
+            })) as any[];
+            if (dbTokens && dbTokens[0]) token = dbTokens[0].access_token;
+        }
+
+        if (!token) throw new Error("Google account not connected. Please sync contacts first to connect.");
+
+        // 3. Prepare Email
+        const { sendEmail } = await import("@/lib/google");
+        const companyName = lead.company_name_reworked || lead.title;
+        const subject = `Spolupráca s ${companyName}`;
+        
+        let body = "";
+        if (lead.ai_first_sentence) {
+            body = `
+                <div style="font-family: sans-serif; line-height: 1.5; color: #333;">
+                    <p>${lead.ai_first_sentence}</p>
+                    <p>Píšem Vám, pretože ma zaujali Vaše služby. Radi by sme Vám pomohli s automatizáciou a získavaním nových klientov.</p>
+                    <p>Mali by ste záujem o krátky 5-minútový hovor budúci týždeň?</p>
+                    <br/>
+                    <p>S pozdravom,<br/>Automatizácie Tím</p>
+                </div>
+            `;
+        } else {
+             body = `
+                <div style="font-family: sans-serif; line-height: 1.5; color: #333;">
+                    <p>Dobrý deň,</p>
+                    <p>Zaujali ma Vaše služby v oblasti "${lead.category || 'Vášho podnikania'}". Radi by sme Vám pomohli s automatizáciou a získavaním nových klientov.</p>
+                    <p>Mali by ste záujem o krátky 5-minútový hovor budúci týždeň?</p>
+                    <br/>
+                    <p>S pozdravom,<br/>Automatizácie Tím</p>
+                </div>
+            `;
+        }
+
+        // 4. Send
+        await sendEmail({
+            accessToken: token,
+            to: lead.email,
+            subject: subject,
+            body: body
+        });
+
+        // 5. Update Status
+        await directus.request(updateItem("cold_leads", id, { status: "contacted" }));
+        
+        revalidatePath("/dashboard/cold-outreach");
+        return { success: true };
+
+    } catch (e: any) {
+        console.error("Failed to send cold email:", e);
+        return { success: false, error: e.message || String(e) };
+    }
+}

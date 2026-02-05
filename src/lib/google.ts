@@ -106,6 +106,51 @@ export function getTasksClient(accessToken: string, refreshToken?: string) {
   });
 }
 
+export async function sendEmail({
+  accessToken,
+  refreshToken,
+  to,
+  subject,
+  body,
+}: {
+  accessToken: string;
+  refreshToken?: string;
+  to: string;
+  subject: string;
+  body: string;
+}) {
+  const gmail = getGmailClient(accessToken, refreshToken);
+  
+  // Create RFC 2822 message
+  const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
+  const messageParts = [
+    `To: ${to}`,
+    `Subject: ${utf8Subject}`,
+    'Mime-Version: 1.0',
+    'Content-Type: text/html; charset=utf-8',
+    'Content-Transfer-Encoding: 7bit',
+    '',
+    body,
+  ];
+  const message = messageParts.join('\n');
+
+  // Base64url encode the message
+  const encodedEmail = Buffer.from(message)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+  const res = await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: {
+      raw: encodedEmail,
+    },
+  });
+
+  return res.data;
+}
+
 export async function refreshAccessToken(refreshToken: string) {
   const client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
