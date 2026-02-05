@@ -52,7 +52,7 @@ export function ColdLeadsImportModal({
     if (logsEndRef.current) {
         logsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [logs]);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -186,133 +186,130 @@ export function ColdLeadsImportModal({
                 <div className="space-y-6">
                   {Object.keys(mapping).map((field) => (
                     <div key={field} className="space-y-2">
-                      <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 ml-1">
-                        {field.replace(/_/g, " ")}
-                      </label>
-                      <select value={mapping[field]} onChange={(e) => setMapping({ ...mapping, [field]: e.target.value })} className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-blue-500 focus:bg-white transition-all outline-none">
-                        <option value="">-- Vynechať --</option>
-                        {headers.map((h) => <option key={h} value={h}>{h}</option>)}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-                </div>
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">Náhľad dát ({processedRows.length} riadkov)</h4>
-                  </div>
-                  
-                  {/* Auto-Start Switch */}
-                   <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-xl flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-bold text-gray-900">AI Spracovanie na pozadí</p>
-                            <p className="text-[10px] text-gray-500">Po importe automaticky spustí scraping a AI pre nové leady.</p>
-                        </div>
-                        <button 
-                            onClick={() => setAutoStartEnrichment(!autoStartEnrichment)}
-                            className={`w-12 h-7 rounded-full transition-colors flex items-center px-1 ${autoStartEnrichment ? "bg-blue-600" : "bg-gray-300"}`}
-                        >
-                            <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${autoStartEnrichment ? "translate-x-5" : "translate-x-0"}`} />
-                        </button>
+                       <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 ml-1">
+                         {field.replace(/_/g, " ")}
+                       </label>
+                       <select value={mapping[field]} onChange={(e) => setMapping({ ...mapping, [field]: e.target.value })} className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-blue-500 focus:bg-white transition-all outline-none">
+                         <option value="">-- Vynechať --</option>
+                         {headers.map((h) => <option key={h} value={h}>{h}</option>)}
+                       </select>
+                     </div>
+                   ))}
+                 </div>
+                 
+                 <div className="space-y-6">
+                   <div className="flex items-center justify-between">
+                       <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">Náhľad dát ({processedRows.length} riadkov)</h4>
                    </div>
-
-                  {/* Range Selector */}
-                  <div className="bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black uppercase text-gray-400">Od:</span>
-                          <input 
-                            type="number" 
-                            min={1} 
-                            max={processedRows.length}
-                            className="w-20 h-8 text-center text-xs font-bold bg-white border border-gray-200 rounded-lg outline-none focus:border-blue-500"
-                            placeholder="1"
-                            id="range-start"
-                            defaultValue={1}
-                          />
-                      </div>
-                      <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black uppercase text-gray-400">Do:</span>
-                          <input 
-                            type="number" 
-                            min={1} 
-                            max={processedRows.length}
-                            className="w-20 h-8 text-center text-xs font-bold bg-white border border-gray-200 rounded-lg outline-none focus:border-blue-500"
-                            placeholder={String(processedRows.length)}
-                            id="range-end"
-                            defaultValue={processedRows.length}
-                          />
-                      </div>
-                      <button 
-                        onClick={() => {
-                            const startInput = document.getElementById("range-start") as HTMLInputElement;
-                            const endInput = document.getElementById("range-end") as HTMLInputElement;
-                            const start = parseInt(startInput.value) || 1;
-                            const end = parseInt(endInput.value) || processedRows.length;
-                            
-                            const newSet = new Set<number>();
-                            processedRows.forEach((_, i) => {
-                                if (i + 1 >= start && i + 1 <= end) {
-                                    newSet.add(i);
-                                }
-                            });
-                            setSelectedRows(newSet);
-                            toast.success(`Vybraný rozsah ${start} - ${end} (${newSet.size} riadkov)`);
-                        }}
-                        className="ml-auto px-4 py-2 bg-white border border-gray-200 shadow-sm rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 active:scale-95 transition-all"
-                      >
-                        Vybrať
-                      </button>
-                  </div>
-
-                  <div className="bg-gray-900 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden border border-white/10">
-                    <div className="overflow-x-auto max-h-[400px]">
-                      <table className="w-full text-left">
-                        <thead className="sticky top-0 bg-gray-900 z-10">
-                          <tr>
-                            <th className="pb-4 w-10"></th>
-                            {headers.slice(0, 3).map((h) => <th key={h} className="pb-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">{h}</th>)}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {processedRows.slice(0, 10).map((row, i) => (
-                            <tr key={i} className={`group hover:bg-white/5 transition-colors cursor-pointer ${selectedRows.has(i) ? "bg-blue-500/5" : ""}`} onClick={() => {
-                              const newSet = new Set(selectedRows);
-                              if (newSet.has(i)) newSet.delete(i);
-                              else newSet.add(i);
-                              setSelectedRows(newSet);
-                            }}>
-                              <td className="py-3 pr-2">
-                                <div className={`w-4 h-4 rounded-md border-2 transition-all flex items-center justify-center ${selectedRows.has(i) ? "bg-blue-500 border-blue-500" : "border-white/10 group-hover:border-white/30"}`}>
-                                  {selectedRows.has(i) && <Check className="w-3 h-3 text-white" />}
-                                </div>
-                              </td>
-                              {headers.slice(0, 3).map((h) => <td key={h} className="py-3 text-[10px] text-gray-300 truncate max-w-[120px]">{String(row[h] || '')}</td>)}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                   
+                   {/* Auto-Start Switch */}
+                    <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-xl flex items-center justify-between">
+                         <div>
+                             <p className="text-sm font-bold text-gray-900">AI Spracovanie na pozadí</p>
+                             <p className="text-[10px] text-gray-500">Po importe automaticky spustí scraping a AI pre nové leady.</p>
+                         </div>
+                         <button 
+                             onClick={() => setAutoStartEnrichment(!autoStartEnrichment)}
+                             className={`w-12 h-7 rounded-full transition-colors flex items-center px-1 ${autoStartEnrichment ? "bg-blue-600" : "bg-gray-300"}`}
+                         >
+                             <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${autoStartEnrichment ? "translate-x-5" : "translate-x-0"}`} />
+                         </button>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
-
-        {step !== "enrich" && ( 
-            <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-4">
-            <button onClick={onClose} disabled={isUploading} className="px-6 py-3 text-xs font-black uppercase tracking-widest text-gray-400 disabled:opacity-50">Zrušiť</button>
-            {step !== "upload" && (
-                <button onClick={handleImport} disabled={isUploading} className="px-10 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl flex items-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed">
-                {isUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Spracúvam</> : <>Importovať <ArrowRight className="w-4 h-4" /></>}
-                </button>
-            )}
-            </div>
-        )}
-      </div>
-    </div>
-  );
+ 
+                   {/* Range Selector */}
+                   <div className="bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 flex items-center gap-4">
+                       <div className="flex items-center gap-2">
+                           <span className="text-[10px] font-black uppercase text-gray-400">Od:</span>
+                           <input 
+                             type="number" 
+                             min={1} 
+                             max={processedRows.length}
+                             className="w-20 h-8 text-center text-xs font-bold bg-white border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+                             placeholder="1"
+                             id="range-start"
+                             defaultValue={1}
+                           />
+                       </div>
+                       <div className="flex items-center gap-2">
+                           <span className="text-[10px] font-black uppercase text-gray-400">Do:</span>
+                           <input 
+                             type="number" 
+                             min={1} 
+                             max={processedRows.length}
+                             className="w-20 h-8 text-center text-xs font-bold bg-white border border-gray-200 rounded-lg outline-none focus:border-blue-500"
+                             placeholder={String(processedRows.length)}
+                             id="range-end"
+                             defaultValue={processedRows.length}
+                           />
+                       </div>
+                       <button 
+                         onClick={() => {
+                             const startInput = document.getElementById("range-start") as HTMLInputElement;
+                             const endInput = document.getElementById("range-end") as HTMLInputElement;
+                             const start = parseInt(startInput.value) || 1;
+                             const end = parseInt(endInput.value) || processedRows.length;
+                             
+                             const newSet = new Set<number>();
+                             processedRows.forEach((_, i) => {
+                                 if (i + 1 >= start && i + 1 <= end) {
+                                     newSet.add(i);
+                                 }
+                             });
+                             setSelectedRows(newSet);
+                             toast.success(`Vybraný rozsah ${start} - ${end} (${newSet.size} riadkov)`);
+                         }}
+                         className="ml-auto px-4 py-2 bg-white border border-gray-200 shadow-sm rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 active:scale-95 transition-all"
+                       >
+                         Vybrať
+                       </button>
+                   </div>
+ 
+                   <div className="bg-gray-900 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden border border-white/10">
+                     <div className="overflow-x-auto max-h-[400px]">
+                       <table className="w-full text-left">
+                         <thead className="sticky top-0 bg-gray-900 z-10">
+                           <tr>
+                             <th className="pb-4 w-10"></th>
+                             {headers.slice(0, 3).map((h) => <th key={h} className="pb-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5">{h}</th>)}
+                           </tr>
+                         </thead>
+                         <tbody className="divide-y divide-white/5">
+                           {processedRows.slice(0, 10).map((row, i) => (
+                             <tr key={i} className={`group hover:bg-white/5 transition-colors cursor-pointer ${selectedRows.has(i) ? "bg-blue-500/5" : ""}`} onClick={() => {
+                               const newSet = new Set(selectedRows);
+                               if (newSet.has(i)) newSet.delete(i);
+                               else newSet.add(i);
+                               setSelectedRows(newSet);
+                             }}>
+                               <td className="py-3 pr-2">
+                                 <div className={`w-4 h-4 rounded-md border-2 transition-all flex items-center justify-center ${selectedRows.has(i) ? "bg-blue-500 border-blue-500" : "border-white/10 group-hover:border-white/30"}`}>
+                                   {selectedRows.has(i) && <Check className="w-3 h-3 text-white" />}
+                                 </div>
+                               </td>
+                               {headers.slice(0, 3).map((h) => <td key={h} className="py-3 text-[10px] text-gray-300 truncate max-w-[120px]">{String(row[h] || '')}</td>)}
+                             </tr>
+                           ))}
+                         </tbody>
+                       </table>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           )}
+         </div>
+ 
+         {step !== "enrich" && ( 
+             <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-4">
+             <button onClick={onClose} disabled={isUploading} className="px-6 py-3 text-xs font-black uppercase tracking-widest text-gray-400 disabled:opacity-50">Zrušiť</button>
+             {step !== "upload" && (
+                 <button onClick={handleImport} disabled={isUploading} className="px-10 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl flex items-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed">
+                 {isUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Spracúvam</> : <>Importovať <ArrowRight className="w-4 h-4" /></>}
+                 </button>
+             )}
+             </div>
+         )}
+       </div>
+     </div>
+   );
 }
-
-
