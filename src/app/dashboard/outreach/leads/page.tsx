@@ -591,7 +591,6 @@ export default function OutreachLeadsPage() {
                                                 <span className="text-gray-300 font-medium italic">Chýba</span>
                                             )}
                                         </div>
-                                        </div>
                                     )}
                                 </div>
                              </td>
