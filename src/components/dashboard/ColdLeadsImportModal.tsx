@@ -152,8 +152,8 @@ export function ColdLeadsImportModal({
           try {
              setLogs(prev => [...prev, `Spúšťam: ${item.title}...`]);
              
-             // Cast to any because we modified the return type to include 'debug'
-             const res: any = await enrichColdLead(item.id);
+             // Cast to any for now to access the custom debug property from the action
+             const res = await enrichColdLead(item.id) as { success: boolean, debug?: any, error?: string };
              
              if (res.success && res.debug) {
                  const d = res.debug;
@@ -170,8 +170,9 @@ export function ColdLeadsImportModal({
                  setLogs(prev => [...prev, `❌ CHYBA: ${res.error || "Neznáma chyba"}`]);
              }
 
-          } catch (e: any) {
-              setLogs(prev => [...prev, `❌ CRITICAL FAIL: ${e.message}`]);
+          } catch (e: unknown) {
+              const errorMessage = e instanceof Error ? e.message : String(e);
+              setLogs(prev => [...prev, `❌ CRITICAL FAIL: ${errorMessage}`]);
               console.error(`Failed to enrich ${item.id}`, e);
           }
           completed++;

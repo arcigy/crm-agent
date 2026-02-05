@@ -107,14 +107,11 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
         const infoKeywords = ["sluzby", "services", "produkty", "products", "o-nas", "about", "offer", "ponuka"];
         
         let bestSubLink: string | null = null;
-        let isContactPage = false;
-
         // First pass: Look for Contact page
         for (const kw of contactKeywords) {
             const found = links.find(l => l.toLowerCase().includes(kw));
             if (found) {
                 bestSubLink = found;
-                isContactPage = true;
                 break;
             }
         }
