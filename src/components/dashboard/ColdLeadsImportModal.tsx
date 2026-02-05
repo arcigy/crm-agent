@@ -34,15 +34,10 @@ export function ColdLeadsImportModal({
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({
     title: "",
-    company_name_reworked: "",
     website: "",
-    email: "",
     phone: "",
     city: "",
     category: "",
-    abstract: "",
-    ai_first_sentence: "",
-    fallback_url: "",
     google_maps_url: ""
   });
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
@@ -70,18 +65,10 @@ export function ColdLeadsImportModal({
           (results.meta.fields || []).forEach((h) => {
             const low = h.toLowerCase();
             if (low.includes("title") || low.includes("názov") || low.includes("original_title") || low.includes("name")) newMapping.title = h;
-            if (low.includes("reworked") || low.includes("meno") || low.includes("final_company_name")) newMapping.company_name_reworked = h;
             if (low.includes("website") || low.includes("web") || low.includes("site") || low.includes("domain") || (low === "url") || (low === "link")) newMapping.website = h;
-            if (low.includes("email") || low.includes("e-mail") || low.includes("mail")) newMapping.email = h;
             if (low.includes("phone") || low.includes("tel") || low.includes("mobil")) newMapping.phone = h;
             if (low.includes("city") || low.includes("mesto") || low.includes("address") || low.includes("adresa")) newMapping.city = h;
             if (low.includes("category") || low.includes("kategória") || low.includes("industry") || low.includes("odvetvie")) newMapping.category = h;
-            if (low.includes("abstract") || low.includes("abstrakt") || low.includes("description") || low.includes("popis")) newMapping.abstract = h;
-            if (low.includes("sentence") || low.includes("icebreaker") || low.includes("veta")) newMapping.ai_first_sentence = h;
-            // Fallback URL logic: prioritizing explicit "fallback" or "drive" or "google", but catch "url" if not mapped to website above?
-            // Actually, if website is already mapped, we don't overwrite. But we loop headers, so order matters.
-            // Let's refine: fallback is mostly for "drive" or explicit fallback columns.
-            if (low.includes("drive") || low.includes("fallback") || (low.includes("url") && !newMapping.website)) newMapping.fallback_url = h;
             if (low.includes("maps") || (low.includes("google") && low.includes("url")) || low.includes("gmap")) newMapping.google_maps_url = h;
           });
           setMapping(newMapping);
@@ -113,16 +100,11 @@ export function ColdLeadsImportModal({
         const row = processedRows[index];
         return {
           title: String(row[mapping.title] || ""),
-          company_name_reworked: String(row[mapping.company_name_reworked] || ""),
           website: String(row[mapping.website] || ""),
-          email: String(row[mapping.email] || ""),
           phone: String(row[mapping.phone] || ""),
           city: String(row[mapping.city] || ""),
           category: String(row[mapping.category] || ""),
-          abstract: String(row[mapping.abstract] || ""),
-          ai_first_sentence: String(row[mapping.ai_first_sentence] || ""),
           list_name: initialListName || "Zoznam 1",
-          fallback_url: String(row[mapping.fallback_url] || ""),
           google_maps_url: String(row[mapping.google_maps_url] || "")
         };
       });
@@ -131,7 +113,7 @@ export function ColdLeadsImportModal({
 
       if (res.success && res.items) {
         if (res.duplicates && res.duplicates > 0) {
-            toast.warning(`Preskočených ${res.duplicates} duplikátov (email/web/tel).`);
+            toast.warning(`Preskočených ${res.duplicates} duplikátov (web/tel/meno).`);
         }
         toast.success(`Úspešne importovaných ${res.count} unikátnych leadov.`);
         setStep("enrich");
