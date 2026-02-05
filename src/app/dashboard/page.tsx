@@ -1,6 +1,5 @@
 import { tools } from "@/tools/registry";
 import { PaymentSuccessToast } from "@/components/dashboard/PaymentSuccessToast";
-import { GoogleConnectButton } from "@/components/dashboard/GoogleConnectButton";
 import { DashboardStats } from "@/components/dashboard/overview/StatCards";
 import { ChartsRow } from "@/components/dashboard/overview/ChartsRow";
 import { TodoListWidget } from "@/components/dashboard/overview/TodoListWidget";
@@ -76,20 +75,8 @@ export default async function DashboardPage() {
     <div className="max-w-[1600px] mx-auto p-4 md:p-8 space-y-12">
       <PaymentSuccessToast />
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4 border-b-4 border-black border-dotted">
-        <div>
-          <h1 className="text-4xl md:text-5xl font-light font-sans text-foreground uppercase tracking-[0.2em] leading-tight">
-            Centrálna Riadiaca Jednotka
-          </h1>
-          <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs mt-4">
-            Prehľad tvojho biznisu v reálnom čase
-          </p>
-        </div>
-        <div className="flex gap-4">
-          <GoogleConnectButton />
-        </div>
-      </div>
+      {/* Header Removed as per user request for cleaner layout */}
+      <div className="hidden"></div>
 
       {/* Primary Stats */}
       <DashboardStats stats={stats} />
