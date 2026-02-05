@@ -43,13 +43,18 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
     // Helper to fetch and clean text, and extract emails
     const fetchAndAnalyze = async (targetUrl: string): Promise<{ text: string, html: string, emails: string[] } | null> => {
         try {
+            console.log(`[Scraper] Fetching: ${targetUrl}`);
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per page is safer for email hunting
+            const timeoutId = setTimeout(() => controller.abort(), 12000); // Slightly more time for slow Slovak servers
 
             const res = await fetch(targetUrl, {
                 headers: {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                    "Accept-Language": "sk,cs;q=0.9,en;q=0.8",
+                    "Cache-Control": "no-cache"
                 },
+                redirect: "follow", // CRITICAL: Follow redirects to homepages/contact pages
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
@@ -57,18 +62,47 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
             if (!res.ok) return null;
             
             const html = await res.text();
-            let text = html;
             
-            // Extract Emails BEFORE cleaning text (from raw HTML to catch mailto: and hidden in tags)
+            // 1. EXTRACTION FROM RAW HTML (Visual/Frontend logic)
+            // This catches <a href="mailto:..."> and emails hidden in attributes
+            const foundEmails = new Set<string>();
+            
+            // Standard email regex
             const emailRegex = /[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}/g;
-            const foundEmails = html.match(emailRegex) || [];
-            // Basic deduplication and filtering of clearly garbage emails (like example.com or image extensions)
-            const validEmails = [...new Set(foundEmails)].filter(e => {
+            const matches = html.match(emailRegex) || [];
+            matches.forEach(e => foundEmails.add(e));
+
+            // Catch encoded mailto: links (common in footers)
+            const mailtoRegex = /mailto:([a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6})/gi;
+            let m;
+            while ((m = mailtoRegex.exec(html)) !== null) {
+                foundEmails.add(m[1]);
+            }
+
+            // Handle Cloudflare Email Obfuscation (if present)
+            if (html.includes("data-cfemail")) {
+                const cfRegex = /data-cfemail="([^"]+)"/g;
+                let cfMatch;
+                while ((cfMatch = cfRegex.exec(html)) !== null) {
+                    try {
+                        const encoded = cfMatch[1];
+                        let r = parseInt(encoded.substr(0, 2), 16), n = "", e = 2;
+                        for (; encoded.length - e; e += 2) {
+                            n += String.fromCharCode(parseInt(encoded.substr(e, 2), 16) ^ r);
+                        }
+                        if (n.includes("@")) foundEmails.add(n);
+                    } catch(err) { /* ignore cf fail */ }
+                }
+            }
+
+            // Deduplicate and filter garbage
+            const validEmails = Array.from(foundEmails).filter(e => {
                 const lower = e.toLowerCase();
-                return !lower.endsWith(".png") && !lower.endsWith(".jpg") && !lower.endsWith(".gif") && !lower.endsWith(".js") && !lower.includes("example.com") && !lower.includes("domain.com");
+                return !lower.endsWith(".png") && !lower.endsWith(".jpg") && !lower.endsWith(".gif") && !lower.endsWith(".js") && !lower.includes("example.com") && !lower.includes("wix.com");
             });
 
-            // Basic HTML to Text Conversion
+            // 2. TEXT EXTRACTION FOR AI (Cleaning)
+            let text = html;
             text = text.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "");
             text = text.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "");
             text = text.replace(/<head\b[^>]*>([\s\S]*?)<\/head>/gim, "");
