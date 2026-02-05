@@ -216,24 +216,33 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
     `;
 
     try {
-        console.log(`[AI] Generating for ${businessName}... Context length: ${contextText.length}`);
+        console.log(`[AI] Requesting Gemini for: ${businessName}`);
         
-        // Use gemini-1.5-flash for reliability and speed in current environments
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // As requested: Using the 2.0 Flash model (latest available)
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         
         const result = await model.generateContent(prompt);
         const response = await result.response;
+        
+        if (!response) throw new Error("No response from Gemini");
+        
         const sentence = response.text().trim();
         
-        console.log(`[AI] Success for ${businessName}: ${sentence.slice(0, 50)}...`);
+        if (!sentence) {
+            console.warn(`[AI] Empty sentence generated for ${businessName}`);
+            return null;
+        }
+
+        console.log(`[AI] Successfully generated for ${businessName}`);
 
         return {
             name: businessName,
-            sentence: sentence ? sentence.replace(/^["']|["']$/g, "") : null
+            sentence: sentence.replace(/^["']|["']$/g, "")
         };
 
     } catch (e: any) {
-        console.error(`[AI] Error for ${businessName}:`, e.message || e);
+        console.error(`[AI] ERROR for ${businessName}:`, e.message || e);
+        // Special case: if it's a safety filter or model error, return helpful debug info or null
         return null;
     }
 }
