@@ -1,5 +1,24 @@
 import { ColdLeadItem } from "@/app/actions/cold-leads";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import dns from "dns";
+import { promisify } from "util";
+
+const resolveMx = promisify(dns.resolveMx);
+
+// Helper: Guess common emails if none found
+async function guessEmailsForDomain(url: string): Promise<string[]> {
+    try {
+        const domain = new URL(url).hostname.replace("www.", "");
+        // First check if domain has MX records (can receive email)
+        const mxRecords = await resolveMx(domain).catch(() => []);
+        if (mxRecords.length === 0) return [];
+
+        const prefixes = ["info", "kontakt", "office", "servis", "obchod", "predaj", "dopyt"];
+        return prefixes.map(p => `${p}@${domain}`);
+    } catch (e) {
+        return [];
+    }
+}
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -96,8 +115,30 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
             const rawHtml = await res.text();
             const html = decodeEntities(rawHtml);
             
-            // 1. Emails from raw HTML (catches attributes, comments, scripts)
-            const emails = extractEmails(html);
+            // 1. Extractions
+            const emails = new Set(extractEmails(html));
+
+            // --- DEEP SCAN: Scripts (For JS-rendered sites like React/Vite) ---
+            const scriptRegex = /<script\b[^>]*src=["']([^"']+)["']/gi;
+            let scriptMatch;
+            const scriptUrls: string[] = [];
+            while ((scriptMatch = scriptRegex.exec(html)) !== null) {
+                scriptUrls.push(scriptMatch[1]);
+            }
+
+            for (const scriptSrc of scriptUrls) {
+                try {
+                    const scriptUrl = new URL(scriptSrc, targetUrl).toString();
+                    // Only scan scripts on the same domain to avoid heavy external loads
+                    if (scriptUrl.includes(new URL(targetUrl).hostname) || scriptSrc.startsWith("/")) {
+                        const sRes = await fetch(scriptUrl, { signal: controller.signal });
+                        if (sRes.ok) {
+                            const sText = await sRes.text();
+                            extractEmails(sText).forEach(e => emails.add(e));
+                        }
+                    }
+                } catch(err) { /* ignore script fail */ }
+            }
 
             // 2. Cloudflare de-obfuscation
             if (html.includes("data-cfemail")) {
@@ -109,7 +150,7 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
                         for (; encoded.length - e; e += 2) {
                             n += String.fromCharCode(parseInt(encoded.substr(e, 2), 16) ^ r);
                         }
-                        if (n.includes("@")) emails.push(n.toLowerCase());
+                        if (n.includes("@")) emails.add(n.toLowerCase());
                     } catch(err) {}
                 });
             }
@@ -124,7 +165,7 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
             text = text.replace(/<[^>]+>/g, " ");
             text = text.replace(/\s+/g, " ").trim();
             
-            return { text, html, emails: [...new Set(emails)] };
+            return { text, html, emails: Array.from(emails) };
         } catch (e) {
             return null;
         }
@@ -135,7 +176,7 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
         if (!home) return null;
 
         let combinedText = `--- HOMEPAGE ---\n${home.text}`;
-        let collectedEmails = [...home.emails];
+        const collectedEmails = new Set<string>(home.emails);
         const visited = new Set<string>([url]);
 
         // 2. Extract ALL Links
@@ -173,11 +214,17 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
             const sub = await fetchAndAnalyze(subUrl);
             if (sub) {
                 if (sub.text.length > 50) combinedText += `\n\n--- SUBPAGE (${new URL(subUrl).pathname}) ---\n${sub.text}`;
-                collectedEmails = [...collectedEmails, ...sub.emails];
+                sub.emails.forEach(e => collectedEmails.add(e));
             }
         }
 
-        const filteredEmails = [...new Set(collectedEmails)].filter(e => {
+        // --- FINAL FALLBACK: GUESSING ---
+        if (collectedEmails.size === 0) {
+            const guessed = await guessEmailsForDomain(url);
+            guessed.forEach(e => collectedEmails.add(e));
+        }
+
+        const filteredEmails = Array.from(collectedEmails).filter(e => {
             const l = e.toLowerCase();
             return !l.includes("wix.com") && !l.includes("sentry.io") && !l.includes("example.com") && !l.includes("domain.com");
         });
