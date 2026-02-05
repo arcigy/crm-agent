@@ -35,17 +35,18 @@ function stripCity(name: string, city?: string): string {
     return name;
 }
 
-// 1. Custom Website Scraper (No External Service)
-// 1. Custom Website Scraper (No External Service)
+const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY || "";
+
+// 1. Custom Website Scraper (With Firecrawl Fallback)
 export async function scrapeWebsite(url: string): Promise<{ text: string, email?: string } | null> {
     if (!url) return null;
     
     // Helper to fetch and clean text, and extract emails
     const fetchAndAnalyze = async (targetUrl: string): Promise<{ text: string, html: string, emails: string[] } | null> => {
         try {
-            console.log(`[Scraper] Fetching: ${targetUrl}`);
+            console.log(`[Scraper] Stage 1 (Fetch): ${targetUrl}`);
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000); // Slightly more time for slow Slovak servers
+            const timeoutId = setTimeout(() => controller.abort(), 12000); 
 
             const res = await fetch(targetUrl, {
                 headers: {
@@ -54,7 +55,7 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
                     "Accept-Language": "sk,cs;q=0.9,en;q=0.8",
                     "Cache-Control": "no-cache"
                 },
-                redirect: "follow", // CRITICAL: Follow redirects to homepages/contact pages
+                redirect: "follow", 
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
@@ -63,23 +64,17 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
             
             const html = await res.text();
             
-            // 1. EXTRACTION FROM RAW HTML (Visual/Frontend logic)
-            // This catches <a href="mailto:..."> and emails hidden in attributes
             const foundEmails = new Set<string>();
-            
-            // Standard email regex
             const emailRegex = /[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}/g;
             const matches = html.match(emailRegex) || [];
             matches.forEach(e => foundEmails.add(e));
 
-            // Catch encoded mailto: links (common in footers)
             const mailtoRegex = /mailto:([a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6})/gi;
             let m;
             while ((m = mailtoRegex.exec(html)) !== null) {
                 foundEmails.add(m[1]);
             }
 
-            // Handle Cloudflare Email Obfuscation (if present)
             if (html.includes("data-cfemail")) {
                 const cfRegex = /data-cfemail="([^"]+)"/g;
                 let cfMatch;
@@ -91,17 +86,15 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
                             n += String.fromCharCode(parseInt(encoded.substr(e, 2), 16) ^ r);
                         }
                         if (n.includes("@")) foundEmails.add(n);
-                    } catch(err) { /* ignore cf fail */ }
+                    } catch(err) { /* ignore */ }
                 }
             }
 
-            // Deduplicate and filter garbage
             const validEmails = Array.from(foundEmails).filter(e => {
                 const lower = e.toLowerCase();
                 return !lower.endsWith(".png") && !lower.endsWith(".jpg") && !lower.endsWith(".gif") && !lower.endsWith(".js") && !lower.includes("example.com") && !lower.includes("wix.com");
             });
 
-            // 2. TEXT EXTRACTION FOR AI (Cleaning)
             let text = html;
             text = text.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "");
             text = text.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "");
@@ -119,8 +112,50 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
         }
     };
 
+    const scrapeWithFirecrawl = async (targetUrl: string) => {
+        if (!FIRECRAWL_API_KEY) return null;
+        try {
+            console.log(`[Scraper] Stage 2 (Firecrawl - JS Rendering): ${targetUrl}`);
+            const response = await fetch("https://api.firecrawl.dev/v0/scrape", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${FIRECRAWL_API_KEY}`
+                },
+                body: JSON.stringify({
+                    url: targetUrl,
+                    pageOptions: {
+                        onlyMainContent: false,
+                        waitFor: 3000 // Wait for JS/Footer to load
+                    }
+                })
+            });
+
+            if (!response.ok) return null;
+            const data = await response.json();
+            
+            if (data.success && data.data) {
+                const content = data.data.content || "";
+                const html = data.data.html || "";
+                
+                // Extract emails from whatever Firecrawl returned
+                const combined = content + " " + html;
+                const emailRegex = /[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}/g;
+                const found = combined.match(emailRegex) || [];
+                return {
+                    text: content,
+                    emails: [...new Set(found)]
+                };
+            }
+            return null;
+        } catch (e) {
+            console.error("Firecrawl Error:", e);
+            return null;
+        }
+    };
+
     try {
-        // 1. Fetch Homepage
+        // 1. Fetch Homepage (Local)
         const home = await fetchAndAnalyze(url);
         if (!home) return null;
 
@@ -133,65 +168,58 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
         const subLinks = new Set<string>();
         
         while ((match = linkRegex.exec(home.html)) !== null) {
-            let link = match[2];
+            const link = match[2];
             if (!link || link.startsWith("#") || link.startsWith("javascript:") || link.startsWith("tel:")) continue;
             
             try {
                 const absUrl = new URL(link, url).toString();
-                // Stay on same domain
                 if (absUrl.startsWith(url) || absUrl.includes(new URL(url).hostname)) {
                     subLinks.add(absUrl);
                 }
-            } catch(e) { /* ignore */ }
+            } catch(e) { }
         }
 
-        // 3. Prioritize Links (Contact, About, Info)
-        const priorityKeywords = ["kontakt", "contact", "spojte", "about", "o-nas", "sluzby", "services", "produkty", "products", "info", "impressum"];
         const candidates = Array.from(subLinks).filter(l => l !== url);
-        
         const sortedCandidates = candidates.sort((a, b) => {
             const score = (link: string) => {
-                let s = 0;
                 const lower = link.toLowerCase();
-                if (lower.includes("kontakt") || lower.includes("contact")) s += 10;
-                if (lower.includes("o-nas") || lower.includes("about")) s += 5;
-                if (lower.includes("sluzby") || lower.includes("services")) s += 3;
-                return s;
+                if (lower.includes("kontakt") || lower.includes("contact")) return 10;
+                if (lower.includes("o-nas") || lower.includes("about")) return 5;
+                return 0;
             };
             return score(b) - score(a);
         });
 
-        // 4. Crawl up to 10 top candidates
-        const toCrawl = sortedCandidates.slice(0, 10);
-        
+        const toCrawl = sortedCandidates.slice(0, 3);
         for (const subUrl of toCrawl) {
-            try {
-                const sub = await fetchAndAnalyze(subUrl);
-                if (sub) {
-                    if (sub.text.length > 50) {
-                        combinedText += `\n\n--- SUBPAGE (${new URL(subUrl).pathname}) ---\n${sub.text}`;
-                    }
-                    collectedEmails = [...collectedEmails, ...sub.emails];
-                }
-            } catch (e) { /* ignore page fail */ }
+            const sub = await fetchAndAnalyze(subUrl);
+            if (sub) {
+                if (sub.text.length > 50) combinedText += `\n\n--- SUBPAGE ---\n${sub.text}`;
+                collectedEmails = [...collectedEmails, ...sub.emails];
+            }
         }
 
-        // 5. Deduplicate and Prioritize Emails
+        // --- FALLBACK TO FIRECRAWL ---
+        // If we have no emails after local scraping, use the pro artillery
+        if (collectedEmails.length === 0 && FIRECRAWL_API_KEY) {
+            const fireResult = await scrapeWithFirecrawl(url);
+            if (fireResult) {
+                collectedEmails = [...fireResult.emails];
+                if (fireResult.text.length > 100) {
+                     combinedText += `\n\n--- FIRECRAWL CONTENT ---\n${fireResult.text}`;
+                }
+            }
+        }
+
         const uniqueEmails = [...new Set(collectedEmails)];
-        // Filter out obviously wrong ones
         const filteredEmails = uniqueEmails.filter(e => {
             const lower = e.toLowerCase();
             return !lower.includes("wix.com") && !lower.includes("sentry.io") && !lower.includes("example.com") && !lower.includes("domain.com");
         });
 
         const prioritizedEmail = filteredEmails.find(e => 
-            e.includes("info@") || 
-            e.includes("kontakt@") || 
-            e.includes("office@") || 
-            e.includes("predaj@") ||
-            e.includes("servis@") ||
-            e.includes("obchod@") ||
-            e.includes("dopyt@")
+            e.includes("info@") || e.includes("kontakt@") || e.includes("office@") || 
+            e.includes("predaj@") || e.includes("servis@") || e.includes("obchod@")
         ) || filteredEmails[0];
 
         return {
