@@ -93,67 +93,76 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
         let combinedText = `--- HOMEPAGE ---\n${home.text}`;
         let collectedEmails = [...home.emails];
 
-        // 2. Find meaningful subpage (Priority: CONTACT > Services/About)
+        // 2. Extract and Filter Links
         const linkRegex = /<a\s+(?:[^>]*?\s+)?href=(["'])(.*?)\1/gi;
         let match;
-        const links: string[] = [];
+        const subLinks = new Set<string>();
         
         while ((match = linkRegex.exec(home.html)) !== null) {
-            links.push(match[2]);
-        }
-
-        // Keywords to prioritize - CONTACT first for email hunting!
-        const contactKeywords = ["kontakt", "contact", "spojte"];
-        const infoKeywords = ["sluzby", "services", "produkty", "products", "o-nas", "about", "offer", "ponuka"];
-        
-        let bestSubLink: string | null = null;
-        // First pass: Look for Contact page
-        for (const kw of contactKeywords) {
-            const found = links.find(l => l.toLowerCase().includes(kw));
-            if (found) {
-                bestSubLink = found;
-                break;
-            }
-        }
-
-        // Second pass: If no contact page, look for info page
-        if (!bestSubLink) {
-            for (const kw of infoKeywords) {
-                const found = links.find(l => l.toLowerCase().includes(kw));
-                if (found) {
-                    bestSubLink = found;
-                    break;
-                }
-            }
-        }
-
-        // 3. Fetch Subpage if found
-        if (bestSubLink) {
+            let link = match[2];
+            if (!link || link.startsWith("#") || link.startsWith("javascript:") || link.startsWith("tel:")) continue;
+            
             try {
-                const subUrl = new URL(bestSubLink, url).toString();
-                if (subUrl !== url && (subUrl.startsWith(url) || subUrl.includes(new URL(url).hostname))) {
-                     const sub = await fetchAndAnalyze(subUrl);
-                     if (sub) {
-                         // Add text if it's new
-                         if (sub.text.length > 50) {
-                             combinedText += `\n\n--- SUBPAGE (${new URL(subUrl).pathname}) ---\n${sub.text}`;
-                         }
-                         // Collect new emails
-                         collectedEmails = [...collectedEmails, ...sub.emails];
-                     }
+                const absUrl = new URL(link, url).toString();
+                // Stay on same domain
+                if (absUrl.startsWith(url) || absUrl.includes(new URL(url).hostname)) {
+                    subLinks.add(absUrl);
                 }
-            } catch (e) {
-                // Ignore URL parsing errors
-            }
+            } catch(e) { /* ignore */ }
         }
 
-        // Return best email (prioritize info@, kontakt@, etc.)
+        // 3. Prioritize Links (Contact, About, Info)
+        const priorityKeywords = ["kontakt", "contact", "spojte", "about", "o-nas", "sluzby", "services", "produkty", "products", "info", "impressum"];
+        const candidates = Array.from(subLinks).filter(l => l !== url);
+        
+        const sortedCandidates = candidates.sort((a, b) => {
+            const score = (link: string) => {
+                let s = 0;
+                const lower = link.toLowerCase();
+                if (lower.includes("kontakt") || lower.includes("contact")) s += 10;
+                if (lower.includes("o-nas") || lower.includes("about")) s += 5;
+                if (lower.includes("sluzby") || lower.includes("services")) s += 3;
+                return s;
+            };
+            return score(b) - score(a);
+        });
+
+        // 4. Crawl up to 10 top candidates
+        const toCrawl = sortedCandidates.slice(0, 10);
+        
+        for (const subUrl of toCrawl) {
+            try {
+                const sub = await fetchAndAnalyze(subUrl);
+                if (sub) {
+                    if (sub.text.length > 50) {
+                        combinedText += `\n\n--- SUBPAGE (${new URL(subUrl).pathname}) ---\n${sub.text}`;
+                    }
+                    collectedEmails = [...collectedEmails, ...sub.emails];
+                }
+            } catch (e) { /* ignore page fail */ }
+        }
+
+        // 5. Deduplicate and Prioritize Emails
         const uniqueEmails = [...new Set(collectedEmails)];
-        const prioritizedEmail = uniqueEmails.find(e => e.includes("info@") || e.includes("kontakt@") || e.includes("office@")) || uniqueEmails[0];
+        // Filter out obviously wrong ones
+        const filteredEmails = uniqueEmails.filter(e => {
+            const lower = e.toLowerCase();
+            return !lower.includes("wix.com") && !lower.includes("sentry.io") && !lower.includes("example.com") && !lower.includes("domain.com");
+        });
+
+        const prioritizedEmail = filteredEmails.find(e => 
+            e.includes("info@") || 
+            e.includes("kontakt@") || 
+            e.includes("office@") || 
+            e.includes("predaj@") ||
+            e.includes("servis@") ||
+            e.includes("obchod@") ||
+            e.includes("dopyt@")
+        ) || filteredEmails[0];
 
         return {
             text: combinedText,
-            email: prioritizedEmail // Can be undefined
+            email: prioritizedEmail || undefined
         };
 
     } catch (e) {
