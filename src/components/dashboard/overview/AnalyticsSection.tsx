@@ -61,36 +61,38 @@ export function AnalyticsSection({ contacts, deals }: { contacts: any[], deals: 
         </div>
       </div>
 
-      {/* Deals Bar Chart */}
-      <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm h-[400px] flex flex-col">
-        <h3 className="text-xl font-black uppercase italic tracking-tighter mb-4 text-center lg:text-left">Top Obchody (€)</h3>
-        <div className="flex-1 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
-              <XAxis 
-                dataKey="name" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fontSize: 10, fontWeight: 700, fill: '#64748B' }} 
-              />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fontSize: 10, fontWeight: 700, fill: '#64748B' }}
-              />
-              <Tooltip 
-                cursor={{ fill: '#F1F5F9' }}
-                contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-              />
-              <Bar 
-                dataKey="value" 
-                fill="#2563eb" 
-                radius={[8, 8, 0, 0]} 
-                barSize={40}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+      {/* Deals Bar Chart (Visually hidden as per user request) */}
+      <div className="hidden">
+        <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm h-[400px] flex flex-col">
+          <h3 className="text-xl font-black uppercase italic tracking-tighter mb-4 text-center lg:text-left">Top Obchody (€)</h3>
+          <div className="flex-1 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#64748B' }} 
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#64748B' }}
+                />
+                <Tooltip 
+                  cursor={{ fill: '#F1F5F9' }}
+                  contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                />
+                <Bar 
+                  dataKey="value" 
+                  fill="#2563eb" 
+                  radius={[8, 8, 0, 0]} 
+                  barSize={40}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>

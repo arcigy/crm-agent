@@ -82,7 +82,7 @@ export default async function DashboardPage() {
       <DashboardStats stats={stats} />
 
       {/* Performance & Pipeline */}
-      <ChartsRow deals={deals} projects={projects} />
+      <ChartsRow deals={deals} projects={projects} tasks={tasks as any[]} />
 
       {/* Daily Operations Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
