@@ -1,7 +1,7 @@
 "use client";
 
 import { SmartText } from "@/components/todo/SmartText";
-import { CheckCircle2, Clock, Calendar, Check, Undo2 } from "lucide-react";
+import { CheckCircle2, Clock, Calendar, Check, Undo2, Sparkles } from "lucide-react";
 import { format, isToday, isThisWeek } from "date-fns";
 import { sk } from "date-fns/locale";
 import { useState, useEffect } from "react";
@@ -23,8 +23,6 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
 
   const hasTime = (dateStr?: string) => {
     if (!dateStr) return false;
-    // Basic check: if it contains 'T' and isn't midnight exactly (common default for date-only)
-    // Or check if the original string was likely a datetime
     return dateStr.includes('T') && !dateStr.includes('00:00:00');
   };
 
@@ -37,16 +35,11 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
       return nextWeek && !isToday(taskDate);
     })
     .sort((a, b) => {
-      // 1. Completion status
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
-      
-      // 2. Tasks with time first
       const timeA = hasTime(a.due_date);
       const timeB = hasTime(b.due_date);
       if (timeA && !timeB) return -1;
       if (!timeA && timeB) return 1;
-      
-      // 3. Chronological
       return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
     });
 
@@ -56,8 +49,8 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
     const type = currentStatus ? 'uncomplete' : 'complete';
     setAnimatingIds(prev => [...prev, { id, type }]);
     
-    // Animation duration logic
-    const waitTime = type === 'complete' ? 800 : 300;
+    // Dopamine delay - let the animation shine
+    const waitTime = type === 'complete' ? 1000 : 300;
 
     setTimeout(async () => {
       try {
@@ -79,7 +72,9 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
 
   const title = mode === "today" ? "Úlohy na dnes" : "Tento týždeň";
   const Icon = mode === "today" ? Clock : Calendar;
-  const badgeColor = mode === "today" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+  
+  // Nice gray badge style for ÚLOH
+  const badgeStyle = "bg-[#f4f4f5] dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700/50";
 
   return (
     <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-full w-full transition-all duration-300 overflow-hidden">
@@ -87,8 +82,8 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
         <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">
           {title}
         </h3>
-        <span className={`text-[10px] font-bold px-2 py-1 ${badgeColor} rounded-lg`}>
-          {filteredTasks.filter(t => !t.completed).length} TODO
+        <span className={`text-[9px] font-black px-2.5 py-1.5 ${badgeStyle} rounded-xl tracking-[0.1em]`}>
+          {filteredTasks.filter(t => !t.completed).length} ÚLOH
         </span>
       </div>
 
@@ -104,32 +99,43 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
             return (
               <div 
                 key={task.id} 
-                className={`flex items-start gap-4 p-3 rounded-2xl transition-all relative overflow-hidden group
-                  ${isDone ? 'opacity-50 grayscale-[0.5] bg-emerald-500/5' : 'hover:bg-muted/30'}
+                className={`flex items-start gap-4 p-3.5 rounded-2xl transition-all relative overflow-hidden group border
+                  ${isDone 
+                    ? 'opacity-40 grayscale-[0.5] bg-emerald-500/10 border-emerald-500/20' 
+                    : 'bg-white dark:bg-zinc-900/50 border-black/15 dark:border-white/10 hover:border-black/30 dark:hover:border-white/30 shadow-sm'}
+                  ${isCompleting ? 'scale-[1.02] shadow-xl z-30' : 'z-10'}
                 `}
               >
-                {/* 1. Classic Dot (Left) */}
+                {/* 1. Classic Dot (Left) with pulse on hover */}
                 <div className="mt-[7px] flex-shrink-0">
-                  <div className={`w-2 h-2 rounded-full transition-all duration-500 
-                    ${isDone ? 'bg-emerald-500 scale-110' : 'bg-muted-foreground/30 group-hover:bg-blue-500/50'}
+                  <div className={`w-2.5 h-2.5 rounded-full transition-all duration-500 
+                    ${isDone ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-zinc-300 dark:bg-zinc-700 group-hover:bg-blue-500 group-hover:shadow-[0_0_8px_rgba(59,130,246,0.3)]'}
                   `} />
                 </div>
 
                 {/* 2. Content (Center) */}
-                <div className="flex-1 min-w-0 relative z-10">
-                  {/* Green Fill Animation Background */}
+                <div className="flex-1 min-w-0 relative">
+                  {/* Dopamine Green Fill Animation */}
                   {isCompleting && (
-                    <div className="absolute inset-0 -m-3 z-0 pointer-events-none overflow-hidden rounded-2xl">
-                       <div className="h-full w-full bg-emerald-500/20 animate-bg-fill" />
+                    <div className="absolute inset-0 -m-4 z-0 pointer-events-none overflow-hidden rounded-2xl">
+                       <div className="h-full w-full bg-[#10b981] animate-dopamine-fill shadow-[inset_0_0_30px_rgba(0,0,0,0.1)]" />
+                       <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                          <Sparkles className="w-5 h-5 text-white animate-bounce" />
+                       </div>
                     </div>
                   )}
 
-                  <div className={`transition-all duration-300 ${isDone ? 'text-emerald-700 dark:text-emerald-400 font-medium' : ''}`}>
-                    <SmartText text={task.title} className="text-sm font-bold leading-tight truncate block" />
+                  <div className={`transition-all duration-500 relative z-10 
+                    ${isDone ? 'text-emerald-900 dark:text-emerald-100 italic' : 'text-foreground font-bold'}
+                    ${isCompleting ? 'text-white translate-x-1' : ''}
+                  `}>
+                    <SmartText text={task.title} className="text-sm tracking-tight leading-tight truncate block" />
                   </div>
                   
                   {showTime && (
-                    <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground font-medium uppercase">
+                    <div className={`flex items-center gap-1 mt-1 text-[10px] font-black uppercase tracking-widest relative z-10 transition-colors
+                      ${isCompleting ? 'text-white/80' : 'text-muted-foreground'}
+                    `}>
                       <Icon className="w-3 h-3" />
                       {format(new Date(task.due_date), mode === "today" ? "HH:mm" : "eee HH:mm", { locale: sk })}
                     </div>
@@ -140,22 +146,24 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                 <button
                   onClick={() => handleToggle(task.id, !!isDone)}
                   disabled={isAnimating}
-                  className={`flex-shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center transition-all mt-0.5 z-20
+                  className={`flex-shrink-0 w-7 h-7 rounded-xl border-2 flex items-center justify-center transition-all mt-0.5 z-20 
                     ${isDone 
-                      ? 'bg-emerald-500 border-emerald-500 text-white' 
-                      : 'bg-emerald-500/5 border-emerald-500/10 text-emerald-500/0 hover:border-emerald-500/40 hover:text-emerald-500/60 hover:bg-emerald-500/10'}
+                      ? 'bg-emerald-500 border-emerald-400 text-white shadow-lg shadow-emerald-500/20' 
+                      : 'bg-transparent border-zinc-200 dark:border-zinc-800 text-transparent hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-500/5'}
+                    ${isCompleting ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}
                   `}
                 >
-                  {isDone ? <Undo2 className="w-3.5 h-3.5" /> : <Check className="w-4 h-4" />}
+                  {isDone ? <Undo2 className="w-4 h-4" /> : <Check className="w-4 h-4" strokeWidth={3} />}
                 </button>
 
                 <style jsx>{`
-                  @keyframes bgFill {
-                    0% { transform: translateX(-100%); }
-                    100% { transform: translateX(0); }
+                  @keyframes dopamineFill {
+                    0% { transform: translateX(-100%); opacity: 0; }
+                    50% { opacity: 1; }
+                    100% { transform: translateX(0); opacity: 1; }
                   }
-                  .animate-bg-fill {
-                    animation: bgFill 0.6s ease-out forwards;
+                  .animate-dopamine-fill {
+                    animation: dopamineFill 0.7s cubic-bezier(.17,.67,.19,.98) forwards;
                   }
                 `}</style>
               </div>
