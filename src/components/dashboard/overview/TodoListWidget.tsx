@@ -1,3 +1,5 @@
+"use client";
+
 import { SmartText } from "@/components/todo/SmartText";
 import { CheckCircle2, Circle, Clock, Calendar, Check } from "lucide-react";
 import { format, isToday, isThisWeek } from "date-fns";
