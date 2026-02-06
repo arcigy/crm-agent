@@ -18,7 +18,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200 w-full transition-all group text-left"
+      className="flex items-center gap-4 rounded-xl px-5 py-3.5 text-base font-medium text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-100 w-full transition-all group text-left"
       title={
         theme === "dark" ? "Prepnúť na svetlý režim" : "Prepnúť na tmavý režim"
       }

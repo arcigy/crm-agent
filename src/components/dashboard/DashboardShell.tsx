@@ -87,14 +87,14 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
                   if (pathname === item.href) setIsMenuOpen(false);
                 }}
                 className={`
-                  flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium tracking-wide transition-all duration-300 group
+                  flex items-center gap-4 px-5 py-3.5 rounded-xl text-base font-medium tracking-wide transition-all duration-300 group
                   ${pathname === item.href 
-                    ? "bg-zinc-800/80 text-white shadow-md shadow-black/10 border border-white/5" 
-                    : "text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200"
+                    ? "bg-zinc-800 text-white shadow-lg shadow-black/20 border border-white/10" 
+                    : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
                   }
                 `}
               >
-                <item.icon className={`w-4 h-4 transition-opacity duration-300 ${pathname === item.href ? "opacity-100 text-indigo-400" : "opacity-60 group-hover:opacity-100 group-hover:text-indigo-300"}`} />
+                <item.icon className={`w-5 h-5 transition-opacity duration-300 ${pathname === item.href ? "opacity-100 text-indigo-400" : "opacity-50 group-hover:opacity-100 group-hover:text-indigo-300"}`} />
                 <span>{item.name}</span>
               </Link>
             ))}
@@ -108,19 +108,19 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
             onClick={() => {
               if (pathname === '/dashboard/settings') setIsMenuOpen(false);
             }}
-            className="flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium tracking-wide text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200 transition-all group"
+            className="flex items-center gap-4 rounded-xl px-5 py-3.5 text-base font-medium tracking-wide text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100 transition-all group"
           >
-            <Settings className="w-4 h-4 opacity-60 group-hover:rotate-45 transition-transform" />
+            <Settings className="w-5 h-5 opacity-50 group-hover:rotate-45 transition-transform" />
             <span>Nastavenia</span>
           </Link>
-          <LogoutButton className="flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium tracking-wide text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition-all" />
+          <LogoutButton className="flex items-center gap-4 rounded-xl px-5 py-3.5 text-base font-medium tracking-wide text-zinc-400 hover:bg-red-500/10 hover:text-red-400 transition-all" />
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main 
         className={`
-          flex-1 min-w-0 h-full overflow-y-auto bg-background transition-all duration-500 ease-in-out
+          flex-1 min-w-0 h-full overflow-y-auto bg-background transition-all duration-300 ease-in-out
           ${isMenuOpen ? "ml-64" : "ml-0"}
         `}
       >
