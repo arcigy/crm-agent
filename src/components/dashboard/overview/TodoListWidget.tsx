@@ -1,7 +1,7 @@
 "use client";
 
 import { SmartText } from "@/components/todo/SmartText";
-import { CheckCircle2, Clock, Calendar, Check, Undo2, Sparkles } from "lucide-react";
+import { CheckCircle2, Clock, Calendar, Check, Undo2 } from "lucide-react";
 import { format, isToday, isThisWeek } from "date-fns";
 import { sk } from "date-fns/locale";
 import { useState, useEffect } from "react";
@@ -49,8 +49,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
     const type = currentStatus ? 'uncomplete' : 'complete';
     setAnimatingIds(prev => [...prev, { id, type }]);
     
-    // Dopamine delay
-    const waitTime = type === 'complete' ? 850 : 250;
+    const waitTime = type === 'complete' ? 700 : 250;
 
     setTimeout(async () => {
       try {
@@ -72,8 +71,6 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
 
   const title = mode === "today" ? "Úlohy na dnes" : "Tento týždeň";
   const Icon = mode === "today" ? Clock : Calendar;
-  
-  // Clean gray badge style
   const badgeStyle = "bg-[#f4f4f5] dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700/50";
 
   return (
@@ -82,7 +79,6 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
         <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">
           {title}
         </h3>
-        {/* Same font as calendar week header */}
         <span className={`text-[10px] font-black uppercase italic px-3 py-1.5 ${badgeStyle} rounded-xl tracking-tight`}>
           {filteredTasks.filter(t => !t.completed).length} ÚLOH
         </span>
@@ -103,30 +99,28 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                 className={`flex items-start gap-4 p-2.5 rounded-xl transition-all relative overflow-hidden group border
                   ${isDone 
                     ? 'opacity-40 grayscale-[0.8] bg-emerald-500/5 border-emerald-500/10' 
-                    : 'bg-white dark:bg-zinc-900/50 border-black/10 dark:border-white/5 hover:border-black/30 dark:hover:border-white/30 hover:bg-muted/10'}
+                    : 'bg-white dark:bg-zinc-900/50 border-black/10 dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/30 shadow-sm cursor-pointer'}
                   ${isCompleting ? 'scale-[1.01] shadow-lg z-30' : 'z-10'}
                 `}
+                onClick={() => !isDone && !isAnimating && handleToggle(task.id, false)}
               >
-                {/* 1. Classic Dot (Left) */}
-                <div className="mt-[7px] flex-shrink-0">
-                  <div className={`w-2 h-2 rounded-full transition-all duration-500 
-                    ${isDone ? 'bg-[#16a34a] shadow-[0_0_8px_rgba(22,163,74,0.4)]' : 'bg-zinc-300 dark:bg-zinc-700 group-hover:bg-blue-500 group-hover:shadow-[0_0_8px_rgba(59,130,246,0.3)]'}
+                {/* Full-Row Dopamine Fill */}
+                {isCompleting && (
+                  <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                      <div className="h-full w-full bg-[#16a34a] animate-full-fill shadow-[inset_0_0_40px_rgba(0,0,0,0.1)]" />
+                  </div>
+                )}
+
+                {/* 1. Bullet Dot */}
+                <div className="mt-[7px] flex-shrink-0 relative z-10">
+                  <div className={`w-2 h-2 rounded-full transition-all duration-300 
+                    ${isDone ? 'bg-[#16a34a]' : 'bg-zinc-300 dark:bg-zinc-700 group-hover:bg-[#16a34a] group-hover:scale-125'}
                   `} />
                 </div>
 
-                {/* 2. Content (Center) */}
-                <div className="flex-1 min-w-0 relative">
-                  {/* Perfect Lawn Green Fill Animation */}
-                  {isCompleting && (
-                    <div className="absolute inset-0 -m-3 z-0 pointer-events-none overflow-hidden rounded-xl">
-                       <div className="h-full w-full bg-[#16a34a] animate-lawn-fill shadow-[inset_0_0_20px_rgba(0,0,0,0.1)]" />
-                       <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                          <Sparkles className="w-4 h-4 text-white animate-pulse" />
-                       </div>
-                    </div>
-                  )}
-
-                  <div className={`transition-all duration-500 relative z-10 
+                {/* 2. Content */}
+                <div className="flex-1 min-w-0 relative z-10">
+                  <div className={`transition-all duration-300 
                     ${isDone ? 'text-[#15803d] dark:text-[#4ade80] italic' : 'text-foreground font-bold'}
                     ${isCompleting ? 'text-white' : ''}
                   `}>
@@ -134,7 +128,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                   </div>
                   
                   {showTime && (
-                    <div className={`flex items-center gap-1 mt-0.5 text-[9px] font-black uppercase tracking-widest relative z-10 transition-colors
+                    <div className={`flex items-center gap-1 mt-0.5 text-[9px] font-black uppercase tracking-widest transition-colors
                       ${isCompleting ? 'text-white/70' : 'text-muted-foreground'}
                     `}>
                       <Icon className="w-2.5 h-2.5" />
@@ -144,26 +138,31 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                 </div>
 
                 {/* 3. Toggle Button (Right) */}
-                <button
-                  onClick={() => handleToggle(task.id, !!isDone)}
-                  disabled={isAnimating}
-                  className={`flex-shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center transition-all mt-0.5 z-20 
-                    ${isDone 
-                      ? 'bg-[#16a34a] border-[#22c55e] text-white shadow-md shadow-[#16a34a]/20' 
-                      : 'bg-transparent border-zinc-200 dark:border-zinc-800 text-transparent hover:border-[#16a34a] hover:text-[#16a34a] hover:bg-emerald-500/5'}
-                    ${isCompleting ? 'opacity-0' : 'opacity-100'}
-                  `}
-                >
-                  {isDone ? <Undo2 className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" strokeWidth={3} />}
-                </button>
+                <div className="relative z-10 mt-0.5">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggle(task.id, !!isDone);
+                    }}
+                    disabled={isAnimating}
+                    className={`flex-shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center transition-all
+                      ${isDone 
+                        ? 'bg-[#16a34a] border-[#22c55e] text-white shadow-md shadow-[#16a34a]/20' 
+                        : 'bg-transparent border-zinc-200 dark:border-zinc-800 text-transparent group-hover:border-[#16a34a] group-hover:bg-[#16a34a]/20'}
+                      ${isCompleting ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}
+                    `}
+                  >
+                    {isDone ? <Undo2 className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+                  </button>
+                </div>
 
                 <style jsx>{`
-                  @keyframes lawnFill {
-                    0% { transform: translateX(-105%); }
+                  @keyframes fullFill {
+                    0% { transform: translateX(-100%); }
                     100% { transform: translateX(0); }
                   }
-                  .animate-lawn-fill {
-                    animation: lawnFill 0.55s cubic-bezier(.17,.67,.19,.98) forwards;
+                  .animate-full-fill {
+                    animation: fullFill 0.5s cubic-bezier(.17,.67,.19,.98) forwards;
                   }
                 `}</style>
               </div>
