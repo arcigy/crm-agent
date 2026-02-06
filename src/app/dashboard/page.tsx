@@ -1,3 +1,5 @@
+"use client";
+
 import { tools } from "@/tools/registry";
 import { PaymentSuccessToast } from "@/components/dashboard/PaymentSuccessToast";
 import { DashboardStats } from "@/components/dashboard/overview/StatCards";
@@ -32,17 +34,15 @@ export default async function DashboardPage() {
     getCalendarEvents()
   ]);
 
-  const contacts = contactsRes.success ? (contactsRes.data as any[]) : [];
-  const projects = projectsRes.data || [];
-  const deals = dealsRes.data || [];
-  const tasks = tasksRes.success ? tasksRes.data : [];
-  const calendarEvents = calendarRes.success ? calendarRes.events : [];
+  const contacts = (contactsRes.success ? contactsRes.data : []) as any[];
+  const projects = (projectsRes.data || []) as any[];
+  const deals = (dealsRes.data || []) as any[];
+  const tasks = (tasksRes.success ? tasksRes.data : []) as any[];
+  const calendarEvents = (calendarRes.success ? calendarRes.events : []) as any[];
 
   // Statistics calculation logic preserved
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const stats = {
     contactsCount: contacts.length,
@@ -51,7 +51,7 @@ export default async function DashboardPage() {
     projectsTrend: `${projects.filter(p => new Date(p.date_created) >= startOfMonth).length} nových`,
     totalDealsValue: deals.reduce((acc, d) => acc + (d.value || 0), 0),
     dealsTrend: "Dnes bez aktivity",
-    completedTasks: tasks.filter(t => (t as any).completed).length,
+    completedTasks: tasks.filter(t => t.completed).length,
   };
 
   const activeTools = new Set(tools.map((t) => t.id));
@@ -65,12 +65,12 @@ export default async function DashboardPage() {
         <DashboardStats stats={stats} />
       </div>
 
-      {/* Main Operations Grid - Slightly taller bottom row for Calendar & Analytics */}
+      {/* Main Operations Grid */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 grid-rows-2 gap-6 pb-6">
-        <div className="min-h-0"><TodoListWidget tasks={tasks as any[]} mode="today" /></div>
+        <div className="min-h-0"><TodoListWidget tasks={tasks} mode="today" /></div>
         <div className="min-h-0"><ChartsRow deals={deals} projects={projects} /></div>
-        <div className="min-h-0"><AnalyticsSection contacts={contacts as any[]} deals={deals as any[]} /></div>
-        <div className="min-h-0"><CalendarWidget events={calendarEvents as any[]} /></div>
+        <div className="min-h-0"><AnalyticsSection contacts={contacts} deals={deals} projects={projects} /></div>
+        <div className="min-h-0"><CalendarWidget events={calendarEvents} /></div>
       </div>
 
       <div className="hidden">

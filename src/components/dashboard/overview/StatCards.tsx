@@ -12,28 +12,37 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
   return (
-    <div className="bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl px-4 py-3 rounded-[1.2rem] border border-border shadow-sm transition-all duration-300 group overflow-hidden relative hover:shadow-[0_0_30px_rgba(99,102,241,0.08)] hover:border-indigo-500/30 hover:-translate-y-0.5">
-      {/* Subtle Light-up background on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+    <div className="bg-white/40 dark:bg-[#0a0a0c]/60 backdrop-blur-2xl px-5 py-4 rounded-[2rem] border border-border/50 shadow-2xl transition-all duration-500 group overflow-hidden relative hover:shadow-indigo-500/10 hover:border-indigo-500/30 hover:-translate-y-1">
+      {/* 1. Subtle Grid Pattern */}
+      <div 
+        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
+        style={{ 
+          backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
+          backgroundSize: '16px 16px'
+        }} 
+      />
+
+      {/* 2. Soft Radial Glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
       
       <div className="flex items-center justify-between relative z-10">
         <div className="flex flex-col">
-          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.1em] italic">
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic mb-1 opacity-70">
             {label}
           </p>
-          <h3 className="text-xl font-black text-foreground italic tracking-tight">
+          <h3 className="text-2xl font-black text-foreground italic tracking-tighter">
             {value}
           </h3>
           {trend && (
-            <p className="text-[9px] font-black italic text-emerald-500 mt-0.5 flex items-center gap-1">
-              <TrendingUp className="w-2.5 h-2.5" />
+            <p className="text-[10px] font-black italic text-emerald-500 mt-1.5 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded-lg w-fit">
+              <TrendingUp className="w-3 h-3" />
               {trend}
             </p>
           )}
         </div>
         
-        <div className={`w-8 h-8 rounded-lg ${color.replace('bg-', 'bg-opacity-10 ')} flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:bg-opacity-20`}>
-          <Icon className={`w-4 h-4 ${color.replace('bg-', 'text-')}`} />
+        <div className={`w-12 h-12 rounded-2xl ${color.replace('bg-', 'bg-opacity-10 ')} flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-opacity-20 border border-white/5 shadow-xl`}>
+          <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
         </div>
       </div>
     </div>

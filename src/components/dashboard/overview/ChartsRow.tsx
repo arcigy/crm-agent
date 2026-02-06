@@ -24,22 +24,31 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className="bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl p-8 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-full overflow-hidden relative group">
-      {/* Subtle Background Glow */}
-      <div className="absolute -top-20 -left-20 w-40 h-40 bg-zinc-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-zinc-500/10 transition-colors duration-700" />
+    <div className="bg-white/40 dark:bg-[#0a0a0c]/60 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-border/50 shadow-2xl flex flex-col h-full overflow-hidden relative group transition-all duration-500 hover:shadow-zinc-500/5">
+      {/* 1. Subtle Grid Pattern */}
+      <div 
+        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
+        style={{ 
+          backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
+          backgroundSize: '24px 24px'
+        }} 
+      />
+
+      {/* 2. Soft Radial Glows */}
+      <div className="absolute -top-24 -right-24 w-64 h-64 bg-zinc-500/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-zinc-500/20 transition-colors duration-700" />
       
       <h3 className="text-xl font-black uppercase italic tracking-tighter mb-6 flex-shrink-0 relative z-10">Pipeline Projektov</h3>
       
       <div className="space-y-3.5 flex-1 overflow-auto thin-scrollbar pr-2 relative z-10">
         {pipelineStages.map((stage, i) => (
-          <div key={i} className="bg-white/30 dark:bg-zinc-800/20 p-3 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-sm">
+          <div key={i} className="bg-white/60 dark:bg-zinc-900/40 p-3.5 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-md shadow-sm">
             <div className="flex justify-between text-[11px] font-black mb-1.5 transition-all">
-              <span className="uppercase tracking-[0.15em] text-muted-foreground">{stage.label}</span>
-              <span className="text-foreground">{stage.count}</span>
+              <span className="uppercase tracking-[0.2em] text-muted-foreground opacity-60 font-black italic">{stage.label}</span>
+              <span className="text-foreground font-black italic">{stage.count}</span>
             </div>
-            <div className="h-2 bg-muted/60 dark:bg-zinc-800/60 rounded-full overflow-hidden shadow-inner">
+            <div className="h-2.5 bg-muted/60 dark:bg-zinc-800/60 rounded-full overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/5">
               <div 
-                  className="h-full bg-zinc-900 dark:bg-zinc-100 transition-all duration-1000 ease-out"
+                  className="h-full bg-zinc-900 dark:bg-zinc-100 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(0,0,0,0.2)]"
                 style={{ width: `${stage.percentage}%` }}
               />
             </div>
