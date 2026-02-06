@@ -1,5 +1,3 @@
-"use client";
-
 import { tools } from "@/tools/registry";
 import { PaymentSuccessToast } from "@/components/dashboard/PaymentSuccessToast";
 import { DashboardStats } from "@/components/dashboard/overview/StatCards";
