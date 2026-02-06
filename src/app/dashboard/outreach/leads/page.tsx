@@ -582,6 +582,11 @@ export default function OutreachLeadsPage() {
                                                     <span className="bg-green-50 text-green-700 px-2 py-1 rounded-md text-[10px] uppercase tracking-wider">Mám</span>
                                                     {lead.email}
                                                 </>
+                                            ) : (lead.enrichment_status === 'pending' || lead.enrichment_status === 'processing') ? (
+                                                <div className="flex items-center gap-2 text-violet-500 animate-pulse">
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                    <span className="italic">Hľadám...</span>
+                                                </div>
                                             ) : (
                                                 <span className="text-gray-300 font-medium italic">Chýba</span>
                                             )}
@@ -625,7 +630,12 @@ export default function OutreachLeadsPage() {
                                                 </div>
                                            )}
 
-                                           {lead.ai_first_sentence || <span className="text-gray-300 italic">Dvakrát kliknite pre napísanie alebo použite AI...</span>}
+
+                                           {lead.ai_first_sentence || (
+                                                (lead.enrichment_status === 'pending' || lead.enrichment_status === 'processing') ? null : (
+                                                    <span className="text-gray-300 italic">Dvakrát kliknite pre napísanie alebo použite AI...</span>
+                                                )
+                                           )}
                                         </div>
                                     )}
                                 </div>

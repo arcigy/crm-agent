@@ -37,8 +37,7 @@ export function ColdLeadsImportModal({
     website: "",
     phone: "",
     city: "",
-    category: "",
-    google_maps_url: ""
+    category: ""
   });
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [processedRows, setProcessedRows] = useState<Record<string, any>[]>([]);
@@ -67,16 +66,33 @@ export function ColdLeadsImportModal({
           setHeaders(results.meta.fields || []);
           setStep("map");
           
+          
           const newMapping = { ...mapping };
-          (results.meta.fields || []).forEach((h) => {
-            const low = h.toLowerCase();
-            if (low.includes("title") || low.includes("názov") || low.includes("original_title") || low.includes("name")) newMapping.title = h;
-            if (low.includes("website") || low.includes("web") || low.includes("site") || low.includes("domain") || (low === "url") || (low === "link")) newMapping.website = h;
-            if (low.includes("phone") || low.includes("tel") || low.includes("mobil")) newMapping.phone = h;
-            if (low.includes("city") || low.includes("mesto") || low.includes("address") || low.includes("adresa")) newMapping.city = h;
-            if (low.includes("category") || low.includes("kategória") || low.includes("industry") || low.includes("odvetvie")) newMapping.category = h;
-            if (low.includes("maps") || (low.includes("google") && low.includes("url")) || low.includes("gmap")) newMapping.google_maps_url = h;
-          });
+          const fields = results.meta.fields || [];
+
+          // Helper to find best match
+          const findMatch = (candidates: string[], exact = false) => {
+             for (const c of candidates) {
+                 const match = fields.find(f => exact ? f.toLowerCase() === c : f.toLowerCase().includes(c));
+                 if (match) return match;
+             }
+             return "";
+          };
+
+          // Smarter prioritizations
+          newMapping.title = findMatch(["title", "názov"], true) || findMatch(["company", "firma", "spoločnosť", "business name"]) || findMatch(["name"]);
+          
+          // Avoid mapping "category name" to title if we found a better match, or ensure "name" is strictly "name"
+          if (!newMapping.title) {
+             const strictName = fields.find(f => f.toLowerCase() === 'name');
+             if (strictName) newMapping.title = strictName;
+          }
+
+          newMapping.website = findMatch(["website", "web stránka", "web", "domain"], true) || findMatch(["site", "url", "link"]);
+          newMapping.phone = findMatch(["phone", "telefón", "mobil", "tel", "kontakt"]);
+          newMapping.city = findMatch(["city", "mesto", "adresa", "address", "sídlo"]);
+          newMapping.category = findMatch(["category", "kategória", "industry", "odvetvie", "odbor"]);
+          
           setMapping(newMapping);
           setSelectedRows(new Set(results.data.map((_, i) => i)));
           setProcessedRows(results.data as Record<string, any>[]);
@@ -91,6 +107,30 @@ export function ColdLeadsImportModal({
         const sheetHeaders = Object.keys(data[0]);
         setHeaders(sheetHeaders);
         setStep("map");
+        
+        // Apply same mapping logic for Excel
+        const newMapping = { ...mapping };
+        const findMatch = (candidates: string[], exact = false) => {
+            for (const c of candidates) {
+                const match = sheetHeaders.find(f => exact ? f.toLowerCase() === c : f.toLowerCase().includes(c));
+                if (match) return match;
+            }
+            return "";
+        };
+
+        newMapping.title = findMatch(["title", "názov"], true) || findMatch(["company", "firma", "spoločnosť", "business name"]) || findMatch(["name"]);
+         if (!newMapping.title) {
+             const strictName = sheetHeaders.find(f => f.toLowerCase() === 'name');
+             if (strictName) newMapping.title = strictName;
+          }
+
+        newMapping.website = findMatch(["website", "web stránka", "web", "domain"], true) || findMatch(["site", "url", "link"]);
+        newMapping.phone = findMatch(["phone", "telefón", "mobil", "tel", "kontakt"]);
+        newMapping.city = findMatch(["city", "mesto", "adresa", "address", "sídlo"]);
+        newMapping.category = findMatch(["category", "kategória", "industry", "odvetvie", "odbor"]);
+        
+        setMapping(newMapping);
+
         setSelectedRows(new Set(data.map((_, i) => i)));
         setProcessedRows(data);
       }
@@ -104,14 +144,17 @@ export function ColdLeadsImportModal({
     try {
       const leadsToUpload = Array.from(selectedRows).map((index) => {
         const row = processedRows[index];
+        const website = String(row[mapping.website] || "").trim();
+        // If no website, go straight to Cold Call list
+        const list_name = website ? (initialListName || "Zoznam 1") : "Cold Call";
+        
         return {
           title: String(row[mapping.title] || ""),
-          website: String(row[mapping.website] || ""),
+          website: website,
           phone: String(row[mapping.phone] || ""),
           city: String(row[mapping.city] || ""),
           category: String(row[mapping.category] || ""),
-          list_name: initialListName || "Zoznam 1",
-          google_maps_url: String(row[mapping.google_maps_url] || "")
+          list_name: list_name
         };
       });
 
@@ -124,11 +167,20 @@ export function ColdLeadsImportModal({
         
         const newIds = res.items.map(i => i.id);
 
-        if (autoStartEnrichment && newIds.length > 0) {
-            const { bulkUpdateColdLeads } = await import("@/app/actions/cold-leads");
-            await bulkUpdateColdLeads(newIds, { enrichment_status: "pending" });
-            fetch("/api/cron/enrich-leads").catch(console.error);
-            toast.success(`Importované a pridané do fronty (${res.count} leadov)!`);
+        if (autoStartEnrichment) {
+            // Filter only leads that have a website for enrichment
+            const enrichIds = res.items
+                .filter(i => i.website && i.website.length > 3)
+                .map(i => i.id);
+
+            if (enrichIds.length > 0) {
+                const { bulkUpdateColdLeads } = await import("@/app/actions/cold-leads");
+                await bulkUpdateColdLeads(enrichIds, { enrichment_status: "pending" });
+                fetch("/api/cron/enrich-leads").catch(console.error);
+                toast.success(`Importované! ${enrichIds.length} leadov pridaných do fronty.`);
+            } else {
+                toast.success(`Importované! Všetky leady boli pridané do Cold Call zoznamu (bez webu).`);
+            }
         } else {
             toast.success(`Úspešne importovaných ${res.count} leadov.`);
         }

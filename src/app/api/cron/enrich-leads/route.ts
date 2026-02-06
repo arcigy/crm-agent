@@ -8,9 +8,8 @@ import { enrichColdLead } from "@/app/actions/cold-leads";
 // or recursively by itself until the queue is empty.
 export async function GET(request: Request) {
     try {
-        // 1. Fetch PENDING leads (Batch of 5 to 50)
-        // Adjust batch size based on execution time limits (Vercel has 10s-60s limit)
-        const BATCH_SIZE = 5; 
+        // 1. Fetch larger batch for efficiency
+        const BATCH_SIZE = 10; 
         
         const pendingLeads = await directus.request(readItems("cold_leads", {
             filter: {
@@ -26,20 +25,27 @@ export async function GET(request: Request) {
 
         console.log(`[CRON] Processing batch of ${pendingLeads.length} leads...`);
 
-        // 2. Mark them as PROCESSING immediately to prevent other runs from picking them up
+        // 2. Mark as processing
         await Promise.all(pendingLeads.map(lead => 
             directus.request(updateItem("cold_leads", lead.id, { 
                 enrichment_status: "processing" 
             }))
         ));
 
-        // 3. Process the batch in PARALLEL
-        const results = await Promise.all(pendingLeads.map(async (lead) => {
+        // 3. Process with timeout wrapper to prevent one slow item from hanging everything indefinitely
+        const processItem = async (lead: ColdLeadItem) => {
             try {
-                // Call the existing logic
-                const result = await enrichColdLead(lead.id);
+                // 45s timeout limit per item to ensure we stay within serverless limits
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error("Timeout (45s)")), 45000)
+                );
+
+                const result: any = await Promise.race([
+                    enrichColdLead(lead.id),
+                    timeoutPromise
+                ]);
                 
-                // Update final status based on result
+                // Update final status
                 await directus.request(updateItem("cold_leads", lead.id, { 
                     enrichment_status: result.success ? "completed" : "failed",
                     enrichment_error: result.error || null
@@ -47,25 +53,27 @@ export async function GET(request: Request) {
 
                 return { id: lead.id, success: result.success, error: result.error };
             } catch (e: any) {
-                // Catastrophic failure for this item
+                console.error(`Error processing lead ${lead.id}:`, e);
                 await directus.request(updateItem("cold_leads", lead.id, { 
                     enrichment_status: "failed",
                     enrichment_error: e.message
                 }));
                 return { id: lead.id, success: false, error: e.message };
             }
-        }));
+        };
+
+        // Execute all in parallel
+        const results = await Promise.all(pendingLeads.map(lead => processItem(lead)));
 
         const successCount = results.filter(r => r.success).length;
 
         // 4. Recursive Call (Turbo Boost)
-        // If we filled the batch, there might be more. Trigger the next run immediately.
         if (pendingLeads.length === BATCH_SIZE) {
             const proto = request.headers.get("x-forwarded-proto") || "http";
             const host = request.headers.get("host");
             const nextUrl = `${proto}://${host}/api/cron/enrich-leads`;
             
-            // Fire and forget (don't await)
+            // Fire and forget
             fetch(nextUrl, { headers: { 'Cache-Control': 'no-cache' }}).catch(console.error);
         }
 

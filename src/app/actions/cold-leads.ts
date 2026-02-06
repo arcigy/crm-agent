@@ -270,6 +270,9 @@ export async function enrichColdLead(id: string | number) {
         } else {
             // Move to Cold Call list if missing criteria for Cold Outreach
             updateData.list_name = "Cold Call";
+            // Mark as completed so it doesn't get retried or stuck
+            updateData.enrichment_status = "completed"; 
+            updateData.enrichment_error = "Moved to Cold Call (No Web/Email)";
             debugInfo.error = "No Web/Email -> Moved to Cold Call";
 
             // Ensure the "Cold Call" list exists so it shows in sidebar
