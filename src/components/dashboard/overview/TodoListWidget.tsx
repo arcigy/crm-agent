@@ -23,15 +23,15 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
       const nextWeek = isThisWeek(taskDate, { weekStartsOn: 1 });
       return nextWeek && !isToday(taskDate);
     }
-  }).slice(0, 5);
+  });
 
   const title = mode === "today" ? "Úlohy na dnes" : "Tento týždeň";
   const Icon = mode === "today" ? Clock : Calendar;
   const badgeColor = mode === "today" ? "bg-blue-100 text-blue-700" : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300";
 
   return (
-    <div className="bg-card px-8 py-6 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-card px-8 py-6 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-full max-h-[400px]">
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">
           {title}
         </h3>
@@ -40,7 +40,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
         </span>
       </div>
 
-      <div className="flex-1 space-y-3">
+      <div className="flex-1 space-y-3 overflow-y-auto pr-2 scrollbar-hide">
         {filteredTasks.length > 0 ? (
           filteredTasks.map((task) => (
             <div key={task.id} className="flex items-start gap-3 p-2.5 rounded-2xl hover:bg-muted/50 transition-colors group">

@@ -83,17 +83,9 @@ export default async function DashboardPage() {
 
       {/* Main Operations Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column: Tasks */}
-        <div className="flex flex-col gap-8 h-full">
-          <TodoListWidget tasks={tasks as any[]} mode="today" />
-          <TodoListWidget tasks={tasks as any[]} mode="week" />
-        </div>
-
-        {/* Right Column: Pipeline & Calendar */}
-        <div className="flex flex-col gap-8 h-full">
-          <ChartsRow deals={deals} projects={projects} />
-          <CalendarWidget events={calendarEvents as any[]} />
-        </div>
+        <TodoListWidget tasks={tasks as any[]} mode="today" />
+        <ChartsRow deals={deals} projects={projects} />
+        <CalendarWidget events={calendarEvents as any[]} />
       </div>
 
       {/* Detailed Analytics */}
