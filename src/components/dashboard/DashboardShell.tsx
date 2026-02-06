@@ -65,6 +65,14 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
       >
         <Menu className={`w-6 h-6 transition-all duration-300 ${isMenuOpen ? "rotate-90 text-indigo-400" : "group-hover:text-white"}`} />
       </button>
+      
+      {/* Click-to-close Overlay */}
+      {isMenuOpen && (
+        <div 
+          className="fixed inset-0 z-[1950] bg-black/5 bg-opacity-10 transition-opacity" 
+          onClick={() => setIsMenuOpen(false)}
+        />
+      )}
 
       {/* Full Height Sidebar Menu */}
       <aside 
