@@ -1,6 +1,7 @@
 "use client";
 
 import { Users, FolderKanban, TrendingUp, CheckCircle2 } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 
 interface StatCardProps {
   label: string;
@@ -41,8 +42,34 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
 }
 
 export function DashboardStats({ stats }: { stats: any }) {
+  const [isVisible, setIsVisible] = useState(true);
+  const scrollThreshold = 50;
+
+  useEffect(() => {
+    // Need to find the main scroll container
+    const mainElement = document.querySelector('main');
+    if (!mainElement) return;
+
+    const handleScroll = () => {
+      const scrollY = mainElement.scrollTop;
+      if (scrollY > scrollThreshold && isVisible) {
+        setIsVisible(false);
+      } else if (scrollY <= scrollThreshold && !isVisible) {
+        setIsVisible(true);
+      }
+    };
+
+    mainElement.addEventListener('scroll', handleScroll);
+    return () => mainElement.removeEventListener('scroll', handleScroll);
+  }, [isVisible]);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div 
+      className={`
+        grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 transition-all duration-500 ease-in-out origin-top overflow-hidden
+        ${isVisible ? 'opacity-100 max-h-[200px] mb-8 scale-y-100 translate-y-0' : 'opacity-0 max-h-0 mb-0 scale-y-0 -translate-y-4 pointer-events-none'}
+      `}
+    >
       <StatCard
         label="Kontakty"
         value={stats.contactsCount || 0}
