@@ -83,6 +83,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
               <Link 
                 key={item.href}
                 href={item.href}
+                onClick={() => setIsMenuOpen(false)}
                 className={`
                   flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium tracking-wide transition-all duration-300 group
                   ${pathname === item.href 
@@ -102,6 +103,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           <ThemeToggle />
           <Link
             href="/dashboard/settings"
+            onClick={() => setIsMenuOpen(false)}
             className="flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium tracking-wide text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-200 transition-all group"
           >
             <Settings className="w-4 h-4 opacity-60 group-hover:rotate-45 transition-transform" />
