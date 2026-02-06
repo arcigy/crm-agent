@@ -158,7 +158,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
       <main 
         className={`
           flex-1 min-w-0 h-full overflow-y-auto bg-transparent relative z-10 transition-all duration-300 ease-out
-          ${isMenuOpen ? "ml-64 opacity-50 blur-[2px] pointer-events-none md:opacity-100 md:blur-0 md:pointer-events-auto" : "ml-0"}
+          ${isMenuOpen ? "ml-64 opacity-50 pointer-events-none md:opacity-100 md:pointer-events-auto" : "ml-0"}
         `}
       >
         <div className="p-4 md:p-8 pt-24 md:pt-8 pl-24 md:pl-28 transition-all">{children}</div>

@@ -93,22 +93,15 @@ export default async function DashboardPage() {
       {/* Detailed Analytics */}
       <AnalyticsSection contacts={contacts as any[]} deals={deals as any[]} />
 
-      {/* Tools Section */}
-      <div className="pt-12">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="h-1 flex-1 bg-black/10" />
-          <h2 className="text-2xl font-black uppercase italic tracking-tighter">Nástroje Agenta</h2>
-          <div className="h-1 flex-1 bg-black/10" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tools.map((tool) => (
-            <ToolCard
-              key={tool.id}
-              toolId={tool.id}
-              hasAccess={activeTools.has(tool.id)}
-            />
-          ))}
-        </div>
+      {/* Tools Section visually removed as per user request */}
+      <div className="hidden">
+        {tools.map((tool) => (
+          <ToolCard
+            key={tool.id}
+            toolId={tool.id}
+            hasAccess={activeTools.has(tool.id)}
+          />
+        ))}
       </div>
     </div>
   );
