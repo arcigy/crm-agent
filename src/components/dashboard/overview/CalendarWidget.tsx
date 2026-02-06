@@ -1,6 +1,6 @@
 "use client";
 
-import { format, startOfWeek, addDays, isSameDay } from "date-fns";
+import { format, startOfWeek, addDays, isSameDay, getISOWeek } from "date-fns";
 import { sk } from "date-fns/locale";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useMemo } from "react";
@@ -12,6 +12,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
   
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const currentWeekNumber = getISOWeek(selectedDate);
 
   // Filter events for the selected day
   const dailyEvents = useMemo(() => {
@@ -37,16 +38,19 @@ export function CalendarWidget({ events }: { events: any[] }) {
       {/* Header aligned same as others */}
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <h3 className="text-xl font-black uppercase italic tracking-tighter">Kalendár</h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-xl">
           <button 
             onClick={() => changeWeek(-1)}
-            className="p-1.5 hover:bg-muted rounded-xl transition-colors"
+            className="p-1 hover:bg-muted rounded-lg transition-colors"
           >
             <ChevronLeft className="w-4 h-4 text-muted-foreground" />
           </button>
+          <span className="text-[10px] font-black uppercase italic px-2 text-muted-foreground min-w-[70px] text-center">
+            {currentWeekNumber}. Týždeň
+          </span>
           <button 
             onClick={() => changeWeek(1)}
-            className="p-1.5 hover:bg-muted rounded-xl transition-colors"
+            className="p-1 hover:bg-muted rounded-lg transition-colors"
           >
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
