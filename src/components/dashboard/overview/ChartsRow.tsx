@@ -25,18 +25,18 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
 
   return (
     <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-full overflow-hidden">
-      <h3 className="text-xl font-black uppercase italic tracking-tighter mb-8 flex-shrink-0">Pipeline Projektov</h3>
+      <h3 className="text-xl font-black uppercase italic tracking-tighter mb-6 flex-shrink-0">Pipeline Projektov</h3>
       
-      <div className="space-y-6 flex-1 overflow-auto thin-scrollbar">
+      <div className="space-y-3.5 flex-1 overflow-auto thin-scrollbar pr-2">
         {pipelineStages.map((stage, i) => (
           <div key={i}>
-            <div className="flex justify-between text-sm font-bold mb-2">
-              <span className="uppercase tracking-widest text-[11px] text-muted-foreground">{stage.label}</span>
-              <span>{stage.count}</span>
+            <div className="flex justify-between text-[11px] font-black mb-1.5 transition-all">
+              <span className="uppercase tracking-[0.15em] text-muted-foreground">{stage.label}</span>
+              <span className="text-foreground">{stage.count}</span>
             </div>
-            <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-2 bg-muted/60 rounded-full overflow-hidden shadow-inner">
               <div 
-                  className="h-full bg-zinc-900 dark:bg-zinc-100 transition-all duration-1000 ease-out shadow-sm"
+                  className="h-full bg-zinc-900 dark:bg-zinc-100 transition-all duration-1000 ease-out"
                 style={{ width: `${stage.percentage}%` }}
               />
             </div>

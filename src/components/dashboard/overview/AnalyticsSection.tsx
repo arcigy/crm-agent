@@ -19,7 +19,7 @@ export function AnalyticsSection({ contacts }: { contacts: any[], deals: any[] }
 
   return (
     <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm h-full flex flex-col overflow-hidden">
-      <h3 className="text-xl font-black uppercase italic tracking-tighter mb-4 text-center lg:text-left flex-shrink-0">Distribúcia Kontaktov</h3>
+      <h3 className="text-xl font-black uppercase italic tracking-tighter mb-6 text-center lg:text-left flex-shrink-0">Distribúcia Kontaktov</h3>
       <div className="flex-1 w-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
