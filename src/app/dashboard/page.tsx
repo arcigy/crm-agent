@@ -85,8 +85,12 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <TodoListWidget tasks={tasks as any[]} mode="today" />
         <ChartsRow deals={deals} projects={projects} />
-        {/* Analytics Section moved up next to Operation widgets as requested */}
+        
+        {/* Row 2: Week and Analytics Section side by side as requested */}
+        <TodoListWidget tasks={tasks as any[]} mode="week" />
         <AnalyticsSection contacts={contacts as any[]} deals={deals as any[]} />
+        
+        {/* Row 3: Calendar */}
         <CalendarWidget events={calendarEvents as any[]} />
       </div>
 

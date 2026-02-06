@@ -24,7 +24,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
     });
 
   return (
-    <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-full">
+    <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-[400px] w-full">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-black uppercase italic tracking-tighter">Tento týždeň</h3>
         <CalendarIcon className="w-5 h-5 text-muted-foreground" />
