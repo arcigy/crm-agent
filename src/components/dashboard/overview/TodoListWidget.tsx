@@ -21,6 +21,13 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
     setLocalTasks(tasks);
   }, [tasks]);
 
+  const hasTime = (dateStr?: string) => {
+    if (!dateStr) return false;
+    // Basic check: if it contains 'T' and isn't midnight exactly (common default for date-only)
+    // Or check if the original string was likely a datetime
+    return dateStr.includes('T') && !dateStr.includes('00:00:00');
+  };
+
   const filteredTasks = localTasks
     .filter(t => {
       if (!t.due_date) return mode === "today";
@@ -30,8 +37,16 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
       return nextWeek && !isToday(taskDate);
     })
     .sort((a, b) => {
-      // Uncompleted first, then by date
+      // 1. Completion status
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
+      
+      // 2. Tasks with time first
+      const timeA = hasTime(a.due_date);
+      const timeB = hasTime(b.due_date);
+      if (timeA && !timeB) return -1;
+      if (!timeA && timeB) return 1;
+      
+      // 3. Chronological
       return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
     });
 
@@ -42,7 +57,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
     setAnimatingIds(prev => [...prev, { id, type }]);
     
     // Animation duration logic
-    const waitTime = type === 'complete' ? 1000 : 400; // Longer for the "train" animation
+    const waitTime = type === 'complete' ? 800 : 300;
 
     setTimeout(async () => {
       try {
@@ -84,16 +99,44 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
             const isAnimating = !!animation;
             const isDone = task.completed;
             const isCompleting = animation?.type === 'complete';
+            const showTime = hasTime(task.due_date);
 
             return (
               <div 
                 key={task.id} 
-                className={`flex items-start gap-3 p-3 rounded-2xl transition-all relative overflow-hidden group
-                  ${isDone ? 'opacity-50 grayscale-[0.5]' : 'hover:bg-muted/30'}
-                  ${isCompleting ? 'bg-emerald-500/20' : ''}
+                className={`flex items-start gap-4 p-3 rounded-2xl transition-all relative overflow-hidden group
+                  ${isDone ? 'opacity-50 grayscale-[0.5] bg-emerald-500/5' : 'hover:bg-muted/30'}
                 `}
               >
-                {/* Toggle Button */}
+                {/* 1. Classic Dot (Left) */}
+                <div className="mt-[7px] flex-shrink-0">
+                  <div className={`w-2 h-2 rounded-full transition-all duration-500 
+                    ${isDone ? 'bg-emerald-500 scale-110' : 'bg-muted-foreground/30 group-hover:bg-blue-500/50'}
+                  `} />
+                </div>
+
+                {/* 2. Content (Center) */}
+                <div className="flex-1 min-w-0 relative z-10">
+                  {/* Green Fill Animation Background */}
+                  {isCompleting && (
+                    <div className="absolute inset-0 -m-3 z-0 pointer-events-none overflow-hidden rounded-2xl">
+                       <div className="h-full w-full bg-emerald-500/20 animate-bg-fill" />
+                    </div>
+                  )}
+
+                  <div className={`transition-all duration-300 ${isDone ? 'text-emerald-700 dark:text-emerald-400 font-medium' : ''}`}>
+                    <SmartText text={task.title} className="text-sm font-bold leading-tight truncate block" />
+                  </div>
+                  
+                  {showTime && (
+                    <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground font-medium uppercase">
+                      <Icon className="w-3 h-3" />
+                      {format(new Date(task.due_date), mode === "today" ? "HH:mm" : "eee HH:mm", { locale: sk })}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Toggle Button (Right) */}
                 <button
                   onClick={() => handleToggle(task.id, !!isDone)}
                   disabled={isAnimating}
@@ -106,34 +149,13 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                   {isDone ? <Undo2 className="w-3.5 h-3.5" /> : <Check className="w-4 h-4" />}
                 </button>
 
-                <div className="flex-1 min-w-0 relative z-10">
-                  {/* Task Strike-through Animation (Train + Line) */}
-                  {(isCompleting || (isDone && !isAnimating)) && (
-                    <div className="absolute inset-0 z-20 pointer-events-none">
-                       <div className={`h-[1px] bg-zinc-400 dark:bg-zinc-500 absolute top-1/2 -translate-y-1/2 shadow-[0_0_8px_rgba(156,163,175,0.6)]
-                         ${isCompleting ? 'animate-strike-train' : 'w-full'}
-                       `} />
-                    </div>
-                  )}
-
-                  <div className={`transition-all duration-300 ${isDone && !isCompleting ? 'text-zinc-400 dark:text-zinc-500' : ''}`}>
-                    <SmartText text={task.title} className="text-sm font-bold leading-tight truncate block" />
-                  </div>
-                  
-                  <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground font-medium uppercase">
-                    <Icon className="w-3 h-3" />
-                    {task.due_date ? format(new Date(task.due_date), mode === "today" ? "HH:mm" : "eee HH:mm", { locale: sk }) : "Kedykoľvek"}
-                  </div>
-                </div>
-
                 <style jsx>{`
-                  @keyframes strikeTrain {
-                    0% { left: -100%; width: 0%; opacity: 0.5; }
-                    40% { left: 0%; width: 100%; opacity: 1; }
-                    100% { left: 0%; width: 100%; opacity: 1; }
+                  @keyframes bgFill {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(0); }
                   }
-                  .animate-strike-train {
-                    animation: strikeTrain 0.6s cubic-bezier(.17,.67,.83,.67) forwards;
+                  .animate-bg-fill {
+                    animation: bgFill 0.6s ease-out forwards;
                   }
                 `}</style>
               </div>
