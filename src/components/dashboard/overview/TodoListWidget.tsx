@@ -67,7 +67,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   const badgeColor = mode === "today" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
 
   return (
-    <div className="bg-card px-8 py-6 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-[400px] w-full transition-all duration-300">
+    <div className="bg-card px-8 py-6 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-full w-full transition-all duration-300 overflow-hidden">
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">
           {title}

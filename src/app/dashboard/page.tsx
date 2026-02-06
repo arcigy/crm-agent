@@ -72,21 +72,18 @@ export default async function DashboardPage() {
   const activeTools = new Set(tools.map((t) => t.id));
 
   return (
-    <div className="max-w-[1600px] mx-auto p-4 md:p-8 space-y-8">
+    <div className="h-[calc(100vh-140px)] md:h-[calc(100vh-64px)] flex flex-col max-w-[1600px] mx-auto overflow-hidden">
       <PaymentSuccessToast />
 
-      {/* Header Removed as per user request for cleaner layout */}
-      <div className="hidden"></div>
+      {/* Primary Stats (Collapsible on scroll - but here we aim for no scroll, so they stay or we can shrink them) */}
+      <div className="flex-shrink-0">
+        <DashboardStats stats={stats} />
+      </div>
 
-      {/* Primary Stats */}
-      <DashboardStats stats={stats} />
-
-      {/* Main Operations Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Main Operations Grid - Fills remaining space */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4">
         <TodoListWidget tasks={tasks as any[]} mode="today" />
         <ChartsRow deals={deals} projects={projects} />
-        
-        {/* Row 2: Analytics and Calendar side by side as requested */}
         <AnalyticsSection contacts={contacts as any[]} deals={deals as any[]} />
         <CalendarWidget events={calendarEvents as any[]} />
       </div>

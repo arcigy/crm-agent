@@ -24,8 +24,8 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-[400px]">
-      <h3 className="text-xl font-black uppercase italic tracking-tighter mb-8">Pipeline Projektov</h3>
+    <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-full overflow-hidden">
+      <h3 className="text-xl font-black uppercase italic tracking-tighter mb-8 flex-shrink-0">Pipeline Projektov</h3>
       
       <div className="space-y-6 flex-1 overflow-auto thin-scrollbar">
         {pipelineStages.map((stage, i) => (

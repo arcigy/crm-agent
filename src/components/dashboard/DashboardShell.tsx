@@ -161,7 +161,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           ${isMenuOpen ? "ml-64 opacity-50 pointer-events-none md:opacity-100 md:pointer-events-auto" : "ml-0"}
         `}
       >
-        <div className="p-4 md:p-8 pt-24 md:pt-8 pl-24 md:pl-28 transition-all">{children}</div>
+        <div className="p-4 md:p-8 pt-24 md:pt-8 pl-24 md:pl-28 transition-all h-full">{children}</div>
       </main>
 
       <FloatingAgentChat isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />

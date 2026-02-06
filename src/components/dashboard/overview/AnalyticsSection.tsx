@@ -18,9 +18,9 @@ export function AnalyticsSection({ contacts }: { contacts: any[], deals: any[] }
   const COLORS = ['#2563eb', '#6366f1', '#10b981', '#f59e0b', '#ef4444'];
 
   return (
-    <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm h-[400px] flex flex-col">
-      <h3 className="text-xl font-black uppercase italic tracking-tighter mb-4 text-center lg:text-left">Distribúcia Kontaktov</h3>
-      <div className="flex-1 w-full">
+    <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm h-full flex flex-col overflow-hidden">
+      <h3 className="text-xl font-black uppercase italic tracking-tighter mb-4 text-center lg:text-left flex-shrink-0">Distribúcia Kontaktov</h3>
+      <div className="flex-1 w-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -43,7 +43,7 @@ export function AnalyticsSection({ contacts }: { contacts: any[], deals: any[] }
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <div className="flex flex-wrap justify-center gap-4 mt-2">
+      <div className="flex flex-wrap justify-center gap-4 mt-2 flex-shrink-0 overflow-y-auto max-h-[80px] scrollbar-hide">
         {pieData.map((d, i) => (
           <div key={i} className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
