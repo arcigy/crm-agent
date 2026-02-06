@@ -27,7 +27,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
     .slice(0, 8); // Top 8 for quick access
 
   return (
-    <div className="bg-white/40 dark:bg-[#0a0a0c]/60 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-border/50 shadow-2xl h-full flex flex-col overflow-hidden relative group transition-all duration-500 hover:shadow-blue-500/5">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full overflow-hidden relative group transition-all duration-500">
       {/* 1. Subtle Grid Pattern - Independent Background */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
@@ -43,7 +43,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
       
       <div className="flex items-center justify-between mb-6 flex-shrink-0 relative z-10">
         <h3 className="text-xl font-black uppercase italic tracking-tighter">Rýchla voľba (Zákazky)</h3>
-        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-lg shadow-blue-500/5">
+        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-none">
           <Briefcase className="w-5 h-5 text-blue-500" />
         </div>
       </div>
@@ -53,7 +53,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
           focusData.map((item, i) => (
             <div 
               key={i} 
-              className="bg-white/60 dark:bg-zinc-900/40 p-4 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-md flex items-center justify-between group/item hover:border-blue-500/40 transition-all hover:translate-x-1 shadow-sm hover:shadow-lg hover:shadow-blue-500/5"
+              className="bg-white/60 dark:bg-zinc-900/40 p-4 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-md flex items-center justify-between group/item hover:border-blue-500/40 transition-all hover:translate-x-1 shadow-none"
             >
               <div className="flex flex-col min-w-0">
                 <span className="text-[10px] font-black text-blue-500 uppercase italic tracking-[0.2em] mb-1">
@@ -67,7 +67,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
               {item.phone && (
                 <a 
                   href={`tel:${item.phone}`}
-                  className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-500 hover:scale-110 active:scale-95 transition-all shadow-lg shadow-blue-600/20 border border-blue-400/30"
+                  className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-500 hover:scale-110 active:scale-95 transition-all shadow-md shadow-blue-600/10 border border-blue-400/30"
                   title={`Volať ${item.contactName}`}
                   onClick={(e) => e.stopPropagation()}
                 >

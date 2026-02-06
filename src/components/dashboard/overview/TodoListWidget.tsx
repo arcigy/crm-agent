@@ -71,10 +71,10 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
 
   const title = mode === "today" ? "Úlohy na dnes" : "Tento týždeň";
   const Icon = mode === "today" ? Clock : Calendar;
-  const badgeStyle = "bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50 backdrop-blur-sm shadow-sm";
+  const badgeStyle = "bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50 backdrop-blur-sm";
 
   return (
-    <div className="bg-white/40 dark:bg-[#0a0a0c]/60 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-border/50 shadow-2xl h-full w-full flex flex-col transition-all duration-500 overflow-hidden relative group hover:shadow-emerald-500/5">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full w-full transition-all duration-500 overflow-hidden relative group">
       {/* 1. Subtle Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
@@ -91,7 +91,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
         <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">
           {title}
         </h3>
-        <span className={`text-[10px] font-black uppercase italic px-3 py-1.5 ${badgeStyle} rounded-xl tracking-tight shadow-sm`}>
+        <span className={`text-[10px] font-black uppercase italic px-3 py-1.5 ${badgeStyle} rounded-xl tracking-tight`}>
           {filteredTasks.filter(t => !t.completed).length} ÚLOH
         </span>
       </div>
@@ -108,11 +108,11 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
             return (
               <div 
                 key={task.id} 
-                className={`flex items-center gap-4 p-3 rounded-2xl transition-all relative overflow-hidden group/item border
+                className={`flex items-center gap-4 p-3 rounded-2xl transition-all relative overflow-hidden group/item border shadow-none
                   ${isDone 
                     ? 'opacity-40 grayscale-[0.8] bg-emerald-500/5 border-emerald-500/10' 
-                    : 'bg-white/60 dark:bg-zinc-900/40 border-black/10 dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/30 shadow-sm cursor-pointer'}
-                  ${isCompleting ? 'scale-[1.01] shadow-xl z-30' : 'z-10'}
+                    : 'bg-white/60 dark:bg-zinc-900/40 border-black/10 dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/30 cursor-pointer'}
+                  ${isCompleting ? 'scale-[1.01] z-30' : 'z-10'}
                 `}
                 onClick={() => !isDone && !isAnimating && handleToggle(task.id, false)}
               >
@@ -156,8 +156,8 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                     disabled={isAnimating}
                     className={`flex-shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center transition-all
                       ${isDone 
-                        ? 'bg-[#16a34a] border-[#22c55e] text-white shadow-md shadow-[#16a34a]/20' 
-                        : 'bg-transparent border-zinc-200 dark:border-zinc-800 text-transparent group-hover/item:border-[#16a34a] group-hover/item:bg-[#16a34a]/20 shadow-none'}
+                        ? 'bg-[#16a34a] border-[#22c55e] text-white' 
+                        : 'bg-transparent border-zinc-200 dark:border-zinc-800 text-transparent group-hover/item:border-[#16a34a] group-hover/item:bg-[#16a34a]/20'}
                       ${isCompleting ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}
                     `}
                   >

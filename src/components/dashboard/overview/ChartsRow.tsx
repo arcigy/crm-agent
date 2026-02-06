@@ -24,7 +24,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className="bg-white/40 dark:bg-[#0a0a0c]/60 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-border/50 shadow-2xl flex flex-col h-full overflow-hidden relative group transition-all duration-500 hover:shadow-zinc-500/5">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full overflow-hidden relative group transition-all duration-500">
       {/* 1. Subtle Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
@@ -41,7 +41,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
       
       <div className="space-y-3.5 flex-1 overflow-auto thin-scrollbar pr-2 relative z-10">
         {pipelineStages.map((stage, i) => (
-          <div key={i} className="bg-white/60 dark:bg-zinc-900/40 p-3.5 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-md shadow-sm">
+          <div key={i} className="bg-white/60 dark:bg-zinc-900/40 p-3.5 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-md">
             <div className="flex justify-between text-[11px] font-black mb-1.5 transition-all">
               <span className="uppercase tracking-[0.2em] text-muted-foreground opacity-60 font-black italic">{stage.label}</span>
               <span className="text-foreground font-black italic">{stage.count}</span>

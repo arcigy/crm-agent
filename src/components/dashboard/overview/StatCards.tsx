@@ -12,7 +12,7 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
   return (
-    <div className="bg-white/40 dark:bg-[#0a0a0c]/60 backdrop-blur-2xl px-5 py-4 rounded-[2rem] border border-border/50 shadow-2xl transition-all duration-500 group overflow-hidden relative hover:shadow-indigo-500/10 hover:border-indigo-500/30 hover:-translate-y-1">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl px-5 py-4 rounded-[2rem] border border-indigo-500/10 dark:border-indigo-500/5 transition-all duration-500 group overflow-hidden relative hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 hover:-translate-y-1">
       {/* 1. Subtle Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
@@ -41,7 +41,7 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
           )}
         </div>
         
-        <div className={`w-12 h-12 rounded-2xl ${color.replace('bg-', 'bg-opacity-10 ')} flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-opacity-20 border border-white/5 shadow-xl`}>
+        <div className={`w-12 h-12 rounded-2xl ${color.replace('bg-', 'bg-opacity-10 ')} flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-opacity-20 border border-white/5`}>
           <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
         </div>
       </div>

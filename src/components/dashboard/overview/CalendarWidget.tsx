@@ -34,7 +34,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
   };
 
   return (
-    <div className="bg-white/40 dark:bg-[#0a0a0c]/60 backdrop-blur-2xl p-6 md:p-7 rounded-[2.5rem] border border-border/50 shadow-2xl flex flex-col h-full w-full overflow-hidden relative group transition-all duration-500 hover:shadow-indigo-500/5">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-6 md:p-7 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full w-full overflow-hidden relative group transition-all duration-500">
       {/* 1. Subtle Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
@@ -50,7 +50,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
       {/* Header aligned same as others */}
       <div className="flex items-center justify-between mb-4 flex-shrink-0 relative z-10">
         <h3 className="text-xl font-black uppercase italic tracking-tighter">Kalendár</h3>
-        <div className="flex items-center gap-1 bg-white/50 dark:bg-zinc-800/50 p-1 rounded-xl backdrop-blur-sm border border-black/5 dark:border-white/5 shadow-sm">
+        <div className="flex items-center gap-1 bg-white/50 dark:bg-zinc-800/50 p-1 rounded-xl backdrop-blur-sm border border-black/5 dark:border-white/5">
           <button 
             onClick={() => changeWeek(-1)}
             className="p-1 hover:bg-muted rounded-lg transition-colors"
@@ -85,9 +85,9 @@ export function CalendarWidget({ events }: { events: any[] }) {
                 {SK_DAYS[i]}
               </span>
               <div className={`
-                w-8 h-8 flex items-center justify-center rounded-xl text-[11px] font-black transition-all shadow-sm
+                w-8 h-8 flex items-center justify-center rounded-xl text-[11px] font-black transition-all
                 ${isSelected 
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/20' 
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 ring-2 ring-blue-400/20' 
                   : isToday 
                     ? 'border-2 border-blue-600/30 text-blue-600 bg-blue-500/5' 
                     : 'bg-white/60 dark:bg-zinc-900/40 hover:bg-muted text-foreground border border-black/5 dark:border-white/5'
@@ -107,7 +107,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
         </div>
         
         {dailyEvents.map((event, i) => (
-          <div key={i} className="relative pl-3 border-l-4 border-indigo-500/50 py-2.5 bg-white/50 dark:bg-zinc-900/40 hover:bg-white/80 dark:hover:bg-zinc-800/60 transition-all rounded-r-2xl group/event flex flex-col gap-1 mb-2 border border-black/5 dark:border-white/5 shadow-sm">
+          <div key={i} className="relative pl-3 border-l-4 border-indigo-500/50 py-2.5 bg-white/50 dark:bg-zinc-900/40 hover:bg-white/80 dark:hover:bg-zinc-800/60 transition-all rounded-r-2xl group/event flex flex-col gap-1 mb-2 border border-black/5 dark:border-white/5">
             <p className="text-[12px] font-black text-foreground leading-tight tracking-tight">{event.summary}</p>
             <div className="flex items-center gap-2">
                <span className="text-[9px] font-black text-indigo-500 uppercase italic tracking-tighter bg-indigo-500/10 px-2 py-0.5 rounded-lg leading-none border border-indigo-500/10">
