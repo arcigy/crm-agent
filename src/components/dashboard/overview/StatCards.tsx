@@ -12,25 +12,28 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
   return (
-    <div className="bg-card p-6 rounded-[2rem] border border-border shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
-      <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 ${color} transition-transform group-hover:scale-125`} />
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">
+    <div className="bg-card px-5 py-4 rounded-[1.5rem] border border-border shadow-sm transition-all duration-300 group overflow-hidden relative hover:shadow-[0_0_30px_rgba(99,102,241,0.08)] hover:border-indigo-500/30 hover:-translate-y-0.5">
+      {/* Subtle Light-up background on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      <div className="flex items-center justify-between relative z-10">
+        <div className="flex flex-col gap-0.5">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.1em]">
             {label}
           </p>
-          <h3 className="text-3xl font-black text-foreground italic tracking-tight">
+          <h3 className="text-2xl font-black text-foreground italic tracking-tight">
             {value}
           </h3>
           {trend && (
-            <p className="text-xs font-bold text-green-500 mt-2 flex items-center gap-1">
+            <p className="text-[10px] font-bold text-emerald-500 mt-1 flex items-center gap-1">
               <TrendingUp className="w-3 h-3" />
               {trend}
             </p>
           )}
         </div>
-        <div className={`p-4 rounded-2xl ${color.replace('bg-', 'bg-opacity-20 ')} text-current`}>
-          <Icon className="w-6 h-6" />
+        
+        <div className={`w-10 h-10 rounded-xl ${color.replace('bg-', 'bg-opacity-10 ')} flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:bg-opacity-20`}>
+          <Icon className={`w-5 h-5 ${color.replace('bg-', 'text-')}`} />
         </div>
       </div>
     </div>
