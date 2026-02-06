@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
-export function AnalyticsSection({ contacts, deals, isCompact }: { contacts: any[], deals: any[], isCompact?: boolean }) {
+export function AnalyticsSection({ contacts, deals }: { contacts: any[], deals: any[] }) {
   // 1. Data for Pie Chart (Contacts Status)
   const statusCounts = contacts.reduce((acc: any, c) => {
     const status = c.status || 'lead';
