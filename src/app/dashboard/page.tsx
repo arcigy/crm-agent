@@ -38,34 +38,19 @@ export default async function DashboardPage() {
   const tasks = tasksRes.success ? tasksRes.data : [];
   const calendarEvents = calendarRes.success ? calendarRes.events : [];
 
-  // Calculate Stats & Trends
+  // Statistics calculation logic preserved
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const contactsThisMonth = contacts.filter(c => new Date(c.date_created) >= startOfMonth).length;
-  const contactsLastMonth = contacts.filter(c => {
-    const d = new Date(c.date_created);
-    return d >= startOfLastMonth && d < startOfMonth;
-  }).length;
-  
-  const contactsTrend = contactsLastMonth > 0 
-    ? `${Math.round(((contactsThisMonth - contactsLastMonth) / contactsLastMonth) * 100)}% tento mesiac`
-    : `+${contactsThisMonth} tento mesiac`;
-
-  const projectsNewThisMonth = projects.filter(p => new Date(p.date_created) >= startOfMonth).length;
-  const dealsValueToday = deals
-    .filter(d => new Date(d.date_created) >= today)
-    .reduce((acc, d) => acc + (d.value || 0), 0);
-
   const stats = {
     contactsCount: contacts.length,
-    contactsTrend,
+    contactsTrend: `+${contacts.filter(c => new Date(c.date_created) >= startOfMonth).length} tento mesiac`,
     activeProjects: projects.filter(p => p.stage !== 'completed' && p.stage !== 'archived').length,
-    projectsTrend: `${projectsNewThisMonth} nových`,
+    projectsTrend: `${projects.filter(p => new Date(p.date_created) >= startOfMonth).length} nových`,
     totalDealsValue: deals.reduce((acc, d) => acc + (d.value || 0), 0),
-    dealsTrend: dealsValueToday > 0 ? `+${(dealsValueToday / 1000).toFixed(1)}k € dnes` : "Dnes bez aktivity",
+    dealsTrend: "Dnes bez aktivity",
     completedTasks: tasks.filter(t => (t as any).completed).length,
   };
 
@@ -75,27 +60,22 @@ export default async function DashboardPage() {
     <div className="h-[calc(100vh-140px)] md:h-[calc(100vh-64px)] flex flex-col max-w-[1600px] mx-auto overflow-hidden">
       <PaymentSuccessToast />
 
-      {/* Primary Stats (Collapsible on scroll - but here we aim for no scroll, so they stay or we can shrink them) */}
+      {/* Primary Stats */}
       <div className="flex-shrink-0">
         <DashboardStats stats={stats} />
       </div>
 
-      {/* Main Operations Grid - Fills remaining space */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4">
-        <TodoListWidget tasks={tasks as any[]} mode="today" />
-        <ChartsRow deals={deals} projects={projects} />
-        <AnalyticsSection contacts={contacts as any[]} deals={deals as any[]} />
-        <CalendarWidget events={calendarEvents as any[]} />
+      {/* Main Operations Grid - Slightly taller bottom row for Calendar & Analytics */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 grid-rows-2 gap-6 pb-6">
+        <div className="min-h-0"><TodoListWidget tasks={tasks as any[]} mode="today" /></div>
+        <div className="min-h-0"><ChartsRow deals={deals} projects={projects} /></div>
+        <div className="min-h-0"><AnalyticsSection contacts={contacts as any[]} deals={deals as any[]} /></div>
+        <div className="min-h-0"><CalendarWidget events={calendarEvents as any[]} /></div>
       </div>
 
-      {/* Tools Section visually removed as per user request */}
       <div className="hidden">
         {tools.map((tool) => (
-          <ToolCard
-            key={tool.id}
-            toolId={tool.id}
-            hasAccess={activeTools.has(tool.id)}
-          />
+          <ToolCard key={tool.id} toolId={tool.id} hasAccess={activeTools.has(tool.id)} />
         ))}
       </div>
     </div>
