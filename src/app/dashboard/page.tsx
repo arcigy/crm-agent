@@ -86,11 +86,8 @@ export default async function DashboardPage() {
         <TodoListWidget tasks={tasks as any[]} mode="today" />
         <ChartsRow deals={deals} projects={projects} />
         
-        {/* Row 2: Week and Analytics Section side by side as requested */}
-        <TodoListWidget tasks={tasks as any[]} mode="week" />
+        {/* Row 2: Analytics and Calendar side by side as requested */}
         <AnalyticsSection contacts={contacts as any[]} deals={deals as any[]} />
-        
-        {/* Row 3: Calendar */}
         <CalendarWidget events={calendarEvents as any[]} />
       </div>
 
