@@ -83,13 +83,14 @@ export default async function DashboardPage() {
 
       {/* Main Operations Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Row 1 */}
         <TodoListWidget tasks={tasks as any[]} mode="today" />
+        <AnalyticsSection contacts={contacts as any[]} deals={deals as any[]} isCompact />
+
+        {/* Row 2 */}
         <ChartsRow deals={deals} projects={projects} />
         <CalendarWidget events={calendarEvents as any[]} />
       </div>
-
-      {/* Detailed Analytics */}
-      <AnalyticsSection contacts={contacts as any[]} deals={deals as any[]} />
 
       {/* Tools Section visually removed as per user request */}
       <div className="hidden">
