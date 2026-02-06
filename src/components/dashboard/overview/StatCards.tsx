@@ -12,20 +12,20 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
   return (
-    <div className="bg-card px-4 py-3 rounded-[1.2rem] border border-border shadow-sm transition-all duration-300 group overflow-hidden relative hover:shadow-[0_0_30px_rgba(99,102,241,0.08)] hover:border-indigo-500/30 hover:-translate-y-0.5">
+    <div className="bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl px-4 py-3 rounded-[1.2rem] border border-border shadow-sm transition-all duration-300 group overflow-hidden relative hover:shadow-[0_0_30px_rgba(99,102,241,0.08)] hover:border-indigo-500/30 hover:-translate-y-0.5">
       {/* Subtle Light-up background on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
       <div className="flex items-center justify-between relative z-10">
         <div className="flex flex-col">
-          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.1em]">
+          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.1em] italic">
             {label}
           </p>
           <h3 className="text-xl font-black text-foreground italic tracking-tight">
             {value}
           </h3>
           {trend && (
-            <p className="text-[9px] font-bold text-emerald-500 mt-0.5 flex items-center gap-1">
+            <p className="text-[9px] font-black italic text-emerald-500 mt-0.5 flex items-center gap-1">
               <TrendingUp className="w-2.5 h-2.5" />
               {trend}
             </p>
@@ -42,7 +42,7 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
 
 export function DashboardStats({ stats }: { stats: any }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pt-2 transition-all duration-500 ease-in-out">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pt-2 transition-all duration-500 ease-in-out relative z-30">
       <StatCard
         label="Kontakty"
         value={stats.contactsCount || 0}

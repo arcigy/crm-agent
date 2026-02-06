@@ -71,11 +71,14 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
 
   const title = mode === "today" ? "Úlohy na dnes" : "Tento týždeň";
   const Icon = mode === "today" ? Clock : Calendar;
-  const badgeStyle = "bg-[#f4f4f5] dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700/50";
+  const badgeStyle = "bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50 backdrop-blur-sm";
 
   return (
-    <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-full w-full transition-all duration-300 overflow-hidden">
-      <div className="flex items-center justify-between mb-6 flex-shrink-0">
+    <div className="bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl p-8 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-full w-full transition-all duration-300 overflow-hidden relative group">
+      {/* Subtle Background Glow to make it pleasant */}
+      <div className="absolute -top-20 -left-20 w-40 h-40 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-500/10 transition-colors duration-700" />
+      
+      <div className="flex items-center justify-between mb-6 flex-shrink-0 relative z-10">
         <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">
           {title}
         </h3>
@@ -84,7 +87,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
         </span>
       </div>
 
-      <div className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-hide">
+      <div className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-hide relative z-10">
         {filteredTasks.length > 0 ? (
           filteredTasks.map((task) => {
             const animation = animatingIds.find(a => a.id === task.id);
@@ -96,10 +99,10 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
             return (
               <div 
                 key={task.id} 
-                className={`flex items-start gap-4 p-2.5 rounded-xl transition-all relative overflow-hidden group border
+                className={`flex items-center gap-4 p-2.5 rounded-xl transition-all relative overflow-hidden group/item border
                   ${isDone 
                     ? 'opacity-40 grayscale-[0.8] bg-emerald-500/5 border-emerald-500/10' 
-                    : 'bg-white dark:bg-zinc-900/50 border-black/10 dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/30 shadow-sm cursor-pointer'}
+                    : 'bg-white/60 dark:bg-zinc-900/60 border-black/10 dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/30 shadow-sm cursor-pointer'}
                   ${isCompleting ? 'scale-[1.01] shadow-lg z-30' : 'z-10'}
                 `}
                 onClick={() => !isDone && !isAnimating && handleToggle(task.id, false)}
@@ -112,23 +115,23 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                 )}
 
                 {/* 1. Bullet Dot */}
-                <div className="mt-[7px] flex-shrink-0 relative z-10">
+                <div className="flex-shrink-0 relative z-10">
                   <div className={`w-2 h-2 rounded-full transition-all duration-300 
-                    ${isDone ? 'bg-[#16a34a]' : 'bg-zinc-300 dark:bg-zinc-700 group-hover:bg-[#16a34a] group-hover:scale-125'}
+                    ${isDone ? 'bg-[#16a34a]' : 'bg-zinc-300 dark:bg-zinc-700 group-hover/item:bg-[#16a34a] group-hover/item:scale-125'}
                   `} />
                 </div>
 
-                {/* 2. Content */}
-                <div className="flex-1 min-w-0 relative z-10">
-                  <div className={`transition-all duration-300 
-                    ${isDone ? 'text-[#15803d] dark:text-[#4ade80] italic' : 'text-foreground font-bold'}
+                {/* 2. Content (Merged Title & Time) */}
+                <div className="flex-1 min-w-0 relative z-10 flex items-baseline justify-between gap-3">
+                  <div className={`transition-all duration-300 flex-1 truncate
+                    ${isDone ? 'text-[#15803d] dark:text-[#4ade80] italic' : 'text-foreground font-black'}
                     ${isCompleting ? 'text-white' : ''}
                   `}>
-                    <SmartText text={task.title} className="text-[13px] tracking-tight leading-tight truncate block" />
+                    <SmartText text={task.title} className="text-[14px] md:text-[15px] tracking-tight leading-none truncate block" />
                   </div>
                   
                   {showTime && (
-                    <div className={`flex items-center gap-1 mt-0.5 text-[9px] font-black uppercase tracking-widest transition-colors
+                    <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest transition-colors flex-shrink-0
                       ${isCompleting ? 'text-white/70' : 'text-muted-foreground'}
                     `}>
                       <Icon className="w-2.5 h-2.5" />
@@ -138,7 +141,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                 </div>
 
                 {/* 3. Toggle Button (Right) */}
-                <div className="relative z-10 mt-0.5">
+                <div className="relative z-10">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -148,7 +151,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                     className={`flex-shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center transition-all
                       ${isDone 
                         ? 'bg-[#16a34a] border-[#22c55e] text-white shadow-md shadow-[#16a34a]/20' 
-                        : 'bg-transparent border-zinc-200 dark:border-zinc-800 text-transparent group-hover:border-[#16a34a] group-hover:bg-[#16a34a]/20'}
+                        : 'bg-transparent border-zinc-200 dark:border-zinc-800 text-transparent group-hover/item:border-[#16a34a] group-hover/item:bg-[#16a34a]/20 shadow-none'}
                       ${isCompleting ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}
                     `}
                   >
@@ -176,7 +179,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
         )}
       </div>
       
-      <a href="/dashboard/todo" className="mt-4 text-center text-[10px] font-black text-zinc-400 hover:text-emerald-600 uppercase italic transition-colors">
+      <a href="/dashboard/todo" className="mt-4 text-center text-[10px] font-black text-zinc-400 hover:text-emerald-600 uppercase italic transition-colors relative z-10">
         Pozrieť všetky úlohy
       </a>
     </div>
