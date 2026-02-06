@@ -72,7 +72,7 @@ export default async function DashboardPage() {
   const activeTools = new Set(tools.map((t) => t.id));
 
   return (
-    <div className="max-w-[1600px] mx-auto p-4 md:p-8 space-y-12">
+    <div className="max-w-[1600px] mx-auto p-4 md:p-8 space-y-8">
       <PaymentSuccessToast />
 
       {/* Header Removed as per user request for cleaner layout */}
@@ -81,13 +81,19 @@ export default async function DashboardPage() {
       {/* Primary Stats */}
       <DashboardStats stats={stats} />
 
-      {/* Performance & Pipeline */}
-      <ChartsRow deals={deals} projects={projects} tasks={tasks as any[]} />
-
-      {/* Daily Operations Row */}
+      {/* Main Operations Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <TodoListWidget tasks={tasks as any[]} />
-        <CalendarWidget events={calendarEvents as any[]} />
+        {/* Left Column: Tasks */}
+        <div className="flex flex-col gap-8 h-full">
+          <TodoListWidget tasks={tasks as any[]} mode="today" />
+          <TodoListWidget tasks={tasks as any[]} mode="week" />
+        </div>
+
+        {/* Right Column: Pipeline & Calendar */}
+        <div className="flex flex-col gap-8 h-full">
+          <ChartsRow deals={deals} projects={projects} />
+          <CalendarWidget events={calendarEvents as any[]} />
+        </div>
       </div>
 
       {/* Detailed Analytics */}

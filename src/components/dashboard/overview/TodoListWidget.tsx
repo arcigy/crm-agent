@@ -1,45 +1,68 @@
 "use client";
 
 import { SmartText } from "@/components/todo/SmartText";
-import { CheckCircle2, Circle, Clock } from "lucide-react";
-import { format } from "date-fns";
+import { CheckCircle2, Circle, Clock, Calendar } from "lucide-react";
+import { format, isToday, isThisWeek, addDays } from "date-fns";
 import { sk } from "date-fns/locale";
 
-export function TodoListWidget({ tasks }: { tasks: any[] }) {
-  const todayTasks = tasks.filter(t => !t.completed).slice(0, 5);
+interface TodoListWidgetProps {
+  tasks: any[];
+  mode?: "today" | "week";
+}
+
+export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
+  const filteredTasks = tasks.filter(t => {
+    if (t.completed) return false;
+    if (!t.due_date) return mode === "today"; // Show undated in today
+    
+    const taskDate = new Date(t.due_date);
+    if (mode === "today") {
+      return isToday(taskDate);
+    } else {
+      // Show tasks for the next 7 days, excluding today
+      const nextWeek = isThisWeek(taskDate, { weekStartsOn: 1 });
+      return nextWeek && !isToday(taskDate);
+    }
+  }).slice(0, 5);
+
+  const title = mode === "today" ? "Úlohy na dnes" : "Tento týždeň";
+  const Icon = mode === "today" ? Clock : Calendar;
+  const badgeColor = mode === "today" ? "bg-blue-100 text-blue-700" : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300";
 
   return (
-    <div className="bg-card p-8 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-full">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-black uppercase italic tracking-tighter">Úlohy na dnes</h3>
-        <span className="text-[10px] font-bold px-2 py-1 bg-blue-100 text-blue-700 rounded-lg">
-          {todayTasks.length} TODO
+    <div className="bg-card px-8 py-6 rounded-[2.5rem] border border-border shadow-sm flex flex-col h-full">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">
+          {title}
+        </h3>
+        <span className={`text-[10px] font-bold px-2 py-1 ${badgeColor} rounded-lg`}>
+          {filteredTasks.length} TODO
         </span>
       </div>
 
-      <div className="flex-1 space-y-4">
-        {todayTasks.length > 0 ? (
-          todayTasks.map((task) => (
-            <div key={task.id} className="flex items-start gap-3 p-3 rounded-2xl hover:bg-muted/50 transition-colors group">
-              <Circle className="w-5 h-5 text-muted-foreground mt-0.5 group-hover:text-blue-500 transition-colors" />
-              <div className="flex-1">
-                <SmartText text={task.title} className="text-sm font-bold text-foreground leading-tight" />
-                <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground font-medium">
-                  <Clock className="w-3 h-3" />
-                  {task.due_date ? format(new Date(task.due_date), "HH:mm", { locale: sk }) : "Kedykoľvek"}
+      <div className="flex-1 space-y-3">
+        {filteredTasks.length > 0 ? (
+          filteredTasks.map((task) => (
+            <div key={task.id} className="flex items-start gap-3 p-2.5 rounded-2xl hover:bg-muted/50 transition-colors group">
+              <Circle className="w-4 h-4 text-muted-foreground mt-0.5 group-hover:text-blue-500 transition-colors" />
+              <div className="flex-1 min-w-0">
+                <SmartText text={task.title} className="text-sm font-bold text-foreground leading-tight truncate block" />
+                <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground font-medium uppercase">
+                  <Icon className="w-3 h-3" />
+                  {task.due_date ? format(new Date(task.due_date), mode === "today" ? "HH:mm" : "eee HH:mm", { locale: sk }) : "Kedykoľvek"}
                 </div>
               </div>
             </div>
           ))
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-10">
-            <CheckCircle2 className="w-12 h-12 mb-2" />
-            <p className="text-sm font-bold italic uppercase tracking-widest">Všetko hotové!</p>
+          <div className="h-full min-h-[100px] flex flex-col items-center justify-center text-center opacity-40">
+            <CheckCircle2 className="w-8 h-8 mb-1" />
+            <p className="text-[10px] font-bold italic uppercase tracking-widest">Pohoda, nič tu nie je</p>
           </div>
         )}
       </div>
       
-      <a href="/dashboard/todo" className="mt-4 text-center text-xs font-black text-blue-600 uppercase italic hover:underline">
+      <a href="/dashboard/todo" className="mt-4 text-center text-[10px] font-black text-zinc-400 hover:text-blue-600 uppercase italic transition-colors">
         Pozrieť všetky úlohy
       </a>
     </div>
