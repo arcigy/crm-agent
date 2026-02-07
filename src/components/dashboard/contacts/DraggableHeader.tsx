@@ -24,9 +24,9 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
 
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
-    transition,
+    transition: transition || 'transform 150ms ease',
     width: header.getSize(),
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.7 : 1,
     zIndex: isDragging ? 100 : 1,
     position: "relative",
   };
@@ -35,7 +35,7 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
     <th
       ref={setNodeRef}
       style={style}
-      className="group relative px-3 py-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-wider border-r border-border last:border-0 hover:bg-muted/50 transition-colors select-none"
+      className={`group relative px-3 py-2 text-[9px] font-bold text-muted-foreground uppercase tracking-wider border-r border-white/10 dark:border-white/5 last:border-0 hover:bg-card/50 transition-all duration-150 select-none ${isDragging ? "bg-card shadow-lg" : ""}`}
     >
       <div className="flex items-center gap-2">
         <div
@@ -73,8 +73,8 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
               [column.id]: newSize,
             }));
           }}
-          className={`resizer absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none hover:bg-blue-500/50 transition-colors ${
-            header.column.getIsResizing() ? "bg-blue-500 w-1" : "bg-transparent"
+          className={`resizer absolute right-0 top-0 h-full w-3 cursor-col-resize select-none touch-none hover:bg-indigo-500/50 transition-colors ${
+            header.column.getIsResizing() ? "bg-indigo-500 w-1" : "bg-transparent"
           }`}
         />
       )}
