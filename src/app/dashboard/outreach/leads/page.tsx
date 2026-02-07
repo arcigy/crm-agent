@@ -50,28 +50,35 @@ export default function OutreachLeadsPage() {
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [smartLeadsStats, setSmartLeadsStats] = useState<{ active_leads: number, limit: number, campaigns_count: number } | null>(null);
 
-  const refreshLeads = React.useCallback(async (listName: string) => {
-    setLoading(true);
+  // Separate fetch logic that doesn't clear state unnecessarily
+  const fetchLeadsData = React.useCallback(async (listName: string, showLoading = true) => {
+    if (showLoading) setLoading(true);
     const res = await getColdLeads(listName);
     if (res.success && res.data) {
       setLeads(res.data);
-      setSelectedIds(new Set()); // Clear selection on list change
-      setCurrentPage(1);
     }
-    setLoading(false);
+    if (showLoading) setLoading(false);
   }, []);
+
+  const refreshLeads = React.useCallback(async (listName: string) => {
+      await fetchLeadsData(listName, true);
+      setSelectedIds(new Set()); // Only clear selection on explicit refresh/list change
+      setCurrentPage(1);
+  }, [fetchLeadsData]);
 
   // Polling for background process status
   useEffect(() => {
+    // Only poll if there are pending items
+    const hasPending = leads.some(l => l.enrichment_status === 'pending' || l.enrichment_status === 'processing');
+    if (!hasPending) return;
+
     const interval = setInterval(() => {
-        const hasPending = leads.some(l => l.enrichment_status === 'pending' || l.enrichment_status === 'processing');
-        if (hasPending) {
-            refreshLeads(activeListName);
-        }
-    }, 5000); // Check every 5 seconds
+        // Use the separate fetch function to avoid resetting pagination/selection
+        fetchLeadsData(activeListName, false); 
+    }, 5000); 
     
     return () => clearInterval(interval);
-  }, [leads, activeListName, refreshLeads]);
+  }, [leads, activeListName, fetchLeadsData]); // Removed refreshLeads dependency to avoid loop if refreshLeads changes
 
   const handleStartBackgroundEnrichment = async () => {
     const ids = Array.from(selectedIds);
