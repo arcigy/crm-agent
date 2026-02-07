@@ -341,6 +341,46 @@ export default function OutreachLeadsPage() {
          </div>
 
          <div className="flex-1 overflow-y-auto space-y-1 pr-2 scrollbar-thin scrollbar-thumb-gray-200">
+             <div className="px-2 py-2 mb-2">
+                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 pl-2">SmartLead Integrácia</p>
+                 <button
+                    onClick={() => setActiveListName("SL_queued")}
+                    className={cn(
+                        "w-full text-left px-4 py-3 rounded-[1rem] flex items-center gap-3 transition-all text-xs font-bold",
+                        activeListName === "SL_queued"
+                          ? "bg-orange-50 text-orange-700 shadow-sm ring-1 ring-orange-100"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    )}
+                 >
+                    <Clock className="w-4 h-4" />
+                    Vo Fronte
+                 </button>
+                 <button
+                    onClick={() => setActiveListName("SL_pushed")}
+                    className={cn(
+                        "w-full text-left px-4 py-3 rounded-[1rem] flex items-center gap-3 transition-all text-xs font-bold",
+                        activeListName === "SL_pushed"
+                          ? "bg-green-50 text-green-700 shadow-sm ring-1 ring-green-100"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    )}
+                 >
+                    <Check className="w-4 h-4" />
+                    Aktívne / Pushed
+                 </button>
+                 <button
+                    onClick={() => setActiveListName("SL_failed")}
+                    className={cn(
+                        "w-full text-left px-4 py-3 rounded-[1rem] flex items-center gap-3 transition-all text-xs font-bold",
+                        activeListName === "SL_failed"
+                          ? "bg-red-50 text-red-700 shadow-sm ring-1 ring-red-100"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    )}
+                 >
+                    <AlertCircle className="w-4 h-4" />
+                    Chyby
+                 </button>
+             </div>
+
              <div className="px-2 py-2">
                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 pl-2">Moje Zoznamy</p>
                  {lists.map(list => (

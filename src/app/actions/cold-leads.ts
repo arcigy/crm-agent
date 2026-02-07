@@ -45,7 +45,12 @@ export async function getColdLeads(listName?: string) {
       user_email: { _eq: userEmail },
     };
     
-    if (listName) {
+    if (listName && listName.startsWith("SL_")) {
+        const status = listName.toLowerCase().replace("sl_", "");
+        if (["queued", "pushed", "failed"].includes(status)) {
+             filter.smartlead_status = { _eq: status };
+        }
+    } else if (listName) {
         filter.list_name = { _eq: listName };
     }
 
