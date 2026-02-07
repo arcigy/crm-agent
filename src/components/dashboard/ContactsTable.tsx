@@ -44,6 +44,7 @@ import { BulkEditModal } from "./contacts/BulkEditModal";
 import { useContactsTable } from "@/hooks/useContactsTable";
 import { contactColumns } from "./contacts/ContactColumns";
 import { TestSyncModal } from "./contacts/TestSyncModal";
+import { AddToSmartLeadModal } from "./contacts/AddToSmartLeadModal";
 
 export function ContactsTable({
   data,
@@ -169,6 +170,7 @@ export function ContactsTable({
   };
 
   const [isBulkEditOpen, setIsBulkEditOpen] = React.useState(false);
+  const [isSmartLeadOpen, setIsSmartLeadOpen] = React.useState(false);
   const selectedRows = table.getSelectedRowModel().rows;
   const selectedIds = selectedRows.map(r => r.original.id);
 
@@ -197,12 +199,20 @@ export function ContactsTable({
         onEdit={() => setIsBulkEditOpen(true)}
         onSelectAllVisible={() => table.toggleAllRowsSelected(true)}
         isAllVisibleSelected={table.getIsAllRowsSelected()}
+        onAddToSmartLead={() => setIsSmartLeadOpen(true)}
       />
 
       <BulkEditModal
         isOpen={isBulkEditOpen}
         onClose={() => setIsBulkEditOpen(false)}
         selectedIds={selectedIds}
+        onSuccess={() => setRowSelection({})}
+      />
+
+      <AddToSmartLeadModal
+        isOpen={isSmartLeadOpen}
+        onClose={() => setIsSmartLeadOpen(false)}
+        selectedContacts={selectedRows.map(r => r.original)}
         onSuccess={() => setRowSelection({})}
       />
 

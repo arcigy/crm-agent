@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Edit, Trash2, X, CheckSquare } from "lucide-react";
+import { Edit, Trash2, X, CheckSquare, Send } from "lucide-react";
 import { toast } from "sonner";
 import { bulkDeleteContacts } from "@/app/actions/contacts";
 
@@ -11,6 +11,7 @@ interface BulkActionsProps {
   onEdit: () => void;
   onSelectAllVisible: () => void;
   isAllVisibleSelected: boolean;
+  onAddToSmartLead: () => void;
 }
 
 export function BulkActions({
@@ -19,6 +20,7 @@ export function BulkActions({
   onEdit,
   onSelectAllVisible,
   isAllVisibleSelected,
+  onAddToSmartLead,
 }: BulkActionsProps) {
   if (selectedIds.length === 0) return null;
 
@@ -67,6 +69,14 @@ export function BulkActions({
               Odznačiť všetky
             </button>
           )}
+
+          <button
+            onClick={onAddToSmartLead}
+            className="flex items-center gap-2 px-4 py-2 hover:bg-purple-500/20 text-purple-300 rounded-2xl transition-colors text-xs font-black uppercase italic"
+          >
+            <Send className="w-4 h-4" />
+            SmartLead
+          </button>
 
           <button
             onClick={onEdit}
