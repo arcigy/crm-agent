@@ -150,7 +150,6 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'f
                                     <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Priezvisko</label>
                                     <input
                                         type="text"
-                                        required
                                         className="w-full h-16 bg-gray-50 border-2 border-gray-50 rounded-2xl px-6 text-lg font-bold focus:border-blue-500 focus:bg-white transition-all outline-none"
                                         value={formData.last_name}
                                         onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
@@ -163,7 +162,6 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'f
                                     <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Email</label>
                                     <input
                                         type="email"
-                                        required
                                         className="w-full h-14 bg-gray-50 border-2 border-gray-50 rounded-2xl px-5 font-bold text-sm focus:border-blue-500 focus:bg-white transition-all outline-none"
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}

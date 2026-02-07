@@ -291,7 +291,7 @@ export async function createTestGoogleContact() {
     }
 }
 
-export async function syncContactToGoogle(contactId: string | number) {
+export async function syncContactToGoogle(contactId: string | number, forceCreate?: boolean) {
     try {
         const user = await currentUser();
         if (!user) return { success: false, error: "Unauthorized" };
@@ -372,7 +372,7 @@ export async function syncContactToGoogle(contactId: string | number) {
 
         if (birthdays.length > 0) requestBody.birthdays = birthdays;
 
-        if (contact.google_id) {
+        if (contact.google_id && !forceCreate) {
             try {
                 console.log(`[Google Sync] Fetching etag for ${contact.google_id}...`);
                 // 1. Get current person to fetch the etag (required for update)
@@ -415,7 +415,7 @@ export async function syncContactToGoogle(contactId: string | number) {
                 }
             }
         } else {
-            console.log(`[Google Sync] No google_id, creating new contact...`);
+            console.log(`[Google Sync] ${forceCreate ? 'Forced creation' : 'No google_id'}, creating new contact...`);
             const res = await people.people.createContact({ requestBody });
             const googleId = (res.data as any).resourceName;
             await directus.request(updateItem("contacts", contactId, { google_id: googleId }));

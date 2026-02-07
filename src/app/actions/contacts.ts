@@ -164,7 +164,10 @@ export async function createContact(data: Partial<ContactItem>) {
     );
 
     revalidatePath("/dashboard/contacts");
-    await syncContactToGoogle(drContact.id);
+    // Sync to Google in background to keep UI fast
+    syncContactToGoogle(drContact.id, true).catch(err => {
+      console.error("[Background Sync] Failed for new contact:", err);
+    });
 
     return { 
         success: true, 
