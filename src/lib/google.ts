@@ -50,7 +50,7 @@ export function getAuthUrl(state?: string, redirectUri?: string): string {
   return client.generateAuthUrl({
     access_type: "offline",
     scope: SCOPES,
-    prompt: "select_account",
+    prompt: "select_account consent",
     state: state || "",
   });
 }

@@ -265,8 +265,12 @@ export async function syncContactToGoogle(contactId: string | number, forceCreat
         const tokens = await getGoogleAccessToken(user.id);
         const token = tokens?.access_token;
  
-        if (!token) return { success: false, error: "No Google connection" };
+        if (!token) {
+            console.error("[Google Sync] No access token for user:", user.id);
+            return { success: false, error: "No Google connection" };
+        }
  
+        console.log(`[Google Sync] Starting sync for contact ${contactId} to Google.`);
         const people = getPeopleClient(token);
 
         const contact = (await directus.request(readItem("contacts", contactId, {
@@ -308,7 +312,7 @@ export async function syncContactToGoogle(contactId: string | number, forceCreat
                     }];
                 }
             } catch (e) {
-                console.warn("[Sync] Birthday date parse failed", e);
+                console.warn("[Google Sync] Birthday date parse failed for contact", contactId, e);
             }
         }
 
@@ -330,14 +334,14 @@ export async function syncContactToGoogle(contactId: string | number, forceCreat
 
         if (contact.google_id && !forceCreate) {
             try {
-                console.log(`[Google Sync] Fetching etag for ${contact.google_id}...`);
+                console.log(`[Google Sync] Fetching etag for Google contact ${contact.google_id} (CRM contact ${contactId})...`);
                 // 1. Get current person to fetch the etag (required for update)
                 const currentPersonRes = await people.people.get({
                     resourceName: contact.google_id,
                     personFields: "names" // fetching just names to get the etag
                 });
                 const etag = currentPersonRes.data.etag;
-                console.log(`[Google Sync] Etag found: ${etag}. Updating...`);
+                console.log(`[Google Sync] Etag found: ${etag}. Updating Google contact ${contact.google_id}...`);
 
                 // Dynamically build fields to update
                 const fields = ["names", "emailAddresses", "phoneNumbers", "organizations", "biographies", "urls", "addresses"];
@@ -357,11 +361,11 @@ export async function syncContactToGoogle(contactId: string | number, forceCreat
                         etag
                     }
                 });
-                console.log(`[Google Sync] Update successful for ${contact.google_id}`);
+                console.log(`[Google Sync] Update successful for Google contact ${contact.google_id} (CRM contact ${contactId}).`);
             } catch (err: any) {
-                console.error(`[Google Sync] Update failed for ${contact.google_id}:`, err.message);
+                console.error(`[Google Sync] Update failed for Google contact ${contact.google_id} (CRM contact ${contactId}):`, err.message);
                 if (err.code === 404) {
-                    console.log(`[Google Sync] Contact not found (404), creating new...`);
+                    console.log(`[Google Sync] Google contact ${contact.google_id} not found (404), creating new for CRM contact ${contactId}...`);
                     const res = await people.people.createContact({ requestBody });
                     const newGoogleId = (res.data as any).resourceName;
                     await directus.request(updateItem("contacts", contactId, { google_id: newGoogleId }));
