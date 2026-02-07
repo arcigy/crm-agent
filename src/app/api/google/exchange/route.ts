@@ -14,8 +14,8 @@ export async function POST(req: Request) {
         const { code } = await req.json();
         if (!code) return NextResponse.json({ error: 'Missing code' }, { status: 400 });
 
-        const baseUrl = getBaseUrl();
-        const redirectUri = `${baseUrl}/oauth-callback`;
+        const { origin } = new URL(req.url);
+        const redirectUri = `${origin}/oauth-callback`;
 
         // 1. Exchange code for tokens
         const tokens = await getTokensFromCode(code, redirectUri);
