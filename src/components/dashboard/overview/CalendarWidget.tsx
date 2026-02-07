@@ -2,7 +2,7 @@
 
 import { format, startOfWeek, addDays, isSameDay, getISOWeek } from "date-fns";
 import { sk } from "date-fns/locale";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useMemo } from "react";
 import { SmartText } from "@/components/todo/SmartText";
 
@@ -34,10 +34,9 @@ export function CalendarWidget({ events }: { events: any[] }) {
     setSelectedDate(prev => addDays(prev, amount * 7));
   };
 
-  // Helper to clean "code-like" prefixes or technical markers from GCal titles
+  // Helper to clean "code-like" prefixes
   const cleanSummary = (text: string) => {
     if (!text) return "";
-    // Remove common technical prefixes from synced tasks
     return text
       .replace(/^\[TODO\]\s*/i, "")
       .replace(/^TASK:\s*/i, "")
@@ -113,33 +112,23 @@ export function CalendarWidget({ events }: { events: any[] }) {
       </div>
 
       {/* Events list */}
-      <div className="flex-1 space-y-2.5 overflow-y-auto thin-scrollbar pr-2 min-h-0 relative z-10">
+      <div className="flex-1 space-y-1.5 overflow-y-auto thin-scrollbar pr-2 min-h-0 relative z-10">
         <div className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 px-1 opacity-70">
-          📍 {format(selectedDate, "d. MMMM yyyy", { locale: sk })}
+          {format(selectedDate, "d. MMMM yyyy", { locale: sk })}
         </div>
         
         {dailyEvents.map((event, i) => {
           const summary = cleanSummary(event.summary);
-          const isTask = event.summary?.toLowerCase().includes("todo") || event.summary?.toLowerCase().includes("úloha");
+          const time = event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "Udalosť";
 
           return (
-            <div key={i} className="relative pl-3 border-l-4 border-indigo-500/50 py-2.5 bg-white/40 dark:bg-zinc-900/30 hover:bg-white/70 dark:hover:bg-zinc-800/60 transition-all rounded-r-2xl group/event flex flex-col gap-1 mb-2 border border-black/5 dark:border-white/5 group">
-              <div className="flex items-start gap-2">
-                {isTask && <Bookmark className="w-3 h-3 mt-1 text-indigo-400 flex-shrink-0" />}
-                <div className="text-[13px] font-black text-foreground leading-tight tracking-tight">
-                   <SmartText text={summary} />
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[9px] font-black text-indigo-500 uppercase italic tracking-tighter bg-indigo-500/10 px-2 py-0.5 rounded-lg leading-none border border-indigo-500/10">
-                  {event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "Udalosť"}
-                </span>
-                {event.location && (
-                  <span className="text-[9px] text-muted-foreground truncate max-w-[120px] font-black uppercase tracking-tighter italic opacity-60">
-                    {event.location}
-                  </span>
-                )}
+            <div key={i} className="relative pl-3 border-l-4 border-indigo-500/50 py-2 bg-white/40 dark:bg-zinc-900/30 hover:bg-white/70 dark:hover:bg-zinc-800/60 transition-all rounded-r-2xl group/event mb-1.5 border border-black/5 dark:border-white/5 group flex items-baseline gap-2">
+              <span className="text-[10px] font-black text-indigo-500 uppercase italic tracking-tighter bg-indigo-500/10 px-1.5 py-0.5 rounded leading-none flex-shrink-0">
+                {time}
+              </span>
+              <span className="text-zinc-400 text-[10px] font-black leading-none opacity-40">:</span>
+              <div className="text-[13px] font-black text-foreground leading-none tracking-tight truncate flex-1">
+                 <SmartText text={summary} />
               </div>
             </div>
           );
