@@ -2,7 +2,7 @@ import { DealsTable } from "@/components/dashboard/DealsTable";
 import { getDeals } from "@/app/actions/deals";
 import { getProjects } from "@/app/actions/projects";
 import { getContacts } from "@/app/actions/contacts";
-import { Banknote, Plus, Sparkles } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { Lead } from "@/types/contact";
 
@@ -25,17 +25,10 @@ export default async function DealsPage() {
       <div className="flex items-center justify-between shrink-0">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-600 rounded-2xl shadow-xl shadow-blue-600/20">
-              <Banknote className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-3xl font-black tracking-tighter text-foreground leading-none">
+            <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
               Financie
             </h1>
           </div>
-          <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.4em] pl-1 opacity-60 flex items-center gap-2">
-            <Sparkles className="w-3 h-3 text-blue-500" />
-            Treasury Management Infrastructure
-          </p>
         </div>
 
         <div className="flex items-center gap-4">
