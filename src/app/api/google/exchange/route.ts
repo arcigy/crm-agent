@@ -14,8 +14,8 @@ export async function POST(req: Request) {
         const { code } = await req.json();
         if (!code) return NextResponse.json({ error: 'Missing code' }, { status: 400 });
 
-        const { origin } = new URL(req.url);
-        const redirectUri = `${origin}/oauth-callback`;
+        const { getRedirectUrl } = await import('@/lib/google');
+        const redirectUri = getRedirectUrl();
 
         // 1. Exchange code for tokens
         const tokens = await getTokensFromCode(code, redirectUri);

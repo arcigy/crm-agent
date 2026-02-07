@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getAuthUrl } from '@/lib/google';
+import { getAuthUrl, getRedirectUrl } from '@/lib/google';
 
-export async function GET(req: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
     try {
-        const { origin } = new URL(req.url);
-        const redirectUri = `${origin}/oauth-callback`;
+        const redirectUri = getRedirectUrl();
         const url = getAuthUrl(undefined, redirectUri);
         return NextResponse.json({ url, debug_redirect_uri: redirectUri });
     } catch (error: any) {
