@@ -254,6 +254,7 @@ export default function OutreachLeadsPage() {
 
     // Logic for smart sentence update
     const updatedFields: Partial<ColdLeadItem> = { [field]: editValue };
+    let shouldTriggerEnrichment = false;
     
     if (field === "company_name_reworked" && originalLead) {
         const oldName = originalLead.company_name_reworked || originalLead.title;
@@ -268,6 +269,14 @@ export default function OutreachLeadsPage() {
         }
     }
 
+    // NEW: If email is added/changed and we don't have personalization yet, restart enrichment
+    if (field === "email" && editValue && editValue.includes("@") && originalLead) {
+         if (!originalLead.ai_first_sentence || originalLead.enrichment_status === 'failed') {
+             updatedFields.enrichment_status = "pending";
+             shouldTriggerEnrichment = true;
+         }
+    }
+
     // Optimistic update
     setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updatedFields } : l));
 
@@ -275,6 +284,10 @@ export default function OutreachLeadsPage() {
     
     if (res.success) {
       toast.success("Uložené");
+      if (shouldTriggerEnrichment) {
+          toast.info("Email pridaný. Reštartujem AI personalizáciu...");
+          fetch("/api/cron/enrich-leads").catch(console.error);
+      }
     } else {
       toast.error("Chyba pri ukladaní");
       refreshLeads(activeListName);
