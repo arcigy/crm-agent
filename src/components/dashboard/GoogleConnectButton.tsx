@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Cloud, Loader2, LogOut } from "lucide-react";
+import { Cloud, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
-import { disconnectGoogle } from "@/app/actions/google-contacts";
 
 export function GoogleConnectButton({
   className = "",
@@ -67,59 +66,29 @@ export function GoogleConnectButton({
       }
     };
 
-    const handleDisconnect = async () => {
-      if (!confirm("Naozaj chcete odpojiť Google účet a zmazať synchronizačné tokeny?")) return;
-      setIsLoading(true);
-      try {
-        const res = await disconnectGoogle();
-        if (res.success) {
-          toast.success("Účet úspešne odpojený z CRM");
-          window.location.reload();
-        } else {
-          throw new Error(res.error);
-        }
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Chyba odpojenia";
-        toast.error(msg);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     return (
       <div className={`flex flex-col gap-3 ${className}`}>
         <div className="flex items-center gap-2.5 px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-border rounded-xl text-[13px] font-semibold text-foreground w-full">
             <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" />
-            <div className="flex flex-col">
-              <span className="font-bold uppercase tracking-wider text-[10px] text-muted-foreground mb-0.5">Pripojený účet (Clerk)</span>
+            <div className="flex flex-col text-left">
+              <span className="font-bold uppercase tracking-wider text-[10px] text-muted-foreground mb-0.5">Pripojený účet</span>
               <span className="text-[12px] font-medium">{googleAccount.emailAddress}</span>
             </div>
         </div>
         
         <div className="bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/30 rounded-xl p-4 space-y-3">
           <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
-            Ak CRM nenačítava emaily alebo kalendár pomocou <b>{googleAccount.emailAddress}</b>, skúste opraviť povolenia alebo odpojiť a znovu pripojiť iný účet.
+            Ak CRM nenačítava emaily alebo kalendár pomocou <b>{googleAccount.emailAddress}</b>, kliknite na tlačidlo nižšie pre opravu alebo zmenu účtu.
           </p>
           
-          <div className="grid grid-cols-1 gap-2">
-            <button
-                onClick={handleReauthorize}
-                disabled={isLoading}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-800/40 text-amber-900 dark:text-amber-200 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
-            >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
-                Opraviť / Zmeniť povolenia
-            </button>
-
-            <button
-                onClick={handleDisconnect}
-                disabled={isLoading}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-red-50 hover:text-red-600 transition-all text-zinc-600 rounded-lg text-xs font-bold disabled:opacity-50"
-            >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
-                Odpojiť a zmazať CRM tokeny
-            </button>
-          </div>
+          <button
+            onClick={handleReauthorize}
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-800/40 text-amber-900 dark:text-amber-200 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+            Opraviť / Zmeniť prepojenie
+          </button>
         </div>
       </div>
     );
@@ -136,7 +105,7 @@ export function GoogleConnectButton({
       ) : (
         <Cloud className="w-4 h-4 text-orange-500" />
       )}
-      <span>Prepojiť Google účet (Výber mailu)</span>
+      <span>Prepojiť Google účet</span>
     </button>
   );
 }

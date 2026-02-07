@@ -11,9 +11,10 @@ export const getBaseUrl = () => {
   return "http://localhost:3000";
 };
 
-const getRedirectUrl = () => {
+export const getRedirectUrl = () => {
   // FRONTEND-FIRST STRATEGY: Redirect to a visible page, then POST to API
-  return `${(getBaseUrl() || "").toString().replace(/\/$/, "")}/oauth-callback`;
+  const baseUrl = getBaseUrl() || "";
+  return `${baseUrl.toString().replace(/\/$/, "")}/oauth-callback`;
 };
 
 // Funkcia na vytvorenie novej inštancie klienta
@@ -39,7 +40,7 @@ const SCOPES = [
 export const oauth2Client = createOAuthClient();
 
 export function getAuthUrl(state?: string, redirectUri?: string): string {
-  const client = createOAuthClient(redirectUri);
+  const client = createOAuthClient(redirectUri || getRedirectUrl());
   return client.generateAuthUrl({
     access_type: "offline",
     scope: SCOPES,
