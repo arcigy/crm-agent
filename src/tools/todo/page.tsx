@@ -19,11 +19,8 @@ export default function TodoTool() {
         <header className="flex items-end justify-between gap-6">
           <div className="space-y-1">
             <h1 className="text-3xl font-black text-foreground tracking-tighter leading-none">
-              Daily <span className="text-blue-600">/ Planner</span>
+              Daily <span className="text-blue-600">Planner</span>
             </h1>
-            <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.4em] pl-1 opacity-60">
-              High-performance flow state manager
-            </p>
           </div>
           <div className="flex items-center gap-6 px-5 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm">
             <Stat
