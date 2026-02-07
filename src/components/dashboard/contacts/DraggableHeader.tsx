@@ -16,7 +16,6 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
     listeners,
     setNodeRef,
     transform,
-    transition,
     isDragging,
   } = useSortable({
     id: header.column.id,
@@ -24,7 +23,7 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
 
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
-    transition: transition || 'transform 150ms ease',
+    transition: isDragging ? undefined : 'none', // No animation when dropping
     width: header.getSize(),
     opacity: isDragging ? 0.7 : 1,
     zIndex: isDragging ? 100 : 1,
@@ -35,7 +34,7 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
     <th
       ref={setNodeRef}
       style={style}
-      className={`group relative px-3 py-2 text-[9px] font-bold text-muted-foreground uppercase tracking-wider border-r border-white/10 dark:border-white/5 last:border-0 hover:bg-card/50 transition-all duration-150 select-none ${isDragging ? "bg-card shadow-lg" : ""}`}
+      className={`group relative px-3 py-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-wider border-r border-border last:border-0 hover:bg-muted/50 transition-colors select-none ${isDragging ? "bg-muted shadow-lg" : ""}`}
     >
       <div className="flex items-center gap-2">
         <div

@@ -16,7 +16,6 @@ export function DraggableRow({ row }: DraggableRowProps) {
     listeners,
     setNodeRef,
     transform,
-    transition,
     isDragging,
   } = useSortable({
     id: `row-${row.original.id}`,
@@ -28,7 +27,7 @@ export function DraggableRow({ row }: DraggableRowProps) {
 
   const style = {
     transform: CSS.Translate.toString(transform),
-    transition: transition || 'transform 150ms ease',
+    transition: isDragging ? undefined : 'none', // No animation when dropping
     zIndex: isDragging ? 1000 : undefined,
     opacity: isDragging ? 0.8 : 1,
     position: "relative" as const,
@@ -42,7 +41,7 @@ export function DraggableRow({ row }: DraggableRowProps) {
       className={`group bg-card hover:bg-indigo-500/5 transition-all duration-150 relative ${isDragging ? "shadow-2xl ring-2 ring-indigo-500/30 bg-card scale-[1.01]" : ""}`}
     >
       {/* Unified Control Gutter */}
-      <td style={{ width: "72px" }} className="p-0 border-r border-white/10 dark:border-white/5 z-10 bg-inherit group/gutter">
+      <td style={{ width: "72px" }} className="p-0 border-r border-border sticky left-0 z-10 bg-inherit group/gutter">
         <div className="flex items-center justify-between px-2 h-full">
           {/* Selection */}
           <button
