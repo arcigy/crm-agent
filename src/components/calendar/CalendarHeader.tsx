@@ -10,7 +10,6 @@ import {
   HelpCircle,
   Settings,
   ChevronDown,
-  Menu,
 } from "lucide-react";
 import { CalendarView } from "@/types/calendar";
 import { useState, useRef, useEffect } from "react";
@@ -21,8 +20,6 @@ interface CalendarHeaderProps {
   onViewChange: (view: CalendarView) => void;
   onPrev: () => void;
   onNext: () => void;
-  onToday: () => void;
-  onCreateEvent: () => void;
 }
 
 export function CalendarHeader({
@@ -31,8 +28,6 @@ export function CalendarHeader({
   onViewChange,
   onPrev,
   onNext,
-  onToday,
-  onCreateEvent,
 }: CalendarHeaderProps) {
   const [isViewSelectorOpen, setIsViewSelectorOpen] = useState(false);
   const viewSelectorRef = useRef<HTMLDivElement>(null);
@@ -62,28 +57,18 @@ export function CalendarHeader({
   const activeViewLabel = views.find((v) => v.id === view)?.label || "Mesiac";
 
   return (
-    <header className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 shrink-0">
+    <header className="flex items-center justify-between px-4 py-2 bg-white dark:bg-[#09090b] border-b border-gray-200 dark:border-white/10 shrink-0">
       <div className="flex items-center gap-2 lg:gap-8">
         <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors hidden md:block">
-            <Menu size={20} className="text-gray-600" />
-          </button>
           <div className="flex items-center gap-2 ml-1">
             <div className="bg-blue-600 p-1.5 rounded-lg">
               <CalendarIcon size={20} className="text-white" />
             </div>
-            <h1 className="text-xl font-medium text-gray-700">Kalendár</h1>
+            <h1 className="text-xl font-medium text-gray-700 dark:text-zinc-200">Kalendár</h1>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <button
-            onClick={onToday}
-            className="px-4 py-1.5 text-sm font-medium border border-gray-300 hover:bg-gray-50 rounded-md transition-all text-gray-700"
-          >
-            Dnes
-          </button>
-
           <div className="flex items-center">
             <button
               onClick={onPrev}

@@ -126,7 +126,7 @@ function CalendarContent() {
   }
 
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col bg-white overflow-hidden shadow-2xl rounded-[3rem] border border-border">
+    <div className="h-[calc(100vh-100px)] flex flex-col bg-white dark:bg-[#09090b] overflow-hidden shadow-2xl rounded-[3rem] border border-border dark:border-white/10 transition-colors duration-500">
       <CalendarHeader
         currentDate={currentDate}
         view={view}
@@ -149,12 +149,10 @@ function CalendarContent() {
           else d.setDate(d.getDate() + 1);
           setCurrentDate(d);
         }}
-        onToday={() => setCurrentDate(new Date())}
-        onCreateEvent={() => setIsCreateModalOpen(true)}
       />
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="hidden lg:block w-72 border-r border-gray-200 p-4 overflow-y-auto thin-scrollbar">
+        <div className="hidden lg:block w-72 border-r border-gray-200 dark:border-white/10 p-4 overflow-y-auto scrollbar-hide bg-gray-50/30 dark:bg-black/20">
           <CalendarSidebar
             currentDate={currentDate}
             onDateSelect={(date) => {
