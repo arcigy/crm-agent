@@ -134,37 +134,34 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto scrollbar-hide">
-          {menuGroups.map((group, idx) => (
-            <div key={idx} className="grid gap-1">
-              {group.items
-                .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
-                .map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      prefetch={true}
-                      onClick={() => setIsMenuOpen(false)}
-                      className={`
-                        flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group
-                        ${isActive 
-                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" 
-                          : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-100"
-                        }
-                      `}
-                    >
-                      <div className="flex items-center gap-3">
-                        <item.icon className={`w-4.5 h-4.5 transition-colors ${isActive ? "text-white" : "text-zinc-400 group-hover:text-indigo-500"}`} />
-                        <span>{item.name}</span>
-                      </div>
-                      <ChevronRight className={`w-3.5 h-3.5 transition-all opacity-0 group-hover:opacity-40 ${isActive ? "hidden" : "block"}`} />
-                    </Link>
-                  );
-                })}
-            </div>
-          ))}
+        <nav className="flex-1 px-4 flex flex-col justify-center gap-2 overflow-y-auto scrollbar-hide">
+          {menuGroups.flatMap(group => 
+            group.items
+              .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
+          ).map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch={true}
+                onClick={() => setIsMenuOpen(false)}
+                className={`
+                  flex items-center justify-between px-6 py-4 rounded-2xl text-base font-medium transition-all duration-200 group
+                  ${isActive 
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-[1.02]" 
+                    : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-100 active:scale-95"
+                  }
+                `}
+              >
+                <div className="flex items-center gap-4">
+                  <item.icon className={`w-5.5 h-5.5 transition-colors ${isActive ? "text-white" : "text-zinc-400 group-hover:text-indigo-500"}`} />
+                  <span className="tracking-tight">{item.name}</span>
+                </div>
+                <ChevronRight className={`w-4 h-4 transition-all opacity-0 group-hover:opacity-40 ${isActive ? "hidden" : "block"}`} />
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="p-4 border-t border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-black/20 space-y-3">
