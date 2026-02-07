@@ -26,6 +26,9 @@ export interface ColdLeadItem {
   google_maps_url?: string;
   enrichment_status?: "pending" | "processing" | "completed" | "failed";
   enrichment_error?: string;
+  smartlead_campaign_id?: string;
+  smartlead_status?: "queued" | "pushed" | "failed" | null;
+  smartlead_pushed_at?: string;
 }
 
 export interface ColdLeadList {
@@ -444,6 +447,39 @@ export async function syncLeadsToSmartLead(ids: (string | number)[], campaignId:
 
     } catch (e: any) {
         console.error("Sync to SmartLeads failed:", e);
+        return { success: false, error: e.message || String(e) };
+    }
+}
+
+export async function bulkQueueForSmartLead(ids: (string | number)[], campaignId: string) {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+
+        // 1. Get Leads to validate
+        const leads = (await directus.request(readItems("cold_leads", {
+            filter: { id: { _in: ids } },
+            fields: ["id", "email"],
+            limit: -1
+        }))) as unknown as ColdLeadItem[];
+
+        if (!leads || leads.length === 0) throw new Error("No leads found");
+
+        const validIds = leads.filter(l => l.email && l.email.includes("@")).map(l => l.id);
+        
+        if (validIds.length === 0) throw new Error("No leads with valid email found.");
+
+        // 2. Queue them
+        await directus.request(updateItems("cold_leads", validIds, { 
+            smartlead_campaign_id: campaignId,
+            smartlead_status: "queued"
+        }));
+        
+        revalidatePath("/dashboard/cold-outreach");
+        return { success: true, count: validIds.length };
+
+    } catch (e: any) {
+        console.error("Queue for SmartLeads failed:", e);
         return { success: false, error: e.message || String(e) };
     }
 }

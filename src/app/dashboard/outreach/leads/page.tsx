@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, ChevronLeft, ChevronRight, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, PlayCircle, RefreshCw } from "lucide-react";
+import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, ChevronLeft, ChevronRight, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, PlayCircle, RefreshCw, Clock, Check, AlertCircle } from "lucide-react";
 import { 
     getColdLeads, 
     deleteColdLead, 
@@ -559,6 +559,21 @@ export default function OutreachLeadsPage() {
                                     <div className="flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider">
                                         <Briefcase className="w-3 h-3" /> {lead.category?.slice(0, 20) || "Firma"}
                                     </div>
+                                    {lead.smartlead_status === 'queued' && (
+                                        <div className="flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider border border-orange-100">
+                                            <Clock className="w-3 h-3" /> Vo Fronte
+                                        </div>
+                                    )}
+                                    {lead.smartlead_status === 'pushed' && (
+                                        <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider border border-green-100">
+                                            <Check className="w-3 h-3" /> SmartLead
+                                        </div>
+                                    )}
+                                    {lead.smartlead_status === 'failed' && (
+                                        <div className="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider border border-red-100">
+                                            <AlertCircle className="w-3 h-3" /> Chyba
+                                        </div>
+                                    )}
                                 </div>
                              </td>
                              <td className="px-6 py-6 align-top">

@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { X, Send, AlertCircle, Loader2, Check } from "lucide-react";
+import { X, AlertCircle, Loader2, Check, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { fetchSmartLeadCampaigns, addLeadsToSmartLeadCampaign } from "@/app/actions/smartlead";
+import { fetchSmartLeadCampaigns } from "@/app/actions/smartlead";
+import { bulkQueueForSmartLead } from "@/app/actions/cold-leads";
 import { Lead } from "@/types/contact";
 import { SmartLeadCampaign } from "@/types/smartlead";
 
@@ -50,32 +51,17 @@ export function AddToSmartLeadModal({
 
     setLoading(true);
     try {
-      // Prepare leads payload
-      const leadsToAdd = selectedContacts.map(contact => ({
-        email: contact.email,
-        first_name: contact.first_name,
-        last_name: contact.last_name,
-        company_name: contact.company,
-        website: contact.website,
-        custom_fields: {
-            PHONE: contact.phone || ""
-        }
-      })).filter(l => l.email); // Ensure email exists
+      // Just extract IDs, validation happens on server
+      const ids = selectedContacts.map(c => c.id);
 
-      if (leadsToAdd.length === 0) {
-        toast.error("Žiadny z vybraných kontaktov nemá email.");
-        setLoading(false);
-        return;
-      }
-
-      const res = await addLeadsToSmartLeadCampaign(selectedCampaignId, leadsToAdd);
+      const res = await bulkQueueForSmartLead(ids, String(selectedCampaignId));
       
       if (res.success) {
-        toast.success(`Úspešne pridaných ${leadsToAdd.length} leadov do kampane.`);
+        toast.success(`Úspešne pridaných ${res.count} leadov do fronty.`);
         onSuccess();
         onClose();
       } else {
-        toast.error(res.error || "Chyba pri pridávaní leadov.");
+        toast.error(res.error || "Chyba pri pridávaní do fronty.");
       }
     } catch (err) {
       console.error(err);
@@ -92,9 +78,9 @@ export function AddToSmartLeadModal({
       <div className="bg-card w-full max-w-lg rounded-[3rem] border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
         <div className="bg-black p-8 text-white flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-2xl font-black uppercase italic tracking-tighter text-purple-500">SmartLead Import</h2>
+            <h2 className="text-2xl font-black uppercase italic tracking-tighter text-purple-500">SmartLead Queue</h2>
             <p className="text-white/60 text-xs font-bold uppercase tracking-widest mt-1">
-              {selectedContacts.length} KONTAKTOV • KAMPANE
+              {selectedContacts.length} KONTAKTOV • PLÁNOVAČ
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
@@ -106,7 +92,7 @@ export function AddToSmartLeadModal({
           <div className="bg-purple-50 border-l-4 border-purple-600 p-4 rounded-r-2xl flex gap-3 text-purple-800 mb-4">
             <AlertCircle className="w-5 h-5 shrink-0" />
             <p className="text-xs font-bold leading-relaxed">
-              Vyberte kampaň, do ktorej chcete pridať označené kontakty. Kontakty bez emailu budú preskočené.
+              Leady budú pridané do &quot;Queue&quot; a postupne odosielané do SmartLead, aby sme neprekročili limity.
             </p>
           </div>
 
@@ -172,7 +158,7 @@ export function AddToSmartLeadModal({
               disabled={loading || !selectedCampaignId}
               className="flex-[2] px-8 py-4 bg-purple-600 text-white rounded-2xl font-black uppercase italic tracking-widest hover:bg-purple-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Spracovávam..." : <><Send className="w-5 h-5" /> Importovať do SmartLead</>}
+              {loading ? "Spracovávam..." : <><Clock className="w-5 h-5" /> Pridať do Fronty</>}
             </button>
           </div>
         </form>
