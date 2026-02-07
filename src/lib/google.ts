@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 
-const getBaseUrl = () => {
+export const getBaseUrl = () => {
   // Hardcoded production URL fallback to eliminate env var mistakes
   if (process.env.NODE_ENV === "production") {
     return (

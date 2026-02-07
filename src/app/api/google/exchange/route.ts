@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import directus from '@/lib/directus';
 import { createItem, readItems, updateItem } from '@directus/sdk';
-import { getTokensFromCode } from '@/lib/google';
+import { getTokensFromCode, getBaseUrl } from '@/lib/google';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +14,8 @@ export async function POST(req: Request) {
         const { code } = await req.json();
         if (!code) return NextResponse.json({ error: 'Missing code' }, { status: 400 });
 
-        const { origin } = new URL(req.url);
-        const redirectUri = `${origin}/oauth-callback`;
+        const baseUrl = getBaseUrl();
+        const redirectUri = `${baseUrl}/oauth-callback`;
 
         // 1. Exchange code for tokens
         const tokens = await getTokensFromCode(code, redirectUri);

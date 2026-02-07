@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getAuthUrl } from '@/lib/google';
+import { getAuthUrl, getBaseUrl } from '@/lib/google';
 
 export async function GET(req: Request) {
     try {
-        const { origin } = new URL(req.url);
-        const redirectUri = `${origin}/oauth-callback`;
+        const baseUrl = getBaseUrl();
+        const redirectUri = `${baseUrl}/oauth-callback`;
         const url = getAuthUrl(undefined, redirectUri);
         return NextResponse.json({ url });
     } catch (error: any) {
