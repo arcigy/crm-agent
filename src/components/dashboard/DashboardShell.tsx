@@ -18,7 +18,7 @@ import {
   BrainCircuit,
   History,
   Bot,
-  ChevronRight
+  X
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -27,46 +27,26 @@ import { LogoutButton } from "./LogoutButton";
 import { useUser } from "@clerk/nextjs";
 import { FloatingAgentChat } from "./FloatingAgentChat";
 
-const menuGroups = [
-  {
-    title: "Operatíva",
-    items: [
-      { name: "Nástenka", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Doručená pošta", href: "/dashboard/leads", icon: Mail },
-      { name: "Kalendár", href: "/dashboard/calendar", icon: Calendar },
-      { name: "Úlohy", href: "/dashboard/todo", icon: CheckSquare },
-    ]
+const menuItems = [
+  { name: "Nástenka", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Doručená pošta", href: "/dashboard/leads", icon: Mail },
+  { name: "Kontakty", href: "/dashboard/contacts", icon: Users },
+  { name: "Obchody", href: "/dashboard/deals", icon: Briefcase },
+  { name: "Projekty", href: "/dashboard/projects", icon: FolderKanban },
+  { name: "Kalendár", href: "/dashboard/calendar", icon: Calendar },
+  { name: "Úlohy", href: "/dashboard/todo", icon: CheckSquare },
+  { name: "Poznámky", href: "/dashboard/notes", icon: FileText },
+  { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
+  { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
+  { 
+    name: "Cold Outreach", 
+    href: "/dashboard/outreach", 
+    icon: Zap,
+    allowedEmails: ['branislav@arcigy.group']
   },
-  {
-    title: "Biznis & CRM",
-    items: [
-      { name: "Kontakty", href: "/dashboard/contacts", icon: Users },
-      { name: "Obchody", href: "/dashboard/deals", icon: Briefcase },
-      { name: "Projekty", href: "/dashboard/projects", icon: FolderKanban },
-      { 
-        name: "Cold Outreach", 
-        href: "/dashboard/outreach", 
-        icon: Zap,
-        allowedEmails: ['branislav@arcigy.group']
-      },
-    ]
-  },
-  {
-    title: "Kancelária",
-    items: [
-      { name: "Poznámky", href: "/dashboard/notes", icon: FileText },
-      { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
-      { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
-    ]
-  },
-  {
-    title: "AI Systém",
-    items: [
-      { name: "AI Kontext", href: "/dashboard/settings/ai", icon: BrainCircuit },
-      { name: "Pamäť AI", href: "/dashboard/settings/memory", icon: History },
-      { name: "ArciGy Agent", href: "/dashboard/agent", icon: Bot },
-    ]
-  }
+  { name: "AI Kontext", href: "/dashboard/settings/ai", icon: BrainCircuit },
+  { name: "Pamäť AI", href: "/dashboard/settings/memory", icon: History },
+  { name: "ArciGy Agent", href: "/dashboard/agent", icon: Bot },
 ];
 
 export function DashboardShell({ children, completed, onboardingScene }: { children: React.ReactNode, completed: boolean, onboardingScene: React.ReactNode }) {
@@ -75,17 +55,10 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
   const { user } = useUser();
   const userEmail = user?.primaryEmailAddress?.emailAddress;
   const sidebarRef = React.useRef<HTMLDivElement>(null);
-  const buttonRef = React.useRef<HTMLButtonElement>(null);
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        isMenuOpen && 
-        sidebarRef.current && 
-        !sidebarRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
+      if (isMenuOpen && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
       }
     }
@@ -93,130 +66,100 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isMenuOpen]);
 
-  React.useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsMenuOpen(false);
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, []);
-
   return (
-    <div className="flex h-screen w-full bg-[#fdfdfd] dark:bg-[#070708] overflow-hidden relative font-sans">
+    <div className="flex h-screen w-full bg-[#fdfdfd] dark:bg-[#070708] overflow-hidden">
       {!completed && onboardingScene}
 
-      {/* Optimized Background */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        <div 
-          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" 
-          style={{ 
-            backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
-            backgroundSize: '32px 32px'
-          }} 
-        />
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[120px]" />
-      </div>
-
+      {/* Sidebar Toggle Button */}
       <button
-        ref={buttonRef}
         onClick={() => setIsMenuOpen(!isMenuOpen)}
-        className={`
-          fixed top-6 left-6 z-[2100] w-12 h-12 rounded-2xl shadow-xl flex items-center justify-center transition-all duration-200 active:scale-90 group will-change-transform
-          ${isMenuOpen 
-            ? "bg-zinc-900 border border-white/10 text-white hover:bg-zinc-800" 
-            : "bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 text-zinc-500 hover:bg-indigo-600 hover:text-white hover:shadow-indigo-600/30"}
-        `}
+        className="fixed top-4 left-4 z-[2100] p-3 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-zinc-200 dark:border-white/5 text-zinc-500 hover:text-indigo-600 transition-all active:scale-95 md:hidden"
       >
-        <Menu className={`w-6 h-6 transition-all duration-300 ${isMenuOpen ? "rotate-90 scale-75 text-indigo-400" : "group-hover:text-white"}`} />
+        <Menu className="w-6 h-6" />
       </button>
 
-      {/* GPU Sidebar */}
+      {/* Sidebar Overlay */}
+      {isMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[1900] md:hidden transition-opacity" 
+          onClick={() => setIsMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Content */}
       <aside 
         ref={sidebarRef}
         className={`
-          fixed inset-y-0 left-0 z-[2000] w-72 bg-white/95 dark:bg-[#060608]/98 backdrop-blur-3xl border-r border-zinc-200 dark:border-white/5 flex flex-col transition-transform duration-300 cubic-bezier(0.16, 1, 0.3, 1) will-change-transform
-          ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}
+          fixed inset-y-0 left-0 z-[2000] w-64 bg-white dark:bg-[#09090b] border-r border-zinc-200 dark:border-white/5 flex flex-col transition-all duration-300 ease-out shadow-2xl md:shadow-none
+          ${isMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
-        <div className="h-28 flex-shrink-0 flex items-end px-8 pb-6">
-           <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                <span className="text-white font-black italic">A</span>
-              </div>
-              <span className="text-lg font-black uppercase italic tracking-tighter text-foreground">ArciGy Boss</span>
-           </div>
-        </div>
-        
-        <div className="flex-1 flex flex-col py-2 px-4 overflow-y-auto scrollbar-hide">
-          <div className="space-y-8">
-            {menuGroups.map((group, idx) => (
-               <div key={idx} className="space-y-1">
-                  <h4 className="px-5 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50 mb-3 italic">
-                    {group.title}
-                  </h4>
-                  <div className="grid gap-1">
-                    {group.items
-                      .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
-                      .map((item) => {
-                        const isActive = pathname === item.href;
-                        return (
-                          <Link 
-                            key={item.href}
-                            href={item.href}
-                            prefetch={true}
-                            onClick={() => setIsMenuOpen(false)}
-                            className={`
-                              flex items-center justify-between px-5 py-3 rounded-2xl text-sm font-black tracking-tight transition-all duration-200 group/nav relative overflow-hidden
-                              ${isActive 
-                                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 border border-indigo-400/30 scale-[1.02]" 
-                                : "text-muted-foreground hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-foreground active:scale-[0.98]"
-                              }
-                            `}
-                          >
-                            <div className="flex items-center gap-4 relative z-10">
-                              <item.icon className={`w-4.5 h-4.5 transition-all duration-300 ${isActive ? "opacity-100 text-white" : "opacity-40 group-hover/nav:opacity-100 group-hover/nav:text-indigo-400 group-hover/nav:scale-110"}`} />
-                              <span className="uppercase italic tracking-tight">{item.name}</span>
-                            </div>
-                            <ChevronRight className={`w-3.5 h-3.5 transition-all duration-300 ${isActive ? "text-indigo-300 opacity-100" : "opacity-0 -translate-x-2 group-hover/nav:opacity-30 group-hover/nav:translate-x-0"}`} />
-                            {!isActive && (
-                              <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover/nav:opacity-100 transition-opacity" />
-                            )}
-                          </Link>
-                        );
-                      })}
-                  </div>
-               </div>
-            ))}
+        <div className="p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold italic">A</span>
+            </div>
+            <span className="text-lg font-bold tracking-tight text-foreground">ArciGy CRM</span>
           </div>
+          <button 
+            onClick={() => setIsMenuOpen(false)}
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-colors md:hidden"
+          >
+            <X className="w-5 h-5 text-muted-foreground" />
+          </button>
         </div>
 
-        <div className="p-6 border-t border-zinc-200 dark:border-white/5 bg-zinc-50/30 dark:bg-black/20 space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white/50 dark:bg-white/5 rounded-2xl p-1 border border-black/5 dark:border-white/5 flex items-center justify-center">
-              <ThemeToggle />
-            </div>
+        <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto scrollbar-hide">
+          {menuItems
+            .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
+            .map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  prefetch={true}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`
+                    flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group
+                    ${isActive 
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" 
+                      : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    }
+                  `}
+                >
+                  <item.icon className={`w-5 h-5 transition-colors ${isActive ? "text-white" : "text-zinc-400 group-hover:text-indigo-500"}`} />
+                  <span>{item.name}</span>
+                </Link>
+              );
+            })}
+        </nav>
+
+        <div className="p-4 border-t border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-black/20 space-y-2">
+          <div className="flex items-center justify-between px-2">
+            <ThemeToggle />
             <Link
               href="/dashboard/settings"
               prefetch={true}
               onClick={() => setIsMenuOpen(false)}
-              className="bg-white/50 dark:bg-white/5 rounded-2xl p-3 border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-white/10 transition-all group"
+              className="p-2 hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-colors group"
             >
-              <Settings className="w-5 h-5 opacity-40 group-hover:opacity-100 group-hover:rotate-90 transition-all" />
+              <Settings className="w-5 h-5 text-muted-foreground group-hover:rotate-45 transition-transform" />
             </Link>
           </div>
-          <LogoutButton className="flex items-center justify-center gap-3 rounded-[1.2rem] px-5 py-3.5 text-xs font-black uppercase italic tracking-widest text-muted-foreground hover:bg-red-500/5 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-all border border-transparent hover:border-red-500/20 w-full" />
+          <LogoutButton className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50/50 dark:hover:bg-red-500/10 transition-colors" />
         </div>
       </aside>
 
-      {/* Main Content - GPU Push */}
+      {/* Main Content Area */}
       <main 
         className={`
-          flex-1 min-w-0 h-full overflow-y-auto bg-transparent relative z-10 transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1) will-change-transform
-          ${isMenuOpen ? "md:translate-x-72 opacity-40 md:opacity-100" : "translate-x-0"}
+          flex-1 min-w-0 h-full overflow-y-auto bg-transparent relative z-10 transition-all duration-300 ease-out
+          ${isMenuOpen ? "ml-64 opacity-50 pointer-events-none md:opacity-100 md:pointer-events-auto" : "ml-0 md:ml-64"}
         `}
       >
-        <div className="p-4 md:p-8 pt-24 md:pt-8 pl-12 md:pl-28 h-full">
-          <div className="max-w-[1600px] mx-auto transition-opacity duration-300">
+        <div className="p-4 md:p-8 pt-20 md:pt-8 transition-all h-full">
+          <div className="max-w-[1600px] mx-auto">
              {children}
           </div>
         </div>
