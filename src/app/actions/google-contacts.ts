@@ -161,8 +161,6 @@ export async function exportContactsToGoogle() {
 
     if (!token) return { success: false, error: "Google not connected" };
 
-    const people = getPeopleClient(token);
-
     const crmContacts = (await directus.request(readItems("contacts", {
         filter: {
             _and: [

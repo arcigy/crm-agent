@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import directus from '@/lib/directus';
 import { createItem, readItems, updateItem } from '@directus/sdk';
-import { getTokensFromCode, getBaseUrl } from '@/lib/google';
+import { getTokensFromCode } from '@/lib/google';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +41,6 @@ export async function POST(req: Request) {
         if (Array.isArray(existing) && existing.length > 0) {
             await directus.request(updateItem('google_tokens', existing[0].id, tokenData));
         } else {
-            // @ts-expect-error - Directus SDK types
             await directus.request(createItem('google_tokens', {
                 ...tokenData,
                 date_created: new Date().toISOString()
