@@ -64,5 +64,17 @@ export const smartLead = {
         lead_list: payload.leads,
       }),
     });
+  },
+  
+  /**
+   * Create a new campaign
+   */
+  async createCampaign(name: string): Promise<SmartLeadCampaign> {
+    return smartLeadRequest<SmartLeadCampaign>('/campaigns/create', {
+      method: "POST",
+      body: JSON.stringify({
+        name: name
+      }),
+    });
   }
 };

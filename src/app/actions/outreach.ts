@@ -100,7 +100,23 @@ export async function saveOutreachCampaign(data: any) {
         if (data.id) {
             res = await directus.request(updateItem("outreach_campaigns", data.id, payload));
         } else {
-            res = await directus.request(createItems("outreach_campaigns", [payload]));
+            // 1. Create in SmartLead automatically
+            try {
+                const { smartLead } = await import("@/lib/smartlead");
+                // SmartLead create API expects { name: string }
+                // and returns the campaign object
+                const slRes = await smartLead.createCampaign(data.name);
+                if (slRes && slRes.id) {
+                    payload.smartlead_id = slRes.id;
+                }
+            } catch (slError) {
+                console.error("[Outreach] SmartLead auto-create failed:", slError);
+                // We continue saving to CRM even if SmartLead fails, 
+                // but you might want to handle this differently in production.
+            }
+
+            const createdItems = await directus.request(createItems("outreach_campaigns", [payload])) as any[];
+            res = createdItems[0];
         }
         
         revalidatePath("/dashboard/outreach/campaigns");
