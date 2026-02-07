@@ -85,7 +85,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
       />
 
       {/* 2. Soft Radial Glows */}
-      <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-emerald-500/20 transition-colors duration-700" />
+      <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-emerald-500/20 transition-all duration-700" />
       
       <div className="flex items-center justify-between mb-6 flex-shrink-0 relative z-10">
         <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">

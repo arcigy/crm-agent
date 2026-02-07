@@ -56,7 +56,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
       />
 
       {/* 2. Soft Radial Glows */}
-      <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors duration-700" />
+      <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-indigo-500/20 transition-all duration-700" />
       
       {/* Header */}
       <div className="flex items-center justify-between mb-4 flex-shrink-0 relative z-10">

@@ -23,7 +23,7 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
       />
 
       {/* 2. Soft Radial Glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+      <div className="absolute -top-12 -left-12 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-indigo-500/20 transition-all duration-700" />
       
       <div className="flex items-center justify-between relative z-10">
         <div className="flex flex-col">
