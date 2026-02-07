@@ -127,9 +127,9 @@ export function CalendarWidget({ events }: { events: any[] }) {
                 {time}
               </span>
               <span className="text-zinc-400 text-[10px] font-black leading-none opacity-40">:</span>
-              <div className="text-[13px] font-black text-foreground leading-none tracking-tight truncate flex-1">
+              <span className="text-[13px] font-black text-foreground leading-none tracking-tight truncate flex-1">
                  <SmartText text={summary} />
-              </div>
+              </span>
             </div>
           );
         })}

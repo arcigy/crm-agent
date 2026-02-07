@@ -38,12 +38,14 @@ export function SmartText({ text, className = "" }: SmartTextProps) {
               ? "mention-tag-project"
               : "mention-tag-contact";
 
+          // REMOVED EMOJIS (👤, 📁, 💼) as requested
           return `<span data-mention-component data-contact-id="${id}" data-type="${mentionType}" class="mention-tag ${typeClass}">
-                ${type === "@" ? "👤" : type === "#" ? "📁" : "💼"} ${name}
+                ${name}
             </span>`;
         } else {
+          // REMOVED EMOJI (🕒)
           return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-600 border-amber-200 font-black text-[10px] uppercase tracking-tight mx-1 select-none">
-                🕒 ${time}
+                ${time}
              </span>`;
         }
       },
@@ -76,9 +78,10 @@ export function SmartText({ text, className = "" }: SmartTextProps) {
     }
   };
 
+  // Using <span> instead of <div> to ensure inline behavior and prevent line breaks after colons
   return (
-    <div
-      className={`prose prose-sm max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 select-none ${className}`}
+    <span
+      className={`prose prose-sm max-w-none dark:prose-invert [&_p]:inline [&_p]:m-0 select-none ${className}`}
       dangerouslySetInnerHTML={{ __html: processedHtml }}
       onClick={handleClick}
     />
