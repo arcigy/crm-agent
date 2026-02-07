@@ -5,6 +5,7 @@ import directus from "@/lib/directus";
 import { createItem, updateItem, readItems, readItem } from "@directus/sdk";
 import { currentUser } from "@clerk/nextjs/server";
 import { normalizeSlovakPhone } from "@/lib/phone";
+import { getPeopleClient, getGoogleAccessToken } from "@/lib/google";
 
 async function getUserEmail() {
     const user = await currentUser();
@@ -55,23 +56,12 @@ export async function importGoogleContacts() {
     if (!user) return { success: false, error: "Unauthorized" };
     const userEmail = user.emailAddresses[0].emailAddress.toLowerCase();
     
-    const { clerkClient } = await import("@clerk/nextjs/server");
-    const client = await clerkClient();
-    const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
-    let tokens = tokenResponse.data[0]?.token;
+    const googleTokens = await getGoogleAccessToken(user.id);
+    const token = googleTokens?.access_token;
 
-    if (!tokens) {
-        const dbTokens = await directus.request(readItems("google_tokens", {
-            filter: { user_id: { _eq: user.id } },
-            limit: 1
-        })) as any[];
-        if (dbTokens && dbTokens[0]) tokens = dbTokens[0].access_token;
-    }
+    if (!token) return { success: false, error: "Google not connected" };
 
-    if (!tokens) return { success: false, error: "Google not connected" };
-
-    const { getPeopleClient } = await import("@/lib/google");
-    const people = getPeopleClient(tokens);
+    const people = getPeopleClient(token);
 
     const response = await people.people.connections.list({
       resourceName: "people/me",
@@ -166,23 +156,12 @@ export async function exportContactsToGoogle() {
     if (!user) return { success: false, error: "Unauthorized" };
     const userEmail = user.emailAddresses[0].emailAddress.toLowerCase();
 
-    const { clerkClient } = await import("@clerk/nextjs/server");
-    const client = await clerkClient();
-    const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
-    let tokens = tokenResponse.data[0]?.token;
+    const googleTokens = await getGoogleAccessToken(user.id);
+    const token = googleTokens?.access_token;
 
-    if (!tokens) {
-        const dbTokens = await directus.request(readItems("google_tokens", {
-            filter: { user_id: { _eq: user.id } },
-            limit: 1
-        })) as any[];
-        if (dbTokens && dbTokens[0]) tokens = dbTokens[0].access_token;
-    }
+    if (!token) return { success: false, error: "Google not connected" };
 
-    if (!tokens) return { success: false, error: "Google not connected" };
-
-    const { getPeopleClient } = await import("@/lib/google");
-    const people = getPeopleClient(tokens);
+    const people = getPeopleClient(token);
 
     const crmContacts = (await directus.request(readItems("contacts", {
         filter: {
@@ -256,22 +235,11 @@ export async function createTestGoogleContact() {
         const user = await currentUser();
         if (!user) return { success: false, error: "Unauthorized" };
 
-        const { clerkClient } = await import("@clerk/nextjs/server");
-        const client = await clerkClient();
-        const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
-        let token = tokenResponse.data[0]?.token;
-
-        if (!token) {
-            const dbTokens = await directus.request(readItems("google_tokens", {
-                filter: { user_id: { _eq: user.id } },
-                limit: 1
-            })) as any[];
-            if (dbTokens && dbTokens[0]) token = dbTokens[0].access_token;
-        }
-
+        const tokens = await getGoogleAccessToken(user.id);
+        const token = tokens?.access_token;
+ 
         if (!token) return { success: false, error: "No Google Token" };
-
-        const { getPeopleClient } = await import("@/lib/google");
+ 
         const people = getPeopleClient(token);
 
         const res = await people.people.createContact({
@@ -296,21 +264,11 @@ export async function syncContactToGoogle(contactId: string | number, forceCreat
         const user = await currentUser();
         if (!user) return { success: false, error: "Unauthorized" };
 
-        const { clerkClient } = await import("@clerk/nextjs/server");
-        const client = await clerkClient();
-        const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
-        let token = tokenResponse.data[0]?.token;
-
-        if (!token) {
-            const dbTokens = await directus.request(readItems("google_tokens", {
-                filter: { user_id: { _eq: user.id } },
-                limit: 1
-            })) as any[];
-            if (dbTokens && dbTokens[0]) token = dbTokens[0].access_token;
-        }
+        const tokens = await getGoogleAccessToken(user.id);
+        const token = tokens?.access_token;
+ 
         if (!token) return { success: false, error: "No Google connection" };
-
-        const { getPeopleClient } = await import("@/lib/google");
+ 
         const people = getPeopleClient(token);
 
         const contact = (await directus.request(readItem("contacts", contactId, {
@@ -434,6 +392,33 @@ export async function syncContactToGoogle(contactId: string | number, forceCreat
             };
         }
 
+        return { success: false, error: error.message };
+    }
+}
+export async function disconnectGoogle() {
+    try {
+        const user = await currentUser();
+        if (!user) return { success: false, error: "Unauthorized" };
+        const userId = user.id;
+
+        const dbTokens = await directus.request(readItems("google_tokens", {
+            filter: { user_id: { _eq: userId } },
+            limit: -1
+        })) as any[];
+
+        for (const token of dbTokens) {
+            await directus.request(updateItem("google_tokens", token.id, { 
+                access_token: null, 
+                refresh_token: null, 
+                user_email: null,
+                expiry_date: null 
+            }));
+        }
+
+        revalidatePath("/dashboard/contacts");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Disconnect Error:", error);
         return { success: false, error: error.message };
     }
 }

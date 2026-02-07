@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 
-const getBaseUrl = () => {
+export const getBaseUrl = () => {
   // Hardcoded production URL fallback to eliminate env var mistakes
   if (process.env.NODE_ENV === "production") {
     return (
@@ -104,6 +104,59 @@ export function getTasksClient(accessToken: string, refreshToken?: string) {
     version: "v1",
     auth: getClientWithCredentials(accessToken, refreshToken),
   });
+}
+
+export async function getGoogleAccessToken(userId: string) {
+    try {
+        const directus = (await import("@/lib/directus")).default;
+        const { readItems, updateItem } = await import("@directus/sdk");
+
+        // 1. Check our database FIRST (it has refresh tokens)
+        const dbTokens = await directus.request(readItems("google_tokens" as any, {
+            filter: { user_id: { _eq: userId } },
+            limit: 1
+        })) as any[];
+
+        if (dbTokens && dbTokens[0]) {
+            const tokenRecord = dbTokens[0];
+            const now = new Date();
+            const expiry = tokenRecord.expiry_date ? new Date(tokenRecord.expiry_date) : null;
+
+            // If token is expired or expiring soon (within 5 mins), and we have a refresh token
+            if (tokenRecord.refresh_token && (!expiry || expiry.getTime() - now.getTime() < 300000)) {
+                console.log("[Google Auth] Refreshing token for user:", userId);
+                try {
+                    const newCreds = await refreshAccessToken(tokenRecord.refresh_token);
+                    const updateData: any = {
+                        access_token: newCreds.access_token,
+                        date_updated: new Date().toISOString()
+                    };
+                    if (newCreds.expiry_date) {
+                        updateData.expiry_date = new Date(newCreds.expiry_date).toISOString();
+                    }
+                    await directus.request(updateItem("google_tokens" as any, tokenRecord.id, updateData));
+                    return { access_token: newCreds.access_token, refresh_token: tokenRecord.refresh_token };
+                } catch (refreshErr) {
+                    console.error("[Google Auth] Refresh failed:", refreshErr);
+                    // Fall through to Clerk if possible, or return existing (dangerous)
+                }
+            }
+            return { access_token: tokenRecord.access_token, refresh_token: tokenRecord.refresh_token };
+        }
+
+        // 2. Fallback to Clerk (Social Login token)
+        const { clerkClient } = await import("@clerk/nextjs/server");
+        const client = await clerkClient();
+        const tokenResponse = await client.users.getUserOauthAccessToken(userId, "oauth_google");
+        const token = tokenResponse.data[0]?.token;
+
+        if (token) return { access_token: token };
+
+        return null;
+    } catch (error) {
+        console.error("[Google Auth] Error getting token:", error);
+        return null;
+    }
 }
 
 export async function refreshAccessToken(refreshToken: string) {
