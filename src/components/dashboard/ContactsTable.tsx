@@ -115,25 +115,8 @@ export function ContactsTable({
         ? updaterOrValue(columnSizing) 
         : updaterOrValue;
       
-      // Compensatory resizing logic (Neighbor shrinks when current grows)
-      const columnIds = table.getVisibleLeafColumns().map(c => c.id);
-      const changedColumnId = Object.keys(newSizing).find(
-        id => newSizing[id] !== columnSizing[id]
-      );
-
-      if (changedColumnId) {
-        const index = columnIds.indexOf(changedColumnId);
-        if (index !== -1 && index < columnIds.length - 1) {
-          const nextColumnId = columnIds[index + 1];
-          const diff = newSizing[changedColumnId] - (columnSizing[changedColumnId] || table.getColumn(changedColumnId)?.getSize() || 150);
-          
-          const currentNextSize = columnSizing[nextColumnId] || table.getColumn(nextColumnId)?.getSize() || 150;
-          const newNextSize = Math.max(40, currentNextSize - diff);
-          
-          newSizing[nextColumnId] = newNextSize;
-        }
-      }
-      
+      // Apply the new sizing
+      setColumnSizing(newSizing);
     },
     columnResizeMode: "onChange",
     defaultColumn: {

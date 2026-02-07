@@ -72,8 +72,8 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
               [column.id]: newSize,
             }));
           }}
-          className={`resizer absolute -right-2 top-0 h-full w-4 cursor-col-resize select-none touch-none bg-transparent hover:bg-indigo-500/30 active:bg-indigo-500/50 transition-colors z-30 ${
-            header.column.getIsResizing() ? "bg-indigo-500/50" : ""
+          className={`resizer absolute -right-2 top-0 h-full w-4 cursor-col-resize select-none touch-none z-30 ${
+            header.column.getIsResizing() ? "bg-indigo-500/30" : ""
           }`}
         />
       )}
