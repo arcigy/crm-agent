@@ -68,8 +68,8 @@ const settingsCategories = [
 
 export default function SettingsHub() {
   return (
-    <div className="h-full flex flex-col justify-between py-8 animate-in fade-in duration-500 overflow-hidden">
-      <div className="max-w-7xl w-full mx-auto space-y-10">
+    <div className="min-h-[calc(100vh-8rem)] flex flex-col justify-between py-4 animate-in fade-in duration-500 relative">
+      <div className="max-w-7xl w-full mx-auto space-y-8 flex-1 flex flex-col justify-center">
         {/* Header - Balanced */}
         <div className="flex flex-col items-center text-center gap-3">
           <div className="flex flex-col items-center gap-3">
@@ -126,9 +126,9 @@ export default function SettingsHub() {
         </div>
       </div>
 
-      {/* Footer Info - Ultra Slim at bottom */}
-      <div className="max-w-4xl w-full mx-auto px-8">
-        <div className="bg-slate-500/5 border border-slate-500/10 py-2 px-10 rounded-full flex items-center justify-between gap-10 backdrop-blur-sm">
+      {/* Footer Info - Absolute at the very bottom */}
+      <div className="w-full pt-12 pb-2">
+        <div className="max-w-4xl mx-auto bg-slate-500/5 border border-slate-500/10 py-2 px-10 rounded-full flex items-center justify-between gap-10 backdrop-blur-sm">
           <div className="flex items-center gap-3 shrink-0">
             <Database className="w-4 h-4 text-slate-400" />
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
