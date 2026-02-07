@@ -12,13 +12,17 @@ import {
   MissionHistoryItem,
 } from "./agent-types";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const geminiBase = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const gemini = geminiBase.getGenerativeModel({ model: "gemini-2.0-flash" });
+// Lazy getters to avoid side-effects during build
+const getOpenAI = () => new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const getGemini = () => {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+    return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+};
 
 export async function runGatekeeper(
   messages: ChatMessage[],
 ): Promise<ChatVerdict> {
+  const openai = getOpenAI();
   const prompt = `Si Gatekeeper. Urči intent: INFO_ONLY alebo ACTION. Extrahuj entity. Odpovedaj LEN JSON: { "intent": "...", "extracted_data": {...} }`;
   const start = Date.now();
   const res = await openai.chat.completions.create({
@@ -52,6 +56,7 @@ export async function handleInfoOnly(
     .join("\n");
   const prompt = `Si ArciGy Agent. Odpovedaj priateľsky v slovenčine. Kontext: ${context.user_nickname}. Otázka: ${userText}`;
   const start = Date.now();
+  const gemini = getGemini();
   const res = await gemini.generateContent(prompt);
   const output = res.response?.text() || "Chyba AI poskytovateľa.";
   trackAICall(
@@ -85,6 +90,7 @@ export async function runFinalReporter(
 ) {
   const prompt = `Zhrň misiu v slovenčine. Výsledky: ${JSON.stringify(results)}`;
   const start = Date.now();
+  const gemini = getGemini();
   const res = await gemini.generateContent(prompt);
   const output = res.response?.text() || "Generovanie zhrnutia zlyhalo.";
   trackAICall(

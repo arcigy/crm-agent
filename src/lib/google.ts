@@ -37,10 +37,16 @@ const SCOPES = [
   "https://www.googleapis.com/auth/contacts",
 ];
 
-export const oauth2Client = createOAuthClient();
+// Lazy client getter to avoid side effects during build
+export const getOauth2Client = (redirectUri?: string) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    throw new Error("Missing Google OAuth credentials in environment");
+  }
+  return createOAuthClient(redirectUri);
+};
 
 export function getAuthUrl(state?: string, redirectUri?: string): string {
-  const client = createOAuthClient(redirectUri || getRedirectUrl());
+  const client = getOauth2Client(redirectUri || getRedirectUrl());
   return client.generateAuthUrl({
     access_type: "offline",
     scope: SCOPES,
