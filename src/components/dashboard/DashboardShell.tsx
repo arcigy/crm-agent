@@ -138,14 +138,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        <div className="h-28 flex-shrink-0 flex items-end px-8 pb-6">
-           <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                <span className="text-white font-black italic">A</span>
-              </div>
-              <span className="text-lg font-black uppercase italic tracking-tighter text-foreground">ArciGy Boss</span>
-           </div>
-        </div>
+        <div className="h-16 flex-shrink-0"></div>
         
         <div className="flex-1 flex flex-col py-2 px-4 overflow-y-auto scrollbar-hide">
           <div className="space-y-8">
@@ -212,7 +205,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
       <main 
         className={`
           flex-1 min-w-0 h-full overflow-y-auto bg-transparent relative z-10 transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1) will-change-transform
-          ${isMenuOpen ? "md:translate-x-72 opacity-40 md:opacity-100 blur-sm md:blur-0" : "translate-x-0"}
+          ${isMenuOpen ? "md:translate-x-72 opacity-40 md:opacity-100" : "translate-x-0"}
         `}
       >
         <div className="p-4 md:p-8 pt-24 md:pt-8 pl-12 md:pl-28 h-full">
