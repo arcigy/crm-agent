@@ -14,12 +14,9 @@ import {
   UserResource,
 } from "./agent-types";
 
-// Lazy getters to avoid side-effects during build
-const getAnthropic = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const getGemini = () => {
-    const geminiBase = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    return geminiBase.getGenerativeModel({ model: "gemini-2.0-flash" });
-};
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const geminiBase = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const gemini = geminiBase.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 export async function runOrchestratorLoop(
   messages: ChatMessage[],
@@ -51,7 +48,6 @@ Výstup LEN JSON: { "plan": [{ "tool": "...", "args": {...} }], "readable_plan":
   while (!missionAccomplished && attempts < maxAttempts) {
     attempts++;
     const start = Date.now();
-    const anthropic = getAnthropic();
     const res = await anthropic.messages.create({
       model: "claude-3-7-sonnet-20250219",
       max_tokens: 2048,
@@ -100,7 +96,6 @@ Výstup LEN JSON: { "plan": [{ "tool": "...", "args": {...} }], "readable_plan":
 
     // Verifier
     const vPrompt = `Bolo toto úspešné pre požiadavku používateľa? ${JSON.stringify(currentStepResults)}. Odpovedaj LEN JSON: { "success": true/false, "analysis": "..." }`;
-    const gemini = getGemini();
     const vRes = await gemini.generateContent(vPrompt);
     const vText = vRes.response?.text() || "{}";
     const vJsonMatch = vText.match(/\{[\s\S]*\}/);

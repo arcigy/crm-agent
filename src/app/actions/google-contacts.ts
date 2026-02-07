@@ -5,7 +5,6 @@ import directus from "@/lib/directus";
 import { createItem, updateItem, readItems, readItem } from "@directus/sdk";
 import { currentUser } from "@clerk/nextjs/server";
 import { normalizeSlovakPhone } from "@/lib/phone";
-import { getPeopleClient, getGoogleAccessToken } from "@/lib/google";
 
 async function getUserEmail() {
     const user = await currentUser();
@@ -56,12 +55,23 @@ export async function importGoogleContacts() {
     if (!user) return { success: false, error: "Unauthorized" };
     const userEmail = user.emailAddresses[0].emailAddress.toLowerCase();
     
-    const googleTokens = await getGoogleAccessToken(user.id);
-    const token = googleTokens?.access_token;
+    const { clerkClient } = await import("@clerk/nextjs/server");
+    const client = await clerkClient();
+    const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
+    let tokens = tokenResponse.data[0]?.token;
 
-    if (!token) return { success: false, error: "Google not connected" };
+    if (!tokens) {
+        const dbTokens = await directus.request(readItems("google_tokens", {
+            filter: { user_id: { _eq: user.id } },
+            limit: 1
+        })) as any[];
+        if (dbTokens && dbTokens[0]) tokens = dbTokens[0].access_token;
+    }
 
-    const people = getPeopleClient(token);
+    if (!tokens) return { success: false, error: "Google not connected" };
+
+    const { getPeopleClient } = await import("@/lib/google");
+    const people = getPeopleClient(tokens);
 
     const response = await people.people.connections.list({
       resourceName: "people/me",
@@ -156,10 +166,23 @@ export async function exportContactsToGoogle() {
     if (!user) return { success: false, error: "Unauthorized" };
     const userEmail = user.emailAddresses[0].emailAddress.toLowerCase();
 
-    const googleTokens = await getGoogleAccessToken(user.id);
-    const token = googleTokens?.access_token;
+    const { clerkClient } = await import("@clerk/nextjs/server");
+    const client = await clerkClient();
+    const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
+    let tokens = tokenResponse.data[0]?.token;
 
-    if (!token) return { success: false, error: "Google not connected" };
+    if (!tokens) {
+        const dbTokens = await directus.request(readItems("google_tokens", {
+            filter: { user_id: { _eq: user.id } },
+            limit: 1
+        })) as any[];
+        if (dbTokens && dbTokens[0]) tokens = dbTokens[0].access_token;
+    }
+
+    if (!tokens) return { success: false, error: "Google not connected" };
+
+    const { getPeopleClient } = await import("@/lib/google");
+    const people = getPeopleClient(tokens);
 
     const crmContacts = (await directus.request(readItems("contacts", {
         filter: {
@@ -233,11 +256,22 @@ export async function createTestGoogleContact() {
         const user = await currentUser();
         if (!user) return { success: false, error: "Unauthorized" };
 
-        const tokens = await getGoogleAccessToken(user.id);
-        const token = tokens?.access_token;
- 
+        const { clerkClient } = await import("@clerk/nextjs/server");
+        const client = await clerkClient();
+        const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
+        let token = tokenResponse.data[0]?.token;
+
+        if (!token) {
+            const dbTokens = await directus.request(readItems("google_tokens", {
+                filter: { user_id: { _eq: user.id } },
+                limit: 1
+            })) as any[];
+            if (dbTokens && dbTokens[0]) token = dbTokens[0].access_token;
+        }
+
         if (!token) return { success: false, error: "No Google Token" };
- 
+
+        const { getPeopleClient } = await import("@/lib/google");
         const people = getPeopleClient(token);
 
         const res = await people.people.createContact({
@@ -257,20 +291,26 @@ export async function createTestGoogleContact() {
     }
 }
 
-export async function syncContactToGoogle(contactId: string | number, forceCreate?: boolean) {
+export async function syncContactToGoogle(contactId: string | number) {
     try {
         const user = await currentUser();
         if (!user) return { success: false, error: "Unauthorized" };
 
-        const tokens = await getGoogleAccessToken(user.id);
-        const token = tokens?.access_token;
- 
+        const { clerkClient } = await import("@clerk/nextjs/server");
+        const client = await clerkClient();
+        const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
+        let token = tokenResponse.data[0]?.token;
+
         if (!token) {
-            console.error("[Google Sync] No access token for user:", user.id);
-            return { success: false, error: "No Google connection" };
+            const dbTokens = await directus.request(readItems("google_tokens", {
+                filter: { user_id: { _eq: user.id } },
+                limit: 1
+            })) as any[];
+            if (dbTokens && dbTokens[0]) token = dbTokens[0].access_token;
         }
- 
-        console.log(`[Google Sync] Starting sync for contact ${contactId} to Google.`);
+        if (!token) return { success: false, error: "No Google connection" };
+
+        const { getPeopleClient } = await import("@/lib/google");
         const people = getPeopleClient(token);
 
         const contact = (await directus.request(readItem("contacts", contactId, {
@@ -312,7 +352,7 @@ export async function syncContactToGoogle(contactId: string | number, forceCreat
                     }];
                 }
             } catch (e) {
-                console.warn("[Google Sync] Birthday date parse failed for contact", contactId, e);
+                console.warn("[Sync] Birthday date parse failed", e);
             }
         }
 
@@ -332,16 +372,16 @@ export async function syncContactToGoogle(contactId: string | number, forceCreat
 
         if (birthdays.length > 0) requestBody.birthdays = birthdays;
 
-        if (contact.google_id && !forceCreate) {
+        if (contact.google_id) {
             try {
-                console.log(`[Google Sync] Fetching etag for Google contact ${contact.google_id} (CRM contact ${contactId})...`);
+                console.log(`[Google Sync] Fetching etag for ${contact.google_id}...`);
                 // 1. Get current person to fetch the etag (required for update)
                 const currentPersonRes = await people.people.get({
                     resourceName: contact.google_id,
                     personFields: "names" // fetching just names to get the etag
                 });
                 const etag = currentPersonRes.data.etag;
-                console.log(`[Google Sync] Etag found: ${etag}. Updating Google contact ${contact.google_id}...`);
+                console.log(`[Google Sync] Etag found: ${etag}. Updating...`);
 
                 // Dynamically build fields to update
                 const fields = ["names", "emailAddresses", "phoneNumbers", "organizations", "biographies", "urls", "addresses"];
@@ -361,11 +401,11 @@ export async function syncContactToGoogle(contactId: string | number, forceCreat
                         etag
                     }
                 });
-                console.log(`[Google Sync] Update successful for Google contact ${contact.google_id} (CRM contact ${contactId}).`);
+                console.log(`[Google Sync] Update successful for ${contact.google_id}`);
             } catch (err: any) {
-                console.error(`[Google Sync] Update failed for Google contact ${contact.google_id} (CRM contact ${contactId}):`, err.message);
+                console.error(`[Google Sync] Update failed for ${contact.google_id}:`, err.message);
                 if (err.code === 404) {
-                    console.log(`[Google Sync] Google contact ${contact.google_id} not found (404), creating new for CRM contact ${contactId}...`);
+                    console.log(`[Google Sync] Contact not found (404), creating new...`);
                     const res = await people.people.createContact({ requestBody });
                     const newGoogleId = (res.data as any).resourceName;
                     await directus.request(updateItem("contacts", contactId, { google_id: newGoogleId }));
@@ -375,7 +415,7 @@ export async function syncContactToGoogle(contactId: string | number, forceCreat
                 }
             }
         } else {
-            console.log(`[Google Sync] ${forceCreate ? 'Forced creation' : 'No google_id'}, creating new contact...`);
+            console.log(`[Google Sync] No google_id, creating new contact...`);
             const res = await people.people.createContact({ requestBody });
             const googleId = (res.data as any).resourceName;
             await directus.request(updateItem("contacts", contactId, { google_id: googleId }));
@@ -394,33 +434,6 @@ export async function syncContactToGoogle(contactId: string | number, forceCreat
             };
         }
 
-        return { success: false, error: error.message };
-    }
-}
-export async function disconnectGoogle() {
-    try {
-        const user = await currentUser();
-        if (!user) return { success: false, error: "Unauthorized" };
-        const userId = user.id;
-
-        const dbTokens = await directus.request(readItems("google_tokens", {
-            filter: { user_id: { _eq: userId } },
-            limit: -1
-        })) as any[];
-
-        for (const token of dbTokens) {
-            await directus.request(updateItem("google_tokens", token.id, { 
-                access_token: null, 
-                refresh_token: null, 
-                user_email: null,
-                expiry_date: null 
-            }));
-        }
-
-        revalidatePath("/dashboard/contacts");
-        return { success: true };
-    } catch (error: any) {
-        console.error("Disconnect Error:", error);
         return { success: false, error: error.message };
     }
 }

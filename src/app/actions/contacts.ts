@@ -164,10 +164,7 @@ export async function createContact(data: Partial<ContactItem>) {
     );
 
     revalidatePath("/dashboard/contacts");
-    // Sync to Google in background to keep UI fast
-    syncContactToGoogle(drContact.id, true).catch(err => {
-      console.error("[Background Sync] Failed for new contact:", err);
-    });
+    await syncContactToGoogle(drContact.id);
 
     return { 
         success: true, 
@@ -371,7 +368,7 @@ export async function bulkCreateContacts(contacts: any[]) {
       if (normalizedEmail && existingEmails.has(normalizedEmail)) continue;
 
       try {
-        const drContact = await directus.request(
+        await directus.request(
           createItem("contacts", {
             first_name: firstName,
             last_name: lastName || "",
@@ -381,17 +378,9 @@ export async function bulkCreateContacts(contacts: any[]) {
             status: contact.status || "lead",
             user_email: userEmail,
           }),
-        ) as any;
+        );
         successCount++;
         if (normalizedEmail) existingEmails.add(normalizedEmail);
-        
-        // Real-time sync to Google for each new contact
-        if (drContact.id) {
-          const { syncContactToGoogle } = await import("./google-contacts");
-          syncContactToGoogle(drContact.id, true).catch(err => {
-            console.error(`[Bulk Sync] Failed for ${drContact.id}:`, err);
-          });
-        }
       } catch (e) {
         console.error("Bulk item failed", e);
       }

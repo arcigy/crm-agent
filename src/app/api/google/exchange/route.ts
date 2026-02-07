@@ -14,8 +14,8 @@ export async function POST(req: Request) {
         const { code } = await req.json();
         if (!code) return NextResponse.json({ error: 'Missing code' }, { status: 400 });
 
-        const { getRedirectUrl } = await import('@/lib/google');
-        const redirectUri = getRedirectUrl();
+        const { origin } = new URL(req.url);
+        const redirectUri = `${origin}/oauth-callback`;
 
         // 1. Exchange code for tokens
         const tokens = await getTokensFromCode(code, redirectUri);
@@ -41,6 +41,7 @@ export async function POST(req: Request) {
         if (Array.isArray(existing) && existing.length > 0) {
             await directus.request(updateItem('google_tokens', existing[0].id, tokenData));
         } else {
+            // @ts-expect-error - Directus SDK types
             await directus.request(createItem('google_tokens', {
                 ...tokenData,
                 date_created: new Date().toISOString()

@@ -84,13 +84,9 @@ export function ContactProfileSidebar({
         ...formData,
         phone: normalizeSlovakPhone(formData.phone)
       };
-      const res = await updateContact(contact.id, normalizedFormData) as any;
+      const res = await updateContact(contact.id, normalizedFormData);
       if (res.success) {
-        if (res.sync) {
-          toast.success("Kontakt bol aktualizovaný v CRM aj Google");
-        } else {
-          toast.warning(`Kontakt uložený v CRM, ale Google Sync zlyhal: ${res.syncError || 'Neznáma chyba'}`);
-        }
+        toast.success("Kontakt bol aktualizovaný");
         setIsEditing(false);
       } else {
         toast.error(res.error || "Chyba pri ukladaní");

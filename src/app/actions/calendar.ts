@@ -2,16 +2,54 @@
 
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { readItems } from "@directus/sdk";
-import { getCalendarClient, getGoogleAccessToken } from "@/lib/google";
-import { currentUser } from "@clerk/nextjs/server";
+import { getCalendarClient } from "@/lib/google";
+import { clerkClient, currentUser } from "@clerk/nextjs/server";
 import { getUserEmail } from "@/lib/auth";
 
 async function getAccessToken() {
   const user = await currentUser();
   if (!user) return null;
 
-  const tokens = await getGoogleAccessToken(user.id);
-  return tokens?.access_token || null;
+  // 1. Try Clerk Managed OAuth
+  try {
+    const client = await clerkClient();
+    const response = await client.users.getUserOauthAccessToken(
+      user.id,
+      "oauth_google",
+    );
+    const clerkToken = response.data[0]?.token;
+    if (clerkToken) return clerkToken;
+  } catch (err) {
+    console.log("[Calendar] Clerk token fetch failed, trying Directus fallback...");
+  }
+
+  // 2. Try Directus Fallback (Custom OAuth Flow)
+  try {
+    const userEmail = user.emailAddresses[0]?.emailAddress?.toLowerCase();
+    const tokens = await directus.request(readItems('google_tokens', {
+        filter: { 
+            _or: [
+                { user_id: { _eq: user.id } },
+                { user_email: { _eq: userEmail } }
+            ]
+        },
+        limit: 1
+    }));
+
+    if (Array.isArray(tokens) && tokens.length > 0) {
+        const t = tokens[0];
+        // Check if expired
+        if (t.expiry_date && new Date(t.expiry_date) < new Date()) {
+            console.log("[Calendar] Directus token expired");
+            return null;
+        }
+        return t.access_token;
+    }
+  } catch (err) {
+    console.error("[Calendar] Directus token fetch failed:", err);
+  }
+
+  return null;
 }
 
 export async function getCalendarConnectionStatus() {

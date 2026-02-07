@@ -70,7 +70,7 @@ export function GoogleConnectButton({
       <div className={`flex flex-col gap-3 ${className}`}>
         <div className="flex items-center gap-2.5 px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border border-border rounded-xl text-[13px] font-semibold text-foreground w-full">
             <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" />
-            <div className="flex flex-col text-left">
+            <div className="flex flex-col">
               <span className="font-bold uppercase tracking-wider text-[10px] text-muted-foreground mb-0.5">Pripojený účet</span>
               <span className="text-[12px] font-medium">{googleAccount.emailAddress}</span>
             </div>
@@ -78,7 +78,7 @@ export function GoogleConnectButton({
         
         <div className="bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/30 rounded-xl p-4 space-y-3">
           <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
-            Ak CRM nenačítava emaily alebo kalendár pomocou <b>{googleAccount.emailAddress}</b>, kliknite na tlačidlo nižšie pre opravu alebo zmenu účtu.
+            Ak CRM nenačítava emaily alebo kalendár, pravdepodobne ste pri prvom prihlásení neudelili všetky potrebné povolenia.
           </p>
           
           <button
@@ -87,7 +87,7 @@ export function GoogleConnectButton({
             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-800/40 text-amber-900 dark:text-amber-200 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
-            Opraviť / Zmeniť prepojenie
+            Znovu udeliť povolenia (Google Dialóg)
           </button>
         </div>
       </div>
@@ -105,7 +105,7 @@ export function GoogleConnectButton({
       ) : (
         <Cloud className="w-4 h-4 text-orange-500" />
       )}
-      <span>Prepojiť Google účet</span>
+      <span>Prepojiť Google účet (Výber mailu)</span>
     </button>
   );
 }

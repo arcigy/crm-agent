@@ -25,13 +25,7 @@ export async function POST(req: Request) {
         return new Response('User email not found', { status: 401 });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      console.error("[AI Agent] Missing OPENAI_API_KEY");
-      return new Response('OpenAI credentials not configured in environment', { status: 500 });
-    }
-
-    const openai = createOpenAI({ apiKey });
+    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
     const memoryContext = await getMemories(userEmail).catch(() => '');
 
     const systemPrompt = `

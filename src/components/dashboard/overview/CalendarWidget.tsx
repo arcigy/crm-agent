@@ -2,8 +2,9 @@
 
 import { format, startOfWeek, addDays, isSameDay, getISOWeek } from "date-fns";
 import { sk } from "date-fns/locale";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
 import { useState, useMemo } from "react";
+import { SmartText } from "@/components/todo/SmartText";
 
 const SK_DAYS = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
 
@@ -24,13 +25,24 @@ export function CalendarWidget({ events }: { events: any[] }) {
       })
       .sort((a, b) => {
         const aDate = a.start?.dateTime || a.start?.date;
-        const bDate = b.start?.date || b.start?.dateTime; // Fallback
+        const bDate = b.start?.date || b.start?.dateTime; 
         return new Date(aDate).getTime() - new Date(bDate || 0).getTime();
       });
   }, [events, selectedDate]);
 
   const changeWeek = (amount: number) => {
     setSelectedDate(prev => addDays(prev, amount * 7));
+  };
+
+  // Helper to clean "code-like" prefixes or technical markers from GCal titles
+  const cleanSummary = (text: string) => {
+    if (!text) return "";
+    // Remove common technical prefixes from synced tasks
+    return text
+      .replace(/^\[TODO\]\s*/i, "")
+      .replace(/^TASK:\s*/i, "")
+      .replace(/ID:\s*[a-z0-9-]+\s*\|\s*/i, "")
+      .trim();
   };
 
   return (
@@ -47,7 +59,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
       {/* 2. Soft Radial Glows */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors duration-700" />
       
-      {/* Header aligned same as others */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4 flex-shrink-0 relative z-10">
         <h3 className="text-xl font-black uppercase italic tracking-tighter">Kalendár</h3>
         <div className="flex items-center gap-1 bg-white/50 dark:bg-zinc-800/50 p-1 rounded-xl backdrop-blur-sm border border-black/5 dark:border-white/5">
@@ -106,21 +118,32 @@ export function CalendarWidget({ events }: { events: any[] }) {
           📍 {format(selectedDate, "d. MMMM yyyy", { locale: sk })}
         </div>
         
-        {dailyEvents.map((event, i) => (
-          <div key={i} className="relative pl-3 border-l-4 border-indigo-500/50 py-2.5 bg-white/50 dark:bg-zinc-900/40 hover:bg-white/80 dark:hover:bg-zinc-800/60 transition-all rounded-r-2xl group/event flex flex-col gap-1 mb-2 border border-black/5 dark:border-white/5">
-            <p className="text-[12px] font-black text-foreground leading-tight tracking-tight">{event.summary}</p>
-            <div className="flex items-center gap-2">
-               <span className="text-[9px] font-black text-indigo-500 uppercase italic tracking-tighter bg-indigo-500/10 px-2 py-0.5 rounded-lg leading-none border border-indigo-500/10">
-                {event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "Celý deň"}
-              </span>
-              {event.location && (
-                <span className="text-[9px] text-muted-foreground truncate max-w-[120px] font-black uppercase tracking-tighter italic opacity-60">
-                  {event.location}
+        {dailyEvents.map((event, i) => {
+          const summary = cleanSummary(event.summary);
+          const isTask = event.summary?.toLowerCase().includes("todo") || event.summary?.toLowerCase().includes("úloha");
+
+          return (
+            <div key={i} className="relative pl-3 border-l-4 border-indigo-500/50 py-2.5 bg-white/40 dark:bg-zinc-900/30 hover:bg-white/70 dark:hover:bg-zinc-800/60 transition-all rounded-r-2xl group/event flex flex-col gap-1 mb-2 border border-black/5 dark:border-white/5 group">
+              <div className="flex items-start gap-2">
+                {isTask && <Bookmark className="w-3 h-3 mt-1 text-indigo-400 flex-shrink-0" />}
+                <div className="text-[13px] font-black text-foreground leading-tight tracking-tight">
+                   <SmartText text={summary} />
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[9px] font-black text-indigo-500 uppercase italic tracking-tighter bg-indigo-500/10 px-2 py-0.5 rounded-lg leading-none border border-indigo-500/10">
+                  {event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "Udalosť"}
                 </span>
-              )}
+                {event.location && (
+                  <span className="text-[9px] text-muted-foreground truncate max-w-[120px] font-black uppercase tracking-tighter italic opacity-60">
+                    {event.location}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         
         {dailyEvents.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-center opacity-20 py-8">
