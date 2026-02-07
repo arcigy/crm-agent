@@ -22,7 +22,7 @@ export function ContactsTableToolbar({
     onTestClick
 }: ContactsTableToolbarProps) {
     return (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 dark:border-white/5 bg-card/50 backdrop-blur-sm">
             <div className="flex items-center gap-1.5 flex-wrap">
                 <button
                     onClick={onNewClick}

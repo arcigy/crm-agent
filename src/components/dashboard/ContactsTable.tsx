@@ -252,15 +252,14 @@ export function ContactsTable({
       />
 
       {data.length === 0 ? (
-        <div className="h-full flex flex-col items-center justify-center bg-card rounded-[4rem] border border-border p-24 text-center shadow-sm relative overflow-hidden group transition-all">
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600" />
+        <div className="h-full flex flex-col items-center justify-center bg-transparent rounded-[2rem] border border-white/10 dark:border-white/5 p-24 text-center relative overflow-hidden group transition-all">
           <h3 className="text-3xl font-black text-foreground mb-4 uppercase italic tracking-tight">
             V databáze nie sú žiadne kontakty
           </h3>
           <EmptyStateActions />
         </div>
       ) : (
-        <div className="flex flex-col h-full bg-card rounded-lg shadow-sm border border-border overflow-hidden transition-all duration-300">
+        <div className="flex flex-col h-full bg-transparent rounded-2xl border border-white/10 dark:border-white/5 overflow-hidden transition-all duration-300">
           <ContactsTableToolbar
             globalFilter={globalFilter}
             setGlobalFilter={setGlobalFilter}
@@ -269,7 +268,7 @@ export function ContactsTable({
             onImportClick={() => setIsImportModalOpen(true)}
             onTestClick={() => setIsTestModalOpen(true)}
           />
-          <div className="overflow-auto flex-1 thin-scrollbar">
+          <div className="overflow-auto flex-1 thin-scrollbar relative">
             <table 
               className="w-full text-left border-collapse"
               style={{ 
@@ -337,14 +336,15 @@ export function ContactsTable({
                 </SortableContext>
               </tbody>
             </table>
-            <div
-              className="p-3 border-t border-border bg-muted/30 sticky bottom-0 transition-colors hover:bg-muted/50"
-              onClick={() => setIsModalOpen(true)}
-            >
-              <div className="flex items-center gap-2 text-muted-foreground text-sm hover:text-blue-600 cursor-pointer font-medium group">
-                <Plus className="w-4 h-4 group-hover:scale-125 transition-transform" />
-                <span>Kliknite pre pridanie kontaktu...</span>
-              </div>
+          </div>
+          {/* Fixed footer - outside scroll container */}
+          <div
+            className="p-3 border-t border-white/10 dark:border-white/5 bg-card/50 backdrop-blur-sm transition-colors hover:bg-card/80 flex-shrink-0"
+            onClick={() => setIsModalOpen(true)}
+          >
+            <div className="flex items-center gap-2 text-muted-foreground text-sm hover:text-indigo-500 cursor-pointer font-medium group">
+              <Plus className="w-4 h-4 group-hover:scale-125 transition-transform" />
+              <span>Kliknite pre pridanie kontaktu...</span>
             </div>
           </div>
         </div>
