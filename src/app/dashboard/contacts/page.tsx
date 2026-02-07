@@ -1,163 +1,29 @@
-import { Suspense } from "react";
 import { ContactsTable } from "@/components/dashboard/ContactsTable";
-import { createContact, getContacts } from "@/app/actions/contacts";
-import { Lead } from "@/types/contact";
-import { getProjects } from "@/app/actions/projects";
-import directus from "@/lib/directus";
-import { readItems } from "@directus/sdk";
-import {
-  ContactActionButtons,
-  EmptyStateActions,
-} from "@/components/dashboard/ContactActionButtons";
-import { ErrorState } from "@/components/dashboard/ErrorState";
-import { GoogleSyncAutomation } from "@/components/dashboard/contacts/GoogleSyncAutomation";
+import { getContacts, createContact } from "@/app/actions/contacts";
 
 export const dynamic = "force-dynamic";
 
-async function ContactsListing() {
-  let contacts: Lead[] = [];
-  let errorMsg = null;
-  let isBlackBox = false;
+export default async function ContactsPage() {
+  const res = await getContacts();
+  const contacts = res.success ? (res.data as any[]) : [];
 
-  try {
-    // Parallel fetch for speed - removing withTimeout to avoid stream corruption in Next 16/React 19
-    const [projectsRes, contactsRes] = await Promise.allSettled([
-      getProjects(),
-      getContacts(),
-    ]);
-
-    const projectsData =
-      projectsRes.status === "fulfilled" ? projectsRes.value.data || [] : [];
-    const contactsResult =
-      contactsRes.status === "fulfilled" ? contactsRes.value : null;
-
-    if (contactsResult && contactsResult.success && contactsResult.data) {
-      isBlackBox = true;
-      const normalize = (s: string) =>
-        (s || "")
-          .toString()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .trim()
-          .toLowerCase();
-
-      const rawData = contactsResult.data as any[];
-      console.log(
-        `[Contacts Hub] Processing ${rawData.length} contacts and ${projectsData.length} projects`,
-      );
-
-      // Create maps for fast lookup
-      const projectsByContactId = new Map<string, any[]>();
-      const projectsByContactName = new Map<string, any[]>();
-
-      ((projectsData as any[]) || []).forEach(p => {
-        if (p.contact_id) {
-          const cid = String(p.contact_id);
-          if (!projectsByContactId.has(cid)) projectsByContactId.set(cid, []);
-          projectsByContactId.get(cid)!.push(p);
-        }
-        if (p.contact_name) {
-          const cname = normalize(p.contact_name);
-          if (!projectsByContactName.has(cname)) projectsByContactName.set(cname, []);
-          projectsByContactName.get(cname)!.push(p);
-        }
-      });
-
-      contacts = rawData.map((contact) => {
-        const fn = contact.first_name || "";
-        const ln = contact.last_name || "";
-        const fullName = normalize(`${fn} ${ln}`);
-
-        // Get projects from ID match OR Name match
-        const byId = projectsByContactId.get(String(contact.id)) || [];
-        const byName = projectsByContactName.get(fullName) || [];
-        
-        // Combine and unique by ID
-        const combined = [...byId];
-        byName.forEach(pn => {
-           if (!combined.some(c => c.id === pn.id)) combined.push(pn);
-        });
-
-        return { ...contact, projects: combined };
-      });
-    } else if (
-      contactsRes.status === "rejected" ||
-      (contactsResult && !contactsResult.success)
-    ) {
-      const reason =
-        contactsRes.status === "rejected"
-          ? (contactsRes.reason as any)?.message
-          : contactsResult?.error;
-      console.error("[Contacts Hub] Directus fetch failed:", reason);
-      errorMsg = "Chyba spojenia s databázou: " + reason;
-    }
-  } catch (e: any) {
-    console.error("[Contacts Hub] Crash:", e);
-    errorMsg = "Nepodarilo sa načítať hub: " + e.message;
+  async function handleCreate(data: any) {
+    "use server";
+    return await createContact(data);
   }
 
-  if (errorMsg) return <ErrorState errorMsg={errorMsg} />;
-
   return (
-    <div className="h-full bg-card rounded-t-[4rem] shadow-xl border-x border-t border-border overflow-hidden ring-1 ring-black/5 relative transition-colors">
-      <ContactsTable data={contacts} onCreate={createContact} />
-    </div>
-  );
-}
-
-function ContactLoader() {
-  return (
-    <div className="h-full w-full flex flex-col items-center justify-center bg-card rounded-[4rem] border border-border shadow-sm">
-      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] animate-pulse">
-        Syncing with Directus Cloud...
-      </p>
-    </div>
-  );
-}
-
-export default function ContactsPage() {
-  return (
-    <div className="space-y-6 h-screen flex flex-col pt-6 bg-background transition-colors duration-300">
-      <GoogleSyncAutomation />
-      {/* TOP HEADER SECTION */}
-      <div className="flex items-center justify-between px-8 mb-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-black tracking-tighter text-foreground uppercase italic leading-none underline decoration-blue-500 decoration-8 underline-offset-12">
-              Agent / <span className="text-blue-600">Kontakty</span>
-            </h1>
-          </div>
-          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.3em] pl-1 opacity-60">
-            Intelligence & Contact Hub
-          </p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <ContactActionButtons />
-        </div>
+    <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
+      {/* Header - Clean "Nástenka" style */}
+      <div className="flex items-center justify-between px-2">
+        <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
+          Kontakty
+        </h1>
       </div>
 
-      <div className="flex-1 overflow-hidden px-8 pb-4">
-        <Suspense fallback={<ContactLoader />}>
-          <ContactsListing />
-        </Suspense>
-      </div>
-
-      {/* Quick Stats Footer */}
-      <div className="px-10 pb-4 flex items-center justify-between text-[9px] font-black uppercase tracking-[0.4em] text-gray-400">
-        <div className="flex items-center gap-8">
-          <span className="flex items-center gap-3">
-            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>{" "}
-            SYSTEM_CORE: ONLINE
-          </span>
-          <span className="opacity-40">
-            DB: {process.env.NEXT_PUBLIC_DIRECTUS_URL || "DEFAULT"}
-          </span>
-        </div>
-        <div className="flex items-center gap-4 opacity-40 italic">
-          <span className="hidden sm:inline">DIRECTUS_ENGINE: v11.3.1</span>
-        </div>
+      {/* Main Table */}
+      <div className="flex-1 overflow-hidden">
+        <ContactsTable data={contacts} onCreate={handleCreate} />
       </div>
     </div>
   );
