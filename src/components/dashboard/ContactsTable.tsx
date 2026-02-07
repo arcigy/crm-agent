@@ -280,7 +280,7 @@ export function ContactsTable({
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {/* Gutter: Consolidated Selection, Strip, Drag */}
-                    <th style={{ width: "72px" }} className="p-0 bg-muted/80 backdrop-blur-sm sticky left-0 z-20 border-r border-border">
+                    <th style={{ width: "72px" }} className="p-0 bg-muted/80 backdrop-blur-sm z-20 border-r border-border">
                       <div className="flex items-center justify-between px-2 h-full">
                         <button
                           onClick={() => table.toggleAllRowsSelected()}
