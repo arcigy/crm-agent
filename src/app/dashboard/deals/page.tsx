@@ -4,6 +4,8 @@ import { getProjects } from "@/app/actions/projects";
 import { getContacts } from "@/app/actions/contacts";
 import { Banknote, Plus, Sparkles } from "lucide-react";
 
+import { Lead } from "@/types/contact";
+
 export const dynamic = "force-dynamic";
 
 export default async function DealsPage() {
@@ -15,22 +17,22 @@ export default async function DealsPage() {
 
   const deals = dealsRes.data || [];
   const projects = projectsRes.data || [];
-  const contacts = (contactsRes.data as any[]) || [];
+  const contacts = (contactsRes.data as Lead[]) || [];
 
   return (
-    <div className="space-y-8 h-[calc(100vh-100px)] flex flex-col p-8 transition-colors duration-500">
+    <div className="space-y-6 h-[calc(100vh-120px)] flex flex-col p-8 transition-colors duration-500 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-blue-600 rounded-2xl shadow-xl shadow-blue-600/20">
-              <Banknote className="w-6 h-6 text-white" />
+              <Banknote className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
-              Finance / <span className="text-blue-500">Deals & Invoicing</span>
+            <h1 className="text-3xl font-black tracking-tighter text-foreground leading-none">
+              Financie
             </h1>
           </div>
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em] pl-1 opacity-60 flex items-center gap-2">
+          <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.4em] pl-1 opacity-60 flex items-center gap-2">
             <Sparkles className="w-3 h-3 text-blue-500" />
             Treasury Management Infrastructure
           </p>
@@ -86,7 +88,7 @@ export default async function DealsPage() {
               {stat.label}
             </span>
             <span
-              className={`text-2xl font-black text-${stat.color}-500 group-hover:scale-105 transition-transform origin-left uppercase italic italic tracking-tighter`}
+              className={`text-2xl font-black text-${stat.color}-500 group-hover:scale-105 transition-transform origin-left tracking-tighter`}
             >
               {stat.value}
             </span>
@@ -95,7 +97,7 @@ export default async function DealsPage() {
       </div>
 
       {/* Main Table */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden scrollbar-hide">
         <DealsTable deals={deals} projects={projects} contacts={contacts} />
       </div>
     </div>
