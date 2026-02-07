@@ -13,7 +13,6 @@ import {
     sendColdLeadEmail,
     type ColdLeadItem, 
     type ColdLeadList,
-    type ColdLeadList,
     getSmartLeadCampaigns,
     syncLeadsToSmartLead,
     getSmartLeadsStats,
@@ -92,39 +91,42 @@ export default function OutreachLeadsPage() {
     fetch("/api/cron/enrich-leads").catch(console.error);
   };
 
-  const initData = React.useCallback(async () => {
-      setLoading(true);
-      
-      const listsRes = await getColdLeadLists();
-      if (listsRes.success && listsRes.data) {
-          setLists(listsRes.data);
-          if (listsRes.data.length > 0 && !listsRes.data.find(l => l.name === activeListName)) {
-              if (activeListName === "Zoznam 1") {
-                   // Keep it
-              } else {
+  // Initial Load of Lists
+  useEffect(() => {
+      const loadLists = async () => {
+          setLoading(true);
+          const listsRes = await getColdLeadLists();
+          if (listsRes.success && listsRes.data) {
+              setLists(listsRes.data);
+              
+              // Validate Active List Name
+              // If current activeListName ("Zoznam 1" default) is not in lists, update it.
+              // Logic: checking if "Zoznam 1" is valid even if not in DB? 
+              // Assuming "Zoznam 1" is a default placeholder or a valid list.
+              // If DB has lists but doesn't have activeListName, pick the first one.
+              if (listsRes.data.length > 0 && !listsRes.data.find(l => l.name === activeListName) && activeListName !== "Zoznam 1") {
                    setActiveListName(listsRes.data[0].name);
               }
           }
-      }
+           // We do NOT call refreshLeads(activeListName) here because the other useEffect will catch the activeListName change (or initial render).
+           setLoading(false);
+      };
 
-      await refreshLeads(activeListName);
+      loadLists();
       
-      // Load SmartLeads Stats in background
+      // Load Stats Once on Mount
       getSmartLeadsStats().then(res => {
           if (res.success && res.data) {
               setSmartLeadsStats(res.data);
           }
       });
+  }, []); // Run ONCE on mount
 
-      setLoading(false);
-  }, [activeListName, refreshLeads]);
-
+  // React to Active List Name Change
   useEffect(() => {
-    initData();
-  }, [initData]);
-
-  useEffect(() => {
-     refreshLeads(activeListName);
+     if (activeListName) {
+         refreshLeads(activeListName);
+     }
   }, [activeListName, refreshLeads]);
 
   useEffect(() => {
