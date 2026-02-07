@@ -13,8 +13,11 @@ import {
     sendColdLeadEmail,
     type ColdLeadItem, 
     type ColdLeadList,
+    type ColdLeadList,
     getSmartLeadCampaigns,
-    syncLeadsToSmartLead
+    syncLeadsToSmartLead,
+    getSmartLeadsStats,
+    cleanupSmartLeadsCampaign 
 } from "@/app/actions/cold-leads";
 import { ColdLeadsImportModal } from "@/components/dashboard/ColdLeadsImportModal";
 import { toast } from "sonner";
@@ -46,6 +49,7 @@ export default function OutreachLeadsPage() {
   const [smartCampaigns, setSmartCampaigns] = useState<any[]>([]);
   const [showSmartLeadsModal, setShowSmartLeadsModal] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
+  const [smartLeadsStats, setSmartLeadsStats] = useState<{ active_leads: number, limit: number, campaigns_count: number } | null>(null);
 
   const refreshLeads = React.useCallback(async (listName: string) => {
     setLoading(true);
@@ -104,6 +108,14 @@ export default function OutreachLeadsPage() {
       }
 
       await refreshLeads(activeListName);
+      
+      // Load SmartLeads Stats in background
+      getSmartLeadsStats().then(res => {
+          if (res.success && res.data) {
+              setSmartLeadsStats(res.data);
+          }
+      });
+
       setLoading(false);
   }, [activeListName, refreshLeads]);
 
@@ -254,9 +266,46 @@ export default function OutreachLeadsPage() {
           setShowSmartLeadsModal(false);
           setSelectedIds(new Set());
           refreshLeads(activeListName);
+          // Refresh stats
+          getSmartLeadsStats().then(s => s.success && s.data && setSmartLeadsStats(s.data));
       } else {
           toast.error("Chyba: " + res.error, { id: toastId });
       }
+  };
+
+  const handleSmartLeadsCleanup = async () => {
+    if (!smartLeadsStats?.active_leads) return;
+    if (!confirm(`Chcete vyčistiť VŠETKY nerelevantné kontakty zo SmartLeads?\n\nVymažú sa kontakty, ktoré:\n1. Dokončili sekvenciu\n2. Neodpísali\n\nTýmto uvoľníte miesto pre nové leady.`)) return;
+
+    const toastId = toast.loading("Analyzujem kampane...");
+    
+    // We need to iterate all campaigns. 
+    // Usually we would do this on server, but for better feedback let's do it here or server bulk.
+    // Let's do a simple loop here if we have campaigns loaded, else fetch them first.
+    let campaigns = smartCampaigns; 
+    if (campaigns.length === 0) {
+        const res = await getSmartLeadCampaigns();
+        if (res.success && res.data) campaigns = res.data;
+    }
+
+    if (campaigns.length === 0) {
+        toast.error("Žiadne kampane na čistenie", { id: toastId });
+        return;
+    }
+
+    let totalDeleted = 0;
+    
+    for (const campaign of campaigns) {
+        toast.loading(`Čistím kampaň: ${campaign.name || campaign.id}...`, { id: toastId });
+        const res = await cleanupSmartLeadsCampaign(campaign.id || campaign.campaign_id);
+        if (res.success && res.count) {
+            totalDeleted += res.count;
+        }
+    }
+    
+    toast.success(`Hotovo! Vymazaných ${totalDeleted} neaktívnych kontaktov.`, { id: toastId });
+    // Refresh stats
+    getSmartLeadsStats().then(s => s.success && s.data && setSmartLeadsStats(s.data));
   };
 
 
@@ -413,7 +462,30 @@ export default function OutreachLeadsPage() {
                     <span className="text-sm font-bold bg-gray-100 text-gray-500 px-3 py-1 rounded-full">{filteredLeads.length}</span>
                   </h2>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 items-center">
+                  {/* SmartLeads Stats Widget */}
+                  {smartLeadsStats && (
+                      <div className="hidden lg:flex items-center gap-4 bg-white px-4 py-2 rounded-[1.2rem] border border-gray-100 shadow-sm mr-4">
+                          <div className="flex flex-col items-end">
+                              <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">SmartLeads Active</span>
+                              <span className={cn(
+                                  "text-sm font-black",
+                                  smartLeadsStats.active_leads > 1800 ? "text-red-500" : "text-gray-900"
+                              )}>
+                                  {smartLeadsStats.active_leads} <span className="text-gray-300 font-medium">/ {smartLeadsStats.limit}</span>
+                              </span>
+                          </div>
+                          <div className="h-8 w-px bg-gray-100"></div>
+                          <button 
+                             onClick={handleSmartLeadsCleanup}
+                             className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors group"
+                             title="Vyčistiť completed & no-reply leady"
+                          >
+                              <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform" />
+                          </button>
+                      </div>
+                  )}
+
                   <button 
                     onClick={() => setIsImportModalOpen(true)}
                     className="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-[1.2rem] font-bold uppercase tracking-wide text-[11px] flex items-center gap-2 transition-all shadow-lg shadow-gray-200 active:scale-95"

@@ -55,3 +55,46 @@ export async function addLeadsToCampaign(campaignId: string, leads: any[]) {
          throw e;
     }
 }
+
+export async function getCampaignLeads(campaignId: string) {
+    const apiKey = process.env.SMARTLEADS_API_KEY;
+    if (!apiKey) return [];
+
+    try {
+        // Fetch all leads for campaign. Note: limits might apply, usually paginated or defaults to 100? 
+        // Docs say: GET /campaigns/:campaign_id/leads
+        // We might need to handle pagination if there are many. 
+        // For now, let's try to get a reasonable amount or all if possible.
+        // SmartLeads API might default to 100. Let's assume we want to clean up chunk by chunk.
+        
+        const res = await fetch(`${BASE_URL}/campaigns/${campaignId}/leads?api_key=${apiKey}&limit=1000`, { 
+            method: 'GET' 
+        });
+        
+        if (!res.ok) {
+            console.error('SmartLeads Get Leads Error:', await res.text());
+            return [];
+        }
+        const data = await res.json();
+        return data || [];
+    } catch (e) {
+         console.error("Failed to fetch campaign leads", e);
+         return [];
+    }
+}
+
+export async function deleteLeadFromCampaign(campaignId: string, leadId: string) {
+    const apiKey = process.env.SMARTLEADS_API_KEY;
+    if (!apiKey) return false;
+
+    try {
+        const res = await fetch(`${BASE_URL}/campaigns/${campaignId}/leads/${leadId}?api_key=${apiKey}`, {
+            method: 'DELETE'
+        });
+        
+        return res.ok;
+    } catch (e) {
+        console.error("Failed to delete lead from campaign", e);
+        return false;
+    }
+}
