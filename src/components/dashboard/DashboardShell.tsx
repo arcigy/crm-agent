@@ -55,10 +55,17 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
   const { user } = useUser();
   const userEmail = user?.primaryEmailAddress?.emailAddress;
   const sidebarRef = React.useRef<HTMLDivElement>(null);
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (isMenuOpen && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+      if (
+        isMenuOpen && 
+        sidebarRef.current && 
+        !sidebarRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
         setIsMenuOpen(false);
       }
     }
@@ -66,14 +73,28 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isMenuOpen]);
 
+  React.useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMenuOpen(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
+
   return (
     <div className="flex h-screen w-full bg-[#fdfdfd] dark:bg-[#070708] overflow-hidden">
       {!completed && onboardingScene}
 
       {/* Sidebar Toggle Button */}
       <button
+        ref={buttonRef}
         onClick={() => setIsMenuOpen(!isMenuOpen)}
-        className="fixed top-4 left-4 z-[2100] p-3 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-zinc-200 dark:border-white/5 text-zinc-500 hover:text-indigo-600 transition-all active:scale-95 md:hidden"
+        className={`
+          fixed top-4 left-4 z-[2100] p-3 rounded-xl shadow-lg border transition-all active:scale-95 flex items-center justify-center
+          ${isMenuOpen 
+            ? "bg-zinc-900 border-white/10 text-white" 
+            : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-white/5 text-zinc-500 hover:text-indigo-600"}
+        `}
       >
         <Menu className="w-6 h-6" />
       </button>
@@ -90,8 +111,8 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
       <aside 
         ref={sidebarRef}
         className={`
-          fixed inset-y-0 left-0 z-[2000] w-64 bg-white dark:bg-[#09090b] border-r border-zinc-200 dark:border-white/5 flex flex-col transition-all duration-300 ease-out shadow-2xl md:shadow-none
-          ${isMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+          fixed inset-y-0 left-0 z-[2000] w-64 bg-white dark:bg-[#09090b] border-r border-zinc-200 dark:border-white/5 flex flex-col transition-transform duration-300 ease-out shadow-2xl
+          ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         <div className="p-6 flex items-center justify-end">
@@ -113,7 +134,9 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
                   key={item.href}
                   href={item.href}
                   prefetch={true}
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={() => {
+                    if (window.innerWidth < 768) setIsMenuOpen(false);
+                  }}
                   className={`
                     flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group
                     ${isActive 
@@ -145,11 +168,10 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main 
         className={`
           flex-1 min-w-0 h-full overflow-y-auto bg-transparent relative z-10 transition-all duration-300 ease-out
-          ${isMenuOpen ? "ml-64 opacity-50 pointer-events-none md:opacity-100 md:pointer-events-auto" : "ml-0 md:ml-64"}
+          ${isMenuOpen ? "md:pl-64" : "pl-0"}
         `}
       >
         <div className="p-4 md:p-8 pt-20 md:pt-8 transition-all h-full">
