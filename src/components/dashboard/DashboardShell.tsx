@@ -15,9 +15,6 @@ import {
   Receipt,
   Settings,
   Zap,
-  BrainCircuit,
-  History,
-  Bot,
   X,
   ChevronRight
 } from "lucide-react";
@@ -58,14 +55,6 @@ const menuGroups = [
       { name: "Poznámky", href: "/dashboard/notes", icon: FileText },
       { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
       { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
-    ]
-  },
-  {
-    title: "AI Systém",
-    items: [
-      { name: "AI Kontext", href: "/dashboard/settings/ai", icon: BrainCircuit },
-      { name: "Pamäť AI", href: "/dashboard/settings/memory", icon: History },
-      { name: "ArciGy Agent", href: "/dashboard/agent", icon: Bot },
     ]
   }
 ];
@@ -145,42 +134,35 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-2 space-y-6 overflow-y-auto scrollbar-hide">
+        <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto scrollbar-hide">
           {menuGroups.map((group, idx) => (
-            <div key={idx} className="space-y-1.5">
-              <h4 className="px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground opacity-60 mb-2">
-                {group.title}
-              </h4>
-              <div className="grid gap-1">
-                {group.items
-                  .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
-                  .map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        prefetch={true}
-                        onClick={() => {
-                          if (window.innerWidth < 768) setIsMenuOpen(false);
-                        }}
-                        className={`
-                          flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group
-                          ${isActive 
-                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" 
-                            : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-100"
-                          }
-                        `}
-                      >
-                        <div className="flex items-center gap-3">
-                          <item.icon className={`w-4.5 h-4.5 transition-colors ${isActive ? "text-white" : "text-zinc-400 group-hover:text-indigo-500"}`} />
-                          <span>{item.name}</span>
-                        </div>
-                        <ChevronRight className={`w-3.5 h-3.5 transition-all opacity-0 group-hover:opacity-40 ${isActive ? "hidden" : "block"}`} />
-                      </Link>
-                    );
-                  })}
-              </div>
+            <div key={idx} className="grid gap-1">
+              {group.items
+                .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
+                .map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      prefetch={true}
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`
+                        flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group
+                        ${isActive 
+                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" 
+                          : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-100"
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon className={`w-4.5 h-4.5 transition-colors ${isActive ? "text-white" : "text-zinc-400 group-hover:text-indigo-500"}`} />
+                        <span>{item.name}</span>
+                      </div>
+                      <ChevronRight className={`w-3.5 h-3.5 transition-all opacity-0 group-hover:opacity-40 ${isActive ? "hidden" : "block"}`} />
+                    </Link>
+                  );
+                })}
             </div>
           ))}
         </nav>

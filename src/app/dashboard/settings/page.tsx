@@ -13,6 +13,7 @@ import {
   Lock,
   ArrowRight,
   Database,
+  Bot,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -53,6 +54,15 @@ const settingsCategories = [
     color: "text-emerald-500",
     bg: "bg-emerald-500/10",
     comingSoon: true,
+  },
+  {
+    title: "ArciGy AI Agent",
+    description:
+      "Váš virtuálny biznis partner – trénujte ho, delegujte úlohy a sledujte výsledky.",
+    href: "/dashboard/agent",
+    icon: Bot,
+    color: "text-rose-500",
+    bg: "bg-rose-500/10",
   },
 ];
 
