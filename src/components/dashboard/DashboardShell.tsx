@@ -94,13 +94,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           ${isMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold italic">A</span>
-            </div>
-            <span className="text-lg font-bold tracking-tight text-foreground">ArciGy CRM</span>
-          </div>
+        <div className="p-6 flex items-center justify-end">
           <button 
             onClick={() => setIsMenuOpen(false)}
             className="p-2 hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-colors md:hidden"
@@ -136,6 +130,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
         </nav>
 
         <div className="p-4 border-t border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-black/20 space-y-2">
+          <LogoutButton className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50/50 dark:hover:bg-red-500/10 transition-colors" />
           <div className="flex items-center justify-between px-2">
             <ThemeToggle />
             <Link
@@ -147,7 +142,6 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
               <Settings className="w-5 h-5 text-muted-foreground group-hover:rotate-45 transition-transform" />
             </Link>
           </div>
-          <LogoutButton className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50/50 dark:hover:bg-red-500/10 transition-colors" />
         </div>
       </aside>
 
