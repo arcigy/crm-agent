@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -65,7 +65,7 @@ export function TodoThreeDayView({
   const tomorrowTasks = getTasksForDate(tomorrow);
 
   return (
-    <div className="flex flex-col h-full gap-6 select-none">
+    <div className="flex flex-col h-full gap-4 select-none">
       {/* Navigation Header - Centered for Today */}
       <div className="flex items-center justify-between px-4">
         <button
@@ -76,8 +76,8 @@ export function TodoThreeDayView({
         </button>
 
         <div className="flex flex-col items-center relative gap-1 select-none">
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tight">
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
               {format(current, "EEEE", { locale: sk })}
             </h2>
             <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-widest flex items-center gap-1">
@@ -189,7 +189,7 @@ function DayColumn({
     >
       {/* Header */}
       <div
-        className={`p-6 border-b ${
+        className={`p-4 border-b ${
           isCenter
             ? "border-zinc-100 dark:border-zinc-800 bg-gradient-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-900"
             : "border-transparent"
@@ -230,7 +230,7 @@ function DayColumn({
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
         {tasks.length > 0 ? (
           tasks.map((task) => (
             <TaskItem

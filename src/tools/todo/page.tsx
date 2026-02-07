@@ -10,24 +10,22 @@ export default function TodoTool() {
     new Date().toISOString().split("T")[0],
   );
   // Load ALL tasks so we can filter them client-side for yesterday/today/tomorrow
-  const { tasks, loading, add, toggle, remove } = useTasks();
+  const { tasks, add, toggle, remove } = useTasks();
 
   return (
-    <div className="max-w-[1400px] mx-auto min-h-screen flex flex-col gap-8 p-4 sm:p-8 animate-in fade-in duration-700">
+    <div className="max-w-[1400px] mx-auto h-[calc(100vh-120px)] flex flex-col gap-4 p-4 animate-in fade-in duration-700 overflow-hidden">
       {/* Header & Input */}
-      <div className="flex flex-col gap-8">
-        <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-4 mb-2">
-              <h1 className="text-5xl font-black text-zinc-900 dark:text-white tracking-tighter uppercase italic leading-none">
-                Daily / <span className="text-blue-600">Planner</span>
-              </h1>
-            </div>
-            <p className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.4em] pl-1 opacity-70">
+      <div className="flex flex-col gap-4">
+        <header className="flex items-end justify-between gap-6">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-black text-foreground tracking-tighter leading-none">
+              Daily <span className="text-blue-600">/ Planner</span>
+            </h1>
+            <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.4em] pl-1 opacity-60">
               High-performance flow state manager
             </p>
           </div>
-          <div className="flex items-center gap-6 px-6 py-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center gap-6 px-5 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm">
             <Stat
               label="Hotovo"
               value={tasks.filter((t) => t.completed).length}
@@ -59,7 +57,7 @@ export default function TodoTool() {
       </div>
 
       {/* Main View */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden">
         <TodoThreeDayView
           tasks={tasks}
           currentDate={selectedDate}

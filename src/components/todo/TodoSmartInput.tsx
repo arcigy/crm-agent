@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { Node as TiptapNode, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import LinkExtension from "@tiptap/extension-link";
@@ -132,7 +131,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     editorProps: {
       attributes: {
         class:
-          "outline-none min-h-[14rem] px-8 py-8 pt-20 pb-24 text-xl font-medium text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold",
+          "outline-none min-h-[8rem] px-6 py-12 pb-16 text-lg font-medium text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold",
       },
       handleKeyDown: (view, event) => {
         // First try autocomplete keyboard navigation
@@ -473,7 +472,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
         </div>
 
         {/* Tiptap Editor Content */}
-        <EditorContent editor={editor} className="min-h-[12rem]" />
+        <EditorContent editor={editor} className="min-h-[6rem]" />
 
         {/* Autocomplete Dropdown */}
         <AutocompleteDropdown
@@ -624,10 +623,3 @@ function PickerItem({
   );
 }
 
-function HintBadge({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <span className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-zinc-400 opacity-60">
-      {icon} {label}
-    </span>
-  );
-}
