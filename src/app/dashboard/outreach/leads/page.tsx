@@ -12,11 +12,7 @@ import {
     bulkUpdateColdLeads,
     sendColdLeadEmail,
     type ColdLeadItem, 
-    type ColdLeadList,
-    getSmartLeadCampaigns,
-    syncLeadsToSmartLead,
-    getSmartLeadsStats,
-    cleanupSmartLeadsCampaign 
+    type ColdLeadList 
 } from "@/app/actions/cold-leads";
 import { ColdLeadsImportModal } from "@/components/dashboard/ColdLeadsImportModal";
 import { toast } from "sonner";
@@ -44,41 +40,28 @@ export default function OutreachLeadsPage() {
   const [editValue, setEditValue] = useState("");
   const editInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
-  // SmartLeads State
-  const [smartCampaigns, setSmartCampaigns] = useState<any[]>([]);
-  const [showSmartLeadsModal, setShowSmartLeadsModal] = useState(false);
-  const [selectedCampaignId, setSelectedCampaignId] = useState("");
-  const [smartLeadsStats, setSmartLeadsStats] = useState<{ active_leads: number, limit: number, campaigns_count: number } | null>(null);
-
-  // Separate fetch logic that doesn't clear state unnecessarily
-  const fetchLeadsData = React.useCallback(async (listName: string, showLoading = true) => {
-    if (showLoading) setLoading(true);
+  const refreshLeads = React.useCallback(async (listName: string) => {
+    setLoading(true);
     const res = await getColdLeads(listName);
     if (res.success && res.data) {
       setLeads(res.data);
-    }
-    if (showLoading) setLoading(false);
-  }, []);
-
-  const refreshLeads = React.useCallback(async (listName: string) => {
-      await fetchLeadsData(listName, true);
-      setSelectedIds(new Set()); // Only clear selection on explicit refresh/list change
+      setSelectedIds(new Set()); // Clear selection on list change
       setCurrentPage(1);
-  }, [fetchLeadsData]);
+    }
+    setLoading(false);
+  }, []);
 
   // Polling for background process status
   useEffect(() => {
-    // Only poll if there are pending items
-    const hasPending = leads.some(l => l.enrichment_status === 'pending' || l.enrichment_status === 'processing');
-    if (!hasPending) return;
-
     const interval = setInterval(() => {
-        // Use the separate fetch function to avoid resetting pagination/selection
-        fetchLeadsData(activeListName, false); 
-    }, 5000); 
+        const hasPending = leads.some(l => l.enrichment_status === 'pending' || l.enrichment_status === 'processing');
+        if (hasPending) {
+            refreshLeads(activeListName);
+        }
+    }, 5000); // Check every 5 seconds
     
     return () => clearInterval(interval);
-  }, [leads, activeListName, fetchLeadsData]); // Removed refreshLeads dependency to avoid loop if refreshLeads changes
+  }, [leads, activeListName, refreshLeads]);
 
   const handleStartBackgroundEnrichment = async () => {
     const ids = Array.from(selectedIds);
@@ -98,42 +81,31 @@ export default function OutreachLeadsPage() {
     fetch("/api/cron/enrich-leads").catch(console.error);
   };
 
-  // Initial Load of Lists
-  useEffect(() => {
-      const loadLists = async () => {
-          setLoading(true);
-          const listsRes = await getColdLeadLists();
-          if (listsRes.success && listsRes.data) {
-              setLists(listsRes.data);
-              
-              // Validate Active List Name
-              // If current activeListName ("Zoznam 1" default) is not in lists, update it.
-              // Logic: checking if "Zoznam 1" is valid even if not in DB? 
-              // Assuming "Zoznam 1" is a default placeholder or a valid list.
-              // If DB has lists but doesn't have activeListName, pick the first one.
-              if (listsRes.data.length > 0 && !listsRes.data.find(l => l.name === activeListName) && activeListName !== "Zoznam 1") {
+  const initData = React.useCallback(async () => {
+      setLoading(true);
+      
+      const listsRes = await getColdLeadLists();
+      if (listsRes.success && listsRes.data) {
+          setLists(listsRes.data);
+          if (listsRes.data.length > 0 && !listsRes.data.find(l => l.name === activeListName)) {
+              if (activeListName === "Zoznam 1") {
+                   // Keep it
+              } else {
                    setActiveListName(listsRes.data[0].name);
               }
           }
-           // We do NOT call refreshLeads(activeListName) here because the other useEffect will catch the activeListName change (or initial render).
-           setLoading(false);
-      };
+      }
 
-      loadLists();
-      
-      // Load Stats Once on Mount
-      getSmartLeadsStats().then(res => {
-          if (res.success && res.data) {
-              setSmartLeadsStats(res.data);
-          }
-      });
-  }, []); // Run ONCE on mount
+      await refreshLeads(activeListName);
+      setLoading(false);
+  }, [activeListName, refreshLeads]);
 
-  // React to Active List Name Change
   useEffect(() => {
-     if (activeListName) {
-         refreshLeads(activeListName);
-     }
+    initData();
+  }, [initData]);
+
+  useEffect(() => {
+     refreshLeads(activeListName);
   }, [activeListName, refreshLeads]);
 
   useEffect(() => {
@@ -244,77 +216,6 @@ export default function OutreachLeadsPage() {
       setIsSending(false);
       setSelectedIds(new Set());
       refreshLeads(activeListName);
-  };
-
-  const openSmartLeadsModal = async () => {
-      const toastId = toast.loading("Načítavam kampane...");
-      const res = await getSmartLeadCampaigns();
-      toast.dismiss(toastId);
-      
-      if (res.success && res.data) {
-          setSmartCampaigns(res.data);
-          if (res.data.length > 0) setSelectedCampaignId(res.data[0].id); // Default to first
-          setShowSmartLeadsModal(true);
-      } else {
-          toast.error("Nepodarilo sa načítať SmartLeads kampane: " + res.error);
-      }
-  };
-
-  const confirmSmartLeadSync = async () => {
-      if (!selectedCampaignId) return toast.error("Vyberte kampaň");
-      
-      setIsSending(true);
-      const toastId = toast.loading("Posielam do SmartLeads...");
-      
-      const res = await syncLeadsToSmartLead(Array.from(selectedIds), selectedCampaignId);
-      
-      setIsSending(false);
-      
-      if (res.success) {
-          toast.success(`Synchronizované! ${res.count} leadov pridaných do kampane.`, { id: toastId });
-          setShowSmartLeadsModal(false);
-          setSelectedIds(new Set());
-          refreshLeads(activeListName);
-          // Refresh stats
-          getSmartLeadsStats().then(s => s.success && s.data && setSmartLeadsStats(s.data));
-      } else {
-          toast.error("Chyba: " + res.error, { id: toastId });
-      }
-  };
-
-  const handleSmartLeadsCleanup = async () => {
-    if (!smartLeadsStats?.active_leads) return;
-    if (!confirm(`Chcete vyčistiť VŠETKY nerelevantné kontakty zo SmartLeads?\n\nVymažú sa kontakty, ktoré:\n1. Dokončili sekvenciu\n2. Neodpísali\n\nTýmto uvoľníte miesto pre nové leady.`)) return;
-
-    const toastId = toast.loading("Analyzujem kampane...");
-    
-    // We need to iterate all campaigns. 
-    // Usually we would do this on server, but for better feedback let's do it here or server bulk.
-    // Let's do a simple loop here if we have campaigns loaded, else fetch them first.
-    let campaigns = smartCampaigns; 
-    if (campaigns.length === 0) {
-        const res = await getSmartLeadCampaigns();
-        if (res.success && res.data) campaigns = res.data;
-    }
-
-    if (campaigns.length === 0) {
-        toast.error("Žiadne kampane na čistenie", { id: toastId });
-        return;
-    }
-
-    let totalDeleted = 0;
-    
-    for (const campaign of campaigns) {
-        toast.loading(`Čistím kampaň: ${campaign.name || campaign.id}...`, { id: toastId });
-        const res = await cleanupSmartLeadsCampaign(campaign.id || campaign.campaign_id);
-        if (res.success && res.count) {
-            totalDeleted += res.count;
-        }
-    }
-    
-    toast.success(`Hotovo! Vymazaných ${totalDeleted} neaktívnych kontaktov.`, { id: toastId });
-    // Refresh stats
-    getSmartLeadsStats().then(s => s.success && s.data && setSmartLeadsStats(s.data));
   };
 
 
@@ -471,30 +372,7 @@ export default function OutreachLeadsPage() {
                     <span className="text-sm font-bold bg-gray-100 text-gray-500 px-3 py-1 rounded-full">{filteredLeads.length}</span>
                   </h2>
                 </div>
-                <div className="flex gap-3 items-center">
-                  {/* SmartLeads Stats Widget */}
-                  {smartLeadsStats && (
-                      <div className="hidden lg:flex items-center gap-4 bg-white px-4 py-2 rounded-[1.2rem] border border-gray-100 shadow-sm mr-4">
-                          <div className="flex flex-col items-end">
-                              <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">SmartLeads Active</span>
-                              <span className={cn(
-                                  "text-sm font-black",
-                                  smartLeadsStats.active_leads > 1800 ? "text-red-500" : "text-gray-900"
-                              )}>
-                                  {smartLeadsStats.active_leads} <span className="text-gray-300 font-medium">/ {smartLeadsStats.limit}</span>
-                              </span>
-                          </div>
-                          <div className="h-8 w-px bg-gray-100"></div>
-                          <button 
-                             onClick={handleSmartLeadsCleanup}
-                             className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors group"
-                             title="Vyčistiť completed & no-reply leady"
-                          >
-                              <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform" />
-                          </button>
-                      </div>
-                  )}
-
+                <div className="flex gap-3">
                   <button 
                     onClick={() => setIsImportModalOpen(true)}
                     className="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-[1.2rem] font-bold uppercase tracking-wide text-[11px] flex items-center gap-2 transition-all shadow-lg shadow-gray-200 active:scale-95"
@@ -553,17 +431,6 @@ export default function OutreachLeadsPage() {
                          >
                              {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                              Odoslať Emaly
-                         </button>
-                         
-                         <div className="h-8 w-px bg-gray-100 mx-1"></div>
-
-                         <button 
-                             onClick={openSmartLeadsModal}
-                             disabled={isSending}
-                             className="px-6 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl flex items-center gap-2 font-black text-xs transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
-                         >
-                             {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 fill-white" />}
-                             SmartLeads
                          </button>
 
                          <div className="h-8 w-px bg-gray-100 mx-1"></div>
@@ -861,69 +728,6 @@ export default function OutreachLeadsPage() {
         onSuccess={() => refreshLeads(activeListName)} 
         initialListName={activeListName}
       />
-
-      {/* SmartLeads Modal */}
-      {showSmartLeadsModal && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
-            <div className="absolute inset-0" onClick={() => !isSending && setShowSmartLeadsModal(false)}></div>
-            <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 relative border border-gray-100 animate-in zoom-in-95 duration-300">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-                        <Zap className="w-6 h-6 text-violet-600 fill-violet-600" />
-                        Push to SmartLeads
-                    </h3>
-                    {!isSending && (
-                        <button onClick={() => setShowSmartLeadsModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                            <X className="w-5 h-5 text-gray-400" />
-                        </button>
-                    )}
-                </div>
-
-                <div className="space-y-6">
-                    <div className="space-y-2">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 ml-1">Vyberte Kampaň</label>
-                        <select 
-                            value={selectedCampaignId} 
-                            onChange={(e) => setSelectedCampaignId(e.target.value)}
-                            className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-violet-500 focus:bg-white transition-all outline-none"
-                        >
-                            {smartCampaigns.map((c: any) => (
-                                <option key={c.id || c.campaign_id} value={c.id || c.campaign_id}>
-                                    {c.name || "Kampaň bez názvu"} ({c.status || "draft"})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="bg-violet-50 border border-violet-100 p-4 rounded-2xl">
-                         <p className="text-xs font-bold text-violet-900 mb-1">Pripravené na odoslanie</p>
-                         <p className="text-[10px] text-violet-700">
-                             Vybraných {selectedIds.size} kontaktov bude pridaných do kampane.
-                             <br/>
-                             Duplikáty sú automaticky preskočené SmartLeads.
-                         </p>
-                    </div>
-
-                    <div className="flex gap-4 pt-2">
-                        <button 
-                            onClick={() => setShowSmartLeadsModal(false)} 
-                            disabled={isSending}
-                            className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-gray-400 hover:bg-gray-50 rounded-2xl transition-all"
-                        >
-                            Zrušiť
-                        </button>
-                        <button 
-                            onClick={confirmSmartLeadSync} 
-                            disabled={isSending || !selectedCampaignId}
-                            className="flex-1 py-4 bg-gray-900 hover:bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
-                        >
-                            {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Odoslať"}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-      )}
     </div>
   );
 }
