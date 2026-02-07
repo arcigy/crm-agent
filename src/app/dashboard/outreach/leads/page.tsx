@@ -11,9 +11,12 @@ import {
     bulkDeleteColdLeads, 
     bulkUpdateColdLeads,
     sendColdLeadEmail,
+    getSmartLeadCampaigns,
+    bulkQueueForSmartLead,
     type ColdLeadItem, 
     type ColdLeadList 
 } from "@/app/actions/cold-leads";
+import { SmartLeadCampaign } from "@/types/smartlead";
 import { ColdLeadsImportModal } from "@/components/dashboard/ColdLeadsImportModal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -27,6 +30,11 @@ export default function OutreachLeadsPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // SmartLead State
+  const [isSmartLeadModalOpen, setIsSmartLeadModalOpen] = useState(false);
+  const [smartLeadCampaigns, setSmartLeadCampaigns] = useState<SmartLeadCampaign[]>([]);
+  const [selectedSmartLeadCampaign, setSelectedSmartLeadCampaign] = useState<string>("");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -87,7 +95,11 @@ export default function OutreachLeadsPage() {
       const listsRes = await getColdLeadLists();
       if (listsRes.success && listsRes.data) {
           setLists(listsRes.data);
-          if (listsRes.data.length > 0 && !listsRes.data.find(l => l.name === activeListName)) {
+          
+          // Fix: Allow SL_ prefixed views to persist without being redirected
+          const isSmartLeadView = activeListName.startsWith("SL_");
+          
+          if (!isSmartLeadView && listsRes.data.length > 0 && !listsRes.data.find(l => l.name === activeListName)) {
               if (activeListName === "Zoznam 1") {
                    // Keep it
               } else {
@@ -216,6 +228,38 @@ export default function OutreachLeadsPage() {
       setIsSending(false);
       setSelectedIds(new Set());
       refreshLeads(activeListName);
+  };
+
+
+  const handleSmartLeadClick = async () => {
+    setIsSmartLeadModalOpen(true);
+    const res = await getSmartLeadCampaigns();
+    if (res.success && res.data) {
+        setSmartLeadCampaigns(res.data);
+        if (res.data.length > 0) setSelectedSmartLeadCampaign(String(res.data[0].id));
+    } else {
+        toast.error("Nepodarilo sa načítať kampane: " + res.error);
+    }
+  };
+
+  const handleQueueToSmartLead = async () => {
+      const ids = Array.from(selectedIds);
+      if (!ids.length) return;
+      if (!selectedSmartLeadCampaign) return toast.error("Vyberte kampaň");
+
+      if (!confirm(`Pridať ${ids.length} leadov do fronty pre kampaň?`)) return;
+
+      const toastId = toast.loading("Pridávam do fronty...");
+      const res = await bulkQueueForSmartLead(ids, selectedSmartLeadCampaign);
+
+      if (res.success) {
+          toast.success("Leady pridané do fronty", { id: toastId });
+          setIsSmartLeadModalOpen(false);
+          setSelectedIds(new Set());
+          refreshLeads(activeListName);
+      } else {
+          toast.error("Chyba: " + res.error, { id: toastId });
+      }
   };
 
 
@@ -475,6 +519,16 @@ export default function OutreachLeadsPage() {
                              Vymazať
                          </button>
                          
+                         <div className="h-8 w-px bg-gray-100 mx-1"></div>
+
+                         <button 
+                             onClick={handleSmartLeadClick}
+                             className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl flex items-center gap-2 font-black text-xs transition-all shadow-lg shadow-indigo-100"
+                         >
+                             <Zap className="w-4 h-4 text-yellow-300 fill-current" />
+                             SmartLead
+                         </button>
+
                          <div className="h-8 w-px bg-gray-100 mx-1"></div>
 
                          <button 
@@ -796,6 +850,63 @@ export default function OutreachLeadsPage() {
         onSuccess={() => refreshLeads(activeListName)} 
         initialListName={activeListName}
       />
+
+        {/* SmartLead Modal */}
+        {isSmartLeadModalOpen && (
+            <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                <div className="bg-white max-w-md w-full rounded-[2rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+                    <h3 className="text-xl font-black text-gray-900 mb-2 flex items-center gap-2">
+                        <Zap className="w-6 h-6 text-blue-600 fill-blue-100" />
+                        SmartLead Fronta
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-6 font-medium">
+                        Vyberte kampaň, do ktorej chcete pridať {selectedIds.size} vybraných leadov.
+                    </p>
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 block mb-2">
+                                Vyberte Kampaň
+                            </label>
+                            {smartLeadCampaigns.length === 0 ? (
+                                <div className="p-4 bg-gray-50 rounded-xl text-center text-gray-400 text-sm font-bold flex flex-col items-center gap-2">
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    Načítavam kampane...
+                                </div>
+                            ) : (
+                                <select 
+                                    value={selectedSmartLeadCampaign}
+                                    onChange={(e) => setSelectedSmartLeadCampaign(e.target.value)}
+                                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-500 transition-colors appearance-none"
+                                >
+                                    {smartLeadCampaigns.map(c => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name} ({c.status})
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+
+                        <div className="flex gap-3 pt-4">
+                            <button 
+                                onClick={() => setIsSmartLeadModalOpen(false)}
+                                className="flex-1 py-3 text-gray-500 font-black text-xs uppercase tracking-widest hover:bg-gray-50 rounded-xl transition-colors"
+                            >
+                                Zrušiť
+                            </button>
+                            <button 
+                                onClick={handleQueueToSmartLead}
+                                disabled={smartLeadCampaigns.length === 0}
+                                className="flex-1 py-3 bg-blue-600 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50"
+                            >
+                                Pridať do Fronty
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
 }
