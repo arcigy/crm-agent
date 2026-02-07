@@ -138,7 +138,14 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        <div className="h-16 flex-shrink-0"></div>
+        <div className="h-28 flex-shrink-0 flex items-end px-8 pb-6">
+           <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-600/20">
+                <span className="text-white font-black italic">A</span>
+              </div>
+              <span className="text-lg font-black uppercase italic tracking-tighter text-foreground">ArciGy Boss</span>
+           </div>
+        </div>
         
         <div className="flex-1 flex flex-col py-2 px-4 overflow-y-auto scrollbar-hide">
           <div className="space-y-8">
