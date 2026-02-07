@@ -83,7 +83,7 @@ export function DraggableRow({ row }: DraggableRowProps) {
         <td
           key={cell.id}
           style={{ width: cell.column.getSize() }}
-          className="px-3 py-1 border-r border-border last:border-0 text-xs text-foreground/90 relative group/cell hover:bg-indigo-500/10 transition-colors"
+          className="px-3 py-1 border-r border-border last:border-0 text-xs text-foreground/90 relative"
         >
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
         </td>
