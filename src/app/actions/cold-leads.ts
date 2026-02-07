@@ -383,3 +383,67 @@ export async function sendColdLeadEmail(id: string | number) {
         return { success: false, error: e.message || String(e) };
     }
 }
+
+// --- SmartLeads Integration ---
+
+export async function getSmartLeadCampaigns() {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+
+        const { getCampaigns } = await import("@/lib/smartleads");
+        const campaigns = await getCampaigns();
+        return { success: true, data: campaigns };
+    } catch (e: any) {
+        console.error("Failed to get campaigns:", e);
+        return { success: false, error: e.message };
+    }
+}
+
+export async function syncLeadsToSmartLead(ids: (string | number)[], campaignId: string) {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+
+        // 1. Get Leads
+        const leads = (await directus.request(readItems("cold_leads", {
+            filter: { id: { _in: ids } },
+            limit: -1
+        }))) as unknown as ColdLeadItem[];
+
+        if (!leads || leads.length === 0) throw new Error("No leads found");
+
+        const validLeads = leads.filter(l => l.email && l.email.includes("@"));
+        if (validLeads.length === 0) throw new Error("No valid emails found in selection");
+
+        // 2. Format for SmartLeads
+        // SmartLeads API usually takes array of objects
+        const smartLeadsPayload = validLeads.map(l => ({
+            email: l.email,
+            first_name: "", 
+            last_name: "",
+            company_name: l.company_name_reworked || l.title,
+            website: l.website,
+            phone_number: l.phone,
+            custom_fields: {
+                city: l.city,
+                category: l.category,
+                ai_intro: l.ai_first_sentence
+            }
+        }));
+
+        // 3. Push to SmartLeads
+        const { addLeadsToCampaign } = await import("@/lib/smartleads");
+        await addLeadsToCampaign(campaignId, smartLeadsPayload);
+
+        // 4. Update Status in Directus
+        await directus.request(updateItems("cold_leads", ids, { status: "contacted" }));
+        
+        revalidatePath("/dashboard/cold-outreach");
+        return { success: true, count: smartLeadsPayload.length };
+
+    } catch (e: any) {
+        console.error("Sync to SmartLeads failed:", e);
+        return { success: false, error: e.message || String(e) };
+    }
+}

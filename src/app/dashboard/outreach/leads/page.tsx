@@ -12,7 +12,9 @@ import {
     bulkUpdateColdLeads,
     sendColdLeadEmail,
     type ColdLeadItem, 
-    type ColdLeadList 
+    type ColdLeadList,
+    getSmartLeadCampaigns,
+    syncLeadsToSmartLead
 } from "@/app/actions/cold-leads";
 import { ColdLeadsImportModal } from "@/components/dashboard/ColdLeadsImportModal";
 import { toast } from "sonner";
@@ -39,6 +41,11 @@ export default function OutreachLeadsPage() {
   const [editingCell, setEditingCell] = useState<{ id: string | number, field: keyof ColdLeadItem } | null>(null);
   const [editValue, setEditValue] = useState("");
   const editInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+
+  // SmartLeads State
+  const [smartCampaigns, setSmartCampaigns] = useState<any[]>([]);
+  const [showSmartLeadsModal, setShowSmartLeadsModal] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState("");
 
   const refreshLeads = React.useCallback(async (listName: string) => {
     setLoading(true);
@@ -216,6 +223,40 @@ export default function OutreachLeadsPage() {
       setIsSending(false);
       setSelectedIds(new Set());
       refreshLeads(activeListName);
+  };
+
+  const openSmartLeadsModal = async () => {
+      const toastId = toast.loading("Načítavam kampane...");
+      const res = await getSmartLeadCampaigns();
+      toast.dismiss(toastId);
+      
+      if (res.success && res.data) {
+          setSmartCampaigns(res.data);
+          if (res.data.length > 0) setSelectedCampaignId(res.data[0].id); // Default to first
+          setShowSmartLeadsModal(true);
+      } else {
+          toast.error("Nepodarilo sa načítať SmartLeads kampane: " + res.error);
+      }
+  };
+
+  const confirmSmartLeadSync = async () => {
+      if (!selectedCampaignId) return toast.error("Vyberte kampaň");
+      
+      setIsSending(true);
+      const toastId = toast.loading("Posielam do SmartLeads...");
+      
+      const res = await syncLeadsToSmartLead(Array.from(selectedIds), selectedCampaignId);
+      
+      setIsSending(false);
+      
+      if (res.success) {
+          toast.success(`Synchronizované! ${res.count} leadov pridaných do kampane.`, { id: toastId });
+          setShowSmartLeadsModal(false);
+          setSelectedIds(new Set());
+          refreshLeads(activeListName);
+      } else {
+          toast.error("Chyba: " + res.error, { id: toastId });
+      }
   };
 
 
@@ -431,6 +472,17 @@ export default function OutreachLeadsPage() {
                          >
                              {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                              Odoslať Emaly
+                         </button>
+                         
+                         <div className="h-8 w-px bg-gray-100 mx-1"></div>
+
+                         <button 
+                             onClick={openSmartLeadsModal}
+                             disabled={isSending}
+                             className="px-6 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl flex items-center gap-2 font-black text-xs transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
+                         >
+                             {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 fill-white" />}
+                             SmartLeads
                          </button>
 
                          <div className="h-8 w-px bg-gray-100 mx-1"></div>
@@ -728,6 +780,69 @@ export default function OutreachLeadsPage() {
         onSuccess={() => refreshLeads(activeListName)} 
         initialListName={activeListName}
       />
+
+      {/* SmartLeads Modal */}
+      {showSmartLeadsModal && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
+            <div className="absolute inset-0" onClick={() => !isSending && setShowSmartLeadsModal(false)}></div>
+            <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 relative border border-gray-100 animate-in zoom-in-95 duration-300">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                        <Zap className="w-6 h-6 text-violet-600 fill-violet-600" />
+                        Push to SmartLeads
+                    </h3>
+                    {!isSending && (
+                        <button onClick={() => setShowSmartLeadsModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                            <X className="w-5 h-5 text-gray-400" />
+                        </button>
+                    )}
+                </div>
+
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                        <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 ml-1">Vyberte Kampaň</label>
+                        <select 
+                            value={selectedCampaignId} 
+                            onChange={(e) => setSelectedCampaignId(e.target.value)}
+                            className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-violet-500 focus:bg-white transition-all outline-none"
+                        >
+                            {smartCampaigns.map((c: any) => (
+                                <option key={c.id || c.campaign_id} value={c.id || c.campaign_id}>
+                                    {c.name || "Kampaň bez názvu"} ({c.status || "draft"})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="bg-violet-50 border border-violet-100 p-4 rounded-2xl">
+                         <p className="text-xs font-bold text-violet-900 mb-1">Pripravené na odoslanie</p>
+                         <p className="text-[10px] text-violet-700">
+                             Vybraných {selectedIds.size} kontaktov bude pridaných do kampane.
+                             <br/>
+                             Duplikáty sú automaticky preskočené SmartLeads.
+                         </p>
+                    </div>
+
+                    <div className="flex gap-4 pt-2">
+                        <button 
+                            onClick={() => setShowSmartLeadsModal(false)} 
+                            disabled={isSending}
+                            className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-gray-400 hover:bg-gray-50 rounded-2xl transition-all"
+                        >
+                            Zrušiť
+                        </button>
+                        <button 
+                            onClick={confirmSmartLeadSync} 
+                            disabled={isSending || !selectedCampaignId}
+                            className="flex-1 py-4 bg-gray-900 hover:bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+                        >
+                            {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Odoslať"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }
