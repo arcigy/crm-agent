@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle2, Loader2, Plus, Trash2, RefreshCw, Key, ShieldAlert } from 'lucide-react';
-import { toast } from 'sonner';
+import { Trash2, AlertCircle, CheckCircle2, Loader2, Key, Plus, RefreshCw, ShieldAlert } from "lucide-react";
+import { toast } from "sonner";
+import { verifyApiKey } from "@/app/actions/google-maps";
 
 export interface ApiKey {
     id: string;
@@ -99,15 +100,25 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
     };
 
     const validateKeys = async (keysToValidate: ApiKey[]) => {
-        // Validation simulation
+        // Validation simulation -> REAL API CHECK
+        setKeys(prev => prev.map(p => keysToValidate.find(k => k.id === p.id) ? { ...p, status: 'validating' } : p));
+
         const validated = await Promise.all(keysToValidate.map(async (k) => {
-            await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
-            const isValid = k.key.startsWith("AIza") || k.key.length > 25; 
-            return {
-                ...k,
-                status: isValid ? 'active' : 'error',
-                errorMessage: isValid ? undefined : 'Invalid Key Format (Must start with AIza...)'
-            } as ApiKey;
+            try {
+                // Skutočný test na serveri
+                const result = await verifyApiKey(k.key); // Server Action
+                return {
+                    ...k,
+                    status: result.isValid ? 'active' : 'error',
+                    errorMessage: result.isValid ? undefined : (result.error || 'Invalid API Key')
+                } as ApiKey;
+            } catch (err: any) {
+                return {
+                    ...k,
+                    status: 'error',
+                    errorMessage: err.message || 'Validation failed'
+                } as ApiKey;
+            }
         }));
 
         setKeys(prev => prev.map(p => {
@@ -122,9 +133,9 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
         toast.success("Key removed.");
     };
 
-    const resetUsage = (id: string) => {
-        setKeys(prev => prev.map(k => k.id === id ? { ...k, usageMonth: 0, status: 'active' } : k));
-        toast.success("Usage counter reset.");
+    const revalidateKey = (key: ApiKey) => {
+        validateKeys([key]);
+        toast.info("Validation started...");
     };
 
     const totalUsage = keys.reduce((acc, k) => acc + k.usageMonth, 0);
@@ -254,11 +265,11 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                                             <td className="py-4 px-6 text-right whitespace-nowrap">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button 
-                                                        onClick={() => resetUsage(key.id)}
+                                                        onClick={() => revalidateKey(key)}
                                                         className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-transparent hover:border-indigo-100"
-                                                        title="Reset Usage"
+                                                        title="Re-validate & Check Status"
                                                     >
-                                                        <RefreshCw className="w-4 h-4" />
+                                                        <RefreshCw className={`w-4 h-4 ${key.status === 'validating' ? 'animate-spin' : ''}`} />
                                                     </button>
                                                     <button 
                                                         onClick={() => deleteKey(key.id)}
