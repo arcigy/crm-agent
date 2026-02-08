@@ -200,77 +200,81 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
 
                 {/* Keys List */}
                 <div className="bg-white border border-gray-100 rounded-[2rem] overflow-hidden shadow-sm">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50 border-b border-gray-100">
-                            <tr>
-                                <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
-                                <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Vlastník (Email)</th>
-                                <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400">API Key</th>
-                                <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Usage</th>
-                                <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Akcie</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {keys.length === 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left min-w-[600px]">
+                            <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
-                                    <td colSpan={5} className="py-12 text-center text-sm text-gray-400 italic font-medium">
-                                        Zatiaľ žiadne kľúče. Pridajte ich vyššie v tvare "Kľúč, Email".
-                                    </td>
+                                    <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 whitespace-nowrap">Status</th>
+                                    <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 whitespace-nowrap">Vlastník</th>
+                                    <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 whitespace-nowrap">API Key</th>
+                                    <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 whitespace-nowrap">Usage</th>
+                                    <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right whitespace-nowrap">Akcie</th>
                                 </tr>
-                            ) : (
-                                keys.map((key) => (
-                                    <tr key={key.id} className="hover:bg-gray-50/50 transition-colors group">
-                                        <td className="py-4 px-6">
-                                            {key.status === 'active' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-black uppercase tracking-widest">Active</span>}
-                                            {key.status === 'validating' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest animate-pulse">Checking...</span>}
-                                            {key.status === 'error' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-widest">Error</span>}
-                                            {key.status === 'limit_reached' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-widest">Limit</span>}
-                                        </td>
-                                        <td className="py-4 px-6 text-xs text-gray-900 font-bold">
-                                            {key.ownerEmail || 'Unknown'}
-                                        </td>
-                                        <td className="py-4 px-6 font-mono text-xs text-gray-500 font-bold flex items-center gap-2">
-                                            <span className="bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
-                                                {key.key.length > 10 ? `${key.key.substring(0, 4)}...${key.key.substring(key.key.length - 4)}` : 'Invalid Key'}
-                                            </span>
-                                            <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">🔒 Encrypted</span>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                    <div 
-                                                        className={`h-full rounded-full transition-all ${key.usageMonth > key.usageLimit * 0.9 ? 'bg-red-500' : 'bg-indigo-500'}`} 
-                                                        style={{ width: `${Math.min(100, (key.usageMonth / key.usageLimit) * 100)}%` }}
-                                                    />
-                                                </div>
-                                                <span className="text-[10px] font-bold text-gray-500">
-                                                    {key.usageMonth} / {key.usageLimit}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-6 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button 
-                                                    onClick={() => resetUsage(key.id)}
-                                                    className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-transparent hover:border-indigo-100"
-                                                    title="Reset Usage"
-                                                >
-                                                    <RefreshCw className="w-4 h-4" />
-                                                </button>
-                                                <button 
-                                                    onClick={() => deleteKey(key.id)}
-                                                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100"
-                                                    title="Delete Key"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {keys.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="py-12 text-center text-sm text-gray-400 italic font-medium">
+                                            Zatiaľ žiadne kľúče. Pridajte ich vyššie v tvare "Kľúč, Email".
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                ) : (
+                                    keys.map((key) => (
+                                        <tr key={key.id} className="hover:bg-gray-50/50 transition-colors group">
+                                            <td className="py-4 px-6 whitespace-nowrap">
+                                                {key.status === 'active' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-black uppercase tracking-widest">Active</span>}
+                                                {key.status === 'validating' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest animate-pulse">Checking</span>}
+                                                {key.status === 'error' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-widest">Error</span>}
+                                                {key.status === 'limit_reached' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-widest">Limit</span>}
+                                            </td>
+                                            <td className="py-4 px-6 text-xs text-gray-900 font-bold whitespace-nowrap max-w-[150px] truncate" title={key.ownerEmail}>
+                                                {key.ownerEmail || 'Unknown'}
+                                            </td>
+                                            <td className="py-4 px-6 font-mono text-xs text-gray-500 font-bold whitespace-nowrap">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
+                                                        {key.key.length > 10 ? `${key.key.substring(0, 4)}...${key.key.substring(key.key.length - 4)}` : 'Invalid'}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-400">🔒</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6 whitespace-nowrap">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                        <div 
+                                                            className={`h-full rounded-full transition-all ${key.usageMonth > key.usageLimit * 0.9 ? 'bg-red-500' : 'bg-indigo-500'}`} 
+                                                            style={{ width: `${Math.min(100, (key.usageMonth / key.usageLimit) * 100)}%` }}
+                                                        />
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-gray-500 w-12 text-right">
+                                                        {((key.usageMonth / key.usageLimit) * 100).toFixed(0)}%
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6 text-right whitespace-nowrap">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button 
+                                                        onClick={() => resetUsage(key.id)}
+                                                        className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-transparent hover:border-indigo-100"
+                                                        title="Reset Usage"
+                                                    >
+                                                        <RefreshCw className="w-4 h-4" />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => deleteKey(key.id)}
+                                                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100 bg-red-50/50"
+                                                        title="Delete Key"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
