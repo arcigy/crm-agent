@@ -87,12 +87,16 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
   try {
     const contactCtx = useContactPreview();
     openContact = contactCtx.openContact;
-  } catch (e) {}
+  } catch {
+    // ignore
+  }
 
   try {
     const projectCtx = useProjectPreview();
     openProject = projectCtx.openProject;
-  } catch (e) {}
+  } catch {
+    // ignore
+  }
 
   const {
     suggestions,
@@ -251,8 +255,8 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
           toast.error(`Chyba načítania: ${err}`),
         );
       }
-    } catch (error) {
-      console.error("Error loading relations:", error);
+    } catch (err: unknown) {
+      console.error("Error loading relations:", err);
       import("sonner").then(({ toast }) =>
         toast.error("Chyba spojenia s databázou"),
       );
