@@ -13,10 +13,11 @@ export interface Tool {
 export const tools: Tool[] = [
   {
     id: 'google-maps',
-    name: 'Google Maps Scraper',
-    description: 'Automatizované získavanie kontaktov z Google Maps pomocou rotácie API kľúčov.',
+    name: 'Maps Scraper',
+    description: 'Automatizované získavanie kontaktov z Google Maps (Safe Mode).',
     icon: MapPin,
-    path: '/dashboard/google-maps',
+    path: '/dashboard/outreach/google-maps',
+    allowedEmails: ['arcigyback@gmail.com', 'branislav@acg.group'] 
   },
   {
     id: 'projects',

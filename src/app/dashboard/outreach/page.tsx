@@ -2,10 +2,10 @@
 
 import { useUser } from "@clerk/nextjs";
 import { RedirectToSignIn } from "@clerk/nextjs";
-import { Zap, Users, Send, MessageCircle, BarChart3 } from "lucide-react";
+import { Zap, Users, Send, MessageCircle, BarChart3, MapPin } from "lucide-react";
 import Link from "next/link";
 import React from "react";
-const allowedEmails = ["branislav@arcigy.group", "arcigyback@gmail.com"];
+const allowedEmails = ["branislav@acg.group", "arcigyback@gmail.com", "branislav@arcigy.group"];
 
 export default function OutreachPage() {
   const stats = [
@@ -46,7 +46,15 @@ export default function OutreachPage() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8">
+        <Link href="/dashboard/outreach/google-maps" className="col-span-1 p-8 rounded-[3rem] bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-xl hover:scale-[1.02] transition-all group relative overflow-hidden">
+             <div className="relative z-10">
+                <MapPin className="w-12 h-12 mb-4 opacity-80 group-hover:scale-110 transition-transform" />
+                <h3 className="text-2xl font-black mb-2">Maps Scraper</h3>
+                <p className="text-amber-100 text-sm font-medium">Získajte kontakty z Google Maps zadarmo.</p>
+             </div>
+             <div className="absolute -right-8 -bottom-8 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all"></div>
+        </Link>
         <Link href="/dashboard/outreach/leads" className="col-span-1 p-8 rounded-[3rem] bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-xl hover:scale-[1.02] transition-all group relative overflow-hidden">
              <div className="relative z-10">
                 <Users className="w-12 h-12 mb-4 opacity-80 group-hover:scale-110 transition-transform" />
