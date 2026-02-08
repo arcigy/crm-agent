@@ -10,6 +10,7 @@ export interface ApiKey {
     status: 'active' | 'error' | 'limit_reached' | 'validating';
     usageMonth: number;
     usageLimit: number;
+    ownerEmail?: string;
     lastUsed?: string;
     errorMessage?: string;
 }
@@ -52,11 +53,16 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
             const newKeys: ApiKey[] = [];
 
             for (const line of lines) {
-                let keyStr = line;
+                // Parse: "KEY, email" or just "KEY"
+                // Split by comma, semicolon or pipe
+                const parts = line.split(/[;,| ]+/).filter(Boolean);
+                let keyStr = parts[0];
+                let emailStr = parts.length > 1 ? parts[1] : undefined;
+
                 // Basic cleanup if user pastes "KEY=AIza..."
                 if (keyStr.includes("=")) keyStr = keyStr.split("=")[1].trim();
                 
-                let label = `Key ${keys.length + newKeys.length + 1}`;
+                let label = emailStr ? `Key (${emailStr.split('@')[0]})` : `Key ${keys.length + newKeys.length + 1}`;
 
                 if (keyStr.length < 10) continue;
                 if (keys.find(k => k.key === keyStr) || newKeys.find(k => k.key === keyStr)) continue;
@@ -65,6 +71,7 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                     id: crypto.randomUUID(),
                     key: keyStr,
                     label: label,
+                    ownerEmail: emailStr || 'Neznámy (Unknown)',
                     status: 'validating',
                     usageMonth: 0,
                     usageLimit: 5000, 
@@ -110,6 +117,7 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
     };
 
     const deleteKey = (id: string) => {
+        if (!confirm("Naozaj chcete odstrániť tento kľúč?")) return;
         setKeys(prev => prev.filter(k => k.id !== id));
         toast.success("Key removed.");
     };
@@ -160,20 +168,20 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                     </h4>
                     <ol className="list-decimal list-inside space-y-1 ml-1 text-xs font-medium text-blue-800/80">
                         <li>Otvorte <strong>Google Cloud Console</strong> (linky vyššie).</li>
-                        <li>Vytvorte nový projekt (každý Google účet má $200 kredit mesačne zdarma).</li>
+                        <li>Vytvorte nový projekt (máte <strong>$200 kredit, ktorý sa obnovuje každý mesiac</strong>).</li>
                         <li>Chodťe do <strong>Library</strong> a povoľte <strong>"Places API (New)"</strong>.</li>
                         <li>Chodťe do <strong>Credentials</strong> a kliknite <strong>Create Credentials -&gt; API Key</strong>.</li>
-                        <li>Skopírujte kľúč sem. (Na jeden účet môžete mať ~6000 vyhľadávaní mesačne zdarma).</li>
+                        <li>Skopírujte kľúč sem. (Formát: <span className="font-mono bg-blue-100 px-1 rounded">KĽÚČ, email@gmail.com</span>)</li>
                     </ol>
                 </div>
 
                 {/* Importer */}
                 <div className="bg-gray-50 rounded-3xl p-6 border-2 border-dashed border-gray-200 hover:border-indigo-300 transition-colors">
                     <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-gray-400 mb-4">
-                        <Plus className="w-4 h-4" /> Hromadný Import (Jeden na riadok)
+                        <Plus className="w-4 h-4" /> Import Kľúčov + Emailov
                     </h4>
                     <textarea 
-                        placeholder="AIzaSyD...&#10;AIzaSyX..."
+                        placeholder="AIzaSy...Kluc1, user1@gmail.com&#10;AIzaSy...Kluc2, user2@gmail.com"
                         value={importText}
                         onChange={e => setImportText(e.target.value)}
                         className="w-full min-h-[120px] bg-white border border-gray-200 rounded-2xl p-4 font-mono text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-y mb-4"
@@ -185,7 +193,7 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                             className="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg flex items-center gap-2 disabled:opacity-50 transition-all"
                         >
                             {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                            Importovať a Overiť
+                            Importovať a označiť
                         </button>
                     </div>
                 </div>
@@ -196,16 +204,17 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                         <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
                                 <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
+                                <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Vlastník (Email)</th>
                                 <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400">API Key</th>
-                                <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Usage (Month)</th>
+                                <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Usage</th>
                                 <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Akcie</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {keys.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="py-12 text-center text-sm text-gray-400 italic font-medium">
-                                        Zatiaľ žiadne kľúče. Pridajte ich vyššie.
+                                    <td colSpan={5} className="py-12 text-center text-sm text-gray-400 italic font-medium">
+                                        Zatiaľ žiadne kľúče. Pridajte ich vyššie v tvare "Kľúč, Email".
                                     </td>
                                 </tr>
                             ) : (
@@ -216,6 +225,9 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                                             {key.status === 'validating' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest animate-pulse">Checking...</span>}
                                             {key.status === 'error' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-widest">Error</span>}
                                             {key.status === 'limit_reached' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-widest">Limit</span>}
+                                        </td>
+                                        <td className="py-4 px-6 text-xs text-gray-900 font-bold">
+                                            {key.ownerEmail || 'Unknown'}
                                         </td>
                                         <td className="py-4 px-6 font-mono text-xs text-gray-500 font-bold flex items-center gap-2">
                                             <span className="bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
@@ -237,7 +249,7 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                                             </div>
                                         </td>
                                         <td className="py-4 px-6 text-right">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex items-center justify-end gap-2">
                                                 <button 
                                                     onClick={() => resetUsage(key.id)}
                                                     className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
