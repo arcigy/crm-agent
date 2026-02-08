@@ -10,9 +10,16 @@ export async function getOutreachLeads() {
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
 
+        const filter: any = { user_email: { _eq: userEmail } };
+        
+        // ADMIN FALLBACK: Allow admin to see Branislav's leads too
+        if (userEmail === 'arcigyback@gmail.com') {
+            filter.user_email = { _in: ['arcigyback@gmail.com', 'branislav@arcigy.group'] };
+        }
+
         const leads = await directus.request(
             readItems("outreach_leads", {
-                filter: { user_email: { _eq: userEmail } },
+                filter: filter,
                 sort: ["-id"],
                 limit: -1
             })
@@ -77,9 +84,16 @@ export async function getOutreachCampaigns() {
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
 
+        const filter: any = { user_email: { _eq: userEmail } };
+        
+        // ADMIN FALLBACK: Allow admin to see Branislav's campaigns too
+        if (userEmail === 'arcigyback@gmail.com') {
+            filter.user_email = { _in: ['arcigyback@gmail.com', 'branislav@arcigy.group'] };
+        }
+
         const campaigns = await directus.request(
             readItems("outreach_campaigns", {
-                filter: { user_email: { _eq: userEmail } },
+                filter: filter,
                 sort: ["-id"]
             })
         );
@@ -100,6 +114,9 @@ export async function saveOutreachCampaign(data: any) {
         if (data.id) {
             res = await directus.request(updateItem("outreach_campaigns", data.id, payload));
         } else {
+            // Remove id to allow Directus to auto-generate it
+            if ('id' in payload) delete payload.id;
+            
             // 1. Create in SmartLead automatically
             try {
                 const { smartLead } = await import("@/lib/smartlead");

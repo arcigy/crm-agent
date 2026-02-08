@@ -41,11 +41,11 @@ const navigation = [
   { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
   { name: "AI Kontext", href: "/dashboard/settings/ai", icon: BrainCircuit },
   { name: "Pamäť AI", href: "/dashboard/settings/memory", icon: History },
-  { 
-    name: "Cold Outreach", 
-    href: "/dashboard/outreach", 
+  {
+    name: "Cold Outreach",
+    href: "/dashboard/outreach",
     icon: Zap,
-    allowedEmails: ['branislav@arcigy.group']
+    allowedEmails: ['branislav@arcigy.group', 'arcigyback@gmail.com']
   },
 ];
 

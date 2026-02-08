@@ -5,8 +5,7 @@ import { RedirectToSignIn } from "@clerk/nextjs";
 import { Zap, Users, Send, MessageCircle, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import React from "react";
-
-const ALLOWED_EMAILS = ["branislav@arcigy.group"];
+const allowedEmails = ["branislav@arcigy.group", "arcigyback@gmail.com"];
 
 export default function OutreachPage() {
   const stats = [

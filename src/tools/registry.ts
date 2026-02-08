@@ -105,6 +105,6 @@ export const tools: Tool[] = [
     description: 'Automatizovaný cold outreach s AI analýzou odpovedí.',
     icon: Zap,
     path: '/dashboard/outreach',
-    allowedEmails: ['branislav@arcigy.group'],
+    allowedEmails: ['branislav@arcigy.group', 'arcigyback@gmail.com'],
   }
 ];

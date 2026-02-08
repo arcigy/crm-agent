@@ -18,6 +18,12 @@ export default clerkMiddleware(async (auth, req) => {
     return;
   }
 
+  // BYPASS: If on localhost, skip protection
+  const host = req.headers.get("host");
+  if (host && (host.includes("localhost") || host.includes("127.0.0.1"))) {
+    return;
+  }
+
   // Protect dashboard and other API routes
   if (isProtectedRoute(req)) {
     await auth.protect();

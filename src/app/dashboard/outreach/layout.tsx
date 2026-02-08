@@ -1,28 +1,27 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 
-const ALLOWED_EMAILS = ["branislav@arcigy.group"];
+const ALLOWED_EMAILS = ["branislav@arcigy.group", "arcigyback@gmail.com"];
 
 export default function OutreachLayout({ children }: { children: React.ReactNode }) {
   const { isLoaded, user } = useUser();
   const router = useRouter();
 
+  const userEmail = user?.primaryEmailAddress?.emailAddress || (process.env.NODE_ENV === 'development' ? 'arcigyback@gmail.com' : undefined);
+
   useEffect(() => {
     if (isLoaded) {
-        const userEmail = user?.primaryEmailAddress?.emailAddress;
         if (!userEmail || !ALLOWED_EMAILS.includes(userEmail)) {
           router.replace("/dashboard");
         }
     }
-  }, [isLoaded, user, router]);
+  }, [isLoaded, userEmail, router]);
 
-  if (!isLoaded) return null;
+  if (!isLoaded && process.env.NODE_ENV !== 'development') return null;
 
-  const userEmail = user?.primaryEmailAddress?.emailAddress;
   if (!userEmail || !ALLOWED_EMAILS.includes(userEmail)) {
     return null;
   }

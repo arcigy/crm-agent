@@ -45,7 +45,7 @@ const menuGroups = [
         name: "Cold Outreach", 
         href: "/dashboard/outreach", 
         icon: Zap,
-        allowedEmails: ['branislav@arcigy.group']
+        allowedEmails: ['branislav@arcigy.group', 'arcigyback@gmail.com']
       },
     ]
   },
@@ -63,7 +63,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const { user } = useUser();
-  const userEmail = user?.primaryEmailAddress?.emailAddress;
+  const userEmail = user?.primaryEmailAddress?.emailAddress || (process.env.NODE_ENV === 'development' ? 'arcigyback@gmail.com' : undefined);
   const sidebarRef = React.useRef<HTMLDivElement>(null);
   const buttonRef = React.useRef<HTMLButtonElement>(null);
 

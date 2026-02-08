@@ -6,11 +6,19 @@ import { currentUser } from "@clerk/nextjs/server";
 import { getUserEmail } from "@/lib/auth";
 
 export async function checkOnboardingStatus() {
+  if (process.env.NODE_ENV === "development") {
+    return { completed: true, userId: "dev-admin", email: "arcigyback@gmail.com" };
+  }
   try {
     const email = await getUserEmail();
     if (!email) return { completed: true };
 
-    const clerkUser = await currentUser();
+    let clerkUser = null;
+    if (process.env.NODE_ENV === "development") {
+        clerkUser = { firstName: "Admin", lastName: "User" };
+    } else {
+        clerkUser = await currentUser();
+    }
 
     // Safety timeout for database request
     // @ts-ignore
