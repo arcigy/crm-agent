@@ -181,7 +181,11 @@ export default function OutreachCampaignsPage() {
   return (
     <div className="p-8 space-y-8">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex flex-col gap-2">
+          <Link href="/dashboard/outreach" className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-blue-600 transition-colors mb-2 w-fit">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Späť na Outreach
+          </Link>
           <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
             <Send className="w-8 h-8 text-blue-600" />
             Outreach Kampane

@@ -45,7 +45,7 @@ export default function OutreachResponsesPage() {
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-2">
           <Link href="/dashboard/outreach" className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-purple-600 transition-colors mb-2 w-fit">
-            <Zap className="w-3.5 h-3.5" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             Späť na Outreach
           </Link>
           <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
