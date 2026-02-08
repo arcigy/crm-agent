@@ -131,7 +131,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     editorProps: {
       attributes: {
         class:
-          "outline-none min-h-[8rem] px-6 py-8 pb-12 text-lg font-medium text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold",
+          "outline-none min-h-[10rem] px-8 pt-24 pb-28 text-lg font-medium text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold",
       },
       handleKeyDown: (view, event) => {
         // First try autocomplete keyboard navigation
