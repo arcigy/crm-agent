@@ -18,8 +18,8 @@ export default function TodoTool() {
       <div className="flex flex-col gap-4">
         <header className="flex items-end justify-between gap-6 mb-2">
           <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tighter text-foreground leading-none">
-              Daily&nbsp;&nbsp;Planner
+            <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
+              Úlohy
             </h1>
           </div>
           <div className="flex items-center gap-6 px-5 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm">

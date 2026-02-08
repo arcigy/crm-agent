@@ -23,8 +23,8 @@ export function LeadsHeader({
   return (
     <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-card/30">
       <div className="flex items-center gap-3">
-        <h1 className="text-xl font-black text-foreground tracking-tight">
-          Doručená pošta
+        <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
+          Leads
         </h1>
         {!isConnected && !loading && (
           <button

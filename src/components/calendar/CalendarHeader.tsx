@@ -60,12 +60,9 @@ export function CalendarHeader({
     <header className="flex items-center justify-between px-4 py-2 bg-white dark:bg-[#09090b] border-b border-gray-200 dark:border-white/10 shrink-0">
       <div className="flex items-center gap-2 lg:gap-8">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 ml-1">
-            <div className="bg-blue-600 p-1.5 rounded-lg">
-              <CalendarIcon size={20} className="text-white" />
-            </div>
-            <h1 className="text-xl font-medium text-gray-700 dark:text-zinc-200">Kalendár</h1>
-          </div>
+            <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
+              Kalendár
+            </h1>
         </div>
 
         <div className="flex items-center gap-4">

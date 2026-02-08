@@ -91,13 +91,10 @@ export default async function ProjectsPage() {
       <div className="flex items-center justify-between px-8 mb-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-black tracking-tighter text-foreground uppercase italic leading-none underline decoration-blue-500 decoration-8 underline-offset-12 transition-colors">
-              Agent / <span className="text-blue-500">Deals & Pipeline</span>
+            <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
+              Obchody
             </h1>
           </div>
-          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.3em] pl-1 opacity-60">
-            Business Intelligence Hub
-          </p>
         </div>
 
         <div className="flex items-center gap-4">
