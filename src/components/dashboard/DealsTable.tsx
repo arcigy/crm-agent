@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { format, isBefore } from "date-fns";
 import { sk } from "date-fns/locale";
-import { toast } from "sonner";
+
 import { InvoiceModal } from "./deals/InvoiceModal";
 import { PaymentModal } from "./deals/PaymentModal";
 import { DealsFilters } from "./deals/DealsFilters";
@@ -31,7 +31,7 @@ import { ContactDetailModal } from "./ContactDetailModal";
 import { ProjectDetailModal } from "./ProjectDetailModal";
 
 import { Deal } from "@/types/deal";
-import { Project, PROJECT_STAGES } from "@/types/project";
+import { Project } from "@/types/project";
 import { StageBadge } from "./projects/StageBadge";
 import { Lead } from "@/types/contact";
 
@@ -46,6 +46,94 @@ export function DealsTable({
   projects: Project[];
   contacts: Lead[];
 }) {
+  // Dummy data
+  const dummyDeals: Deal[] = [
+    {
+      id: 9991,
+      name: "E-shop Redesign",
+      value: 5400,
+      contact_id: 991,
+      project_id: 9991,
+      paid: false,
+      invoice_date: "2024-02-01",
+      due_date: "2024-02-15",
+      date_created: new Date().toISOString(),
+      contact_name: "TechCorp s.r.o.",
+    },
+    {
+      id: 9992,
+      name: "Q1 Marketing Campaign",
+      value: 2800,
+      contact_id: 992,
+      project_id: 9992,
+      paid: true,
+      invoice_date: "2024-01-10",
+      date_created: new Date().toISOString(),
+      contact_name: "Local Bakery",
+    },
+    {
+      id: 9993,
+      name: "Mobile App MVP",
+      value: 12500,
+      contact_id: 993,
+      project_id: 9993,
+      paid: false,
+      date_created: new Date().toISOString(),
+      contact_name: "Startup Inc.",
+    },
+  ];
+
+  const dummyProjects: Project[] = [
+    {
+      id: 9991,
+      name: "E-shop Redesign",
+      project_type: "E-commerce",
+      contact_id: 991,
+      contact_name: "TechCorp s.r.o.",
+      stage: "in_progress",
+      value: 5400,
+      paid: false,
+      invoice_date: "2024-02-01",
+      due_date: "2024-02-15",
+      date_created: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      end_date: null,
+      deleted_at: null,
+    },
+    {
+      id: 9992,
+      name: "Q1 Marketing Campaign",
+      project_type: "Marketing Campaign",
+      contact_id: 992,
+      contact_name: "Local Bakery",
+      stage: "completed",
+      value: 2800,
+      paid: true,
+      invoice_date: "2024-01-10",
+      date_created: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      end_date: null,
+      deleted_at: null,
+    },
+    {
+      id: 9993,
+      name: "Mobile App MVP",
+      project_type: "Mobile App",
+      contact_id: 993,
+      contact_name: "Startup Inc.",
+      stage: "planning",
+      value: 12500,
+      paid: false,
+      date_created: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      end_date: null,
+      deleted_at: null,
+    },
+  ];
+
   const {
     tableData,
     sorting,
@@ -73,7 +161,7 @@ export function DealsTable({
     handleTogglePaidStatus,
     handleInvoiceProject,
     resetFilters,
-  } = useDealsTable(deals, projects, contacts);
+  } = useDealsTable([...deals, ...dummyDeals], [...projects, ...dummyProjects], contacts);
 
   const columns = [
     columnHelper.accessor("name", {
@@ -89,7 +177,7 @@ export function DealsTable({
             }
           }}
         >
-          <span className="font-black text-foreground text-[11px] uppercase tracking-tighter italic group-hover/name:text-blue-600 transition-colors">
+          <span className="font-bold text-foreground text-[11px] group-hover/name:text-blue-600 transition-colors">
             {info.row.original.project?.name || info.getValue()}
           </span>
           <div className="flex items-center gap-1 opacity-50">
@@ -114,10 +202,10 @@ export function DealsTable({
               if (c) setDetailContact(c);
             }}
           >
-            <div className="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[10px] font-black text-blue-500 group-hover/contact:scale-110 transition-transform">
+            <div className="w-6 h-6 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[9px] font-black text-blue-500 group-hover/contact:scale-110 transition-transform">
               {p?.contact_name?.substring(0, 2).toUpperCase() || "??"}
             </div>
-            <span className="font-bold text-xs text-foreground/80 group-hover/contact:text-blue-600 transition-colors">
+            <span className="font-medium text-xs text-foreground/80 group-hover/contact:text-blue-600 transition-colors">
               {p?.contact_name || "Neznámy"}
             </span>
           </div>
@@ -157,7 +245,7 @@ export function DealsTable({
         }
 
         return (
-          <span className="font-black text-blue-500 text-lg tabular-nums tracking-tighter">
+          <span className="font-black text-blue-500 text-sm tabular-nums tracking-tighter">
             {new Intl.NumberFormat("sk-SK", {
               style: "currency",
               currency: "EUR",
@@ -179,9 +267,9 @@ export function DealsTable({
 
         if (deal.paid) {
           return (
-            <div className="flex items-center gap-2 text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit">
-              <CheckCircle2 className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20 w-fit">
+              <CheckCircle2 className="w-3 h-3" />
+              <span className="text-[9px] font-black uppercase tracking-wider">
                 Zaplatené
               </span>
             </div>
@@ -194,17 +282,17 @@ export function DealsTable({
             : false;
           return (
             <div
-              className={`flex flex-col gap-1 ${isOverdue ? "text-red-500" : "text-amber-500"}`}
+              className={`flex flex-col gap-0.5 ${isOverdue ? "text-red-500" : "text-amber-500"}`}
             >
               <div
-                className={`flex items-center gap-2 ${isOverdue ? "bg-red-500/10 border-red-500/20" : "bg-amber-500/10 border-amber-500/20"} px-3 py-1.5 rounded-xl border w-fit`}
+                className={`flex items-center gap-1.5 ${isOverdue ? "bg-red-500/10 border-red-500/20" : "bg-amber-500/10 border-amber-500/20"} px-2 py-1 rounded-lg border w-fit`}
               >
                 {isOverdue ? (
-                  <AlertCircle className="w-4 h-4" />
+                  <AlertCircle className="w-3 h-3" />
                 ) : (
-                  <Clock className="w-4 h-4 text-amber-500" />
+                  <Clock className="w-3 h-3 text-amber-500" />
                 )}
-                <span className="text-[10px] font-black uppercase tracking-wider">
+                <span className="text-[9px] font-black uppercase tracking-wider">
                   {isOverdue ? "Po splatnosti" : "Čaká na platbu"}
                 </span>
               </div>
@@ -219,9 +307,9 @@ export function DealsTable({
         }
 
         return (
-          <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-xl border border-border w-fit">
-            <FileText className="w-4 h-4 opacity-40" />
-            <span className="text-[10px] font-black uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg border border-border w-fit">
+            <FileText className="w-3 h-3 opacity-40" />
+            <span className="text-[9px] font-black uppercase tracking-wider">
               Pripravené na faktúru
             </span>
           </div>
@@ -234,69 +322,82 @@ export function DealsTable({
       cell: (info) => {
         const deal = info.row.original;
         return (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {!deal.invoice_date && deal.value > 0 && (
               <button
-                onClick={() =>
-                  deal.project && setInvoicingProject(deal.project)
-                }
-                className="p-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2 text-[10px] font-black uppercase px-4"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (deal.project) setInvoicingProject(deal.project);
+                }}
+                className="p-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-1 text-[9px] font-black uppercase px-3"
               >
                 <Receipt className="w-3 h-3" /> Fakturovať
               </button>
             )}
             {deal.invoice_date && !deal.paid && (
               <button
-                onClick={() => deal.project && setPayingProject(deal.project)}
-                className="p-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 flex items-center gap-2 text-[10px] font-black uppercase px-4"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (deal.project) setPayingProject(deal.project);
+                }}
+                className="p-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 flex items-center gap-1 text-[9px] font-black uppercase px-3"
               >
                 <Banknote className="w-3 h-3" /> Označiť ako zaplatené
               </button>
             )}
             {deal.paid && (
               <button
-                onClick={() =>
-                  deal.project &&
-                  confirm("Naozaj chcete vrátiť stav na 'Čaká na platbu'?") &&
-                  handleTogglePaidStatus(deal.project.id, false)
-                }
-                className="p-2 rounded-xl border border-amber-500/20 text-amber-500 hover:bg-amber-500/10 transition-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (
+                    deal.project &&
+                    confirm("Naozaj chcete vrátiť stav na 'Čaká na platbu'?")
+                  ) {
+                    handleTogglePaidStatus(deal.project.id, false);
+                  }
+                }}
+                className="p-1.5 rounded-lg border border-amber-500/20 text-amber-500 hover:bg-amber-500/10 transition-all"
                 title="Vrátiť na nezaplatené"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3 h-3" />
               </button>
             )}
             {!deal.paid && deal.invoice_date && (
               <button
-                onClick={() =>
-                  deal.project &&
-                  confirm("Naozaj chcete stornovať túto faktúru?") &&
-                  handleInvoiceProject(deal.project.id, {
-                    invoice_date: null,
-                    due_date: null,
-                    paid: false,
-                  })
-                }
-                className="p-2 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500/10 transition-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (
+                    deal.project &&
+                    confirm("Naozaj chcete stornovať túto faktúru?")
+                  ) {
+                    handleInvoiceProject(deal.project.id, {
+                      invoice_date: null,
+                      due_date: null,
+                      paid: false,
+                    });
+                  }
+                }}
+                className="p-1.5 rounded-lg border border-red-500/20 text-red-500 hover:bg-red-500/10 transition-all"
                 title="Stornovať faktúru"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3 h-3" />
               </button>
             )}
-            <button className="p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground">
-              <MoreHorizontal className="w-4 h-4" />
+            <button className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+              <MoreHorizontal className="w-3 h-3" />
             </button>
             {deal.project?.drive_folder_id && (
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (deal.project) {
                     setFullDetailTab("documents");
                     setFullDetailProject(deal.project);
                   }
                 }}
-                className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500 transition-all hover:text-white shadow-lg shadow-blue-500/5 group"
+                className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500 transition-all hover:text-white shadow-lg shadow-blue-500/5 group"
               >
-                <HardDrive className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <HardDrive className="w-3 h-3 group-hover:scale-110 transition-transform" />
               </button>
             )}
           </div>
@@ -329,7 +430,9 @@ export function DealsTable({
           isOpen={!!invoicingProject}
           onClose={() => setInvoicingProject(null)}
           project={invoicingProject}
-          onConfirm={(data) => handleInvoiceProject(invoicingProject.id, data)}
+          onConfirm={async (data) => {
+            await handleInvoiceProject(invoicingProject.id, data);
+          }}
         />
       )}
 
@@ -338,7 +441,9 @@ export function DealsTable({
           isOpen={!!payingProject}
           onClose={() => setPayingProject(null)}
           project={payingProject}
-          onConfirm={() => handleTogglePaidStatus(payingProject.id, true)}
+          onConfirm={async () => {
+            await handleTogglePaidStatus(payingProject.id, true);
+          }}
         />
       )}
 
@@ -348,7 +453,7 @@ export function DealsTable({
         onClose={() => setDetailContact(null)}
       />
 
-      <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden transition-colors duration-300">
+      <div className="bg-transparent rounded-[2.5rem] border border-border/50 overflow-hidden transition-colors duration-300 h-full flex flex-col">
         <DealsFilters
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -361,15 +466,15 @@ export function DealsTable({
           onReset={resetFilters}
         />
 
-        <div className="overflow-x-auto">
+        <div className="overflow-auto flex-1 thin-scrollbar">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#020617]/50 backdrop-blur-md sticky top-0 z-10 border-b border-border">
+            <thead className="bg-muted/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="px-6 py-5 text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] border-r border-border/50 last:border-0"
+                      className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] border-r border-border/50 last:border-0"
                     >
                       {flexRender(
                         header.column.columnDef.header,
@@ -384,10 +489,10 @@ export function DealsTable({
               {table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="hover:bg-blue-500/5 transition-colors group"
+                  className="group bg-card hover:bg-indigo-500/5 transition-all duration-150 relative"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-6 py-4">
+                    <td key={cell.id} className="px-6 py-3 border-r border-border/10 last:border-0">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
