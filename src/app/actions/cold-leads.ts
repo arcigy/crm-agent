@@ -258,15 +258,19 @@ export async function enrichColdLead(id: string | number) {
         }
 
         // 2. Logic Decision: Outreach vs Cold Call
-        // If NO website OR NO email (from scrape or already present)
+        // NEW RULE: If HAS WEBSITE -> Stay in List 1 (Attempt AI Personalization)
+        // Only move to Cold Call if NO WEBSITE is available.
+
         const hasEmail = lead.email || scrapeResult?.email;
         
-        let shouldPersonalize = !!(urlToScrape && hasEmail);
+        // Changed logic: We only care about having a URL to generate content.
+        let shouldPersonalize = !!urlToScrape;
         
         const updateData: any = {};
 
         if (shouldPersonalize) {
-            // AI Generate only if we have both web and email
+            // AI Generate based on web content
+            // Note: If email is missing, it will still generate text, but user needs to find email manually later.
             const aiResult = await generatePersonalization(lead, scrapedText);
             if (aiResult && aiResult.sentence) {
                 updateData.company_name_reworked = aiResult.name;
@@ -276,12 +280,12 @@ export async function enrichColdLead(id: string | number) {
                 debugInfo.error = `AI Error: ${aiResult.error}`;
             }
         } else {
-            // Move to Cold Call list if missing criteria for Cold Outreach
+            // Move to Cold Call list ONLY if we have NO WEBSITE to scrape/analyze
             updateData.list_name = "Cold Call";
             // Mark as completed so it doesn't get retried or stuck
             updateData.enrichment_status = "completed"; 
-            updateData.enrichment_error = "Moved to Cold Call (No Web/Email)";
-            debugInfo.error = "No Web/Email -> Moved to Cold Call";
+            updateData.enrichment_error = "Moved to Cold Call (No Website)";
+            debugInfo.error = "No Website -> Moved to Cold Call";
 
             // Ensure the "Cold Call" list exists so it shows in sidebar
             try {
