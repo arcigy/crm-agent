@@ -20,6 +20,43 @@ export default function OutreachCampaignsPage() {
     followup_body: "",
     followup_days: 3
   });
+  const [lastFocused, setLastFocused] = useState<{ id: string; selectionStart: number } | null>(null);
+
+  const updateCursorPos = (e: any) => {
+    setLastFocused({
+        id: e.target.id,
+        selectionStart: e.target.selectionStart
+    });
+  };
+
+  const insertVariable = (v: string) => {
+    if (!lastFocused) {
+        toast.info("Najprv kliknite do textového poľa.");
+        return;
+    }
+
+    const field = lastFocused.id as keyof typeof formData;
+    const currentVal = String(formData[field] || "");
+    const start = lastFocused.selectionStart;
+    
+    const newVal = currentVal.substring(0, start) + v + currentVal.substring(start);
+    setFormData({ ...formData, [field]: newVal });
+    
+    // Increment position for next insert
+    setLastFocused({
+        ...lastFocused,
+        selectionStart: start + v.length
+    });
+  };
+
+  const variables = [
+    { label: 'Meno', value: '{{first_name}}' },
+    { label: 'Firma', value: '{{company_name}}' },
+    { label: 'Web', value: '{{website}}' },
+    { label: 'Email', value: '{{email}}' },
+    { label: 'Kategória', value: '{{category}}' },
+    { label: 'AI Intro', value: '{{ai_intro}}' },
+  ];
 
   const refreshCampaigns = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -105,11 +142,18 @@ export default function OutreachCampaignsPage() {
                         />
                     </div>
 
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-2xl">
-                        <p className="text-[10px] font-black uppercase text-blue-600 mb-2">Dostupné premenné:</p>
-                        <div className="flex flex-wrap gap-2 text-[10px] font-bold text-blue-800">
-                            {['[email]', '[company]', '[industry]', '[location]', '[ai_first_sentence]'].map(v => (
-                                <span key={v} className="bg-white/50 dark:bg-black/50 px-2 py-1 rounded-md border border-blue-600/20">{v}</span>
+                    <div className="p-6 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 rounded-[2rem]">
+                        <p className="text-[10px] font-black uppercase text-blue-600 mb-3 ml-1 tracking-widest">Kliknutím vložíte premennú:</p>
+                        <div className="flex flex-wrap gap-2">
+                            {variables.map(v => (
+                                <button 
+                                    key={v.value} 
+                                    type="button"
+                                    onClick={() => insertVariable(v.value)}
+                                    className="bg-white dark:bg-slate-900 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl border border-blue-200 dark:border-blue-800 text-xs font-black text-blue-800 dark:text-blue-400 transition-all active:scale-95 shadow-sm"
+                                >
+                                    {v.label} <span className="opacity-50 font-medium ml-1">{v.value}</span>
+                                </button>
                             ))}
                         </div>
                     </div>
@@ -121,20 +165,28 @@ export default function OutreachCampaignsPage() {
                         </h3>
                         <div className="space-y-4">
                             <input
+                                id="subject"
                                 type="text"
                                 required
                                 className="w-full bg-slate-50 dark:bg-slate-900 border border-border rounded-2xl px-5 py-4 font-bold outline-none focus:ring-2 focus:ring-blue-600/20"
                                 placeholder="Predmet emailu..."
                                 value={formData.subject}
                                 onChange={e => setFormData({...formData, subject: e.target.value})}
+                                onSelect={updateCursorPos}
+                                onClick={updateCursorPos}
+                                onKeyUp={updateCursorPos}
                             />
                             <textarea
+                                id="body"
                                 required
                                 rows={8}
                                 className="w-full bg-slate-50 dark:bg-slate-900 border border-border rounded-2xl px-5 py-4 font-medium outline-none focus:ring-2 focus:ring-blue-600/20 resize-none"
                                 placeholder="Text emailu..."
                                 value={formData.body}
                                 onChange={e => setFormData({...formData, body: e.target.value})}
+                                onSelect={updateCursorPos}
+                                onClick={updateCursorPos}
+                                onKeyUp={updateCursorPos}
                             />
                         </div>
                     </div>
@@ -156,18 +208,26 @@ export default function OutreachCampaignsPage() {
                         </div>
                         <div className="space-y-4">
                             <input
+                                id="followup_subject"
                                 type="text"
                                 className="w-full bg-slate-50 dark:bg-slate-900 border border-border rounded-2xl px-5 py-4 font-bold outline-none focus:ring-2 focus:ring-blue-600/20 opacity-80"
                                 placeholder="Predmet (nechajte prázdne pre RO...)"
                                 value={formData.followup_subject}
                                 onChange={e => setFormData({...formData, followup_subject: e.target.value})}
+                                onSelect={updateCursorPos}
+                                onClick={updateCursorPos}
+                                onKeyUp={updateCursorPos}
                             />
                             <textarea
+                                id="followup_body"
                                 rows={6}
                                 className="w-full bg-slate-50 dark:bg-slate-900 border border-border rounded-2xl px-5 py-4 font-medium outline-none focus:ring-2 focus:ring-blue-600/20 resize-none"
                                 placeholder="Text follow-up emailu..."
                                 value={formData.followup_body}
                                 onChange={e => setFormData({...formData, followup_body: e.target.value})}
+                                onSelect={updateCursorPos}
+                                onClick={updateCursorPos}
+                                onKeyUp={updateCursorPos}
                             />
                         </div>
                     </div>
