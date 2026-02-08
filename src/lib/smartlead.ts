@@ -70,10 +70,22 @@ export const smartLead = {
    * Create a new campaign
    */
   async createCampaign(name: string): Promise<SmartLeadCampaign> {
-    return smartLeadRequest<SmartLeadCampaign>('/campaigns/create', {
+    return smartLeadRequest<any>('/campaigns/create', {
       method: "POST",
       body: JSON.stringify({
         name: name
+      }),
+    });
+  },
+
+  /**
+   * Update/Save campaign sequence steps
+   */
+  async saveCampaignSequence(campaignId: number, sequences: any[]): Promise<any> {
+    return smartLeadRequest<any>(`/campaigns/${campaignId}/sequences`, {
+      method: "POST",
+      body: JSON.stringify({
+        sequences: sequences
       }),
     });
   }

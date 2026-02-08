@@ -120,16 +120,49 @@ export async function saveOutreachCampaign(data: any) {
             // 1. Create in SmartLead automatically
             try {
                 const { smartLead } = await import("@/lib/smartlead");
-                // SmartLead create API expects { name: string }
-                // and returns the campaign object
+                
+                // A. Create Campaign
                 const slRes = await smartLead.createCampaign(data.name);
-                if (slRes && slRes.id) {
-                    payload.smartlead_id = slRes.id;
+                const slId = slRes?.id;
+                
+                if (slId) {
+                    payload.smartlead_id = slId;
+                    
+                    // B. Set Sequence
+                    const sequences = [];
+                    
+                    // Step 1: Initial Email
+                    sequences.push({
+                        seq_number: 1,
+                        seq_delay_details: { delay_in_days: 0 },
+                        variant_distribution_type: "AI_EQUAL",
+                        seq_variants: [{
+                            subject: data.subject,
+                            email_body: data.body,
+                            variant_label: "A",
+                            variant_distribution_percentage: 100
+                        }]
+                    });
+                    
+                    // Step 2: Follow-up (optional)
+                    if (data.followup_subject && data.followup_body) {
+                        sequences.push({
+                            seq_number: 2,
+                            seq_delay_details: { delay_in_days: data.followup_days || 3 },
+                            variant_distribution_type: "AI_EQUAL",
+                            seq_variants: [{
+                                subject: data.followup_subject,
+                                email_body: data.followup_body,
+                                variant_label: "A",
+                                variant_distribution_percentage: 100
+                            }]
+                        });
+                    }
+                    
+                    await smartLead.saveCampaignSequence(slId, sequences);
                 }
             } catch (slError) {
-                console.error("[Outreach] SmartLead auto-create failed:", slError);
-                // We continue saving to CRM even if SmartLead fails, 
-                // but you might want to handle this differently in production.
+                console.error("[Outreach] SmartLead Sync failed:", slError);
             }
 
             const createdItems = await directus.request(createItems("outreach_campaigns", [payload])) as any[];

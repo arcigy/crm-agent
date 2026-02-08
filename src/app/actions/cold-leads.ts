@@ -399,8 +399,8 @@ export async function getSmartLeadCampaigns() {
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
 
-        const { getCampaigns } = await import("@/lib/smartleads");
-        const campaigns = await getCampaigns();
+        const { smartLead } = await import("@/lib/smartlead");
+        const campaigns = await smartLead.getCampaigns();
         return { success: true, data: campaigns };
     } catch (e: any) {
         console.error("Failed to get campaigns:", e);
@@ -424,8 +424,8 @@ export async function syncLeadsToSmartLead(ids: (string | number)[], campaignId:
         const validLeads = leads.filter(l => l.email && l.email.includes("@"));
         if (validLeads.length === 0) throw new Error("No valid emails found in selection");
 
-        // 2. Format for SmartLeads
-        // SmartLeads API usually takes array of objects
+        // 2. Format for SmartLead
+        // SmartLead API usually takes array of objects
         const smartLeadsPayload = validLeads.map(l => ({
             email: l.email,
             first_name: "", 
@@ -440,9 +440,12 @@ export async function syncLeadsToSmartLead(ids: (string | number)[], campaignId:
             }
         }));
 
-        // 3. Push to SmartLeads
-        const { addLeadsToCampaign } = await import("@/lib/smartleads");
-        await addLeadsToCampaign(campaignId, smartLeadsPayload);
+        // 3. Push to SmartLead
+        const { smartLead } = await import("@/lib/smartlead");
+        await smartLead.addLeadsToCampaign({
+            campaign_id: Number(campaignId),
+            leads: smartLeadsPayload
+        });
 
         // 4. Update Status in Directus
         await directus.request(updateItems("cold_leads", ids, { status: "contacted" }));
