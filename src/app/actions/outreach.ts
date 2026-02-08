@@ -91,6 +91,38 @@ export async function getOutreachCampaigns() {
             filter.user_email = { _in: ['arcigyback@gmail.com', 'branislav@arcigy.group'] };
         }
 
+        // SMARTLEAD SYNC: Optional, only if directus is empty or user wants "actual"
+        // Let's at least try to get them to see if there are new ones
+        try {
+            const { smartLead } = await import("@/lib/smartlead");
+            const slCampaigns = await smartLead.getCampaigns();
+            
+            if (slCampaigns && slCampaigns.length > 0) {
+                // Check missing ones
+                const currentCampaigns = await directus.request(
+                    readItems("outreach_campaigns", {
+                        filter: filter,
+                        fields: ["smartlead_id"]
+                    })
+                );
+                const existingSlIds = currentCampaigns.map((c: any) => c.smartlead_id);
+                
+                const missing = slCampaigns.filter(sl => !existingSlIds.includes(sl.id));
+                
+                if (missing.length > 0) {
+                    const toInsert = missing.map(m => ({
+                        name: m.name,
+                        smartlead_id: m.id,
+                        user_email: userEmail,
+                        status: m.status
+                    }));
+                    await directus.request(createItems("outreach_campaigns", toInsert));
+                }
+            }
+        } catch (syncErr) {
+            console.error("[Outreach] Background sync failed:", syncErr);
+        }
+
         const campaigns = await directus.request(
             readItems("outreach_campaigns", {
                 filter: filter,

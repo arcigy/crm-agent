@@ -21,8 +21,8 @@ export default function OutreachCampaignsPage() {
     followup_days: 3
   });
 
-  const refreshCampaigns = async () => {
-    setLoading(true);
+  const refreshCampaigns = async (silent = false) => {
+    if (!silent) setLoading(true);
     const res = await getOutreachCampaigns();
     if (res.success) setCampaigns(res.data);
     setLoading(false);
@@ -190,7 +190,10 @@ export default function OutreachCampaignsPage() {
             <Send className="w-8 h-8 text-blue-600" />
             Outreach Kampane
           </h1>
-          <p className="text-muted-foreground font-medium">Vytvorte a spravujte svoje automatizované sekvencie.</p>
+          <p className="text-muted-foreground font-medium flex items-center gap-2">
+            Vytvorte a spravujte svoje automatizované sekvencie.
+            {loading && <span className="flex items-center gap-1.5 text-blue-600 text-xs font-black animate-pulse ml-2"><Loader2 className="w-3 h-3 animate-spin" /> Synchronizujem so SmartLead...</span>}
+          </p>
         </div>
         <button onClick={startNew} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-3xl font-black flex items-center gap-2 shadow-xl shadow-blue-600/20 active:scale-95 transition-all">
           <Plus className="w-5 h-5" />
