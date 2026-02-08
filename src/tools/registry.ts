@@ -1,4 +1,4 @@
-import { LucideIcon, Zap, FolderKanban, Calendar, Mail, CheckSquare, FileText, HardDrive, Receipt, FileSignature, Landmark } from 'lucide-react';
+import { LucideIcon, Zap, FolderKanban, Calendar, Mail, CheckSquare, FileText, HardDrive, Receipt, FileSignature, Landmark, MapPin } from 'lucide-react';
 
 export interface Tool {
   id: string;
@@ -11,6 +11,13 @@ export interface Tool {
 }
 
 export const tools: Tool[] = [
+  {
+    id: 'google-maps',
+    name: 'Google Maps Scraper',
+    description: 'Automatizované získavanie kontaktov z Google Maps pomocou rotácie API kľúčov.',
+    icon: MapPin,
+    path: '/dashboard/google-maps',
+  },
   {
     id: 'projects',
     name: 'Projekty',
