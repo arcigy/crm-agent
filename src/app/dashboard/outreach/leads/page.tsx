@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, ChevronLeft, ChevronRight, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, PlayCircle, RefreshCw, Clock, Check, AlertCircle } from "lucide-react";
+import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, ChevronLeft, ChevronRight, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, PlayCircle, RefreshCw, Clock, Check, AlertCircle, ArrowLeft } from "lucide-react";
 import { 
     getColdLeads, 
     deleteColdLead, 
@@ -20,6 +20,7 @@ import { SmartLeadCampaign } from "@/types/smartlead";
 import { ColdLeadsImportModal } from "@/components/dashboard/ColdLeadsImportModal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export default function OutreachLeadsPage() {
   // Data State
@@ -463,7 +464,11 @@ export default function OutreachLeadsPage() {
             
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
+                <div className="flex flex-col gap-2">
+                  <Link href="/dashboard/outreach" className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-blue-600 transition-colors mb-2 w-fit">
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Späť na Outreach
+                  </Link>
                   <h2 className="text-3xl font-black tracking-tight text-gray-900 flex items-center gap-3">
                     {activeListName}
                     <span className="text-sm font-bold bg-gray-100 text-gray-500 px-3 py-1 rounded-full">{filteredLeads.length}</span>

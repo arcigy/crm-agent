@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Zap, MessageSquare, Heart, MinusCircle, AlertCircle, Search, Loader2 } from "lucide-react";
+import { Zap, MessageSquare, Heart, MinusCircle, AlertCircle, Search, Loader2, ArrowLeft } from "lucide-react";
 import { getOutreachLeads } from "@/app/actions/outreach";
+import Link from "next/link";
 
 export default function OutreachResponsesPage() {
   const [replies, setReplies] = useState<any[]>([]);
@@ -42,7 +43,11 @@ export default function OutreachResponsesPage() {
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex flex-col gap-2">
+          <Link href="/dashboard/outreach" className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-purple-600 transition-colors mb-2 w-fit">
+            <Zap className="w-3.5 h-3.5" />
+            Späť na Outreach
+          </Link>
           <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
             <MessageSquare className="w-8 h-8 text-purple-600" />
             Odpovede z kampaní
