@@ -108,9 +108,15 @@ function stripCity(name: string, city?: string): string {
 }
 
 // 1. Custom Website Scraper (Pure Internal Logic)
-export async function scrapeWebsite(url: string): Promise<{ text: string, email?: string } | null> {
-    if (!url) return null;
+export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, email?: string } | null> {
+    if (!rawUrl) return null;
     
+    // 0. Normalize URL (Ensure protocol exists)
+    let url = rawUrl.trim();
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = `https://${url}`;
+    }
+
     // Helper: Decode HTML Entities (Catch &#64; etc.)
     const decodeEntities = (html: string) => {
         return html.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))
@@ -225,10 +231,19 @@ export async function scrapeWebsite(url: string): Promise<{ text: string, email?
     };
 
     try {
-        const home = await fetchAndAnalyze(url);
+        let home = await fetchAndAnalyze(url);
         
+        // --- RETRY: If HTTPS fails, try HTTP ---
+        if (!home && url.startsWith("https://")) {
+            console.warn(`[Scraper] HTTPS failed for ${url}, trying HTTP...`);
+            const httpUrl = url.replace("https://", "http://");
+            home = await fetchAndAnalyze(httpUrl);
+            if (home) url = httpUrl; // Update base URL for relative links
+        }
+
         // --- RESILIENCE: If home fails (403/Blocked), try guessing immediately ---
         if (!home) {
+            console.warn(`[Scraper] Failed to access ${url} even with fallback.`);
             const guessed = await guessEmailsForDomain(url);
             if (guessed.length > 0) {
                 return { text: "", email: guessed[0] };
