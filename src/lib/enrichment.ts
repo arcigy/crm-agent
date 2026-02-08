@@ -464,12 +464,9 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
         let sentence = textResponse.trim().replace(/^["']|["']$/g, "");
         
         // Format for Email: 
-        // Logic: Identify "Dobrý deň" + optional name part + trailing comma.
-        // Replace ONLY that trailing comma with ",\n\n".
-        // Regex handles:
-        // 1. "Dobrý deň, text..." -> "Dobrý deň,\n\ntext..."
-        // 2. "Dobrý deň, pán Novák, text..." -> "Dobrý deň, pán Novák,\n\ntext..."
-        sentence = sentence.replace(/^(Dobrý deň(?:,\s*[^,]+)?),\s*/i, '$1,\n\n');
+        // Logic: Identify "Dobrý deň" + optional name part (MUST start with pán/pani) + trailing comma.
+        // This prevents capturing "Páči sa mi" as a name if it's followed by a comma.
+        sentence = sentence.replace(/^(Dobrý deň,(?:\s*(?:pán|pani)\s+[^,]+)?),\s*/i, '$1,\n\n');
 
         console.log(`[AI] Successfully generated for ${businessName}`);
 
