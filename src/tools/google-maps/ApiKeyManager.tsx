@@ -252,15 +252,15 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                                             <div className="flex items-center justify-end gap-2">
                                                 <button 
                                                     onClick={() => resetUsage(key.id)}
-                                                    className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                                                    className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-transparent hover:border-indigo-100"
                                                     title="Reset Usage"
                                                 >
                                                     <RefreshCw className="w-4 h-4" />
                                                 </button>
                                                 <button 
                                                     onClick={() => deleteKey(key.id)}
-                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                                                    title="Delete"
+                                                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100"
+                                                    title="Delete Key"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
