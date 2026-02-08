@@ -364,27 +364,29 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
     2. Write a short personalized opener (TWO SENTENCES).
     
     CRITICAL RULES:
-    1. SALUTATION MODE:
+    1. SALUTATION MODE (MANDATORY COMMA):
        - IF you found a decision maker's name (e.g. Peter Novák), start EXACTLY with:
-         "Dobrý deň, pán Novák. Páči sa mi, že v ${businessName}..." (Use Last Name properly inflected if possible, or just Nominative if unsure, but standard Slovak formal address is "Dobrý deň, pán [Priezvisko]").
-         (Note: If the person is female, use "Dobrý deň, pani [Priezvisko]").
+         "Dobrý deň, pán Novák," (Use Last Name properly inflected if possible, or just Nominative if unsure, but standard Slovak formal address is "Dobrý deň, pán [Priezvisko]").
+         (Note: If the person is female, use "Dobrý deň, pani [Priezvisko],").
        - IF NO name found, start EXACTLY with:
-         "Dobrý deň. Páči sa mi, že v ${businessName}..."
-    
+         "Dobrý deň,"
+       - ALWAYS put a comma at the end of the salutation.
+
     2. CONTENT SPECIFICITY: 
        - NEVER use generic words like "montáž" or "predaj" alone. ALWAYS specify WHAT (e.g. "montáž plynových kotlov", "predaj dubových parkiet").
        - From the context, find the specific niche.
        - The text MUST clearly identify the industry even if I hide the company name.
     
     3. STRUCTURE (2 Sentences):
-       - Sentence 1: "[Salutation]. Páči sa mi, že v ${businessName} [specific core activity]."
+       - Salutation: "Dobrý deň, [Meno],"
+       - Sentence 1: "Páči sa mi, že v ${businessName} [specific core activity]."
        - Sentence 2: "[Mention a specific detail, project, technique or specialization found on the site]."
     
     4. VOCALIZATION (CRITICAL): 
        - Write naturally, as if speaking to a friend. 
        - Avoid "corporate robot" language. Use human language.
     
-    5. Backup Strategy: If (and ONLY if) Context INFO is empty/useless, say: "Dobrý deň. Páči sa mi, že v ${businessName} pôsobíte v sektore ${category || 'vášho podnikania'}."
+    5. Backup Strategy: If (and ONLY if) Context INFO is empty/useless, say: "Dobrý deň, Páči sa mi, že v ${businessName} pôsobíte v sektore ${category || 'vášho podnikania'}."
     
     Output ONLY the text. No quotes.
     `;
@@ -405,9 +407,9 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
 
         let sentence = textResponse.trim().replace(/^["']|["']$/g, "");
         
-        // Format for Email: Newline after every sentence ending (dot, question or exclamation followed by space)
-        // This ensures "Dobrý deň. \n\n Páči sa mi..." and keeps sentences separated.
-        sentence = sentence.replace(/([.?!])\s+/g, "$1\n\n");
+        // Format for Email: Newline after the FIRST comma (salutation).
+        // This ensures "Dobrý deň, \n\n Páči sa mi..."
+        sentence = sentence.replace(/,\s*/, ',\n\n');
 
         console.log(`[AI] Successfully generated for ${businessName}`);
 
