@@ -151,7 +151,8 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
     const fetchAndAnalyze = async (targetUrl: string): Promise<{ text: string, html: string, emails: string[] } | null> => {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 20000); 
+            // NIGHT MODE: 90 seconds global timeout (plenty of time for deep scan)
+            const timeoutId = setTimeout(() => controller.abort(), 90000); 
 
             const res = await fetch(targetUrl, {
                 headers: {
@@ -188,7 +189,8 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
                 scriptQueue.push(scriptMatch[1]);
             }
 
-            const MAX_SCRIPTS = 10; 
+            // NIGHT MODE SETTINGS:
+            const MAX_SCRIPTS = 50; // Scan deeply up to 50 chunks
             let scriptsScanned = 0;
             const startTime = Date.now();
 
@@ -202,8 +204,8 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
 
             // Process loop
             while (scriptQueue.length > 0 && scriptsScanned < MAX_SCRIPTS) {
-                // Time Check: Don't spend more than 8 seconds total on deep scan
-                if (Date.now() - startTime > 8000) break;
+                // Time Check: Allow up to 45 seconds for deep scan (was 8s)
+                if (Date.now() - startTime > 45000) break;
 
                 // Take batch of 5 scripts to fetch in parallel
                 const batch = scriptQueue.splice(0, 5);
@@ -223,7 +225,7 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
                         scriptsScanned++;
 
                         const sController = new AbortController();
-                        const sTimeout = setTimeout(() => sController.abort(), 2000); // 2s max per script
+                        const sTimeout = setTimeout(() => sController.abort(), 10000); // 10s per script (was 2s)
                         
                         const sRes = await fetch(scriptUrl, { signal: sController.signal });
                         clearTimeout(sTimeout);
