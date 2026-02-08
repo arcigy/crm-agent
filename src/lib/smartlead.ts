@@ -88,5 +88,15 @@ export const smartLead = {
         sequences: sequences
       }),
     });
+  },
+
+  /**
+   * Update campaign settings (name, etc.)
+   */
+  async updateCampaignSettings(campaignId: number, settings: any): Promise<any> {
+    return smartLeadRequest<any>(`/campaigns/${campaignId}/settings`, {
+      method: "POST",
+      body: JSON.stringify(settings),
+    });
   }
 };

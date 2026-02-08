@@ -143,7 +143,60 @@ export async function saveOutreachCampaign(data: any) {
         let res;
         const payload = { ...data, user_email: userEmail };
         
+        // Helper to prepare sequences for SmartLead
+        const prepareSequences = (item: any) => {
+            const sequences = [];
+            // Step 1: Initial Email
+            sequences.push({
+                seq_number: 1,
+                seq_delay_details: { delay_in_days: 0 },
+                variant_distribution_type: "AI_EQUAL",
+                seq_variants: [{
+                    subject: item.subject,
+                    email_body: item.body,
+                    variant_label: "A",
+                    variant_distribution_percentage: 100
+                }]
+            });
+            
+            // Step 2: Follow-up (optional)
+            if (item.followup_subject && item.followup_body) {
+                sequences.push({
+                    seq_number: 2,
+                    seq_delay_details: { delay_in_days: item.followup_days || 3 },
+                    variant_distribution_type: "AI_EQUAL",
+                    seq_variants: [{
+                        subject: item.followup_subject,
+                        email_body: item.followup_body,
+                        variant_label: "A",
+                        variant_distribution_percentage: 100
+                    }]
+                });
+            }
+            return sequences;
+        };
+        
         if (data.id) {
+            // SYNC UPDATE TO SMARTLEAD
+            try {
+                const existing = await directus.request(readItems("outreach_campaigns", { 
+                    filter: { id: { _eq: data.id } },
+                    fields: ["smartlead_id"]
+                })) as any[];
+                
+                const slId = existing[0]?.smartlead_id;
+
+                if (slId) {
+                    const { smartLead } = await import("@/lib/smartlead");
+                    // 1. Update Settings
+                    await smartLead.updateCampaignSettings(slId, { name: data.name });
+                    // 2. Update Sequence
+                    await smartLead.saveCampaignSequence(slId, prepareSequences(data));
+                }
+            } catch (slError) {
+                console.error("[Outreach] SmartLead Sync on update failed:", slError);
+            }
+
             res = await directus.request(updateItem("outreach_campaigns", data.id, payload));
         } else {
             // Remove id to allow Directus to auto-generate it
@@ -159,39 +212,8 @@ export async function saveOutreachCampaign(data: any) {
                 
                 if (slId) {
                     payload.smartlead_id = slId;
-                    
                     // B. Set Sequence
-                    const sequences = [];
-                    
-                    // Step 1: Initial Email
-                    sequences.push({
-                        seq_number: 1,
-                        seq_delay_details: { delay_in_days: 0 },
-                        variant_distribution_type: "AI_EQUAL",
-                        seq_variants: [{
-                            subject: data.subject,
-                            email_body: data.body,
-                            variant_label: "A",
-                            variant_distribution_percentage: 100
-                        }]
-                    });
-                    
-                    // Step 2: Follow-up (optional)
-                    if (data.followup_subject && data.followup_body) {
-                        sequences.push({
-                            seq_number: 2,
-                            seq_delay_details: { delay_in_days: data.followup_days || 3 },
-                            variant_distribution_type: "AI_EQUAL",
-                            seq_variants: [{
-                                subject: data.followup_subject,
-                                email_body: data.followup_body,
-                                variant_label: "A",
-                                variant_distribution_percentage: 100
-                            }]
-                        });
-                    }
-                    
-                    await smartLead.saveCampaignSequence(slId, sequences);
+                    await smartLead.saveCampaignSequence(slId, prepareSequences(data));
                 }
             } catch (slError) {
                 console.error("[Outreach] SmartLead Sync failed:", slError);
