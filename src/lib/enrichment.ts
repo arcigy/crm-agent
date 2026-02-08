@@ -151,7 +151,7 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
     const fetchAndAnalyze = async (targetUrl: string): Promise<{ text: string, html: string, emails: string[] } | null> => {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); 
+            const timeoutId = setTimeout(() => controller.abort(), 20000); 
 
             const res = await fetch(targetUrl, {
                 headers: {
@@ -177,26 +177,67 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
             // 1. Extractions
             const emails = new Set(extractEmails(html));
 
-            // --- DEEP SCAN: Scripts (For JS-rendered sites like React/Vite) ---
+            // --- DEEP SCAN: Recursive Script Analysis (SPA Support) ---
             const scriptRegex = /<script\b[^>]*src=["']([^"']+)["']/gi;
             let scriptMatch;
-            const scriptUrls: string[] = [];
+            const scriptQueue: string[] = []; // Queue for scripts to visit
+            const scannedScripts = new Set<string>(); // Visited scripts
+            
+            // Initial scripts from HTML
             while ((scriptMatch = scriptRegex.exec(html)) !== null) {
-                scriptUrls.push(scriptMatch[1]);
+                scriptQueue.push(scriptMatch[1]);
             }
 
-            for (const scriptSrc of scriptUrls) {
+            const MAX_SCRIPTS = 15; // Scan up to 15 chunks
+            let scriptsScanned = 0;
+
+            // Process script queue (including imports found inside scripts)
+            while (scriptQueue.length > 0 && scriptsScanned < MAX_SCRIPTS) {
+                const currentSrc = scriptQueue.shift();
+                if (!currentSrc) continue;
+
                 try {
-                    const scriptUrl = new URL(scriptSrc, targetUrl).toString();
-                    // Only scan scripts on the same domain to avoid heavy external loads
-                    if (scriptUrl.includes(new URL(targetUrl).hostname) || scriptSrc.startsWith("/")) {
-                        const sRes = await fetch(scriptUrl, { signal: controller.signal });
-                        if (sRes.ok) {
-                            const sText = await sRes.text();
-                            extractEmails(sText).forEach(e => emails.add(e));
+                    const scriptUrl = new URL(currentSrc, targetUrl).toString();
+                    
+                    // Skip if already scanned or external (unless same domain)
+                    if (scannedScripts.has(scriptUrl) || 
+                       (!scriptUrl.includes(new URL(targetUrl).hostname) && !currentSrc.startsWith("/"))) {
+                        continue;
+                    }
+
+                    scannedScripts.add(scriptUrl);
+                    scriptsScanned++;
+
+                    // Fetch script content
+                    // We use a short timeout for individual scripts to not block everything
+                    const sController = new AbortController();
+                    const sTimeout = setTimeout(() => sController.abort(), 3000); 
+                    
+                    const sRes = await fetch(scriptUrl, { signal: sController.signal });
+                    clearTimeout(sTimeout);
+
+                    if (sRes.ok) {
+                        const sText = await sRes.text();
+                        
+                        // A. Extract Emails from this chunk
+                        extractEmails(sText).forEach(e => emails.add(e));
+
+                        // B. Find additional imports (Level 2+ recursion)
+                        // Matches: from "./chunk.js" or import("./chunk.js")
+                        const importRegex = /(?:from\s*|import\s*\(\s*)["'](\.[^"']+)["']/g;
+                        let importMatch;
+                        while ((importMatch = importRegex.exec(sText)) !== null) {
+                            const relativeImport = importMatch[1];
+                            // Resolve relative import against CURRENT script URL
+                            try {
+                                const resolvedImport = new URL(relativeImport, scriptUrl).toString();
+                                if (!scannedScripts.has(resolvedImport)) {
+                                    scriptQueue.push(resolvedImport);
+                                }
+                            } catch(e) {}
                         }
                     }
-                } catch(err) { /* ignore */ }
+                } catch(err) { /* ignore individual script fail */ }
             }
 
             // 2. Cloudflare de-obfuscation
@@ -422,9 +463,13 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
 
         let sentence = textResponse.trim().replace(/^["']|["']$/g, "");
         
-        // Format for Email: Newline after the FIRST comma (salutation).
-        // This ensures "Dobrý deň, \n\n Páči sa mi..."
-        sentence = sentence.replace(/,\s*/, ',\n\n');
+        // Format for Email: 
+        // Logic: Identify "Dobrý deň" + optional name part + trailing comma.
+        // Replace ONLY that trailing comma with ",\n\n".
+        // Regex handles:
+        // 1. "Dobrý deň, text..." -> "Dobrý deň,\n\ntext..."
+        // 2. "Dobrý deň, pán Novák, text..." -> "Dobrý deň, pán Novák,\n\ntext..."
+        sentence = sentence.replace(/^(Dobrý deň(?:,\s*[^,]+)?),\s*/i, '$1,\n\n');
 
         console.log(`[AI] Successfully generated for ${businessName}`);
 
