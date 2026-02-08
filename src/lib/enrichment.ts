@@ -180,64 +180,77 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
             // --- DEEP SCAN: Recursive Script Analysis (SPA Support) ---
             const scriptRegex = /<script\b[^>]*src=["']([^"']+)["']/gi;
             let scriptMatch;
-            const scriptQueue: string[] = []; // Queue for scripts to visit
-            const scannedScripts = new Set<string>(); // Visited scripts
+            const scriptQueue: string[] = [];
+            const scannedScripts = new Set<string>();
             
-            // Initial scripts from HTML
+            // Initial scripts
             while ((scriptMatch = scriptRegex.exec(html)) !== null) {
                 scriptQueue.push(scriptMatch[1]);
             }
 
-            const MAX_SCRIPTS = 15; // Scan up to 15 chunks
+            const MAX_SCRIPTS = 10; 
             let scriptsScanned = 0;
+            const startTime = Date.now();
 
-            // Process script queue (including imports found inside scripts)
+            // Ignore common vendor/tracking scripts to save time
+            const isIgnoredScript = (src: string) => {
+                const s = src.toLowerCase();
+                return s.includes("jquery") || s.includes("google") || s.includes("facebook") || 
+                       s.includes("analytics") || s.includes("gtm") || s.includes("wp-includes") || 
+                       s.includes("wp-content/plugins") || s.includes("fontawesome") || s.includes("bootstrap");
+            };
+
+            // Process loop
             while (scriptQueue.length > 0 && scriptsScanned < MAX_SCRIPTS) {
-                const currentSrc = scriptQueue.shift();
-                if (!currentSrc) continue;
+                // Time Check: Don't spend more than 8 seconds total on deep scan
+                if (Date.now() - startTime > 8000) break;
 
-                try {
-                    const scriptUrl = new URL(currentSrc, targetUrl).toString();
+                // Take batch of 5 scripts to fetch in parallel
+                const batch = scriptQueue.splice(0, 5);
+                
+                const processScript = async (currentSrc: string) => {
+                    if (!currentSrc || scriptsScanned >= MAX_SCRIPTS) return;
                     
-                    // Skip if already scanned or external (unless same domain)
-                    if (scannedScripts.has(scriptUrl) || 
-                       (!scriptUrl.includes(new URL(targetUrl).hostname) && !currentSrc.startsWith("/"))) {
-                        continue;
-                    }
+                    try {
+                        const scriptUrl = new URL(currentSrc, targetUrl).toString();
 
-                    scannedScripts.add(scriptUrl);
-                    scriptsScanned++;
-
-                    // Fetch script content
-                    // We use a short timeout for individual scripts to not block everything
-                    const sController = new AbortController();
-                    const sTimeout = setTimeout(() => sController.abort(), 3000); 
-                    
-                    const sRes = await fetch(scriptUrl, { signal: sController.signal });
-                    clearTimeout(sTimeout);
-
-                    if (sRes.ok) {
-                        const sText = await sRes.text();
-                        
-                        // A. Extract Emails from this chunk
-                        extractEmails(sText).forEach(e => emails.add(e));
-
-                        // B. Find additional imports (Level 2+ recursion)
-                        // Matches: from "./chunk.js" or import("./chunk.js")
-                        const importRegex = /(?:from\s*|import\s*\(\s*)["'](\.[^"']+)["']/g;
-                        let importMatch;
-                        while ((importMatch = importRegex.exec(sText)) !== null) {
-                            const relativeImport = importMatch[1];
-                            // Resolve relative import against CURRENT script URL
-                            try {
-                                const resolvedImport = new URL(relativeImport, scriptUrl).toString();
-                                if (!scannedScripts.has(resolvedImport)) {
-                                    scriptQueue.push(resolvedImport);
-                                }
-                            } catch(e) {}
+                        if (scannedScripts.has(scriptUrl) || isIgnoredScript(scriptUrl) ||
+                           (!scriptUrl.includes(new URL(targetUrl).hostname) && !currentSrc.startsWith("/"))) {
+                            return;
                         }
-                    }
-                } catch(err) { /* ignore individual script fail */ }
+
+                        scannedScripts.add(scriptUrl);
+                        scriptsScanned++;
+
+                        const sController = new AbortController();
+                        const sTimeout = setTimeout(() => sController.abort(), 2000); // 2s max per script
+                        
+                        const sRes = await fetch(scriptUrl, { signal: sController.signal });
+                        clearTimeout(sTimeout);
+
+                        if (sRes.ok) {
+                            const sText = await sRes.text();
+                            
+                            // A. Extract Emails
+                            extractEmails(sText).forEach(e => emails.add(e));
+
+                            // B. Find imports
+                            const importRegex = /(?:from\s*|import\s*\(\s*)["'](\.[^"']+)["']/g;
+                            let importMatch;
+                            while ((importMatch = importRegex.exec(sText)) !== null) {
+                                try {
+                                    const relativeImport = importMatch[1];
+                                    const resolvedImport = new URL(relativeImport, scriptUrl).toString();
+                                    if (!scannedScripts.has(resolvedImport)) {
+                                        scriptQueue.push(resolvedImport);
+                                    }
+                                } catch(e) {}
+                            }
+                        }
+                    } catch (e) { /* ignore */ }
+                };
+
+                await Promise.all(batch.map(src => processScript(src)));
             }
 
             // 2. Cloudflare de-obfuscation
