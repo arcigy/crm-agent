@@ -736,7 +736,7 @@ export default function OutreachLeadsPage() {
                                             onKeyDown={handleKeyDown}
                                         />
                                     ) : (
-                                        <div className="text-sm text-gray-600 leading-relaxed group-hover:text-gray-900 transition-colors">
+                                        <div className="text-sm text-gray-600 leading-relaxed group-hover:text-gray-900 transition-colors whitespace-pre-wrap">
                                            {/* Status Indicators for Enrichment */}
                                            {lead.enrichment_status === 'pending' && (
                                                 <div className="mb-2 flex items-center gap-2 text-xs font-bold text-orange-500 bg-orange-50 px-3 py-1.5 rounded-lg animate-pulse w-fit">

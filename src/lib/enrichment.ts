@@ -403,13 +403,17 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
         const textResponse = response.text();
         if (!textResponse) throw new Error("Empty response from Gemini API");
 
-        const sentence = textResponse.trim();
+        let sentence = textResponse.trim().replace(/^["']|["']$/g, "");
         
+        // Format for Email: Newline after every sentence ending (dot, question or exclamation followed by space)
+        // This ensures "Dobrý deň. \n\n Páči sa mi..." and keeps sentences separated.
+        sentence = sentence.replace(/([.?!])\s+/g, "$1\n\n");
+
         console.log(`[AI] Successfully generated for ${businessName}`);
 
         return {
             name: businessName,
-            sentence: sentence.replace(/^["']|["']$/g, ""),
+            sentence: sentence,
             error: null
         };
 
