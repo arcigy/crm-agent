@@ -117,7 +117,7 @@ export function TodoThreeDayView({
       </div>
 
       {/* 3-Column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 mt-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
         {/* YESTERDAY */}
         <DayColumn
           title="Včera"
@@ -183,7 +183,7 @@ function DayColumn({
         ${
           isCenter
             ? "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm scale-100 z-10"
-            : "bg-zinc-50 dark:bg-zinc-950/50 border-zinc-100 dark:border-zinc-800/50 hover:bg-white dark:hover:bg-zinc-900 hover:scale-[1.02] cursor-pointer scale-90"
+            : "bg-zinc-50 dark:bg-zinc-950/50 border-zinc-100 dark:border-zinc-800/50 hover:bg-white dark:hover:bg-zinc-900 hover:scale-[1.02] cursor-pointer scale-95"
         }
       `}
     >
