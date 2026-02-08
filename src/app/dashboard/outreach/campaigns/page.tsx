@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Zap, Save, Plus, ArrowLeft, Send, Clock, Mail, ChevronRight, Loader2 } from "lucide-react";
-import { getOutreachCampaigns, saveOutreachCampaign } from "@/app/actions/outreach";
+import { getOutreachCampaigns, saveOutreachCampaign, getOutreachLeads } from "@/app/actions/outreach";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -11,6 +11,7 @@ export default function OutreachCampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sampleLead, setSampleLead] = useState<any>(null);
   const [formData, setFormData] = useState({
     id: null,
     name: "",
@@ -60,9 +61,29 @@ export default function OutreachCampaignsPage() {
 
   const refreshCampaigns = async (silent = false) => {
     if (!silent) setLoading(true);
-    const res = await getOutreachCampaigns();
-    if (res.success) setCampaigns(res.data);
+    const [campRes, leadRes] = await Promise.all([
+        getOutreachCampaigns(),
+        getOutreachLeads()
+    ]);
+
+    if (campRes.success) setCampaigns(campRes.data);
+    if (leadRes.success && leadRes.data && leadRes.data.length > 0) {
+        setSampleLead(leadRes.data[0]);
+    }
     setLoading(false);
+  };
+
+  const replaceVariables = (text: string) => {
+    if (!text) return "";
+    if (!sampleLead) return text;
+
+    return text
+        .replace(/{{first_name}}/g, sampleLead.first_name || "Meno")
+        .replace(/{{company_name}}/g, sampleLead.company_name || sampleLead.company || "Firma")
+        .replace(/{{email}}/g, sampleLead.email || "email@klient.sk")
+        .replace(/{{website}}/g, sampleLead.website || "www.web.sk")
+        .replace(/{{category}}/g, sampleLead.category || "Služby")
+        .replace(/{{ai_intro}}/g, sampleLead.ai_first_sentence || "Zaujala ma Vaša práca...");
   };
 
   useEffect(() => {
@@ -128,7 +149,7 @@ export default function OutreachCampaignsPage() {
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                 <div className="bg-card border border-border p-8 rounded-[3rem] shadow-sm space-y-6">
                     <div className="space-y-2">
                         <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Názov kampane</label>
@@ -232,7 +253,83 @@ export default function OutreachCampaignsPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* RIGHT: LIVE PREVIEW */}
+                <div className="lg:sticky lg:top-8 space-y-6">
+                    <div className="bg-slate-900 text-white rounded-[3rem] p-4 shadow-2xl overflow-hidden border-8 border-slate-800">
+                        <div className="bg-slate-800/50 px-6 py-4 border-b border-white/5 flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full bg-red-500/50" />
+                            <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
+                            <div className="w-3 h-3 rounded-full bg-green-500/50" />
+                            <span className="text-[10px] font-black uppercase tracking-tighter opacity-30 ml-auto mr-4">Preview</span>
+                        </div>
+                        
+                        <div className="p-8 space-y-8">
+                            {/* EMAIL HEADER */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3 pb-4 border-b border-white/5">
+                                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-black text-xs uppercase">
+                                        {sampleLead?.first_name?.[0] || sampleLead?.email?.[0] || "L"}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-black">{sampleLead?.first_name || "Meno Leadov"}</p>
+                                        <p className="text-[10px] opacity-40">{sampleLead?.email || "email@klient.sk"}</p>
+                                    </div>
+                                    <div className="ml-auto text-[10px] opacity-20 font-mono italic">Práve teraz</div>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-30">Predmet</p>
+                                    <h4 className="text-lg font-black text-blue-400 leading-tight">
+                                        {replaceVariables(formData.subject) || "..."}
+                                    </h4>
+                                </div>
+                            </div>
+
+                            {/* EMAIL BODY */}
+                            <div className="bg-white/5 rounded-2xl p-6 min-h-[250px] border border-white/5 backdrop-blur-sm">
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap opacity-90">
+                                    {replaceVariables(formData.body) || "Sem sa zobrazí náhľad Vášho emailu so skutočnými údajmi..."}
+                                </p>
+                            </div>
+
+                            {/* FOLLOWUP PREVIEW */}
+                            {formData.followup_body && (
+                                <div className="space-y-4 mt-8 opacity-60 border-t border-white/5 pt-8">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Clock className="w-3 h-3 text-orange-500" />
+                                        <span className="text-[10px] font-black uppercase tracking-tighter text-orange-500">
+                                            Follow-up po {formData.followup_days} dňoch
+                                        </span>
+                                    </div>
+                                    <div className="p-6 bg-orange-500/5 rounded-2xl border border-orange-500/10">
+                                        <p className="text-sm italic opacity-80 whitespace-pre-wrap">
+                                            {replaceVariables(formData.followup_body)}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="bg-card border border-border p-6 rounded-[2.5rem] shadow-sm space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest">Použité dáta z prvého leadu:</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <p className="text-[9px] opacity-40 font-black uppercase">Meno</p>
+                                <p className="text-xs font-black truncate">{sampleLead?.first_name || "Neznáme"}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[9px] opacity-40 font-black uppercase">Firma</p>
+                                <p className="text-xs font-black truncate">{sampleLead?.company_name || sampleLead?.company || "Neznáma"}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+
         </form>
       </div>
     );
