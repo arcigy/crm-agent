@@ -229,3 +229,29 @@ export async function saveOutreachCampaign(data: any) {
         return { success: false, error: error.message };
     }
 }
+
+export async function getOutreachLeadForPreview() {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+
+        const filter: any = { 
+            user_email: { _eq: userEmail },
+            enrichment_status: { _eq: "completed" },
+            list_name: { _eq: "Zoznam 1" }
+        };
+
+        const leads = await directus.request(
+            readItems("outreach_leads", {
+                filter: filter,
+                sort: ["-id"],
+                limit: 1
+            })
+        );
+        
+        return { success: true, data: leads.length > 0 ? leads[0] : null };
+    } catch (error: any) {
+        console.error("[Outreach] Failed to fetch preview lead:", error);
+        return { success: false, error: error.message };
+    }
+}

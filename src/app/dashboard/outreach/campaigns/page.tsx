@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Zap, Save, Plus, ArrowLeft, Send, Clock, Mail, ChevronRight, Loader2 } from "lucide-react";
-import { getOutreachCampaigns, saveOutreachCampaign, getOutreachLeads } from "@/app/actions/outreach";
+import { getOutreachCampaigns, saveOutreachCampaign, getOutreachLeadForPreview } from "@/app/actions/outreach";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -63,12 +63,12 @@ export default function OutreachCampaignsPage() {
     if (!silent) setLoading(true);
     const [campRes, leadRes] = await Promise.all([
         getOutreachCampaigns(),
-        getOutreachLeads()
+        getOutreachLeadForPreview()
     ]);
 
     if (campRes.success) setCampaigns(campRes.data);
-    if (leadRes.success && leadRes.data && leadRes.data.length > 0) {
-        setSampleLead(leadRes.data[0]);
+    if (leadRes.success && leadRes.data) {
+        setSampleLead(leadRes.data);
     }
     setLoading(false);
   };
