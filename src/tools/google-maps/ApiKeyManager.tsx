@@ -132,16 +132,41 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                     </div>
                     <div>
                         <h3 className="text-lg font-black text-gray-900 tracking-tight">Správca Google API Kľúčov</h3>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Rotácia & Limity</p>
+                        <div className="flex flex-wrap gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">
+                            <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 hover:underline flex items-center gap-1">
+                                1. Get API Key ↗
+                            </a>
+                            <a href="https://console.cloud.google.com/google/maps-apis/library/places-backend.googleapis.com" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 hover:underline flex items-center gap-1">
+                                2. Enable Places API ↗
+                            </a>
+                            <a href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1">
+                                💲 Check FREE Credit Usage ↗
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 ${totalUsage > totalLimit ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"}`}>
                     <ShieldAlert className="w-4 h-4" />
-                    Usage: {totalUsage} / {totalLimit}
+                    Limit: {totalLimit} reqs/mo
                 </div>
             </div>
 
-            <div className="p-8 space-y-8">
+            <div className="px-8 pt-0 pb-8 space-y-8">
+                {/* Guide */}
+                <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-100 text-sm text-blue-900 space-y-2">
+                    <h4 className="font-bold flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        Ako získať kľúč zadarmo? (Step-by-Step)
+                    </h4>
+                    <ol className="list-decimal list-inside space-y-1 ml-1 text-xs font-medium text-blue-800/80">
+                        <li>Otvorte <strong>Google Cloud Console</strong> (linky vyššie).</li>
+                        <li>Vytvorte nový projekt (každý Google účet má $200 kredit mesačne zdarma).</li>
+                        <li>Chodťe do <strong>Library</strong> a povoľte <strong>"Places API (New)"</strong>.</li>
+                        <li>Chodťe do <strong>Credentials</strong> a kliknite <strong>Create Credentials -&gt; API Key</strong>.</li>
+                        <li>Skopírujte kľúč sem. (Na jeden účet môžete mať ~6000 vyhľadávaní mesačne zdarma).</li>
+                    </ol>
+                </div>
+
                 {/* Importer */}
                 <div className="bg-gray-50 rounded-3xl p-6 border-2 border-dashed border-gray-200 hover:border-indigo-300 transition-colors">
                     <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-gray-400 mb-4">
