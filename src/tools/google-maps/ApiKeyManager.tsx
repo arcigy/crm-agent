@@ -217,8 +217,11 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                                             {key.status === 'error' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-widest">Error</span>}
                                             {key.status === 'limit_reached' && <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-widest">Limit</span>}
                                         </td>
-                                        <td className="py-4 px-6 font-mono text-xs text-gray-600 font-bold">
-                                            {key.key.substring(0, 8)}...{key.key.substring(key.key.length - 6)}
+                                        <td className="py-4 px-6 font-mono text-xs text-gray-500 font-bold flex items-center gap-2">
+                                            <span className="bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
+                                                {key.key.length > 10 ? `${key.key.substring(0, 4)}...${key.key.substring(key.key.length - 4)}` : 'Invalid Key'}
+                                            </span>
+                                            <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">🔒 Encrypted</span>
                                         </td>
                                         <td className="py-4 px-6">
                                             <div className="flex items-center gap-3">
