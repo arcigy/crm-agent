@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
-import { createItem, readItems, deleteItem, updateItem, deleteItems, updateItems } from "@directus/sdk";
+import { createItem, readItems, deleteItem, updateItem, deleteItems, updateItems, createItems } from "@directus/sdk";
 import { getUserEmail } from "@/lib/auth";
 import { scrapeWebsite, generatePersonalization } from "@/lib/enrichment";
 
@@ -29,6 +29,8 @@ export interface ColdLeadItem {
   smartlead_campaign_id?: string;
   smartlead_status?: "queued" | "pushed" | "failed" | null;
   smartlead_pushed_at?: string;
+  source_city?: string;
+  source_keyword?: string;
 }
 
 export interface ColdLeadList {
@@ -99,61 +101,64 @@ export async function bulkCreateColdLeads(leads: Partial<ColdLeadItem>[]) {
   try {
     const userEmail = await getUserEmail();
     if (!userEmail) throw new Error("Unauthorized");
+    
+    // 1. Fetch existing leads to check for duplicates
+    // We check against email and website to avoid duplicates
+    const existingLeads = await directus.request(readItems("cold_leads", {
+        filter: {
+            user_email: { _eq: userEmail }
+        },
+        fields: ["email", "website", "title"],
+        limit: -1
+    })) as unknown as ColdLeadItem[];
 
-    // Deduplication Logic - Enhanced with Email and Phone
-    const existing = (await directus.request(
-        readItems("cold_leads", {
-            fields: ["title", "website", "email", "phone"],
-            limit: -1,
-            filter: { user_email: { _eq: userEmail } }
-        })
-    )) as unknown as { title: string; website?: string; email?: string; phone?: string }[];
-
-    const existingWebsites = new Set(existing.map(e => e.website?.toLowerCase().trim()).filter(Boolean));
-    const existingEmails = new Set(existing.map(e => e.email?.toLowerCase().trim()).filter(Boolean));
-    // Clean phone numbers for comparison (remove spaces/dashes)
-    const cleanPhone = (p?: string) => p?.replace(/[\s\-\+\(\)]/g, "") || "";
-    const existingPhones = new Set(existing.map(e => cleanPhone(e.phone)).filter(p => p.length > 5));
-    const existingTitles = new Set(existing.map(e => e.title.toLowerCase().trim()));
+    const existingEmails = new Set(existingLeads.map(l => l.email).filter(Boolean));
+    const existingWebsites = new Set(existingLeads.map(l => l.website).filter(Boolean));
 
     const uniqueLeads: Partial<ColdLeadItem>[] = [];
     let duplicatesCount = 0;
 
     for (const lead of leads) {
-        const leadWebsite = lead.website?.toLowerCase().trim();
-        const leadEmail = lead.email?.toLowerCase().trim();
-        const leadPhoneClean = cleanPhone(lead.phone);
-        const leadTitle = lead.title?.toLowerCase().trim();
+        const isDuplicateEmail = lead.email && existingEmails.has(lead.email);
+        const isDuplicateWebsite = lead.website && existingWebsites.has(lead.website);
+        
+        if (isDuplicateEmail || isDuplicateWebsite) {
+            duplicatesCount++;
+            continue;
+        }
 
-        if (leadWebsite && existingWebsites.has(leadWebsite)) { duplicatesCount++; continue; }
-        if (leadEmail && existingEmails.has(leadEmail)) { duplicatesCount++; continue; }
-        if (leadPhoneClean && leadPhoneClean.length > 5 && existingPhones.has(leadPhoneClean)) { duplicatesCount++; continue; }
-        if (leadTitle && existingTitles.has(leadTitle)) { duplicatesCount++; continue; }
+        // Add to unique list
+        uniqueLeads.push({
+            ...lead,
+            user_email: userEmail,
+            status: "new",
+            enrichment_status: "pending"
+        });
 
-        uniqueLeads.push(lead);
-        if (leadWebsite) existingWebsites.add(leadWebsite);
-        if (leadEmail) existingEmails.add(leadEmail);
-        if (leadPhoneClean.length > 5) existingPhones.add(leadPhoneClean);
-        if (leadTitle) existingTitles.add(leadTitle);
+        // Add to validation sets to prevent duplicates within the upload itself
+        if (lead.email) existingEmails.add(lead.email);
+        if (lead.website) existingWebsites.add(lead.website);
     }
 
     if (uniqueLeads.length === 0) {
         return { success: true, count: 0, duplicates: duplicatesCount, items: [] };
     }
-
-    const formattedLeads = uniqueLeads.map(l => ({
-      ...l,
-      user_email: userEmail,
-      status: l.status || "new",
-      list_name: l.list_name || "Zoznam 1"
-    }));
-
-    const createdItems = await directus.request(createItem("cold_leads", formattedLeads));
     
+    // 2. Bulk Create
+    const createdItems = await directus.request(createItems("cold_leads", uniqueLeads));
+
     revalidatePath("/dashboard/cold-outreach");
-    return { success: true, count: uniqueLeads.length, duplicates: duplicatesCount, items: createdItems as unknown as ColdLeadItem[] };
+    
+    // Return format compatible with Import Modal
+    return { 
+        success: true, 
+        count: uniqueLeads.length, 
+        duplicates: duplicatesCount, 
+        items: createdItems as unknown as ColdLeadItem[] 
+    };
+
   } catch (e: any) {
-    console.error("Bulk create cold leads failed:", e);
+    console.error("Failed to bulk create leads:", e);
     return { success: false, error: getDirectusErrorMessage(e) };
   }
 }
@@ -178,7 +183,6 @@ export async function bulkDeleteColdLeads(ids: (string | number)[]) {
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
         
-        // deleteItems takes array of keys
         await directus.request(deleteItems("cold_leads", ids));
         
         revalidatePath("/dashboard/cold-outreach");
@@ -229,7 +233,6 @@ export async function enrichColdLead(id: string | number) {
         
         const lead = items[0] as unknown as ColdLeadItem;
         
-        // Debug info accumulator
         const debugInfo = {
             id,
             name: lead.title,
@@ -241,7 +244,6 @@ export async function enrichColdLead(id: string | number) {
             error: null as string | null
         };
 
-        // 1. Scrape (Prefer website, fallback to fallback_url)
         const urlToScrape = lead.website || lead.fallback_url;
         let scrapeResult = null;
         let scrapedText = null;
@@ -257,20 +259,10 @@ export async function enrichColdLead(id: string | number) {
             }
         }
 
-        // 2. Logic Decision: Outreach vs Cold Call
-        // NEW RULE: If HAS WEBSITE -> Stay in List 1 (Attempt AI Personalization)
-        // Only move to Cold Call if NO WEBSITE is available.
-
-        const hasEmail = lead.email || scrapeResult?.email;
-        
-        // Changed logic: We only care about having a URL to generate content.
-        let shouldPersonalize = !!urlToScrape;
-        
+        const shouldPersonalize = !!urlToScrape;
         const updateData: any = {};
 
         if (shouldPersonalize) {
-            // AI Generate based on web content
-            // Note: If email is missing, it will still generate text, but user needs to find email manually later.
             const aiResult = await generatePersonalization(lead, scrapedText);
             if (aiResult && aiResult.sentence) {
                 updateData.company_name_reworked = aiResult.name;
@@ -280,14 +272,11 @@ export async function enrichColdLead(id: string | number) {
                 debugInfo.error = `AI Error: ${aiResult.error}`;
             }
         } else {
-            // Move to Cold Call list ONLY if we have NO WEBSITE to scrape/analyze
             updateData.list_name = "Cold Call";
-            // Mark as completed so it doesn't get retried or stuck
             updateData.enrichment_status = "completed"; 
             updateData.enrichment_error = "Moved to Cold Call (No Website)";
             debugInfo.error = "No Website -> Moved to Cold Call";
 
-            // Ensure the "Cold Call" list exists so it shows in sidebar
             try {
                 const existingLists = await directus.request(readItems("cold_leads_lists", { filter: { name: { _eq: "Cold Call" }}}));
                 if (!existingLists || (existingLists as any[]).length === 0) {
@@ -298,14 +287,12 @@ export async function enrichColdLead(id: string | number) {
             }
         }
 
-        // 3. Save Scraped Email if exists and lead had none
         if (scrapeResult?.email && !lead.email) {
             updateData.email = scrapeResult.email;
         }
 
         if (Object.keys(updateData).length > 0) {
             await directus.request(updateItem("cold_leads", id, updateData));
-            // Return success even if skipped AI, because we updated the list_name
             return { success: true, debug: debugInfo };
         }
         
@@ -322,14 +309,12 @@ export async function sendColdLeadEmail(id: string | number) {
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
 
-        // 1. Get Lead Data
         const items = await directus.request(readItems("cold_leads", { filter: { id: { _eq: id }}}));
         if (!items || items.length === 0) throw new Error("Lead not found");
         const lead = items[0] as unknown as ColdLeadItem;
 
         if (!lead.email) throw new Error("Lead has no email address");
 
-        // 2. Get Gmail Tokens (same logic as sync)
         const { currentUser, clerkClient } = await import("@clerk/nextjs/server");
         const user = await currentUser();
         if (!user) throw new Error("Clerk session not found");
@@ -348,7 +333,6 @@ export async function sendColdLeadEmail(id: string | number) {
 
         if (!token) throw new Error("Google account not connected. Please sync contacts first to connect.");
 
-        // 3. Prepare Email
         const { sendEmail } = await import("@/lib/google");
         const companyName = lead.company_name_reworked || lead.title;
         const subject = `Spolupráca s ${companyName}`;
@@ -376,7 +360,6 @@ export async function sendColdLeadEmail(id: string | number) {
             `;
         }
 
-        // 4. Send
         await sendEmail({
             accessToken: token,
             to: lead.email,
@@ -384,7 +367,6 @@ export async function sendColdLeadEmail(id: string | number) {
             body: body
         });
 
-        // 5. Update Status
         await directus.request(updateItem("cold_leads", id, { status: "contacted" }));
         
         revalidatePath("/dashboard/cold-outreach");
@@ -395,8 +377,6 @@ export async function sendColdLeadEmail(id: string | number) {
         return { success: false, error: e.message || String(e) };
     }
 }
-
-// --- SmartLeads Integration ---
 
 export async function getSmartLeadCampaigns() {
     try {
@@ -417,7 +397,6 @@ export async function syncLeadsToSmartLead(ids: (string | number)[], campaignId:
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
 
-        // 1. Get Leads
         const leads = (await directus.request(readItems("cold_leads", {
             filter: { id: { _in: ids } },
             limit: -1
@@ -428,8 +407,6 @@ export async function syncLeadsToSmartLead(ids: (string | number)[], campaignId:
         const validLeads = leads.filter(l => l.email && l.email.includes("@"));
         if (validLeads.length === 0) throw new Error("No valid emails found in selection");
 
-        // 2. Format for SmartLead
-        // SmartLead API usually takes array of objects
         const smartLeadsPayload = validLeads.map(l => ({
             email: l.email,
             first_name: "", 
@@ -444,14 +421,12 @@ export async function syncLeadsToSmartLead(ids: (string | number)[], campaignId:
             }
         }));
 
-        // 3. Push to SmartLead
         const { smartLead } = await import("@/lib/smartlead");
         await smartLead.addLeadsToCampaign({
             campaign_id: Number(campaignId),
             leads: smartLeadsPayload
         });
 
-        // 4. Update Status in Directus
         await directus.request(updateItems("cold_leads", ids, { status: "contacted" }));
         
         revalidatePath("/dashboard/cold-outreach");
@@ -468,7 +443,6 @@ export async function bulkQueueForSmartLead(ids: (string | number)[], campaignId
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
 
-        // 1. Get Leads to validate
         const leads = (await directus.request(readItems("cold_leads", {
             filter: { id: { _in: ids } },
             fields: ["id", "email"],
@@ -481,7 +455,6 @@ export async function bulkQueueForSmartLead(ids: (string | number)[], campaignId
         
         if (validIds.length === 0) throw new Error("No leads with valid email found.");
 
-        // 2. Queue them
         await directus.request(updateItems("cold_leads", validIds, { 
             smartlead_campaign_id: campaignId,
             smartlead_status: "queued"
