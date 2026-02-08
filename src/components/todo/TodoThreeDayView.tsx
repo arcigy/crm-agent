@@ -102,7 +102,7 @@ export function TodoThreeDayView({
               />
             </div>
 
-            <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] font-black uppercase tracking-widest text-blue-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap">
+            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black uppercase tracking-widest text-blue-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap bg-white dark:bg-zinc-900 px-2 py-0.5 rounded shadow-sm border border-zinc-100 dark:border-zinc-800">
               Zmeniť dátum
             </span>
           </div>
@@ -117,7 +117,7 @@ export function TodoThreeDayView({
       </div>
 
       {/* 3-Column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 mt-4">
         {/* YESTERDAY */}
         <DayColumn
           title="Včera"
@@ -183,7 +183,7 @@ function DayColumn({
         ${
           isCenter
             ? "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-xl ring-4 ring-zinc-50 dark:ring-zinc-800/50 scale-100 z-10"
-            : "bg-zinc-50 dark:bg-zinc-950/50 border-zinc-100 dark:border-zinc-800/50 opacity-70 hover:opacity-100 hover:scale-[1.02] cursor-pointer scale-95 grayscale-[0.5] hover:grayscale-0"
+            : "bg-zinc-50 dark:bg-zinc-950/50 border-zinc-100 dark:border-zinc-800/50 opacity-60 hover:opacity-100 hover:scale-[1.02] cursor-pointer scale-90 grayscale-[0.5] hover:grayscale-0"
         }
       `}
     >
