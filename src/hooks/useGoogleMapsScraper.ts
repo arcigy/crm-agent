@@ -19,18 +19,37 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
     const loadQueue = useCallback(async () => {
         try {
             const jobs = await getScrapeJobs();
-            // Show all recent jobs in history, but track processing for state
             setQueue(jobs.slice(0, 10));
             
-            const isProcessing = jobs.some(j => j.status === 'processing' || j.status === 'queued');
-            setIsScraping(isProcessing);
+            const activeJob = jobs.find(j => j.status === 'processing' || j.status === 'queued');
+            setIsScraping(!!activeJob);
+
+            // If we have a latest job and no results shown yet, load them!
+            if (jobs.length > 0 && (places.length === 0 || lastPlacesCountRef.current === 0)) {
+                const latestJob = jobs[0]; 
+                const leads = await getJobLeads(latestJob.id);
+                if (leads && leads.length > 0) {
+                    const mappedLeads = (leads as any[]).map(l => ({
+                        id: String(l.id),
+                        name: l.title,
+                        address: l.formatted_address || l.city,
+                        phone: l.phone,
+                        website: l.website,
+                        url: l.google_maps_url,
+                        source_city: l.source_city
+                    }));
+                    setPlaces(mappedLeads);
+                    lastPlacesCountRef.current = mappedLeads.length;
+                    addLog(`📍 Načítaných ${mappedLeads.length} výsledkov z poslednej úlohy.`);
+                }
+            }
 
             return jobs;
         } catch (e) {
             console.error("Load queue failed", e);
             return [];
         }
-    }, []);
+    }, [places.length, addLog]);
 
     const pollJobStatus = useCallback(async () => {
         const jobs = await loadQueue();

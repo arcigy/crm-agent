@@ -137,7 +137,8 @@ export async function GET(request: Request) {
                     
                     const details: any = await getPlaceDetails(currentKey.key, rawPlace.place_id);
                     if (details) {
-                        const newLead = {
+                        const hasWebsite = !!details.website;
+                        const newLead: any = {
                             title: details.name,
                             website: details.website,
                             phone: details.formatted_phone_number || details.international_phone_number,
@@ -147,10 +148,11 @@ export async function GET(request: Request) {
                             source_city: currentCity,
                             status: 'lead',
                             user_email: job.owner_email,
-                            list_name: job.target_list || job.search_term
+                            list_name: hasWebsite ? (job.target_list || job.search_term) : 'Cold Call',
+                            enrichment_status: hasWebsite ? 'pending' : null
                         };
 
-                        console.log(`[GMAP WORKER] Saving lead: ${newLead.title}`);
+                        console.log(`[GMAP WORKER] Saving lead: ${newLead.title} (${hasWebsite ? 'Enrichment pending' : 'Cold Call list'})`);
                         await directus.request(createItem(LEADS_COLLECTION, newLead));
 
                         totalFound++;
@@ -196,12 +198,20 @@ export async function GET(request: Request) {
             last_error: isFinished ? null : job.last_error // Clear error if finished
         }));
 
-        // 6. Turbo Ping (Self-recursion)
+        // 6. Turbo Pings (Self-recursion & Enrichment)
+        const proto = request.headers.get("x-forwarded-proto") || "http";
+        const host = request.headers.get("host");
+        const baseUrl = `${proto}://${host}`;
+
+        // Ping enrichment worker if we added leads with websites
+        if (foundThisRun > 0) {
+            console.log("[GMAP WORKER] Pinging enrichment worker...");
+            fetch(`${baseUrl}/api/cron/enrich-leads`, { headers: { 'Cache-Control': 'no-cache' }}).catch(() => {});
+        }
+
         if (!isFinished && foundThisRun > 0) {
             console.log("[GMAP WORKER] Sending self-ping for next batch...");
-            const proto = request.headers.get("x-forwarded-proto") || "http";
-            const host = request.headers.get("host");
-            const nextUrl = `${proto}://${host}/api/cron/google-maps-worker`;
+            const nextUrl = `${baseUrl}/api/cron/google-maps-worker`;
             fetch(nextUrl, { headers: { 'Cache-Control': 'no-cache' }}).catch(() => {});
         }
 
