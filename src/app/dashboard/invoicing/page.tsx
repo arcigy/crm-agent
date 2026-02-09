@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Receipt, Save, Building2, User, Globe, Mail, Phone, Hash, Landmark } from "lucide-react";
+import { Save, Building2, User, Globe, Mail, Phone, Hash, Landmark } from "lucide-react";
 import { toast } from "sonner";
 
 interface InvoicingSettings {
@@ -47,15 +47,10 @@ export default function InvoicingPage() {
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-8 animate-in fade-in duration-500">
       <header className="mb-12">
-        <div className="flex items-center gap-4 mb-2">
-          <div className="p-3 bg-blue-600 rounded-2xl shadow-xl shadow-blue-600/20">
-            <Receipt className="w-6 h-6 text-white" />
-          </div>
-          <div>
+        <div className="flex flex-col gap-2">
             <h1 className="text-4xl font-black text-zinc-900 dark:text-white tracking-tighter uppercase italic leading-none">
               Fakturácia
             </h1>
-          </div>
         </div>
       </header>
 
