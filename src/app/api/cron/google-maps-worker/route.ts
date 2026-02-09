@@ -60,15 +60,7 @@ export async function GET(request: Request) {
         
         const jobs = await directus.request(readItems(JOBS_COLLECTION, {
             filter: {
-                _or: [
-                    { status: { _in: ['queued', 'paused'] } },
-                    { 
-                        _and: [
-                            { status: { _eq: 'processing' } },
-                            { date_updated: { _lt: twoMinutesAgo } }
-                        ]
-                    }
-                ]
+                status: { _in: ['queued', 'paused'] }
             },
             limit: 1,
             sort: ['date_created']
@@ -88,8 +80,7 @@ export async function GET(request: Request) {
         // Update status to processing and set date_updated to "lock" the job
         await directus.request(updateItem(JOBS_COLLECTION, job.id, { 
             status: 'processing', 
-            last_error: null,
-            date_updated: new Date().toISOString()
+            last_error: null
         }));
 
         if (job.status !== 'processing') {
@@ -104,8 +95,7 @@ export async function GET(request: Request) {
             const errorMsg = "Limit dosiahnutý: Žiadne dostupné kľúče.";
             await directus.request(updateItem(JOBS_COLLECTION, job.id, { 
                 status: 'paused', 
-                last_error: errorMsg,
-                date_updated: new Date().toISOString()
+                last_error: errorMsg
             }));
             await addLog(job.id, `❌ ${errorMsg}`);
             return NextResponse.json({ message: "No available API keys." });
@@ -155,10 +145,7 @@ export async function GET(request: Request) {
             }
 
             try {
-                // Update job's date_updated as a keep-alive
-                await directus.request(updateItem(JOBS_COLLECTION, job.id, { 
-                    date_updated: new Date().toISOString() 
-                }));
+                // Keep-alive skipped (date_updated missing)
 
                 // Search Businesses
                 const query = `${job.search_term} in ${currentCity}`;
@@ -220,8 +207,7 @@ export async function GET(request: Request) {
                         if (hasWebsite) leadsWithWebsites++;
 
                         await directus.request(updateItem(JOBS_COLLECTION, job.id, {
-                            found_count: totalFound,
-                            date_updated: new Date().toISOString()
+                            found_count: totalFound
                         }));
                     }
                 }
@@ -249,8 +235,7 @@ export async function GET(request: Request) {
             found_count: totalFound,
             current_city_index: cityIndex,
             next_page_token: pageToken || null,
-            last_error: null,
-            date_updated: new Date().toISOString()
+            last_error: null
         }));
 
         if (isFinished) await addLog(job.id, "🏁 Hotovo.");
@@ -274,8 +259,7 @@ export async function GET(request: Request) {
         console.error("[GMAP WORKER] FATAL ERROR:", error);
         if (currentJobId) {
             await directus.request(updateItem(JOBS_COLLECTION, currentJobId, { 
-                last_error: `Fatálna chyba: ${error.message}`,
-                date_updated: new Date().toISOString()
+                last_error: `Fatálna chyba: ${error.message}`
             }));
         }
         return NextResponse.json({ error: error.message }, { status: 500 });
