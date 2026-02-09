@@ -348,10 +348,8 @@ export function ColdLeadsImportModal({
                  </div>
                   </div>
                 </div>
-              </div>
             )}
           </div>
-        </div>
 
         {step !== "enrich" && ( 
              <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-4">
