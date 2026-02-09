@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, Clock, RefreshCw, XCircle } from "lucide-react";
+import React, { useState } from 'react';
+import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, Clock, RefreshCw, XCircle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ToolWrapper } from "@/components/tools/ToolWrapper";
 import { ApiKeyManager, ApiKey } from "./ApiKeyManager";
 import { useGoogleMapsScraper } from "@/hooks/useGoogleMapsScraper";
-import { bulkCreateColdLeads } from "@/app/actions/cold-leads";
-import { updateScrapeJob, deleteScrapeJob } from "@/app/actions/google-maps-jobs";
+import { updateScrapeJob } from "@/app/actions/google-maps-jobs";
 
 export default function GoogleMapsScraper() {
     const [searchTerm, setSearchTerm] = useState("");
@@ -40,30 +39,6 @@ export default function GoogleMapsScraper() {
             await updateScrapeJob(id, { status: 'cancelled' });
             loadQueue();
             toast.success("Proces bol zrušený.");
-        }
-    };
-
-    const saveToCrm = async () => {
-        if (places.length === 0) return;
-        
-        const leadsToCreate = places.map(p => ({
-            title: p.name,
-            company_name_reworked: p.name,
-            website: p.website,
-            phone: p.phone,
-            city: p.source_city || location,
-            google_maps_url: p.url,
-            source_keyword: searchTerm,
-            source_city: p.source_city || location,
-            list_name: `GMap Scrape - ${searchTerm} - ${new Date().toLocaleDateString()}`
-        }));
-        
-        const result = await bulkCreateColdLeads(leadsToCreate);
-        if (result.success) {
-            toast.success(`Uložených ${result.count} leadov do CRM!`, {
-                action: { label: 'Otvoriť', onClick: () => window.location.href = '/dashboard/cold-outreach' }
-            });
-            fetch('/api/cron/enrich-leads', { method: 'GET' }).catch(() => {});
         }
     };
 
@@ -140,9 +115,11 @@ export default function GoogleMapsScraper() {
                                 <div className="flex items-center gap-2 font-bold text-gray-700">
                                     <List className="w-5 h-5 text-blue-500" /> Nájdené miesta ({places.length})
                                 </div>
-                                {places.length > 0 && !isScraping && (
-                                    <button onClick={saveToCrm} className="text-xs bg-blue-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-700 transition-colors">Uložiť do CRM</button>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black text-green-500 uppercase tracking-widest flex items-center gap-1 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
+                                        <CheckCircle className="w-3 h-3" /> Auto-Sync Active
+                                    </span>
+                                </div>
                             </div>
                             <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50/20 font-sans">
                                 {places.length === 0 && !isScraping && (
@@ -166,7 +143,7 @@ export default function GoogleMapsScraper() {
                     </div>
 
                     {/* Right Side: Logs & API Keys */}
-                    <div className="lg:col-span-5 space-y-6">
+                    <div className="lg:col-span-12 xl:col-span-5 space-y-6">
                         <div className="bg-slate-950 rounded-3xl p-6 shadow-2xl border border-white/5 flex flex-col h-[300px]">
                             <div className="flex items-center gap-2 text-white font-bold mb-4">
                                 <History className="w-5 h-5 text-blue-400" /> Console Log
@@ -177,6 +154,7 @@ export default function GoogleMapsScraper() {
                                         log.includes('❌') ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' : 
                                         log.includes('✅') ? 'bg-green-500/10 border-green-500/20 text-green-400' : 
                                         log.includes('⏸️') ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                                        log.includes('💾') ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
                                         'bg-white/5 border-white/5 text-gray-400 opacity-80'
                                     }`}>
                                         {log}
@@ -184,7 +162,7 @@ export default function GoogleMapsScraper() {
                                 ))}
                                 {isScraping && (
                                     <div className="flex items-center gap-2 p-2 text-blue-400 text-[10px] font-bold animate-pulse">
-                                        <RefreshCw className="w-3 h-3 animate-spin" /> Vyhľadávam nové výsledky...
+                                        <RefreshCw className="w-3 h-3 animate-spin" /> Vyhľadávam a ukladám nové výsledky...
                                     </div>
                                 )}
                             </div>
