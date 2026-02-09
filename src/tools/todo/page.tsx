@@ -13,7 +13,7 @@ export default function TodoTool() {
   const { tasks, add, toggle, remove } = useTasks();
 
   return (
-    <div className="max-w-[1400px] mx-auto h-[calc(100vh-120px)] flex flex-col gap-4 p-4 animate-in fade-in duration-700 overflow-hidden">
+    <div className="max-w-full mx-auto h-[calc(100vh-32px)] flex flex-col gap-2 p-2 animate-in fade-in duration-700 overflow-hidden">
       {/* Header & Input */}
       <div className="flex flex-col gap-4">
         <header className="flex items-end justify-between gap-6 mb-2">
