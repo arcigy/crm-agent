@@ -57,6 +57,20 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
         
         if (activeJob) {
             try {
+                // Update logs from DB
+                if (activeJob.logs) {
+                    const serverLogs = activeJob.logs.split('\n');
+                    setLogs(prev => {
+                        // Merge server logs with local logs, filtering out duplicates
+                        const combined = [...new Set([...serverLogs, ...prev])];
+                        return combined.sort((a, b) => {
+                            const timeA = a.match(/\[(.*?)\]/)?.[1] || "";
+                            const timeB = b.match(/\[(.*?)\]/)?.[1] || "";
+                            return timeB.localeCompare(timeA);
+                        }).slice(0, 50);
+                    });
+                }
+
                 const leads = await getJobLeads(activeJob.id);
                 if (!leads) return;
 
@@ -72,10 +86,6 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
 
                 // Update places only if count changed to avoid unnecessary re-renders
                 if (mappedLeads.length !== lastPlacesCountRef.current) {
-                    if (mappedLeads.length > lastPlacesCountRef.current) {
-                        const newOnes = mappedLeads.length - lastPlacesCountRef.current;
-                        addLog(`💾 Nájdených ${newOnes} nových leadov (Celkovo: ${mappedLeads.length})`);
-                    }
                     setPlaces(mappedLeads);
                     lastPlacesCountRef.current = mappedLeads.length;
                 }
@@ -90,7 +100,7 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
             setIsScraping(false);
             lastPlacesCountRef.current = 0;
         }
-    }, [loadQueue, addLog]);
+    }, [loadQueue]);
 
     useEffect(() => {
         loadQueue();
