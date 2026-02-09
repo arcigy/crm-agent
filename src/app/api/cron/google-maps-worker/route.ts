@@ -206,6 +206,29 @@ export async function GET(request: Request) {
                             enrichment_status: hasWebsite ? 'pending' : null
                         };
 
+                        // Implement duplicate check
+                        const duplicateFilter: any = {
+                            _or: [
+                                { google_maps_url: { _eq: details.url } }
+                            ]
+                        };
+                        if (details.website) {
+                            duplicateFilter._or.push({ website: { _eq: details.website } });
+                        }
+
+                        const existingLeads: any[] = await directus.request(readItems(LEADS_COLLECTION, {
+                            filter: duplicateFilter,
+                            limit: 1,
+                            fields: ['id']
+                        }));
+
+                        if (existingLeads && existingLeads.length > 0) {
+                            await addLog(job.id, `⚠️ Duplikát: ${details.name} (Preskočené)`);
+                            // We count this as work done to avoid infinite loops, but NOT as total found for the user
+                            foundThisRun++;
+                            continue;
+                        }
+
                         await directus.request(createItem(LEADS_COLLECTION, newLead));
                         await addLog(job.id, `💾 ${newLead.title} ${hasWebsite ? '✅' : '❌'}`);
 
