@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import directus from '@/lib/directus';
-import { readItems, updateItem, createItems } from '@directus/sdk';
+import { readItems, updateItem, createItem } from '@directus/sdk';
 import { getSystemApiKeys, updateApiKeyUsage } from '@/app/actions/google-maps-keys';
 import { searchBusinesses, getPlaceDetails } from '@/app/actions/google-maps';
 import { SLOVAKIA_CITIES, CITY_COORDINATES } from '@/tools/google-maps/constants';
@@ -126,7 +126,6 @@ export async function GET(request: Request) {
                 console.log(`[GMAP WORKER] Found ${searchResult.results.length} raw results.`);
 
                 // Process Individual Results
-                const leadsToCreate = [];
                 for (const rawPlace of searchResult.results) {
                     if (totalFound >= job.limit || foundThisRun >= limitPerRun) break;
                     
@@ -138,28 +137,30 @@ export async function GET(request: Request) {
                     
                     const details: any = await getPlaceDetails(currentKey.key, rawPlace.place_id);
                     if (details) {
-                        leadsToCreate.push({
+                        const newLead = {
                             title: details.name,
-                            company_name_reworked: details.name,
                             website: details.website,
                             phone: details.formatted_phone_number || details.international_phone_number,
                             city: details.formatted_address || currentCity,
                             google_maps_url: details.url,
                             google_maps_job_id: job.id,
                             source_city: currentCity,
-                            status: 'active',
-                            user_email: job.owner_email,
-                            list_name: `GMap Scrape - ${job.search_term} - ${new Date(job.date_created).toLocaleDateString()}`
-                        });
+                            status: 'lead',
+                            user_email: job.user_email,
+                            list_name: `GMap Scrape - ${job.search_term} - ${new Date().toLocaleDateString()}`
+                        };
+
+                        console.log(`[GMAP WORKER] Saving lead: ${newLead.title}`);
+                        await directus.request(createItem(LEADS_COLLECTION, newLead));
+
                         totalFound++;
                         foundThisRun++;
-                    }
-                }
 
-                // Internal Directus Save
-                if (leadsToCreate.length > 0) {
-                    console.log(`[GMAP WORKER] Saving ${leadsToCreate.length} leads to Directus...`);
-                    await directus.request(createItems(LEADS_COLLECTION, leadsToCreate));
+                        // Update progress in job immediately
+                        await directus.request(updateItem(JOBS_COLLECTION, job.id, {
+                            found_count: totalFound
+                        }));
+                    }
                 }
 
                 // Prepare next page or next city
