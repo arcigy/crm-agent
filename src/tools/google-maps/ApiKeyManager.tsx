@@ -78,18 +78,22 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                     status: 'validating',
                     usageMonth: 0,
                     usageToday: 0,
-                    usageLimit: 5000, 
+                    usageLimit: 300, 
                     errorMessage: ''
                 };
                 
-                await saveApiKey(newKey);
-                importedCount++;
+                const result = await saveApiKey(newKey);
+                if (result.success) {
+                    importedCount++;
+                } else {
+                    toast.error(`Chyba pri kľúči ${label}: ${result.error}`);
+                }
             }
 
             if (importedCount === 0) {
-                toast.warning("No valid new keys found.");
+                toast.warning("Neboli importované žiadne nové kľúče.");
             } else {
-                toast.success(`Imported ${importedCount} keys to DB.`);
+                toast.success(`Úspešne importovaných ${importedCount} kľúčov do DB.`);
                 loadKeys(); 
                 setImportText('');
             }

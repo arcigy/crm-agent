@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { currentUser } from '@clerk/nextjs/server';
 
 const COLLECTION = 'google_maps_keys';
+const APP_PATH = '/dashboard/outreach/google-maps';
 
 export interface ApiKey {
     id: string;
@@ -26,7 +27,12 @@ export async function getApiKeys(): Promise<ApiKey[]> {
         const user = await currentUser();
         const email = user?.emailAddresses[0]?.emailAddress;
 
-        if (!email) return [];
+        if (!email) {
+            console.log("No user email found in Clerk");
+            return [];
+        }
+
+        console.log(`Fetching keys for: ${email}`);
 
         const items = await directus.request(readItems(COLLECTION, {
             fields: ['*'],
@@ -34,6 +40,8 @@ export async function getApiKeys(): Promise<ApiKey[]> {
                 owner_email: { _eq: email }
             }
         }));
+
+        console.log(`Found ${items?.length || 0} keys in DB`);
 
         if (!items || items.length === 0) return [];
 
@@ -73,20 +81,23 @@ export async function saveApiKey(keyData: Partial<ApiKey>) {
         if (!keyData.key) throw new Error("Kľúč je povinný.");
 
         const encryptedKey = encrypt(keyData.key);
-
-        await directus.request(createItem(COLLECTION, {
+        const payload = {
             encrypted_key: encryptedKey,
-            label: keyData.label,
+            label: keyData.label || 'Google Maps Key',
             status: keyData.status || 'validating',
             usage_month: keyData.usageMonth || 0,
             usage_today: keyData.usageToday || 0,
             usage_limit: keyData.usageLimit || 5000,
             owner_email: email, 
             last_used: new Date().toISOString(),
-            error_message: keyData.errorMessage
-        }));
+            error_message: keyData.errorMessage || ''
+        };
 
-        revalidatePath('/dashboard/tool/google-maps');
+        console.log("Saving new key to Directus...", { label: payload.label, email });
+
+        await directus.request(createItem(COLLECTION, payload));
+
+        revalidatePath(APP_PATH);
         return { success: true };
     } catch (error: any) {
         console.error("Error saving API key:", error);
@@ -97,7 +108,7 @@ export async function saveApiKey(keyData: Partial<ApiKey>) {
 export async function deleteApiKey(id: string) {
     try {
         await directus.request(deleteItem(COLLECTION, id));
-        revalidatePath('/dashboard/tool/google-maps');
+        revalidatePath(APP_PATH);
         return { success: true };
     } catch (error: any) {
         console.error("Error deleting API key:", error);
@@ -115,6 +126,7 @@ export async function updateApiKeyUsage(id: string, updates: Partial<ApiKey>) {
         if (updates.errorMessage !== undefined) payload.error_message = updates.errorMessage;
 
         await directus.request(updateItem(COLLECTION, id, payload));
+        revalidatePath(APP_PATH);
         return { success: true };
     } catch (error: any) {
         console.error("Error updating API key usage:", error);
