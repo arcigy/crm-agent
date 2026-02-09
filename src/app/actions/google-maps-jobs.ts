@@ -2,7 +2,7 @@
 
 import directus from '@/lib/directus';
 import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_noStore } from 'next/cache';
 import { getUserEmail } from '@/lib/auth';
 
 const COLLECTION = 'google_maps_jobs';
@@ -24,6 +24,7 @@ export interface ScrapeJob {
 }
 
 export async function getScrapeJobs(): Promise<ScrapeJob[]> {
+    unstable_noStore();
     try {
         const email = await getUserEmail();
         if (!email) return [];
@@ -87,6 +88,7 @@ export async function deleteScrapeJob(id: string) {
 }
 
 export async function getJobLeads(jobId: string) {
+    unstable_noStore();
     try {
         const items = await directus.request(readItems('cold_leads', {
             filter: {

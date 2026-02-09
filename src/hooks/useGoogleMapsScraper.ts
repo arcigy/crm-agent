@@ -19,13 +19,13 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
     const loadQueue = useCallback(async () => {
         try {
             const jobs = await getScrapeJobs();
-            const activeJobs = jobs.filter(j => j.status === 'queued' || j.status === 'paused' || j.status === 'processing');
-            setQueue(activeJobs);
+            // Show all recent jobs in history, but track processing for state
+            setQueue(jobs.slice(0, 10));
             
-            const isProcessing = activeJobs.some(j => j.status === 'processing' || j.status === 'queued');
+            const isProcessing = jobs.some(j => j.status === 'processing' || j.status === 'queued');
             setIsScraping(isProcessing);
 
-            return activeJobs;
+            return jobs;
         } catch (e) {
             console.error("Load queue failed", e);
             return [];
