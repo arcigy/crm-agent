@@ -826,7 +826,7 @@ export default function OutreachLeadsPage() {
                                                 if (qrTimerRef.current) clearTimeout(qrTimerRef.current);
                                                 qrTimerRef.current = setTimeout(() => {
                                                     setHoveredQrLeadId(lead.id);
-                                                }, 1500);
+                                                }, 500);
                                             }}
                                             onMouseLeave={() => {
                                                 if (qrTimerRef.current) clearTimeout(qrTimerRef.current);
