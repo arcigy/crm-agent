@@ -69,7 +69,7 @@ export default function GoogleMapsScraper() {
 
     const handleCancelJob = async (id: string) => {
         if (confirm("Naozaj chcete zrušiť tento proces v poradí?")) {
-            await updateScrapeJob(id, { status: 'stop' });
+            await updateScrapeJob(id, { status: 's' });
             loadQueue();
             toast.success("Proces bol zrušený.");
         }
@@ -208,19 +208,19 @@ export default function GoogleMapsScraper() {
                             </div>
                             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                                 {queue.map((job) => (
-                                    <div key={job.id} className={`p-4 rounded-3xl border transition-all ${job.status === 'run' ? 'bg-blue-50/50 border-blue-100 ring-2 ring-blue-50' : 'bg-white border-gray-100'}`}>
+                                    <div key={job.id} className={`p-4 rounded-3xl border transition-all ${job.status === 'r' ? 'bg-blue-50/50 border-blue-100 ring-2 ring-blue-50' : 'bg-white border-gray-100'}`}>
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
                                                 <p className="font-black text-gray-900 uppercase tracking-tight text-sm leading-tight">{job.search_term}</p>
                                                 <p className="text-[10px] text-gray-500 font-bold">{job.location}</p>
                                             </div>
                                             <div className="flex gap-1">
-                                                {job.status === 'pause' && (
+                                                {job.status === 'p' && (
                                                     <button onClick={() => handleResume(job)} className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                                                         <Play className="w-3 h-3" />
                                                     </button>
                                                 )}
-                                                {['run', 'wait'].includes(job.status) && (
+                                                {['r', 'w'].includes(job.status) && (
                                                     <button onClick={() => handleCancelJob(job.id)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
                                                         <StopCircle className="w-3 h-3" />
                                                     </button>
@@ -232,11 +232,11 @@ export default function GoogleMapsScraper() {
                                                 {job.found_count} / {job.limit}
                                             </div>
                                             <span className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                                                job.status === 'done' ? 'bg-green-100 text-green-700' :
-                                                job.status === 'run' ? 'bg-blue-600 text-white animate-pulse' :
+                                                job.status === 'd' ? 'bg-green-100 text-green-700' :
+                                                job.status === 'r' ? 'bg-blue-600 text-white animate-pulse' :
                                                 'bg-gray-100 text-gray-500'
                                             }`}>
-                                                {job.status === 'run' ? 'Scraping' : job.status}
+                                                {job.status === 'r' ? 'Scraping' : job.status === 'd' ? 'DONE' : job.status === 'w' ? 'Wait' : job.status}
                                             </span>
                                         </div>
                                     </div>

@@ -21,7 +21,7 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
             const jobs = await getScrapeJobs();
             setQueue(jobs.slice(0, 10));
             
-            const activeJob = jobs.find(j => j.status === 'run' || j.status === 'wait');
+            const activeJob = jobs.find(j => j.status === 'r' || j.status === 'w');
             setIsScraping(!!activeJob);
 
             // If we have a latest job and no results shown yet, load them!
@@ -53,7 +53,7 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
 
     const pollJobStatus = useCallback(async () => {
         const jobs = await loadQueue();
-        const activeJob = jobs.find(j => j.status === 'run' || j.status === 'wait');
+        const activeJob = jobs.find(j => j.status === 'r' || j.status === 'w');
         
         if (activeJob) {
             try {
@@ -125,7 +125,7 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
                 search_term: searchTerm,
                 location: location,
                 limit: limit,
-                status: 'wait',
+                status: 'w',
                 target_list: targetList
             });
 
@@ -160,11 +160,11 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
 
     const stopScraping = useCallback(async () => {
         const jobs = await loadQueue();
-        const activeJob = jobs.find(j => j.status === 'run' || j.status === 'wait' || j.status === 'pause');
+        const activeJob = jobs.find(j => j.status === 'r' || j.status === 'w' || j.status === 'p');
         
         if (activeJob) {
             const { updateScrapeJob } = await import('@/app/actions/google-maps-jobs');
-            await updateScrapeJob(activeJob.id, { status: 'stop' });
+            await updateScrapeJob(activeJob.id, { status: 's' });
             addLog("⏹️ Pozadový proces bol zastavený.");
             loadQueue();
         }

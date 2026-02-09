@@ -60,7 +60,7 @@ export async function GET(request: Request) {
         
         const jobs = await directus.request(readItems(JOBS_COLLECTION, {
             filter: {
-                status: { _in: ['wait', 'pause'] }
+                status: { _in: ['w', 'p'] }
             },
             limit: 1,
             sort: ['date_created']
@@ -79,11 +79,11 @@ export async function GET(request: Request) {
 
         // Update status to processing and set date_updated to "lock" the job
         await directus.request(updateItem(JOBS_COLLECTION, job.id, { 
-            status: 'run', 
+            status: 'r', 
             last_error: null
         }));
 
-        if (job.status !== 'run') {
+        if (job.status !== 'r') {
             await addLog(job.id, "🚀 Štartujem alebo obnovujem úlohu...");
         }
 
@@ -94,7 +94,7 @@ export async function GET(request: Request) {
         if (activeKeys.length === 0) {
             const errorMsg = "Limit dosiahnutý: Žiadne dostupné kľúče.";
             await directus.request(updateItem(JOBS_COLLECTION, job.id, { 
-                status: 'pause', 
+                status: 'p', 
                 last_error: errorMsg
             }));
             await addLog(job.id, `❌ ${errorMsg}`);
@@ -110,7 +110,7 @@ export async function GET(request: Request) {
         let totalFound = job.found_count || 0;
         let foundThisRun = 0;
         let leadsWithWebsites = 0;
-        const limitPerRun = 15; 
+        const limitPerRun = 100; 
 
         // 4. Execution Loop
         const startTime = Date.now();
@@ -123,7 +123,7 @@ export async function GET(request: Request) {
                 fields: ['status']
             }));
             
-            if (!currentJobStatus?.[0] || currentJobStatus[0].status === 'stop') {
+            if (!currentJobStatus?.[0] || currentJobStatus[0].status === 's') {
                 console.log("[GMAP WORKER] Job cancelled during loop.");
                 return NextResponse.json({ message: "Job cancelled." });
             }
@@ -228,7 +228,7 @@ export async function GET(request: Request) {
         }
 
         const isFinished = totalFound >= job.limit;
-        const nextStatus = isFinished ? 'done' : 'run';
+        const nextStatus = isFinished ? 'd' : 'r';
         
         await directus.request(updateItem(JOBS_COLLECTION, job.id, {
             status: nextStatus,
