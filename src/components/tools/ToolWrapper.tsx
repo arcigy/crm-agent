@@ -9,8 +9,8 @@ interface ToolWrapperProps {
 
 export function ToolWrapper({ title, icon, children }: ToolWrapperProps) {
   return (
-    <div className="min-h-screen bg-gray-50/50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50/50 p-4 md:p-8 overflow-y-auto">
+  <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <div className="p-4 bg-white rounded-3xl shadow-sm border border-gray-100">
             {icon}

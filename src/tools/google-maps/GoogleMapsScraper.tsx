@@ -360,8 +360,8 @@ export default function GoogleMapsScraper() {
                         </div>
 
                         {/* API Keys */}
-                        <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
-                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm max-h-[600px] overflow-y-auto custom-scrollbar">
+                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2 sticky top-0 bg-white z-10 py-2 -mt-2">
                                 <Settings className="w-4 h-4 text-blue-500" /> API Kľúče
                             </h3>
                             <ApiKeyManager onKeysChange={setKeys} />
