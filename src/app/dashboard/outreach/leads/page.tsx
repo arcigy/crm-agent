@@ -52,6 +52,10 @@ export default function OutreachLeadsPage() {
   const [editingCell, setEditingCell] = useState<{ id: string | number, field: keyof ColdLeadItem } | null>(null);
   const [editValue, setEditValue] = useState("");
   const editInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  
+  // QR Hover state
+  const [hoveredQrLeadId, setHoveredQrLeadId] = useState<string | number | null>(null);
+  const qrTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const refreshLeads = React.useCallback(async (listName: string) => {
     setLoading(true);
@@ -130,6 +134,13 @@ export default function OutreachLeadsPage() {
       editInputRef.current.focus();
     }
   }, [editingCell]);
+
+  // Clean up QR timer
+  useEffect(() => {
+    return () => {
+        if (qrTimerRef.current) clearTimeout(qrTimerRef.current);
+    };
+  }, []);
   
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -809,25 +820,52 @@ export default function OutreachLeadsPage() {
                                             onKeyDown={handleKeyDown}
                                         />
                                     ) : (
-                                        <div className="flex items-center gap-3">
+                                        <div 
+                                            className="flex items-center gap-3 relative"
+                                            onMouseEnter={() => {
+                                                if (qrTimerRef.current) clearTimeout(qrTimerRef.current);
+                                                qrTimerRef.current = setTimeout(() => {
+                                                    setHoveredQrLeadId(lead.id);
+                                                }, 1500);
+                                            }}
+                                            onMouseLeave={() => {
+                                                if (qrTimerRef.current) clearTimeout(qrTimerRef.current);
+                                                setHoveredQrLeadId(null);
+                                            }}
+                                        >
                                             <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
                                                 {lead.phone ? (
                                                     <>
                                                         <Phone className="w-3 h-3 text-blue-500" />
-                                                        {lead.phone}
+                                                        <a href={`tel:${lead.phone}`} className="hover:text-blue-600 transition-colors uppercase tracking-tight">
+                                                            {lead.phone}
+                                                        </a>
                                                     </>
                                                 ) : (
                                                     <span className="text-gray-300 font-medium italic">Chýba</span>
                                                 )}
                                             </div>
-                                            {lead.phone && (
-                                                <div className="p-1 bg-white border border-gray-100 rounded-lg shadow-sm group-hover:scale-110 transition-transform cursor-help" title="Naskenujte pre volanie">
-                                                    <QRCodeSVG 
-                                                        value={`tel:${lead.phone.replace(/\s/g, '')}`}
-                                                        size={40}
-                                                        level="L"
-                                                        includeMargin={false}
-                                                    />
+                                            
+                                            {lead.phone && hoveredQrLeadId === lead.id && (
+                                                <div className="absolute left-0 bottom-full mb-2 z-[100] p-4 bg-white rounded-3xl shadow-2xl border border-blue-100 flex flex-col items-center gap-3 animate-in fade-in zoom-in slide-in-from-bottom-2 duration-300">
+                                                    <div className="bg-blue-50 p-3 rounded-2xl">
+                                                        <QRCodeSVG 
+                                                            value={`tel:${lead.phone.replace(/\s/g, '')}`}
+                                                            size={160}
+                                                            level="H"
+                                                            includeMargin={false}
+                                                        />
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Naskenujte pre volanie</p>
+                                                        <p className="text-[9px] text-gray-400 font-bold mt-0.5">{lead.phone}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {lead.phone && !hoveredQrLeadId && (
+                                                <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                                                    <QrCode className="w-3.5 h-3.5 text-blue-500 opacity-40 group-hover:opacity-100" />
                                                 </div>
                                             )}
                                         </div>
@@ -851,7 +889,7 @@ export default function OutreachLeadsPage() {
                                           lead.status === "volal" ? "text-blue-600 border-blue-100 bg-blue-50/30" :
                                           lead.status === "odmietol" ? "text-red-600 border-red-100 bg-red-50/30" :
                                           lead.status === "chce_email" ? "text-green-600 border-green-100 bg-green-50/30" :
-                                          lead.status === "nechce_email" ? "text-orange-600 border-orange-100 bg-orange-50/30" :
+                                          lead.status === "nezodvihol" ? "text-orange-600 border-orange-100 bg-orange-50/30" :
                                           "text-blue-600 border-blue-100 bg-blue-50/30"
                                       )}
                                   >
@@ -859,7 +897,7 @@ export default function OutreachLeadsPage() {
                                       <option value="volal">Volal</option>
                                       <option value="odmietol">Odmietol</option>
                                       <option value="chce_email">Chce e-mail</option>
-                                      <option value="nechce_email">Nechce e-mail</option>
+                                      <option value="nezodvihol">Nezodvihol</option>
                                   </select>
                                 </td>
                                 <td className="px-6 py-6 align-top min-w-[150px]">
