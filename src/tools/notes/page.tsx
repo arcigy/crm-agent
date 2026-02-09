@@ -136,7 +136,7 @@ export default function NotesTool() {
   );
 
   return (
-    <div className="h-[calc(100vh-160px)] flex flex-col space-y-8 animate-in fade-in duration-700">
+    <div className="max-w-[1400px] mx-auto h-[calc(100vh-160px)] flex flex-col space-y-8 p-4 animate-in fade-in duration-700">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -152,12 +152,12 @@ export default function NotesTool() {
               placeholder="Hľadať..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-blue-500/50 transition-all shadow-sm text-foreground"
+              className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-blue-500/50 transition-all text-foreground"
             />
           </div>
           <button
             onClick={createNote}
-            className="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl active:scale-95 transition-all"
+            className="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4" /> Nová poznámka
           </button>
@@ -178,7 +178,7 @@ export default function NotesTool() {
                 <div
                   key={note.id}
                   onClick={() => setSelectedNote(note)}
-                  className={`p-6 rounded-[2rem] border-2 transition-all cursor-pointer group relative overflow-hidden ${selectedNote?.id === note.id ? "bg-blue-600 text-white border-blue-600 shadow-2xl shadow-blue-900/40" : "bg-card text-foreground border-border hover:border-blue-500/50 hover:shadow-lg"}`}
+                  className={`p-6 rounded-[2rem] border-2 transition-all cursor-pointer group relative overflow-hidden ${selectedNote?.id === note.id ? "bg-blue-600 text-white border-blue-600" : "bg-card text-foreground border-border hover:border-blue-500/50"}`}
                 >
                   <h3 className="text-xl font-black tracking-tight mb-2 truncate">
                     {note.title || "Bez názvu"}
@@ -207,7 +207,7 @@ export default function NotesTool() {
         </div>
 
         {/* Editor Content */}
-        <div className="flex-1 bg-card rounded-[4rem] border border-border shadow-[0_50px_150px_rgba(0,0,0,0.1)] p-12 flex flex-col relative group min-w-0 transition-colors">
+        <div className="flex-1 bg-card rounded-[4rem] border border-border p-12 flex flex-col relative group min-w-0 transition-colors">
           {selectedNote ? (
             <>
               <div className="flex items-center justify-between mb-8 shrink-0">

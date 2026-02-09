@@ -49,10 +49,10 @@ export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentCh
   if (pathname === "/dashboard/agent") return null;
 
   return (
-    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[2000] flex flex-col items-center gap-3">
+    <div className="fixed bottom-6 right-6 z-[2000] flex flex-col items-end gap-3">
       {/* Chat Window */}
       {isOpen && (
-        <div className="w-[95vw] md:w-[420px] h-[650px] max-h-[85vh] bg-card/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-500 ease-out transition-all">
+        <div className="w-[95vw] md:w-[420px] h-[650px] max-h-[85vh] bg-card/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-500 ease-out transition-all">
             {/* Header */}
             <div className="relative px-6 py-5 border-b border-border bg-card/40 backdrop-blur-xl flex items-center justify-between">
                 <Link 
@@ -112,7 +112,7 @@ export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentCh
                             className="w-full bg-muted/40 border border-white/5 rounded-2xl py-3.5 px-5 text-sm font-medium focus:border-indigo-500/50 outline-none transition-all resize-none shadow-inner"
                         />
                     </div>
-                    <button onClick={handleSend} disabled={!input.trim() || isLoading} className="p-3.5 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 active:scale-90 disabled:opacity-40 transition-all flex items-center justify-center">
+                    <button onClick={handleSend} disabled={!input.trim() || isLoading} className="p-3.5 bg-indigo-600 text-white rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-90 disabled:opacity-40 transition-all flex items-center justify-center">
                         <Send className="w-5 h-5" />
                     </button>
                 </div>
@@ -124,7 +124,7 @@ export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentCh
       {!isOpen && (
           <button
               onClick={() => setIsOpen(true)}
-              className="w-16 h-16 rounded-[1.8rem] flex items-center justify-center transition-all duration-500 active:scale-90 relative bg-indigo-600 border border-indigo-400/30 hover:bg-indigo-500 hover:scale-110"
+              className="w-16 h-16 rounded-[1.8rem] shadow-[0_15px_40px_rgba(79,70,229,0.3)] flex items-center justify-center transition-all duration-500 active:scale-90 relative bg-indigo-600 border border-indigo-400/30 hover:bg-indigo-500 hover:scale-110 shadow-indigo-600/40"
           >
               <div className="absolute inset-0 bg-white/10 rounded-[inherit] opacity-0 hover:opacity-100 transition-opacity" />
               <Bot className="w-9 h-9 text-white" />
