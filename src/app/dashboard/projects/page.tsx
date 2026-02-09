@@ -87,8 +87,8 @@ export default async function ProjectsPage() {
   }
 
   return (
-    <div className="space-y-6 min-h-[calc(100vh-120px)] flex flex-col transition-colors duration-300">
-      <div className="flex items-center justify-between px-4 md:px-8 mb-4">
+    <div className="space-y-6 h-[calc(100vh-120px)] flex flex-col transition-colors duration-300 overflow-hidden">
+      <div className="flex items-center justify-between px-8 mb-4 flex-shrink-0">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
@@ -102,7 +102,7 @@ export default async function ProjectsPage() {
         </div>
       </div>
 
-      <div className="flex-1 px-4 md:px-8 pb-8">
+      <div className="flex-1 overflow-hidden px-8 pb-4">
         <ProjectsTable data={projects} contacts={contacts} />
       </div>
     </div>

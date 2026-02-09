@@ -134,7 +134,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           </button>
         </div>
 
-        <nav className="flex-1 px-4 flex flex-col justify-center gap-2 overflow-y-auto scrollbar-hide">
+        <nav className="flex-1 px-4 flex flex-col justify-start py-4 gap-2 overflow-y-auto scrollbar-hide">
           {menuGroups.flatMap(group =>
             group.items
               .filter(item => {
@@ -186,12 +186,12 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
 
       <main 
         className={`
-          flex-1 min-w-0 min-h-full overflow-y-auto bg-transparent relative z-10 transition-all duration-300 ease-out
+          flex-1 min-w-0 h-full overflow-hidden bg-transparent relative z-10 transition-all duration-300 ease-out
           ${isMenuOpen ? "md:pl-64" : "pl-0"}
         `}
       >
-        <div className="p-4 md:p-8 pt-20 md:pt-12 transition-all min-h-full flex flex-col">
-          <div className="max-w-[1600px] mx-auto w-full flex-1 flex flex-col">
+        <div className="p-4 md:p-8 pt-20 md:pt-12 transition-all h-full flex flex-col">
+          <div className="max-w-[1600px] mx-auto w-full flex-1 flex flex-col min-h-0">
              {children}
           </div>
         </div>

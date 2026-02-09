@@ -136,7 +136,7 @@ export default function NotesTool() {
   );
 
   return (
-    <div className="max-w-[1400px] mx-auto min-h-[calc(100vh-120px)] flex flex-col space-y-8 p-4 md:p-0 animate-in fade-in duration-700">
+    <div className="max-w-[1400px] mx-auto h-[calc(100vh-160px)] flex flex-col space-y-8 p-4 animate-in fade-in duration-700 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
