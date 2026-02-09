@@ -78,7 +78,7 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
         };
     }, [loadQueue, pollJobStatus]);
 
-    const runScraper = async (searchTerm: string, location: string, limit: number) => {
+    const runScraper = async (searchTerm: string, location: string, limit: number, targetList?: string) => {
         setIsScraping(true);
         addLog(`🚀 Inicializujem pozadový proces pre "${searchTerm}"...`);
 
@@ -87,7 +87,8 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
                 search_term: searchTerm,
                 location: location,
                 limit: limit,
-                status: 'queued'
+                status: 'queued',
+                target_list: targetList
             });
 
             if (!jobResult.success) throw new Error(jobResult.error);

@@ -146,8 +146,8 @@ export async function GET(request: Request) {
                             google_maps_job_id: job.id,
                             source_city: currentCity,
                             status: 'lead',
-                            user_email: job.user_email,
-                            list_name: `GMap Scrape - ${job.search_term} - ${new Date().toLocaleDateString()}`
+                            user_email: job.owner_email,
+                            list_name: job.target_list || job.search_term
                         };
 
                         console.log(`[GMAP WORKER] Saving lead: ${newLead.title}`);

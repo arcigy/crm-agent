@@ -1,18 +1,50 @@
-import React, { useState } from 'react';
-import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, Clock, RefreshCw, XCircle, CheckCircle, Zap } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, Clock, RefreshCw, XCircle, CheckCircle, Zap, Plus, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { ToolWrapper } from "@/components/tools/ToolWrapper";
 import { ApiKeyManager, ApiKey } from "./ApiKeyManager";
 import { useGoogleMapsScraper } from "@/hooks/useGoogleMapsScraper";
 import { updateScrapeJob } from "@/app/actions/google-maps-jobs";
+import { getColdLeadLists, createColdLeadList } from "@/app/actions/cold-leads";
 
 export default function GoogleMapsScraper() {
     const [searchTerm, setSearchTerm] = useState("");
     const [location, setLocation] = useState("Bratislava");
     const [limit, setLimit] = useState(200);
     const [keys, setKeys] = useState<ApiKey[]>([]);
+    const [lists, setLists] = useState<{id: string, name: string}[]>([]);
+    const [targetList, setTargetList] = useState("Zoznam 1");
     
     const { isScraping, places, logs, queue, runScraper, stopScraping, loadQueue, forceStartWorker } = useGoogleMapsScraper(keys, setKeys);
+
+    useEffect(() => {
+        const fetchLists = async () => {
+            const res = await getColdLeadLists();
+            if (res.success && res.data) {
+                setLists(res.data as any);
+                if (res.data.length > 0 && !targetList) {
+                    setTargetList(res.data[0].name);
+                }
+            }
+        };
+        fetchLists();
+    }, []);
+
+    const handleCreateList = async () => {
+        const name = prompt("Zadajte názov nového zoznamu:");
+        if (!name) return;
+        const res = await createColdLeadList(name);
+        if (res.success) {
+            toast.success("Zoznam vytvorený");
+            const resLists = await getColdLeadLists();
+            if (resLists.success && resLists.data) {
+                setLists(resLists.data as any);
+                setTargetList(name);
+            }
+        } else {
+            toast.error("Chyba: " + res.error);
+        }
+    };
 
     const handleStart = async () => {
         if (!searchTerm || !location) {
@@ -24,14 +56,15 @@ export default function GoogleMapsScraper() {
             toast.error("Pridajte aspoň jeden aktívny kľúč v nastaveniach.");
             return;
         }
-        await runScraper(searchTerm, location, limit);
+        await runScraper(searchTerm, location, limit, targetList);
     };
 
     const handleResume = async (job: any) => {
         setSearchTerm(job.search_term);
         setLocation(job.location);
         setLimit(job.limit);
-        await runScraper(job.search_term, job.location, job.limit);
+        setTargetList(job.target_list || "Zoznam 1");
+        await runScraper(job.search_term, job.location, job.limit, job.target_list);
     };
 
     const handleCancelJob = async (id: string) => {
@@ -47,7 +80,7 @@ export default function GoogleMapsScraper() {
             <div className="max-w-7xl mx-auto space-y-6 pb-20">
                 
                 {/* Search Panel */}
-                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-blue-500/5 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-blue-500/5 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                     <div className="md:col-span-2 space-y-2">
                         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Čo hľadáte?</label>
                         <div className="relative">
@@ -65,8 +98,29 @@ export default function GoogleMapsScraper() {
                             <input type="number" value={limit} onChange={e => setLimit(parseInt(e.target.value))} className="w-20 py-4 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 text-center font-bold" title="Limit výsledkov" />
                         </div>
                     </div>
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center mb-1">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Uložiť do zoznamu</label>
+                            <button onClick={handleCreateList} className="text-[10px] text-blue-600 font-black flex items-center gap-1 hover:text-blue-700">
+                                <Plus className="w-3 h-3" /> NOVÝ
+                            </button>
+                        </div>
+                        <div className="relative">
+                            <FolderPlus className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                            <select 
+                                value={targetList} 
+                                onChange={e => setTargetList(e.target.value)} 
+                                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 font-bold text-sm appearance-none outline-none"
+                            >
+                                {lists.map(l => (
+                                    <option key={l.id} value={l.name}>{l.name}</option>
+                                ))}
+                                {lists.length === 0 && <option value="Zoznam 1">Zoznam 1</option>}
+                            </select>
+                        </div>
+                    </div>
                     <button onClick={isScraping ? stopScraping : handleStart} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${isScraping ? 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-500/20' : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/20'}`}>
-                        {isScraping ? <><StopCircle className="w-6 h-6" /> Zrušiť scraping</> : <><Play className="w-6 h-6" /> Spustiť scraper</>}
+                        {isScraping ? <><StopCircle className="w-6 h-6" /> Zrušiť</> : <><Play className="w-6 h-6" /> Spustiť</>}
                     </button>
                 </div>
 

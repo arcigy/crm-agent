@@ -20,6 +20,7 @@ export interface ScrapeJob {
     current_city_index?: number;
     next_page_token?: string;
     last_error?: string | null;
+    target_list?: string;
 }
 
 export async function getScrapeJobs(): Promise<ScrapeJob[]> {
