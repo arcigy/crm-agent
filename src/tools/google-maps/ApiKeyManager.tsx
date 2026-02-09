@@ -128,10 +128,19 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
         const validated = await Promise.all(keysToValidate.map(async (k) => {
             try {
                 const result = await verifyApiKey(k.key); 
+                const newStatus = result.isValid ? 'active' : 'error';
+                const errMsg = result.isValid ? undefined : (result.error || 'Invalid API Key');
+                
+                // Persist to DB
+                if (k.status !== newStatus) {
+                    const { updateApiKeyUsage } = await import('@/app/actions/google-maps-keys');
+                    await updateApiKeyUsage(k.id, { status: newStatus as any, errorMessage: errMsg });
+                }
+
                 return {
                     ...k,
-                    status: result.isValid ? 'active' : 'error',
-                    errorMessage: result.isValid ? undefined : (result.error || 'Invalid API Key')
+                    status: newStatus,
+                    errorMessage: errMsg
                 } as ApiKey;
             } catch (err: any) {
                 return {

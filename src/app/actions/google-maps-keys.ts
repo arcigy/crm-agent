@@ -160,7 +160,7 @@ export async function getSystemApiKeys(): Promise<ApiKey[]> {
         const items = await directus.request(readItems(COLLECTION, {
             fields: ['*'],
             filter: {
-                status: { _eq: 'active' }
+                status: { _in: ['active', 'validating'] }
             }
         }));
 
