@@ -68,7 +68,7 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
 
                 if (keyStr.includes("=")) keyStr = keyStr.split("=")[1].trim();
                 
-                const label = emailStr ? `Key (${emailStr.split('@')[0]})` : `Key ${keys.length + importedCount + 1}`;
+                const label = emailStr || `Key ${keys.length + importedCount + 1}`;
 
                 if (keyStr.length < 10) continue;
                 if (keys.find(k => k.key === keyStr)) continue;
@@ -246,14 +246,14 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                                          <Loader2 className="w-6 h-6 animate-spin" />}
                                     </div>
                                     <div className="space-y-1">
-                                        <div className="font-black text-gray-900 text-lg leading-none">
+                                        <div className="font-black text-gray-900 text-base leading-none break-all max-w-[200px]">
                                             {key.label}
                                         </div>
                                         <div className="text-[10px] font-mono text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100 w-fit">
                                             {key.key.substring(0, 10)}...{key.key.substring(key.key.length - 4)}
                                         </div>
                                         <div className="flex flex-col gap-1.5 mt-2">
-                                            <div className="flex items-center justify-between">
+                                            <div className="flex items-center justify-between min-w-[140px]">
                                                 <span className="text-[10px] uppercase font-black text-gray-500 tracking-tighter">Dnešný náklad: {key.usageToday || 0} / 300</span>
                                                 <span className="text-[10px] font-bold text-blue-600">{Math.round(((key.usageToday || 0)/300)*100)}%</span>
                                             </div>

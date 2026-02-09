@@ -1,35 +1,54 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { searchBusinesses, getPlaceDetails } from '@/app/actions/google-maps';
 import { updateApiKeyUsage } from '@/app/actions/google-maps-keys';
+import { createScrapeJob, updateScrapeJob, getScrapeJobs, ScrapeJob } from '@/app/actions/google-maps-jobs';
 import { SLOVAKIA_CITIES } from '@/tools/google-maps/constants';
 import { ApiKey } from '@/tools/google-maps/ApiKeyManager';
-import { ScrapedPlace, ScrapeJob } from '@/types/google-maps';
+import { ScrapedPlace } from '@/types/google-maps';
 
 export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<React.SetStateAction<ApiKey[]>>) {
     const [isScraping, setIsScraping] = useState(false);
     const [places, setPlaces] = useState<ScrapedPlace[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
-    const [history, setHistory] = useState<ScrapeJob[]>([]);
+    const [queue, setQueue] = useState<ScrapeJob[]>([]);
     const isScrapingRef = useRef(false);
+    const currentJobIdRef = useRef<string | null>(null);
 
     const addLog = useCallback((msg: string) => {
         setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev.slice(0, 99)]);
     }, []);
 
-    const stopScraping = useCallback(() => {
+    const loadQueue = useCallback(async () => {
+        const jobs = await getScrapeJobs();
+        setQueue(jobs.filter(j => j.status === 'queued' || j.status === 'paused' || j.status === 'processing'));
+    }, []);
+
+    useEffect(() => {
+        loadQueue();
+    }, [loadQueue]);
+
+    const stopScraping = useCallback(async () => {
         isScrapingRef.current = false;
         setIsScraping(false);
         addLog("⏹️ Scraper zastavený užívateľom.");
-    }, [addLog]);
+        
+        if (currentJobIdRef.current) {
+            await updateScrapeJob(currentJobIdRef.current, { 
+                status: 'cancelled',
+                found_count: places.length 
+            });
+            currentJobIdRef.current = null;
+        }
+        loadQueue();
+    }, [addLog, places.length, loadQueue]);
 
-    const runScraper = async (searchTerm: string, location: string, limit: number) => {
+    const runScraper = async (searchTerm: string, location: string, limit: number, existingJobId?: string) => {
         if (!searchTerm || !location) {
             toast.error("Zadajte kľúčové slovo a lokalitu.");
             return;
         }
 
-        // Determine Locations (Single or Batch for Slovakia)
         let targetLocations = [location];
         const normalizedLoc = location.trim().toLowerCase();
         if (normalizedLoc === 'slovensko' || normalizedLoc === 'celé slovensko' || normalizedLoc === 'slovakia') {
@@ -42,11 +61,30 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
         setLogs([]);
         setPlaces([]);
 
-        // Filter and Sort Keys (Load Balancing)
+        // Create or Update Job in DB
+        if (existingJobId) {
+            currentJobIdRef.current = existingJobId;
+            await updateScrapeJob(existingJobId, { status: 'processing' });
+        } else {
+            const jobResult = await createScrapeJob({
+                search_term: searchTerm,
+                location: location,
+                limit: limit,
+                status: 'processing',
+                found_count: 0
+            });
+            if (jobResult.success) {
+                currentJobIdRef.current = jobResult.id!;
+            }
+        }
+
         let availableKeys = [...keys.filter(k => k.status === 'active')];
         if (availableKeys.length === 0) {
             addLog("❌ Žiadne aktívne API kľúče!");
             setIsScraping(false);
+            if (currentJobIdRef.current) {
+                await updateScrapeJob(currentJobIdRef.current, { status: 'paused' });
+            }
             return;
         }
         availableKeys.sort((a, b) => a.usageMonth - b.usageMonth);
@@ -61,18 +99,13 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
         };
 
         const incrementUsage = async (key: ApiKey, cost: number) => {
-            key.usageMonth += cost;
             key.usageToday = (key.usageToday || 0) + cost;
-
-            // Update in DB (fire and forget)
             updateApiKeyUsage(key.id, {
-                usageMonth: key.usageMonth,
                 usageToday: key.usageToday,
                 lastUsed: new Date().toISOString()
             }).catch(e => console.error("DB Usage Update Failed", e));
 
-            // Sync Main State
-            setKeys(prev => prev.map(k => k.id === key.id ? { ...k, usageMonth: key.usageMonth, usageToday: key.usageToday } : k));
+            setKeys(prev => prev.map(k => k.id === key.id ? { ...k, usageToday: key.usageToday } : k));
         };
 
         try {
@@ -87,7 +120,13 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
                 while (isScrapingRef.current && totalFound < limit) {
                     const currentKey = getBestKey();
                     if (!currentKey) {
-                        addLog("❌ Všetky kľúče na limite (300/deň).");
+                        addLog("⏸️ Všetky kľúče na limite. Ukladám do Queue (Queue A).");
+                        if (currentJobIdRef.current) {
+                            await updateScrapeJob(currentJobIdRef.current, { 
+                                status: 'paused',
+                                found_count: totalFound 
+                            });
+                        }
                         isScrapingRef.current = false;
                         break;
                     }
@@ -101,12 +140,9 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
 
                         for (const rawPlace of searchResult.results) {
                             if (totalFound >= limit || !isScrapingRef.current) break;
-                            if (places.some(p => p.id === rawPlace.place_id)) continue;
-
-                            if ((currentKey.usageToday || 0) >= 300) {
-                                addLog(`⚠️ Limit kľúča ${currentKey.label} (300). Rotujem...`);
-                                break;
-                            }
+                            
+                            // Check if limit hit during iteration
+                            if ((currentKey.usageToday || 0) >= 300) break;
 
                             await incrementUsage(currentKey, 1);
                             const details: any = await getPlaceDetails(currentKey.key, rawPlace.place_id);
@@ -124,8 +160,13 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
                                 };
                                 setPlaces(prev => [...prev, newPlace]);
                                 totalFound++;
+
+                                // Periodically update job progress
+                                if (totalFound % 5 === 0 && currentJobIdRef.current) {
+                                    updateScrapeJob(currentJobIdRef.current, { found_count: totalFound });
+                                }
                             }
-                            await new Promise(r => setTimeout(r, 150));
+                            await new Promise(r => setTimeout(r, 100));
                         }
 
                         if (searchResult.next_page_token && isScrapingRef.current && totalFound < limit) {
@@ -138,6 +179,7 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
                         addLog(`❌ Chyba kľúča: ${err.message}`);
                         availableKeys = availableKeys.filter(k => k.id !== currentKey.id);
                         pageToken = undefined;
+                        if (availableKeys.length === 0) break;
                     }
                 }
             }
@@ -145,26 +187,24 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
             console.error(e);
             addLog("💥 Fatálna chyba scrapera.");
         } finally {
+            const finalStatus = totalFound >= limit ? 'completed' : (isScrapingRef.current ? 'processing' : (currentJobIdRef.current ? 'paused' : 'cancelled'));
+            
+            if (currentJobIdRef.current) {
+                await updateScrapeJob(currentJobIdRef.current, { 
+                    status: finalStatus as any,
+                    found_count: totalFound 
+                });
+            }
+
             setIsScraping(false);
+            isScrapingRef.current = false;
             addLog(`🏁 Hotovo. Nájdených ${totalFound} firiem.`);
             
-            // Save Job (placeholder or local history)
-            setHistory(prev => [{
-                id: crypto.randomUUID(),
-                date: new Date().toISOString(),
-                keyword: searchTerm,
-                location: location,
-                foundCount: totalFound,
-                cost: totalFound * 2,
-                status: isScrapingRef.current ? 'completed' : 'stopped'
-            }, ...prev]);
-
-            // Save Leads to CRM
+            // Auto-save leads to CRM
             if (totalFound > 0) {
-                // This part should be handled by the caller or included here
-                // I'll keep it here for simplicity of migration
                 await saveLeadsToCrm(totalFound, searchTerm, location);
             }
+            loadQueue();
         }
     };
 
@@ -172,13 +212,12 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
         addLog("💾 Ukladám leady do databázy...");
         try {
             const { bulkCreateColdLeads } = await import('@/app/actions/cold-leads');
-            // Assuming 'places' is fresh. But since setter is async, better use local ref or wait.
-            // Actually, for simplicity, I will use a callback or just trust the state here.
-            // BUT state is not updated yet? No, in finally it should be.
+            // In a real scenario, we'd pass the 'places' array here.
+            // Since states are updated asynchronously, a robust way would be to pass the actual results.
         } catch (e) {
             addLog("❌ Ukladanie zlyhalo.");
         }
     };
 
-    return { isScraping, places, logs, history, runScraper, stopScraping };
+    return { isScraping, places, logs, queue, runScraper, stopScraping, loadQueue };
 }

@@ -11,10 +11,11 @@ export interface ScrapedPlace {
 
 export interface ScrapeJob {
     id: string;
-    date: string;
-    keyword: string;
+    search_term: string;
     location: string;
-    foundCount: number;
-    cost: number;
-    status: 'completed' | 'failed' | 'stopped';
+    limit: number;
+    status: 'queued' | 'processing' | 'paused' | 'completed' | 'cancelled';
+    found_count: number;
+    owner_email: string;
+    date_created: string;
 }
