@@ -26,12 +26,16 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
     const [importText, setImportText] = useState('');
     const [isImporting, setIsImporting] = useState(false);
 
+    // Sync state to parent whenever keys change
+    useEffect(() => {
+        onKeysChange(keys);
+    }, [keys, onKeysChange]);
+
     // Initial Load from DB and Auto-Validate
     useEffect(() => {
         const init = async () => {
             const loadedKeys = await loadKeys();
             if (loadedKeys.length > 0) {
-                // Auto-validate all keys as soon as they are loaded from DB
                 await validateKeys(loadedKeys);
             }
         };
@@ -51,7 +55,6 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
             }) || [];
             
             setKeys(processed);
-            onKeysChange(processed);
             return processed;
         } catch (e) {
             console.error("Failed to load keys from DB", e);
@@ -140,12 +143,10 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
         }));
 
         setKeys(prev => {
-            const newKeys = prev.map(p => {
+            return prev.map(p => {
                 const v = validated.find(v => v.id === p.id);
                 return v ? v : p;
             });
-            onKeysChange(newKeys);
-            return newKeys;
         });
     };
 
