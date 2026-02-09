@@ -25,7 +25,13 @@ export interface ApiKey {
 export async function getApiKeys(): Promise<ApiKey[]> {
     try {
         const user = await currentUser();
-        const email = user?.emailAddresses[0]?.emailAddress;
+        let email = user?.emailAddresses[0]?.emailAddress;
+
+        // DEV BYPASS: If on localhost and no user, use dev email
+        if (!email && (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_APP_URL?.includes('localhost'))) {
+            email = 'dev@arcigy.sk';
+            console.log("DEV MODE: Using fallback email dev@arcigy.sk");
+        }
 
         if (!email) {
             console.log("No user email found in Clerk");
@@ -75,8 +81,14 @@ export async function getApiKeys(): Promise<ApiKey[]> {
 export async function saveApiKey(keyData: Partial<ApiKey>) {
     try {
         const user = await currentUser();
-        const email = user?.emailAddresses[0]?.emailAddress;
+        let email = user?.emailAddresses[0]?.emailAddress;
         
+        // DEV BYPASS: If on localhost and no user, use dev email
+        if (!email && (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_APP_URL?.includes('localhost'))) {
+            email = 'dev@arcigy.sk';
+            console.log("DEV MODE: Saving as dev@arcigy.sk");
+        }
+
         if (!email) throw new Error("Musíte byť prihlásený.");
         if (!keyData.key) throw new Error("Kľúč je povinný.");
 
