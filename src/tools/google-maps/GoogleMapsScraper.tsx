@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, RefreshCw, Zap, Plus, FolderPlus, ArrowLeft } from "lucide-react";
+import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, RefreshCw, Zap, Plus, FolderPlus, ArrowLeft, Mail, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ToolWrapper } from "@/components/tools/ToolWrapper";
@@ -177,9 +177,43 @@ export default function GoogleMapsScraper() {
                                             {i + 1}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-black text-gray-900 group-hover:text-blue-600 transition-colors truncate uppercase tracking-tight">{p.name}</h4>
-                                            <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
-                                                <MapPin className="w-3 h-3" /> {p.address}
+                                            <h4 className="font-black text-gray-900 group-hover:text-blue-600 transition-colors truncate uppercase tracking-tight flex items-center gap-2">
+                                                {p.name}
+                                                {p.enrichment_status === 'completed' && p.email && (
+                                                    <span className="text-[9px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100 flex items-center gap-1 normal-case tracking-normal">
+                                                        <Mail className="w-2 h-2" /> {p.email}
+                                                    </span>
+                                                )}
+                                            </h4>
+                                            <div className="flex items-center gap-3 text-xs text-gray-400 font-bold">
+                                                <div className="flex items-center gap-1">
+                                                    <MapPin className="w-3 h-3 text-gray-300" /> {p.address}
+                                                </div>
+                                                
+                                                {/* Enrichment Status Badges */}
+                                                {p.enrichment_status === 'pending' || p.enrichment_status === 'processing' ? (
+                                                    <div className="flex items-center gap-1.5 text-blue-500 bg-blue-50/50 px-2 py-0.5 rounded-full animate-pulse border border-blue-100/50">
+                                                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                                        <span className="text-[9px] uppercase tracking-widest font-black">Hľadám e-mail...</span>
+                                                    </div>
+                                                ) : p.enrichment_status === 'completed' ? (
+                                                    <div className="flex items-center gap-1.5 text-green-600 bg-green-50/50 px-2 py-0.5 rounded-full border border-green-100/50">
+                                                        <CheckCircle2 className="w-2.5 h-2.5" />
+                                                        <span className="text-[9px] uppercase tracking-widest font-black">E-mail nájdený</span>
+                                                    </div>
+                                                ) : p.enrichment_status === 'failed' ? (
+                                                    <div className="flex items-center gap-1.5 text-orange-400 bg-orange-100/30 px-2 py-0.5 rounded-full border border-orange-100/30">
+                                                        <XCircle className="w-2.5 h-2.5" />
+                                                        <span className="text-[9px] uppercase tracking-widest font-black text-gray-400">Bez e-mailu</span>
+                                                    </div>
+                                                ) : p.website ? (
+                                                     <div className="flex items-center gap-1.5 text-gray-300 px-2 py-0.5">
+                                                        <Loader2 className="w-2.5 h-2.5 animate-spin opacity-20" />
+                                                        <span className="text-[9px] uppercase tracking-widest font-black">Pripravujem...</span>
+                                                     </div>
+                                                ) : (
+                                                    <span className="text-[9px] uppercase tracking-widest font-black text-gray-300">Pauza</span>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">

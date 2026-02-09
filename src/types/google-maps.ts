@@ -7,6 +7,8 @@ export interface ScrapedPlace {
     rating?: number;
     url?: string;
     source_city?: string;
+    email?: string;
+    enrichment_status?: 'pending' | 'processing' | 'completed' | 'failed' | null;
 }
 
 export interface ScrapeJob {

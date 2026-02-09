@@ -11,6 +11,7 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
     const [queue, setQueue] = useState<ScrapeJob[]>([]);
     const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const lastPlacesCountRef = useRef<number>(0);
+    const lastPlacesHashRef = useRef<string>("");
 
     const addLog = useCallback((msg: string) => {
         setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev.slice(0, 99)]);
@@ -36,10 +37,13 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
                         phone: l.phone,
                         website: l.website,
                         url: l.google_maps_url,
-                        source_city: l.source_city
+                        source_city: l.source_city,
+                        email: l.email,
+                        enrichment_status: l.enrichment_status
                     }));
                     setPlaces(mappedLeads);
                     lastPlacesCountRef.current = mappedLeads.length;
+                    lastPlacesHashRef.current = JSON.stringify(mappedLeads.map(l => `${l.id}-${l.enrichment_status}`));
                     addLog(`📍 Načítaných ${mappedLeads.length} výsledkov z poslednej úlohy.`);
                 }
             }
@@ -82,13 +86,18 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
                     phone: l.phone,
                     website: l.website,
                     url: l.google_maps_url,
-                    source_city: l.source_city
+                    source_city: l.source_city,
+                    email: l.email,
+                    enrichment_status: l.enrichment_status
                 }));
 
-                // Update places only if count changed to avoid unnecessary re-renders
-                if (mappedLeads.length !== lastPlacesCountRef.current) {
+                const currentHash = JSON.stringify(mappedLeads.map(l => `${l.id}-${l.enrichment_status}`));
+
+                // Update places if count or enrichment status changed
+                if (mappedLeads.length !== lastPlacesCountRef.current || currentHash !== lastPlacesHashRef.current) {
                     setPlaces(mappedLeads);
                     lastPlacesCountRef.current = mappedLeads.length;
+                    lastPlacesHashRef.current = currentHash;
                 }
             } catch (e) {
                 console.error("Polling leads failed", e);
@@ -105,10 +114,12 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
 
     useEffect(() => {
         loadQueue();
-        // Faster polling (3s) for better real-time feel
-        if (!pollIntervalRef.current) {
-            pollIntervalRef.current = setInterval(pollJobStatus, 3000);
-        }
+        // Super-fast polling (2s) when active, 5s when idle
+        const interval = isScraping ? 2000 : 5000;
+        
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = setInterval(pollJobStatus, interval);
+
         return () => {
             if (pollIntervalRef.current) {
                 clearInterval(pollIntervalRef.current);
