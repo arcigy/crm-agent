@@ -87,7 +87,7 @@ export default async function ProjectsPage() {
   }
 
   return (
-    <div className="space-y-6 h-[calc(100vh-120px)] flex flex-col transition-colors duration-300 overflow-hidden">
+    <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col transition-colors duration-300 overflow-hidden">
       <div className="flex items-center justify-between px-8 mb-4 flex-shrink-0">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">
