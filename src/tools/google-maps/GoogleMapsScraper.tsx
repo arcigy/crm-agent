@@ -16,7 +16,21 @@ export default function GoogleMapsScraper() {
     const [lists, setLists] = useState<{id: string, name: string}[]>([]);
     const [targetList, setTargetList] = useState("Zoznam 1");
     
-    const { isScraping, places, logs, queue, runScraper, stopScraping, loadQueue, forceStartWorker } = useGoogleMapsScraper(keys, setKeys);
+    const { 
+        isScraping, 
+        places, 
+        logs, 
+        queue, 
+        runScraper, 
+        stopScraping, 
+        loadQueue, 
+        forceStartWorker,
+        continueScraping,
+        resumingJobId,
+        setResumingJobId,
+        resumeAmount,
+        setResumeAmount
+    } = useGoogleMapsScraper(keys, setKeys);
 
     useEffect(() => {
         const fetchLists = async () => {
@@ -261,6 +275,15 @@ export default function GoogleMapsScraper() {
                                                         <Play className="w-3 h-3" />
                                                     </button>
                                                 )}
+                                                {job.status === 'd' && (
+                                                    <button 
+                                                        onClick={() => setResumingJobId(resumingJobId === job.id ? null : job.id)} 
+                                                        className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                                                        title="Pokračovať v hľadaní"
+                                                    >
+                                                        <RefreshCw className="w-3 h-3" />
+                                                    </button>
+                                                )}
                                                 {['r', 'w'].includes(job.status) && (
                                                     <button onClick={() => handleCancelJob(job.id)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
                                                         <StopCircle className="w-3 h-3" />
@@ -268,6 +291,36 @@ export default function GoogleMapsScraper() {
                                                 )}
                                             </div>
                                         </div>
+                                        
+                                        {resumingJobId === job.id && (
+                                            <div className="mb-4 p-3 bg-green-50 rounded-2xl border border-green-100 flex flex-col gap-2 animate-in slide-in-from-top-2 duration-200">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Koľko pridať?</span>
+                                                    <button onClick={() => setResumingJobId(null)} className="text-gray-400 hover:text-gray-600">
+                                                        <XCircle className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <input 
+                                                        type="number" 
+                                                        value={resumeAmount}
+                                                        onChange={(e) => setResumeAmount(e.target.value)}
+                                                        className="flex-1 px-3 py-1.5 rounded-xl border border-green-200 text-xs font-bold outline-none focus:ring-2 focus:ring-green-500"
+                                                        placeholder="+ výsledkov"
+                                                    />
+                                                    <button 
+                                                        onClick={() => {
+                                                            continueScraping(job.id, parseInt(resumeAmount));
+                                                            setResumingJobId(null);
+                                                        }}
+                                                        className="px-4 py-1.5 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-sm"
+                                                    >
+                                                        Štart
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="flex items-center justify-between">
                                             <div className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
                                                 {job.found_count} / {job.limit}

@@ -9,6 +9,8 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
     const [places, setPlaces] = useState<ScrapedPlace[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
     const [queue, setQueue] = useState<ScrapeJob[]>([]);
+    const [resumingJobId, setResumingJobId] = useState<string | null>(null);
+    const [resumeAmount, setResumeAmount] = useState<string>("50");
     const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const lastPlacesCountRef = useRef<number>(0);
     const lastPlacesHashRef = useRef<string>("");
@@ -182,6 +184,35 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
         }
     }, [loadQueue, addLog]);
 
+    const continueScraping = useCallback(async (jobId: string, additionalAmount: number) => {
+        const { updateScrapeJob, getScrapeJobs } = await import('@/app/actions/google-maps-jobs');
+        
+        try {
+            const jobs = await getScrapeJobs();
+            const job = jobs.find(j => j.id === jobId);
+            if (!job) throw new Error("Úloha nebola nájdená.");
+
+            const newLimit = (job.found_count || 0) + additionalAmount;
+            
+            await updateScrapeJob(jobId, { 
+                status: 'w', 
+                limit: newLimit,
+                last_error: null 
+            });
+
+            addLog(`🔄 Pokračujem v úlohe "${job.search_term}". Nový limit: ${newLimit}`);
+            
+            const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+            fetch(`${baseUrl}/api/cron/google-maps-worker`).catch(() => {});
+            
+            setIsScraping(true);
+            loadQueue();
+            toast.success("Úloha bola reštartovaná s vyšším limitom.");
+        } catch (e: any) {
+            toast.error(e.message);
+        }
+    }, [loadQueue, addLog]);
+
     const forceStartWorker = useCallback(async () => {
         addLog("⚡ Manuálne spúšťam worker...");
         const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
@@ -203,5 +234,5 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
         }
     }, [addLog, pollJobStatus]);
 
-    return { isScraping, places, logs, queue, runScraper, stopScraping, loadQueue, forceStartWorker };
+    return { isScraping, places, logs, queue, runScraper, stopScraping, loadQueue, forceStartWorker, continueScraping, resumingJobId, setResumingJobId, resumeAmount, setResumeAmount };
 }
