@@ -145,7 +145,7 @@ export default function GoogleMapsScraper() {
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[700px]">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     
                     {/* Left: Active Results (7 cols) */}
                     <div className="lg:col-span-7 flex flex-col gap-6">
@@ -169,7 +169,7 @@ export default function GoogleMapsScraper() {
                         </div>
 
                         {/* Places List */}
-                        <div className="flex-1 bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-blue-500/5 flex flex-col overflow-hidden min-h-[500px]">
+                        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-blue-500/5 flex flex-col">
                             <div className="p-5 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
                                 <h3 className="font-black text-gray-900 uppercase tracking-tight text-sm flex items-center gap-2">
                                     <Database className="w-4 h-4 text-blue-500" /> Aktuálne výsledky
@@ -178,7 +178,7 @@ export default function GoogleMapsScraper() {
                                     Správa leadov →
                                 </a>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/20">
+                            <div className="p-4 space-y-3 bg-gray-50/20">
                                 {places.length === 0 && !isScraping && (
                                     <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-40">
                                         <Search className="w-12 h-12 mb-4" />
