@@ -274,11 +274,8 @@ export default function FilesTool() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-black text-foreground tracking-tighter uppercase italic">
-            Cloud / <span className="text-blue-500">Files</span>
+            Cloud
           </h1>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-2 opacity-60">
-            Corporate storage infrastructure
-          </p>
         </div>
         <div className="flex gap-4">
           {selectedIds.size > 0 && (
