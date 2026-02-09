@@ -21,7 +21,7 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
             const jobs = await getScrapeJobs();
             setQueue(jobs.slice(0, 10));
             
-            const activeJob = jobs.find(j => j.status === 'processing' || j.status === 'queued');
+            const activeJob = jobs.find(j => j.status === 'run' || j.status === 'wait');
             setIsScraping(!!activeJob);
 
             // If we have a latest job and no results shown yet, load them!
@@ -53,7 +53,7 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
 
     const pollJobStatus = useCallback(async () => {
         const jobs = await loadQueue();
-        const activeJob = jobs.find(j => j.status === 'processing' || j.status === 'queued');
+        const activeJob = jobs.find(j => j.status === 'run' || j.status === 'wait');
         
         if (activeJob) {
             try {
@@ -125,7 +125,7 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
                 search_term: searchTerm,
                 location: location,
                 limit: limit,
-                status: 'queued',
+                status: 'wait',
                 target_list: targetList
             });
 
@@ -160,11 +160,11 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
 
     const stopScraping = useCallback(async () => {
         const jobs = await loadQueue();
-        const activeJob = jobs.find(j => j.status === 'processing' || j.status === 'queued' || j.status === 'paused');
+        const activeJob = jobs.find(j => j.status === 'run' || j.status === 'wait' || j.status === 'pause');
         
         if (activeJob) {
             const { updateScrapeJob } = await import('@/app/actions/google-maps-jobs');
-            await updateScrapeJob(activeJob.id, { status: 'cancelled' });
+            await updateScrapeJob(activeJob.id, { status: 'stop' });
             addLog("⏹️ Pozadový proces bol zastavený.");
             loadQueue();
         }

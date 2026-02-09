@@ -60,7 +60,7 @@ export async function GET(request: Request) {
         
         const jobs = await directus.request(readItems(JOBS_COLLECTION, {
             filter: {
-                status: { _in: ['queued', 'paused'] }
+                status: { _in: ['wait', 'pause'] }
             },
             limit: 1,
             sort: ['date_created']
@@ -79,11 +79,11 @@ export async function GET(request: Request) {
 
         // Update status to processing and set date_updated to "lock" the job
         await directus.request(updateItem(JOBS_COLLECTION, job.id, { 
-            status: 'processing', 
+            status: 'run', 
             last_error: null
         }));
 
-        if (job.status !== 'processing') {
+        if (job.status !== 'run') {
             await addLog(job.id, "🚀 Štartujem alebo obnovujem úlohu...");
         }
 
@@ -94,7 +94,7 @@ export async function GET(request: Request) {
         if (activeKeys.length === 0) {
             const errorMsg = "Limit dosiahnutý: Žiadne dostupné kľúče.";
             await directus.request(updateItem(JOBS_COLLECTION, job.id, { 
-                status: 'paused', 
+                status: 'pause', 
                 last_error: errorMsg
             }));
             await addLog(job.id, `❌ ${errorMsg}`);
@@ -123,7 +123,7 @@ export async function GET(request: Request) {
                 fields: ['status']
             }));
             
-            if (!currentJobStatus?.[0] || currentJobStatus[0].status === 'cancelled') {
+            if (!currentJobStatus?.[0] || currentJobStatus[0].status === 'stop') {
                 console.log("[GMAP WORKER] Job cancelled during loop.");
                 return NextResponse.json({ message: "Job cancelled." });
             }
@@ -228,7 +228,7 @@ export async function GET(request: Request) {
         }
 
         const isFinished = totalFound >= job.limit;
-        const nextStatus = isFinished ? 'completed' : 'processing';
+        const nextStatus = isFinished ? 'done' : 'run';
         
         await directus.request(updateItem(JOBS_COLLECTION, job.id, {
             status: nextStatus,

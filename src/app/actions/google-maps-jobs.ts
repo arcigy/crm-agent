@@ -13,7 +13,7 @@ export interface ScrapeJob {
     search_term: string;
     location: string;
     limit: number;
-    status: 'queued' | 'processing' | 'paused' | 'completed' | 'cancelled';
+    status: 'wait' | 'run' | 'pause' | 'done' | 'stop';
     found_count: number;
     owner_email: string;
     date_created: string;
@@ -54,7 +54,7 @@ export async function createScrapeJob(job: Partial<ScrapeJob>) {
         const result = await directus.request(createItem(COLLECTION, {
             ...job,
             owner_email: email,
-            status: job.status || 'queued',
+            status: job.status || 'wait',
             found_count: job.found_count || 0,
             date_created: new Date().toISOString()
         }));
