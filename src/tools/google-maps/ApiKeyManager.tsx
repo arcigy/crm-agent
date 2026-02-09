@@ -45,9 +45,11 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
             
             setKeys(processed);
             onKeysChange(processed);
+            return processed;
         } catch (e) {
             console.error("Failed to load keys from DB", e);
             toast.error("Nepodarilo sa načítať API kľúče z databázy.");
+            return [];
         }
     };
 
@@ -71,10 +73,10 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                 if (keyStr.length < 10) continue;
                 if (keys.find(k => k.key === keyStr)) continue;
 
-                const newKey: Partial<ApiKey> = {
+                const newKeyPayload: Partial<ApiKey> = {
                     key: keyStr,
                     label: label,
-                    ownerEmail: emailStr || 'Neznámy (Unknown)',
+                    ownerEmail: emailStr || 'dev@arcigy.sk',
                     status: 'validating',
                     usageMonth: 0,
                     usageToday: 0,
@@ -82,7 +84,7 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                     errorMessage: ''
                 };
                 
-                const result = await saveApiKey(newKey);
+                const result = await saveApiKey(newKeyPayload);
                 if (result.success) {
                     importedCount++;
                 } else {
@@ -93,21 +95,25 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
             if (importedCount === 0) {
                 toast.warning("Neboli importované žiadne nové kľúče.");
             } else {
-                toast.success(`Úspešne importovaných ${importedCount} kľúčov do DB.`);
-                loadKeys(); 
+                toast.success(`Úspešne importovaných ${importedCount} kľúčov.`);
                 setImportText('');
+                // Wait for DB to settle and then reload and validate
+                const freshKeys = await loadKeys();
+                if (freshKeys.length > 0) {
+                    await validateKeys(freshKeys);
+                }
             }
 
         } catch (e) {
             console.error(e);
-            toast.error("Import failed.");
+            toast.error("Import zlyhal.");
         } finally {
             setIsImporting(false);
         }
     };
 
     const validateKeys = async (keysToValidate: ApiKey[]) => {
-        setKeys(prev => prev.map(p => keysToValidate.find(k => k.id === p.id) ? { ...p, status: 'validating' } : p));
+        if (keysToValidate.length === 0) return;
 
         const validated = await Promise.all(keysToValidate.map(async (k) => {
             try {
@@ -126,10 +132,14 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
             }
         }));
 
-        setKeys(prev => prev.map(p => {
-            const v = validated.find(v => v.id === p.id);
-            return v ? v : p;
-        }));
+        setKeys(prev => {
+            const newKeys = prev.map(p => {
+                const v = validated.find(v => v.id === p.id);
+                return v ? v : p;
+            });
+            onKeysChange(newKeys);
+            return newKeys;
+        });
     };
 
     const deleteKey = async (id: string) => {
@@ -137,10 +147,10 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
         
         try {
             await deleteApiKey(id);
-            toast.success("Key removed from DB.");
-            loadKeys();
+            toast.success("Kľúč bol vymazaný.");
+            await loadKeys();
         } catch (e) {
-            toast.error("Failed to delete key.");
+            toast.error("Chyba pri mazaní kľúča.");
         }
     };
 
@@ -151,57 +161,64 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
     const activeCount = keys.filter(k => k.status === 'active').length;
     const totalToday = keys.reduce((acc, k) => acc + (k.usageToday || 0), 0);
     const totalMonth = keys.reduce((acc, k) => acc + (k.usageMonth || 0), 0);
+    const maxToday = keys.length * 300;
 
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 gap-3">
-                <div className="bg-blue-50/50 p-3 rounded-2xl border border-blue-100 flex items-center justify-between">
+                <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
-                            <Key className="w-4 h-4" />
+                        <div className="p-2.5 bg-blue-100 text-blue-600 rounded-xl">
+                            <Key className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-blue-900">Aktívne kľúče</span>
+                        <div>
+                            <span className="text-xs font-bold text-blue-400 uppercase tracking-wider block">Aktívne kľúče</span>
+                            <span className="text-xl font-black text-blue-900 leading-none">{activeCount} / {keys.length}</span>
+                        </div>
                     </div>
-                    <div className="text-lg font-black text-blue-700">{activeCount} / {keys.length}</div>
                 </div>
-                <div className="bg-green-50/50 p-3 rounded-2xl border border-green-100 flex items-center justify-between">
+                <div className="bg-green-50/50 p-4 rounded-2xl border border-green-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-green-100 text-green-600 rounded-xl">
-                            <RefreshCw className="w-4 h-4" />
+                        <div className="p-2.5 bg-green-100 text-green-600 rounded-xl">
+                            <RefreshCw className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-green-900">Dnešný náklad</span>
+                        <div>
+                            <span className="text-xs font-bold text-green-400 uppercase tracking-wider block">Dnešný náklad</span>
+                            <span className="text-xl font-black text-green-900 leading-none">{totalToday} <span className="text-xs opacity-50 font-normal">req / {maxToday} max</span></span>
+                        </div>
                     </div>
-                    <div className="text-lg font-black text-green-700">{totalToday} <span className="text-[10px] font-normal opacity-60">req</span></div>
                 </div>
-                <div className="bg-orange-50/50 p-3 rounded-2xl border border-orange-100 flex items-center justify-between">
+                <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-orange-100 text-orange-600 rounded-xl">
-                            <ShieldAlert className="w-4 h-4" />
+                        <div className="p-2.5 bg-orange-100 text-orange-600 rounded-xl">
+                            <ShieldAlert className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-orange-900">Mesačný náklad</span>
+                        <div>
+                            <span className="text-xs font-bold text-orange-400 uppercase tracking-wider block">Mesačný náklad</span>
+                            <span className="text-xl font-black text-orange-900 leading-none">{totalMonth}</span>
+                        </div>
                     </div>
-                    <div className="text-lg font-black text-orange-700">{totalMonth}</div>
                 </div>
             </div>
 
-            <div className="bg-gray-50 p-5 rounded-3xl border border-gray-200">
-                <h3 className="text-sm font-black text-gray-900 mb-3 flex items-center gap-2 uppercase tracking-widest">
+            <div className="bg-gray-50 p-6 rounded-3xl border border-gray-200 shadow-sm">
+                <h3 className="text-xs font-black text-gray-900 mb-4 flex items-center gap-2 uppercase tracking-widest">
                     <Plus className="w-4 h-4 text-blue-600" />
-                    Hromadný import
+                    Hromadný import kľúčov
                 </h3>
                 <textarea
                     value={importText}
                     onChange={(e) => setImportText(e.target.value)}
                     placeholder="AIza...&#10;AIza..., email@firma.sk"
-                    className="w-full h-24 p-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white font-mono text-xs mb-3"
+                    className="w-full h-24 p-4 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white font-mono text-xs mb-4"
                 />
                 <button
                     onClick={handleImport}
                     disabled={isImporting || !importText.trim()}
-                    className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-black disabled:bg-gray-300 text-white font-bold py-3 px-4 rounded-2xl transition-all text-sm"
+                    className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-black disabled:bg-gray-300 text-white font-bold py-4 px-4 rounded-2xl transition-all shadow-lg shadow-slate-950/20"
                 >
-                    {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                    Importovať kľúče
+                    {isImporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                    Spustiť import a overenie
                 </button>
             </div>
 
@@ -212,58 +229,62 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
                 </h3>
                 {keys.length === 0 ? (
                     <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300">
-                        <Key className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                        <p className="text-gray-500 font-medium">Zatiaľ nemáte žiadne kľúče.</p>
-                        <p className="text-sm text-gray-400">Pridajte ich pomocou importu vyššie.</p>
+                        <Key className="w-12 h-12 text-gray-200 mx-auto mb-3 opacity-20" />
+                        <p className="text-gray-500 font-medium font-mono text-sm uppercase tracking-tighter">Prázdna databáza</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-3">
                         {keys.map((key) => (
-                            <div key={key.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between group">
-                                <div className="flex items-center gap-4">
-                                    <div className={`p-2 rounded-lg ${
+                            <div key={key.id} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-xl shadow-blue-500/5 flex items-center justify-between group relative overflow-hidden">
+                                <div className="flex items-center gap-4 relative z-10">
+                                    <div className={`p-3 rounded-2xl ${
                                         key.status === 'active' ? 'bg-green-50 text-green-600' :
-                                        key.status === 'error' ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-600'
+                                        key.status === 'error' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600 shadow-lg shadow-blue-500/10'
                                     }`}>
-                                        {key.status === 'active' ? <CheckCircle2 className="w-5 h-5" /> : 
-                                         key.status === 'error' ? <AlertCircle className="w-5 h-5" /> : 
-                                         <Loader2 className="w-5 h-5 animate-spin" />}
+                                        {key.status === 'active' ? <CheckCircle2 className="w-6 h-6" /> : 
+                                         key.status === 'error' ? <AlertCircle className="w-6 h-6" /> : 
+                                         <Loader2 className="w-6 h-6 animate-spin" />}
                                     </div>
-                                    <div>
-                                        <div className="font-bold text-gray-900 flex items-center gap-2">
+                                    <div className="space-y-1">
+                                        <div className="font-black text-gray-900 text-lg leading-none">
                                             {key.label}
-                                            {key.ownerEmail && <span className="text-xs font-normal text-gray-400">({key.ownerEmail})</span>}
                                         </div>
-                                        <div className="text-xs font-mono text-gray-400 mt-0.5">
+                                        <div className="text-[10px] font-mono text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100 w-fit">
                                             {key.key.substring(0, 10)}...{key.key.substring(key.key.length - 4)}
                                         </div>
-                                        <div className="flex items-center gap-3 mt-1.5">
-                                            <span className="text-[10px] uppercase font-bold text-gray-400">Usage Today: {key.usageToday || 0}/300</span>
-                                            <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="flex flex-col gap-1.5 mt-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] uppercase font-black text-gray-500 tracking-tighter">Dnešný náklad: {key.usageToday || 0} / 300</span>
+                                                <span className="text-[10px] font-bold text-blue-600">{Math.round(((key.usageToday || 0)/300)*100)}%</span>
+                                            </div>
+                                            <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden border border-gray-200/50">
                                                 <div 
-                                                    className={`h-full rounded-full ${key.usageToday >= 250 ? 'bg-orange-500' : 'bg-blue-500'}`}
-                                                    style={{ width: `${Math.min(100, (key.usageToday / 300) * 100)}%` }}
+                                                    className={`h-full rounded-full transition-all duration-1000 ${key.usageToday >= 250 ? 'bg-red-500' : 'bg-blue-600 shadow-sm shadow-blue-500/50'}`}
+                                                    style={{ width: `${Math.min(100, ((key.usageToday || 0) / 300) * 100)}%` }}
                                                 />
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center gap-2 relative z-10">
                                     <button 
                                         onClick={() => revalidateKey(key)}
-                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                        title="Re-validate"
+                                        className="p-3 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all"
+                                        title="Pre-overiť"
                                     >
-                                        <RefreshCw className="w-4 h-4" />
+                                        <RefreshCw className="w-5 h-5" />
                                     </button>
                                     <button 
                                         onClick={() => deleteKey(key.id)}
-                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                        title="Delete"
+                                        className="p-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"
+                                        title="Vymazať"
                                     >
-                                        <Trash2 className="w-4 h-4" />
+                                        <Trash2 className="w-5 h-5" />
                                     </button>
                                 </div>
+                                
+                                {/* Background Accent */}
+                                <div className={`absolute -right-4 -bottom-4 w-24 h-24 blur-3xl opacity-5 rounded-full ${key.status === 'active' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
                             </div>
                         ))}
                     </div>
