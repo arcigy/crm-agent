@@ -247,20 +247,33 @@ export async function GET(request: Request) {
 
         if (isFinished) await addLog(job.id, "🏁 Hotovo.");
 
-        const proto = request.headers.get("x-forwarded-proto") || "http";
-        const host = request.headers.get("host");
+        const proto = request.headers.get("x-forwarded-proto") || "https";
+        const host = request.headers.get("host") || "crm-agent-production-d1eb.up.railway.app";
         const baseUrl = `${proto}://${host}`;
 
-        if (leadsWithWebsites > 0) {
-            fetch(`${baseUrl}/api/cron/enrich-leads`, { headers: { 'Cache-Control': 'no-cache' }}).catch(() => {});
-        }
+        // ALWAYS trigger enrichment just in case there are pending leads
+        console.log("[GMAP WORKER] Triggering enrichment...");
+        fetch(`${baseUrl}/api/cron/enrich-leads`, { 
+            headers: { 'Cache-Control': 'no-cache' },
+            mode: 'no-cors' 
+        }).catch(e => console.error("Enrichment trigger failed:", e));
 
         if (!isFinished && foundThisRun > 0) {
+            console.log("[GMAP WORKER] Triggering next worker batch...");
             const nextUrl = `${baseUrl}/api/cron/google-maps-worker`;
-            fetch(nextUrl, { headers: { 'Cache-Control': 'no-cache' }}).catch(() => {});
+            fetch(nextUrl, { 
+                headers: { 'Cache-Control': 'no-cache' },
+                mode: 'no-cors'
+            }).catch(e => console.error("Worker chain trigger failed:", e));
         }
 
-        return NextResponse.json({ success: true, status: nextStatus, total_found: totalFound, processed_this_run: foundThisRun });
+        return NextResponse.json({ 
+            success: true, 
+            status: nextStatus, 
+            total_found: totalFound, 
+            processed_this_run: foundThisRun,
+            is_finished: isFinished
+        });
 
     } catch (error: any) {
         console.error("[GMAP WORKER] FATAL ERROR:", error);
