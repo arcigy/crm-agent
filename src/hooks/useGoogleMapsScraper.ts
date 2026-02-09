@@ -1,10 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import { getScrapeJobs, createScrapeJob, ScrapeJob } from '@/app/actions/google-maps-jobs';
+import { getScrapeJobs, createScrapeJob, ScrapeJob, getJobLeads } from '@/app/actions/google-maps-jobs';
 import { ApiKey } from '@/tools/google-maps/ApiKeyManager';
 import { ScrapedPlace } from '@/types/google-maps';
-import directus from '@/lib/directus';
-import { readItems } from '@directus/sdk';
 
 export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<React.SetStateAction<ApiKey[]>>) {
     const [isScraping, setIsScraping] = useState(false);
@@ -12,6 +10,7 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
     const [logs, setLogs] = useState<string[]>([]);
     const [queue, setQueue] = useState<ScrapeJob[]>([]);
     const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const lastPlacesCountRef = useRef<number>(0);
 
     const addLog = useCallback((msg: string) => {
         setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev.slice(0, 99)]);
@@ -39,9 +38,8 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
         
         if (activeJob) {
             try {
-                // Use Server Action to avoid CORS issues
-                const { getJobLeads } = await import('@/app/actions/google-maps-jobs');
                 const leads = await getJobLeads(activeJob.id);
+                if (!leads) return;
 
                 const mappedLeads: ScrapedPlace[] = (leads as any[]).map(l => ({
                     id: String(l.id),
@@ -52,11 +50,15 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
                     url: l.google_maps_url,
                     source_city: l.source_city
                 }));
-                setPlaces(mappedLeads);
-                
-                if (activeJob.status === 'processing') {
-                    // Update logs only if we see progress
-                    // (Log update logic could be added here if needed)
+
+                // Update places only if count changed to avoid unnecessary re-renders
+                if (mappedLeads.length !== lastPlacesCountRef.current) {
+                    if (mappedLeads.length > lastPlacesCountRef.current) {
+                        const newOnes = mappedLeads.length - lastPlacesCountRef.current;
+                        addLog(`💾 Nájdených ${newOnes} nových leadov (Celkovo: ${mappedLeads.length})`);
+                    }
+                    setPlaces(mappedLeads);
+                    lastPlacesCountRef.current = mappedLeads.length;
                 }
             } catch (e) {
                 console.error("Polling leads failed", e);
@@ -67,14 +69,21 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
                 pollIntervalRef.current = null;
             }
             setIsScraping(false);
+            lastPlacesCountRef.current = 0;
         }
-    }, [loadQueue]);
+    }, [loadQueue, addLog]);
 
     useEffect(() => {
         loadQueue();
-        pollIntervalRef.current = setInterval(pollJobStatus, 5000);
+        // Faster polling (3s) for better real-time feel
+        if (!pollIntervalRef.current) {
+            pollIntervalRef.current = setInterval(pollJobStatus, 3000);
+        }
         return () => {
-            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+                pollIntervalRef.current = null;
+            }
         };
     }, [loadQueue, pollJobStatus]);
 
