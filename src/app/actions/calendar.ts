@@ -20,7 +20,7 @@ async function getAccessToken() {
     const clerkToken = response.data[0]?.token;
     if (clerkToken) return clerkToken;
   } catch (err) {
-    console.log("[Calendar] Clerk token fetch failed, trying Directus fallback...");
+    // Expected if no Clerk OAuth session, move to Directus fallback
   }
 
   // 2. Try Directus Fallback (Custom OAuth Flow)

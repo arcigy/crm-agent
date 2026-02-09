@@ -136,7 +136,17 @@ export async function GET(request: Request) {
 
                 // Update key usage immediately after call
                 currentKey.usageToday = (currentKey.usageToday || 0) + 1;
-                await updateApiKeyUsage(currentKey.id, { usageToday: currentKey.usageToday, lastUsed: new Date().toISOString() });
+                const isLimitReached = currentKey.usageToday >= (currentKey.usageLimit || 300);
+                
+                await updateApiKeyUsage(currentKey.id, { 
+                    usageToday: currentKey.usageToday, 
+                    lastUsed: new Date().toISOString(),
+                    status: isLimitReached ? 'limit_reached' : 'active'
+                });
+
+                if (isLimitReached) {
+                    await addLog(job.id, `⚠️ Kľúč ${currentKey.label} dosiahol denný limit.`);
+                }
 
                 if (!searchResult.results?.length) {
                     await addLog(job.id, `ℹ️ V ${currentCity} sa nič nenašlo. Skáčem na ďalšie mesto.`);
