@@ -20,4 +20,5 @@ export interface ScrapeJob {
     date_created: string;
     current_city_index?: number;
     next_page_token?: string;
+    last_error?: string | null;
 }

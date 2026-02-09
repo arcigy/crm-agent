@@ -98,6 +98,17 @@ export default function GoogleMapsScraper() {
                                                 style={{ width: `${Math.min(100, (job.found_count / job.limit) * 100)}%` }}
                                             />
                                         </div>
+
+                                        {/* Error Display */}
+                                        {job.last_error && (
+                                            <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-700 text-xs animate-pulse">
+                                                <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                                <div className="font-medium">
+                                                    <span className="font-black uppercase tracking-tight mr-1">Server Error:</span>
+                                                    {job.last_error}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -120,23 +131,31 @@ export default function GoogleMapsScraper() {
                                 </div>
                                 <div className="space-y-3">
                                     {queue.filter(j => j.status !== 'processing').map(job => (
-                                        <div key={job.id} className="bg-white/80 p-4 rounded-2xl border border-amber-200/50 flex items-center justify-between group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="p-2 rounded-xl bg-amber-100 text-amber-600">
-                                                    <Clock className="w-5 h-5" />
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-gray-900">{job.search_term} <span className="text-gray-400 font-normal">v</span> {job.location}</div>
-                                                    <div className="text-[10px] uppercase font-black text-gray-400 mt-1">
-                                                        Stav: <span className="text-amber-600">{job.status === 'paused' ? 'Limit kľúčov' : 'Čaká na server'}</span> • Zostáva: {job.limit - job.found_count}
+                                        <div key={job.id} className="bg-white/80 p-4 rounded-2xl border border-amber-200/50 flex flex-col gap-2 group">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="p-2 rounded-xl bg-amber-100 text-amber-600">
+                                                        <Clock className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-gray-900">{job.search_term} <span className="text-gray-400 font-normal">v</span> {job.location}</div>
+                                                        <div className="text-[10px] uppercase font-black text-gray-400 mt-1">
+                                                            Stav: <span className="text-amber-600">{job.status === 'paused' ? 'Pozastavené' : 'Čaká na server'}</span> • Zostáva: {job.limit - job.found_count}
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => handleCancelJob(job.id)} className="p-2 bg-white text-red-500 border border-red-100 rounded-lg hover:bg-red-50 transition-all shadow-sm">
+                                                        <XCircle className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => handleCancelJob(job.id)} className="p-2 bg-white text-red-500 border border-red-100 rounded-lg hover:bg-red-50 transition-all shadow-sm">
-                                                    <XCircle className="w-4 h-4" />
-                                                </button>
-                                            </div>
+
+                                            {job.last_error && (
+                                                <div className="p-2 bg-red-50/50 border border-red-50 rounded-lg text-[10px] text-red-600 font-medium flex items-center gap-2">
+                                                    <XCircle className="w-3 h-3" /> {job.last_error}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

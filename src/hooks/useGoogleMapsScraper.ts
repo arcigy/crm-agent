@@ -97,11 +97,21 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
 
             addLog("✅ Úloha pridaná do poradia.");
             
-            // Absolute URL to trigger the worker (important for localhost)
+            // Absolute URL to trigger the worker (important for localhost and production)
             const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-            fetch(`${baseUrl}/api/cron/google-maps-worker`, { mode: 'no-cors' })
-                .then(() => addLog("📡 Serverový worker bol úspešne pingnutý."))
-                .catch(e => console.error("Worker trigger failed", e));
+            fetch(`${baseUrl}/api/cron/google-maps-worker`)
+                .then(async (res) => {
+                    if (res.ok) addLog("📡 Serverový worker bol úspešne pingnutý.");
+                    else {
+                        const errText = await res.text();
+                        addLog(`⚠️ Serverový worker vrátil chybu: ${res.status}`);
+                        console.error("Worker trigger failed", errText);
+                    }
+                })
+                .catch(e => {
+                    addLog(`❌ Nepodarilo sa kontaktovať server: ${e.message}`);
+                    console.error("Worker trigger network error", e);
+                });
             
             toast.success("Scraping beží na pozadí. Môžete zavrieť okno.");
             pollJobStatus();

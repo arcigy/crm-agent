@@ -3,8 +3,7 @@
 import directus from '@/lib/directus';
 import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
 import { revalidatePath } from 'next/cache';
-import { currentUser } from '@clerk/nextjs/server';
-import { headers } from 'next/headers';
+import { getUserEmail } from '@/lib/auth';
 
 const COLLECTION = 'google_maps_jobs';
 const APP_PATH = '/dashboard/outreach/google-maps';
@@ -18,26 +17,14 @@ export interface ScrapeJob {
     found_count: number;
     owner_email: string;
     date_created: string;
-}
-
-async function getEmailIdentity() {
-    const user = await currentUser();
-    let email = user?.emailAddresses[0]?.emailAddress;
-    
-    // DEV BYPASS
-    const headerList = await headers();
-    const host = headerList.get('host');
-    const isLocal = host?.includes('localhost') || host?.includes('127.0.0.1');
-
-    if (!email && isLocal) {
-        email = 'dev@arcigy.sk';
-    }
-    return email;
+    current_city_index?: number;
+    next_page_token?: string;
+    last_error?: string | null;
 }
 
 export async function getScrapeJobs(): Promise<ScrapeJob[]> {
     try {
-        const email = await getEmailIdentity();
+        const email = await getUserEmail();
         if (!email) return [];
 
         const items = await directus.request(readItems(COLLECTION, {
@@ -57,7 +44,7 @@ export async function getScrapeJobs(): Promise<ScrapeJob[]> {
 
 export async function createScrapeJob(job: Partial<ScrapeJob>) {
     try {
-        const email = await getEmailIdentity();
+        const email = await getUserEmail();
         if (!email) throw new Error("Musíte byť prihlásený.");
 
         const result = await directus.request(createItem(COLLECTION, {
