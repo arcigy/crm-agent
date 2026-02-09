@@ -178,7 +178,7 @@ export default function NotesTool() {
                 <div
                   key={note.id}
                   onClick={() => setSelectedNote(note)}
-                  className={`p-6 rounded-[2rem] border-2 transition-all cursor-pointer group relative overflow-hidden ${selectedNote?.id === note.id ? "bg-blue-600 text-white border-blue-600" : "bg-card text-foreground border-border hover:border-blue-500/50"}`}
+                  className={`p-6 rounded-[2rem] border-2 transition-all cursor-pointer group relative overflow-hidden shadow-none ${selectedNote?.id === note.id ? "bg-blue-600 text-white border-blue-600" : "bg-card text-foreground border-border hover:border-blue-500/50"}`}
                 >
                   <h3 className="text-xl font-black tracking-tight mb-2 truncate">
                     {note.title || "Bez názvu"}
@@ -207,7 +207,7 @@ export default function NotesTool() {
         </div>
 
         {/* Editor Content */}
-        <div className="flex-1 bg-card rounded-[4rem] border border-border p-12 flex flex-col relative group min-w-0 transition-colors">
+        <div className="flex-1 bg-card rounded-[4rem] border border-border p-12 flex flex-col relative group min-w-0 transition-colors shadow-none">
           {selectedNote ? (
             <>
               <div className="flex items-center justify-between mb-8 shrink-0">
@@ -345,18 +345,21 @@ export default function NotesTool() {
               />
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center space-y-8 italic">
-              <div className="relative">
-                <FileText className="w-32 h-32 text-gray-50" />
-                <Sparkles className="w-12 h-12 text-indigo-100 absolute -top-4 -right-4 animate-pulse" />
-              </div>
-              <div className="text-center">
-                <p className="text-[10px] font-black uppercase tracking-[0.8em] text-gray-200">
-                  Creative Lab Engine
-                </p>
-                <p className="text-sm font-bold text-gray-300 mt-4">
-                  Vyberte poznámku pre detailnú editáciu
-                </p>
+            <div className="flex-1 flex items-center justify-center p-8 select-none animate-in fade-in zoom-in duration-500">
+              <div className="max-w-md w-full bg-muted/30 border border-border/50 rounded-[3rem] p-12 flex flex-col items-center text-center space-y-8">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-blue-500/10 blur-3xl rounded-full" />
+                  <FileText className="w-24 h-24 text-foreground/10 relative" />
+                  <Sparkles className="w-8 h-8 text-blue-500/20 absolute -top-4 -right-4 animate-pulse" />
+                </div>
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.8em] text-foreground/20 ml-[0.8em]">
+                    Creative Lab Engine
+                  </p>
+                  <p className="text-sm font-bold text-muted-foreground italic max-w-[200px] mx-auto leading-relaxed">
+                    Vyberte poznámku pre detailnú editáciu a začnite tvoriť
+                  </p>
+                </div>
               </div>
             </div>
           )}
