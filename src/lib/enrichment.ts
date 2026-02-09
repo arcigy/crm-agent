@@ -108,14 +108,16 @@ function stripCity(name: string, city?: string): string {
 }
 
 // 1. Custom Website Scraper (Pure Internal Logic)
-export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, email?: string } | null> {
-    if (!rawUrl) return null;
+export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, email?: string, error?: string } | null> {
+    if (!rawUrl) return { text: "", error: "No URL provided" };
     
     // 0. Normalize URL (Ensure protocol exists)
     let url = rawUrl.trim();
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
         url = `https://${url}`;
     }
+
+    console.log(`[ENRICHMENT] Starting scrape for: ${url}`);
 
     // Helper: Decode HTML Entities (Catch &#64; etc.)
     const decodeEntities = (html: string) => {
@@ -171,7 +173,10 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
             });
             clearTimeout(timeoutId);
 
-            if (!res.ok) return null;
+            if (!res.ok) {
+                console.warn(`[ENRICHMENT] HTTP Error ${res.status} for ${targetUrl}`);
+                return null;
+            }
             const rawHtml = await res.text();
             const html = decodeEntities(rawHtml);
             
@@ -281,7 +286,8 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
             text = text.replace(/\s+/g, " ").trim();
             
             return { text, html, emails: Array.from(emails) };
-        } catch (e) {
+        } catch (e: any) {
+            console.warn(`[ENRICHMENT] Fetch failed for ${targetUrl}: ${e.message}`);
             return null;
         }
     };
@@ -291,7 +297,7 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
         
         // --- RETRY: If HTTPS fails, try HTTP ---
         if (!home && url.startsWith("https://")) {
-            console.warn(`[Scraper] HTTPS failed for ${url}, trying HTTP...`);
+            console.warn(`[ENRICHMENT] HTTPS failed for ${url}, trying HTTP...`);
             const httpUrl = url.replace("https://", "http://");
             home = await fetchAndAnalyze(httpUrl);
             if (home) url = httpUrl; // Update base URL for relative links
@@ -299,12 +305,13 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
 
         // --- RESILIENCE: If home fails (403/Blocked), try guessing immediately ---
         if (!home) {
-            console.warn(`[Scraper] Failed to access ${url} even with fallback.`);
+            console.warn(`[ENRICHMENT] Critical Fail: Could not access ${url}.`);
             const guessed = await guessEmailsForDomain(url);
             if (guessed.length > 0) {
-                return { text: "", email: guessed[0] };
+                 console.log(`[ENRICHMENT] Fallback: Used email guess for ${url}`);
+                return { text: "", email: guessed[0], error: "Website unreachable (Emails guessed)" };
             }
-            return null;
+            return { text: "", error: "Website unreachable and no emails guessed." };
         }
 
         let combinedText = `--- HOMEPAGE ---\n${home.text}`;
@@ -342,6 +349,8 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
 
         // 4. DEEP SCRAPE (Visit up to 15 pages)
         const toCrawl = sortedQueue.slice(0, 15);
+        console.log(`[ENRICHMENT] Crawling ${toCrawl.length} subpages for ${url}`);
+        
         for (const subUrl of toCrawl) {
             const sub = await fetchAndAnalyze(subUrl);
             if (sub) {
@@ -352,6 +361,7 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
 
         // --- FINAL FALLBACK: GUESSING ---
         if (collectedEmails.size === 0) {
+            console.log(`[ENRICHMENT] No emails found via scraping. Attempting guess for ${url}`);
             const guessed = await guessEmailsForDomain(url);
             guessed.forEach(e => collectedEmails.add(e));
         }
@@ -385,13 +395,17 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
 
         const topEmail = filteredEmails.sort((a, b) => emailScore(b) - emailScore(a))[0];
 
+        console.log(`[ENRICHMENT] Finished. Found email: ${topEmail || 'NONE'}`);
+
         return {
             text: combinedText,
-            email: topEmail || undefined
+            email: topEmail || undefined,
+            error: topEmail ? undefined : "Scraping finished but no email found."
         };
 
-    } catch {
-        return null; 
+    } catch (e: any) {
+        console.error(`[ENRICHMENT] Fatal error for ${url}:`, e);
+        return { text: "", error: `Scraper crashed: ${e.message}` }; 
     }
 }
 

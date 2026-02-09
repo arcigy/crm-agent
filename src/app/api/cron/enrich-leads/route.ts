@@ -20,10 +20,11 @@ export async function GET(request: Request) {
         })) as unknown as ColdLeadItem[];
 
         if (!pendingLeads || pendingLeads.length === 0) {
+            console.log("[ENRICHMENT CRON] No pending leads found. Sleeping.");
             return NextResponse.json({ message: "No pending leads found", count: 0 });
         }
 
-        console.log(`[CRON] Processing batch of ${pendingLeads.length} leads...`);
+        console.log(`[ENRICHMENT CRON] Starting batch of ${pendingLeads.length} leads...`);
 
         // 2. Mark as processing
         await Promise.all(pendingLeads.map(lead => 

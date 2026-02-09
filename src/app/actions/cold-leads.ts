@@ -250,19 +250,30 @@ export async function enrichColdLead(id: string | number, overrideEmail?: string
 
         if (urlToScrape) {
             debugInfo.urlUsed = urlToScrape;
+            console.log(`[ENRICHMENT-ACTION] Scraping ${urlToScrape} for Lead ${id}...`);
+            
             scrapeResult = await scrapeWebsite(urlToScrape);
+            
             if (scrapeResult) {
                 scrapedText = scrapeResult.text;
                 debugInfo.scraped = true;
-                debugInfo.scrapedLength = scrapedText.length;
+                debugInfo.scrapedLength = scrapedText?.length || 0;
                 debugInfo.emailFound = scrapeResult.email || null;
+                
+                if (scrapeResult.error) {
+                    debugInfo.error = scrapeResult.error;
+                    console.warn(`[ENRICHMENT-ACTION] Scraping warning for ${id}: ${scrapeResult.error}`);
+                }
+            } else {
+                 debugInfo.error = "Scraper returned null (Unknown error)";
             }
         }
 
-        const shouldPersonalize = !!urlToScrape;
+        const shouldPersonalize = !!urlToScrape && !debugInfo.error?.includes("unreachable"); // Don't AI if site is dead
         const updateData: any = {};
 
         if (shouldPersonalize) {
+            console.log(`[ENRICHMENT-ACTION] Generating AI Personalization for Lead ${id}...`);
             const aiResult = await generatePersonalization(lead, scrapedText);
             if (aiResult && aiResult.sentence) {
                 updateData.company_name_reworked = aiResult.name;
@@ -270,8 +281,9 @@ export async function enrichColdLead(id: string | number, overrideEmail?: string
                 debugInfo.aiGenerated = true;
             } else if (aiResult && aiResult.error) {
                 debugInfo.error = `AI Error: ${aiResult.error}`;
+                updateData.enrichment_error = aiResult.error;
             }
-        } else {
+        } else if (!urlToScrape) {
             updateData.list_name = "Cold Call";
             updateData.enrichment_status = "completed"; 
             updateData.enrichment_error = "Moved to Cold Call (No Website)";
@@ -289,6 +301,12 @@ export async function enrichColdLead(id: string | number, overrideEmail?: string
 
         if (scrapeResult?.email && !lead.email) {
             updateData.email = scrapeResult.email;
+        }
+        
+        // Propagate Scraper Error to DB if critical
+        if (debugInfo.error) {
+             updateData.enrichment_error = debugInfo.error;
+             if (!updateData.enrichment_status) updateData.enrichment_status = "failed"; // Or keep as completed with error? Usually failed if no email/intro.
         }
 
         if (Object.keys(updateData).length > 0) {
