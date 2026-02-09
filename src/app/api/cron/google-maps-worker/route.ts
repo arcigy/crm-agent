@@ -155,10 +155,12 @@ export async function GET(request: Request) {
 
                 // CRITICAL: Update usage in DB immediately
                 currentKey.usageToday = (currentKey.usageToday || 0) + 1;
+                currentKey.usageMonth = (currentKey.usageMonth || 0) + 1;
                 const isLimitReached = currentKey.usageToday >= (currentKey.usageLimit || 300);
                 
                 await directus.request(updateItem('google_maps_keys', currentKey.id, { 
                     usage_today: currentKey.usageToday, 
+                    usage_month: currentKey.usageMonth,
                     last_used: new Date().toISOString(),
                     status: isLimitReached ? 'limit_reached' : 'active'
                 }));
@@ -180,7 +182,12 @@ export async function GET(request: Request) {
                     
                     // Increment usage for details call
                     currentKey.usageToday = (currentKey.usageToday || 0) + 1;
-                    await directus.request(updateItem('google_maps_keys', currentKey.id, { usage_today: currentKey.usageToday }));
+                    currentKey.usageMonth = (currentKey.usageMonth || 0) + 1;
+                    await directus.request(updateItem('google_maps_keys', currentKey.id, { 
+                        usage_today: currentKey.usageToday,
+                        usage_month: currentKey.usageMonth,
+                        last_used: new Date().toISOString()
+                    }));
                     
                     const details: any = await getPlaceDetails(currentKey.key, rawPlace.place_id);
                     if (details) {

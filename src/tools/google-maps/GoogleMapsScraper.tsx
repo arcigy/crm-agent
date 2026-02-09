@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, RefreshCw, Zap, Plus, FolderPlus } from "lucide-react";
+import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, RefreshCw, Zap, Plus, FolderPlus, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { ToolWrapper } from "@/components/tools/ToolWrapper";
 import { ApiKeyManager, ApiKey } from "./ApiKeyManager";
@@ -78,6 +79,12 @@ export default function GoogleMapsScraper() {
     return (
         <ToolWrapper title="Google Maps Scraper" icon={<Database className="text-blue-500" />}>
             <div className="max-w-7xl mx-auto space-y-6 pb-20">
+                <Link 
+                    href="/dashboard/outreach/leads" 
+                    className="flex items-center gap-2 text-xs font-black text-gray-400 hover:text-blue-600 transition-colors uppercase tracking-widest mb-2 w-fit"
+                >
+                    <ArrowLeft className="w-4 h-4" /> Späť na leady
+                </Link>
                 
                 {/* Search Panel */}
                 <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-blue-500/5 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">

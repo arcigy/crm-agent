@@ -96,7 +96,7 @@ export async function getJobLeads(jobId: string) {
             filter: {
                 google_maps_job_id: { _eq: jobId }
             },
-            limit: 100,
+            limit: 500,
             sort: ['-date_created']
         }));
         

@@ -74,6 +74,7 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
                 const leads = await getJobLeads(activeJob.id);
                 if (!leads) return;
 
+                // Increased limit to see up to 500 leads in real-time
                 const mappedLeads: ScrapedPlace[] = (leads as any[]).map(l => ({
                     id: String(l.id),
                     name: l.title,
