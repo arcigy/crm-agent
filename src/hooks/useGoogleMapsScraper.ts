@@ -39,13 +39,10 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
         
         if (activeJob) {
             try {
-                const leads = await directus.request(readItems('cold_leads', {
-                    filter: {
-                        google_maps_job_id: { _eq: activeJob.id }
-                    },
-                    limit: 100,
-                    sort: ['-date_created']
-                }));
+                // Use Server Action to avoid CORS issues
+                const { getJobLeads } = await import('@/app/actions/google-maps-jobs');
+                const leads = await getJobLeads(activeJob.id);
+
                 const mappedLeads: ScrapedPlace[] = (leads as any[]).map(l => ({
                     id: String(l.id),
                     name: l.title,

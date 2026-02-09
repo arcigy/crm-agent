@@ -84,3 +84,20 @@ export async function deleteScrapeJob(id: string) {
         return { success: false, error: error.message };
     }
 }
+
+export async function getJobLeads(jobId: string) {
+    try {
+        const items = await directus.request(readItems('cold_leads', {
+            filter: {
+                google_maps_job_id: { _eq: jobId }
+            },
+            limit: 100,
+            sort: ['-date_created']
+        }));
+        
+        return items;
+    } catch (error) {
+        console.error("Error fetching job leads:", error);
+        return [];
+    }
+}
