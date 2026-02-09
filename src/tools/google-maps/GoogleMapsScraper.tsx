@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, Clock, RefreshCw, XCircle, CheckCircle, Zap, Plus, FolderPlus } from "lucide-react";
+import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, RefreshCw, Zap, Plus, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { ToolWrapper } from "@/components/tools/ToolWrapper";
 import { ApiKeyManager, ApiKey } from "./ApiKeyManager";
@@ -28,7 +28,7 @@ export default function GoogleMapsScraper() {
             }
         };
         fetchLists();
-    }, []);
+    }, [targetList]);
 
     const handleCreateList = async () => {
         const name = prompt("Zadajte názov nového zoznamu:");
@@ -124,174 +124,155 @@ export default function GoogleMapsScraper() {
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Left Side: Results & Queue */}
-                    <div className="lg:col-span-7 space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[700px]">
+                    
+                    {/* Left: Active Results (7 cols) */}
+                    <div className="lg:col-span-7 flex flex-col gap-6">
                         
-                        {/* Active Job Panel */}
-                        {queue.some(j => j.status === 'processing') && (
-                            <div className="bg-blue-50 rounded-3xl border border-blue-100 p-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                                <h3 className="text-blue-900 font-black flex items-center gap-2 uppercase tracking-tight text-sm">
-                                    <RefreshCw className="w-4 h-4 animate-spin" /> Aktívny proces na serveri
+                        {/* Status Bar */}
+                        <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-3 h-3 rounded-full ${isScraping ? 'bg-blue-500 animate-ping' : 'bg-gray-300'}`} />
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                    {isScraping ? 'Scrapovanie beží...' : 'Scraper pripravený'}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="text-xs font-bold text-gray-400">
+                                    NÁJDENÝCH: <span className="text-blue-600 text-sm ml-1">{places.length}</span>
+                                </div>
+                                <button onClick={() => loadQueue()} className="p-2 hover:bg-gray-50 rounded-xl transition-all text-blue-600">
+                                    <RefreshCw className={`w-4 h-4 ${isScraping ? 'animate-spin' : ''}`} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Places List */}
+                        <div className="flex-1 bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-blue-500/5 flex flex-col overflow-hidden min-h-[500px]">
+                            <div className="p-5 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
+                                <h3 className="font-black text-gray-900 uppercase tracking-tight text-sm flex items-center gap-2">
+                                    <Database className="w-4 h-4 text-blue-500" /> Aktuálne výsledky
                                 </h3>
-                                {queue.filter(j => j.status === 'processing').map(job => (
-                                    <div key={job.id} className="bg-white p-5 rounded-2xl border border-blue-200/50 shadow-sm">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <div className="font-black text-gray-900 text-lg leading-tight">{job.search_term}</div>
-                                                <div className="text-sm text-gray-500 font-medium">Lokalita: <span className="text-blue-600">{job.location}</span></div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-2xl font-black text-blue-600">{job.found_count} <span className="text-gray-300 text-sm">/ {job.limit}</span></div>
-                                                <div className="text-[10px] uppercase font-bold text-blue-400">Nájdených firiem</div>
-                                            </div>
-                                        </div>
-                                        <div className="w-full bg-blue-100 h-3 rounded-full overflow-hidden">
-                                            <div 
-                                                className="bg-blue-600 h-full transition-all duration-1000 ease-out" 
-                                                style={{ width: `${Math.min(100, (job.found_count / job.limit) * 100)}%` }}
-                                            />
-                                        </div>
-
-                                        {/* Error Display */}
-                                        {job.last_error && (
-                                            <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-700 text-xs animate-pulse">
-                                                <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                                <div className="font-medium">
-                                                    <span className="font-black uppercase tracking-tight mr-1">Server Error:</span>
-                                                    {job.last_error}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                                <a href="/dashboard/outreach/leads" className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest">
+                                    Správa leadov →
+                                </a>
                             </div>
-                        )}
-
-                        {/* Queue A Panel (Waiting/Paused) */}
-                        {queue.some(j => j.status !== 'processing') && (
-                            <div className="bg-amber-50 rounded-3xl border border-amber-100 p-6 space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="text-amber-900 font-black flex items-center gap-2 uppercase tracking-tight text-sm">
-                                        <Clock className="w-4 h-4" /> Queue A (Čakajúce úlohy)
-                                    </h3>
-                                    <button 
-                                        onClick={forceStartWorker}
-                                        className="text-[10px] font-black bg-amber-200 text-amber-900 px-3 py-1 rounded-full hover:bg-amber-300 transition-colors flex items-center gap-1 uppercase"
-                                        title="Vynútiť štart worker-a"
-                                    >
-                                        <Zap className="w-3 h-3 fill-current" /> Bleskový štart
-                                    </button>
-                                </div>
-                                <div className="space-y-3">
-                                    {queue.filter(j => j.status !== 'processing').map(job => (
-                                        <div key={job.id} className="bg-white/80 p-4 rounded-2xl border border-amber-200/50 flex flex-col gap-2 group">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="p-2 rounded-xl bg-amber-100 text-amber-600">
-                                                        <Clock className="w-5 h-5" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-bold text-gray-900">{job.search_term} <span className="text-gray-400 font-normal">v</span> {job.location}</div>
-                                                        <div className="text-[10px] uppercase font-black text-gray-400 mt-1">
-                                                            Stav: <span className="text-amber-600">{job.status === 'paused' ? 'Pozastavené' : 'Čaká na server'}</span> • Zostáva: {job.limit - job.found_count}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={() => handleCancelJob(job.id)} className="p-2 bg-white text-red-500 border border-red-100 rounded-lg hover:bg-red-50 transition-all shadow-sm">
-                                                        <XCircle className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {job.last_error && (
-                                                <div className="p-2 bg-red-50/50 border border-red-50 rounded-lg text-[10px] text-red-600 font-medium flex items-center gap-2">
-                                                    <XCircle className="w-3 h-3" /> {job.last_error}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {queue.length === 0 && (
-                            <div className="bg-gray-50 rounded-3xl border border-dashed border-gray-200 p-12 text-center space-y-3">
-                                <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center mx-auto text-gray-300">
-                                    <Clock className="w-6 h-6" />
-                                </div>
-                                <div className="text-gray-400 font-bold">Žiadne čakajúce úlohy</div>
-                                <div className="text-xs text-gray-300">Zadajte hľadanie vyššie a začnite zbierať leady</div>
-                            </div>
-                        )}
-
-                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-[600px]">
-                            <div className="p-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
-                                <div className="flex items-center gap-2 font-bold text-gray-700">
-                                    <List className="w-5 h-5 text-blue-500" /> Nájdené miesta ({places.length})
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-black text-green-500 uppercase tracking-widest flex items-center gap-1 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
-                                        <CheckCircle className="w-3 h-3" /> Auto-Sync Active
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50/20 font-sans">
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/20">
                                 {places.length === 0 && !isScraping && (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 text-center p-10">
-                                        <Database className="w-16 h-16 mb-4 opacity-10" />
-                                        <p className="italic font-medium opacity-40 uppercase tracking-widest text-[10px]">Pripravené na vyhľadávanie</p>
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-40">
+                                        <Search className="w-12 h-12 mb-4" />
+                                        <p className="font-bold uppercase tracking-widest text-xs">Pripravené na hľadanie</p>
                                     </div>
                                 )}
                                 {places.map((p, i) => (
-                                    <div key={p.id} className="p-4 bg-white/50 hover:bg-white rounded-3xl transition-all border border-transparent hover:border-blue-100 flex items-center gap-4 shadow-sm hover:shadow-blue-500/5">
-                                        <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black">{i+1}</div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-black text-gray-900 text-base truncate">{p.name}</div>
-                                            <div className="text-xs text-gray-500 truncate font-medium opacity-70">{p.address}</div>
+                                    <div key={p.id || i} className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex items-center gap-4 group">
+                                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-lg">
+                                            {i + 1}
                                         </div>
-                                        <div className="text-[10px] font-black px-3 py-1.5 bg-gray-100 rounded-2xl text-gray-400 uppercase tracking-tighter">{p.source_city}</div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-black text-gray-900 group-hover:text-blue-600 transition-colors truncate uppercase tracking-tight">{p.name}</h4>
+                                            <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                                                <MapPin className="w-3 h-3" /> {p.address}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {p.phone && (
+                                                <a href={`tel:${p.phone}`} className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all">
+                                                    <Zap className="w-4 h-4 fill-blue-600" />
+                                                </a>
+                                            )}
+                                            {p.website && (
+                                                <a href={p.website} target="_blank" className="p-3 bg-gray-50 text-gray-400 rounded-2xl hover:bg-gray-100 transition-all">
+                                                    <List className="w-4 h-4" />
+                                                </a>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     </div>
 
-                    {/* Right Side: Logs & API Keys */}
-                    <div className="lg:col-span-12 xl:col-span-5 space-y-6">
-                        <div className="bg-slate-950 rounded-3xl p-6 shadow-2xl border border-white/5 flex flex-col h-[300px]">
-                            <div className="flex items-center gap-2 text-white font-bold mb-4">
-                                <History className="w-5 h-5 text-blue-400" /> Console Log
+                    {/* Right: History & Settings (5 cols) */}
+                    <div className="lg:col-span-5 flex flex-col gap-6">
+                        
+                        {/* History */}
+                        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-blue-500/5 flex flex-col h-[300px] overflow-hidden">
+                            <div className="p-5 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
+                                <h3 className="font-black text-gray-900 uppercase tracking-tight text-sm flex items-center gap-2">
+                                    <History className="w-4 h-4 text-gray-400" /> Posledné úlohy
+                                </h3>
+                                <button onClick={forceStartWorker} className="text-[9px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-full hover:bg-blue-100">
+                                    VYNÚTIŤ WORKER
+                                </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto font-mono text-[11px] space-y-2 pr-2 scrollbar-hide">
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                {queue.map((job) => (
+                                    <div key={job.id} className={`p-4 rounded-3xl border transition-all ${job.status === 'processing' ? 'bg-blue-50/50 border-blue-100 ring-2 ring-blue-50' : 'bg-white border-gray-100'}`}>
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <p className="font-black text-gray-900 uppercase tracking-tight text-sm leading-tight">{job.search_term}</p>
+                                                <p className="text-[10px] text-gray-500 font-bold">{job.location}</p>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                {job.status === 'paused' && (
+                                                    <button onClick={() => handleResume(job)} className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                                        <Play className="w-3 h-3" />
+                                                    </button>
+                                                )}
+                                                {['processing', 'queued'].includes(job.status) && (
+                                                    <button onClick={() => handleCancelJob(job.id)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
+                                                        <StopCircle className="w-3 h-3" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <div className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+                                                {job.found_count} / {job.limit}
+                                            </div>
+                                            <span className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                                                job.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                job.status === 'processing' ? 'bg-blue-600 text-white animate-pulse' :
+                                                'bg-gray-100 text-gray-500'
+                                            }`}>
+                                                {job.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Logs */}
+                        <div className="bg-slate-900 rounded-[2rem] shadow-2xl flex flex-col h-[200px] overflow-hidden border border-white/5">
+                            <div className="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                                <h3 className="text-white/50 font-black uppercase tracking-widest text-[10px] flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" /> Live Console
+                                </h3>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 font-mono text-[9px] space-y-1">
                                 {logs.map((log, i) => (
-                                    <div key={i} className={`p-2 rounded-xl border leading-relaxed ${
-                                        log.includes('❌') ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' : 
-                                        log.includes('✅') ? 'bg-green-500/10 border-green-500/20 text-green-400' : 
-                                        log.includes('⏸️') ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
-                                        log.includes('💾') ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
-                                        'bg-white/5 border-white/5 text-gray-400 opacity-80'
+                                    <div key={i} className={`p-1 ${
+                                        log.includes('❌') ? 'text-red-400' :
+                                        log.includes('✅') ? 'text-green-400' :
+                                        log.includes('💾') ? 'text-blue-400' :
+                                        'text-gray-500'
                                     }`}>
                                         {log}
                                     </div>
                                 ))}
-                                {isScraping && (
-                                    <div className="flex items-center gap-2 p-2 text-blue-400 text-[10px] font-bold animate-pulse">
-                                        <RefreshCw className="w-3 h-3 animate-spin" /> Vyhľadávam a ukladám nové výsledky...
-                                    </div>
-                                )}
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm h-fit">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                    <Settings className="w-6 h-6 text-blue-500" /> API Kľúče
-                                </h3>
-                            </div>
+                        {/* API Keys */}
+                        <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
+                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <Settings className="w-4 h-4 text-blue-500" /> API Kľúče
+                            </h3>
                             <ApiKeyManager onKeysChange={setKeys} />
                         </div>
+
                     </div>
                 </div>
             </div>
