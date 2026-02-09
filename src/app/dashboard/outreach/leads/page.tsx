@@ -392,6 +392,8 @@ export default function OutreachLeadsPage() {
     l.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    l.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    l.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -408,7 +410,9 @@ export default function OutreachLeadsPage() {
           window.scrollTo({ top: 0, behavior: "smooth" });
       }
   };
-
+  
+  const isColdCallView = activeListName === "Cold Call";
+  
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50/30">
         
@@ -654,6 +658,12 @@ export default function OutreachLeadsPage() {
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Firma & Detail</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Email</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Telefón</th>
+                        {isColdCallView && (
+                          <>
+                            <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
+                            <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Komentár</th>
+                          </>
+                        )}
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Personalizácia</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right"></th>
                       </tr>
@@ -717,12 +727,17 @@ export default function OutreachLeadsPage() {
                                </div>
 
                                <div className="flex flex-wrap gap-2 text-xs">
-                                    {lead.website && (
+                                    {lead.website ? (
                                         <a href={lead.website} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-500 bg-blue-50 px-2 py-1 rounded-md font-bold uppercase tracking-wider text-[10px] hover:bg-blue-100 transition-colors">
                                             <Link2 className="w-3 h-3" />
                                             {lead.website.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}
                                         </a>
-                                    )}
+                                    ) : lead.google_maps_url ? (
+                                        <a href={lead.google_maps_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-orange-500 bg-orange-50 px-2 py-1 rounded-md font-bold uppercase tracking-wider text-[10px] hover:bg-orange-100 transition-colors">
+                                            <MapPin className="w-3 h-3" />
+                                            Google Maps
+                                        </a>
+                                    ) : null}
                                     <div className="flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider">
                                         <MapPin className="w-3 h-3" /> {lead.city || "Slovensko"}
                                     </div>
@@ -819,6 +834,57 @@ export default function OutreachLeadsPage() {
                                     )}
                                 </div>
                              </td>
+                             {isColdCallView && (
+                               <>
+                                <td className="px-6 py-6 align-top">
+                                  <select
+                                      value={lead.status || "nevolal"}
+                                      onChange={async (e) => {
+                                          const newStatus = e.target.value as any;
+                                          setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: newStatus } : l));
+                                          await updateColdLead(lead.id, { status: newStatus });
+                                          toast.success("Status aktualizovaný");
+                                      }}
+                                      className={cn(
+                                          "text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-white border outline-none transition-all cursor-pointer shadow-sm",
+                                          lead.status === "nevolal" || !lead.status ? "text-gray-400 border-gray-100" :
+                                          lead.status === "volal" ? "text-blue-600 border-blue-100 bg-blue-50/30" :
+                                          lead.status === "odmietol" ? "text-red-600 border-red-100 bg-red-50/30" :
+                                          lead.status === "chce_email" ? "text-green-600 border-green-100 bg-green-50/30" :
+                                          lead.status === "nechce_email" ? "text-orange-600 border-orange-100 bg-orange-50/30" :
+                                          "text-blue-600 border-blue-100 bg-blue-50/30"
+                                      )}
+                                  >
+                                      <option value="nevolal">Nevolal</option>
+                                      <option value="volal">Volal</option>
+                                      <option value="odmietol">Odmietol</option>
+                                      <option value="chce_email">Chce e-mail</option>
+                                      <option value="nechce_email">Nechce e-mail</option>
+                                  </select>
+                                </td>
+                                <td className="px-6 py-6 align-top min-w-[150px]">
+                                  <div 
+                                      className="cursor-pointer"
+                                      onDoubleClick={() => startEditing(lead, "comment", lead.comment || "")}
+                                  >
+                                      {editingCell?.id === lead.id && editingCell?.field === "comment" ? (
+                                          <input
+                                              ref={editInputRef as React.RefObject<HTMLInputElement>}
+                                              className="w-full p-2 border border-blue-500 rounded-lg bg-white text-xs font-bold text-gray-900 shadow-lg ring-4 ring-blue-50 z-20 relative"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              onBlur={saveEdit}
+                                              onKeyDown={handleKeyDown}
+                                          />
+                                      ) : (
+                                          <div className="text-[11px] font-medium text-gray-500 italic max-w-[120px] truncate group-hover:max-w-none group-hover:whitespace-normal transition-all" title={lead.comment}>
+                                              {lead.comment || "Pridať poznámku..."}
+                                          </div>
+                                      )}
+                                  </div>
+                                </td>
+                               </>
+                             )}
                              <td className="px-6 py-6 max-w-lg align-top">
                                 <div 
                                     className="cursor-pointer"

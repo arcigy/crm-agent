@@ -17,7 +17,8 @@ export interface ColdLeadItem {
   category?: string;
   abstract?: string;
   ai_first_sentence?: string;
-  status?: "new" | "contacted" | "replied" | "rejected";
+  status?: "new" | "contacted" | "replied" | "rejected" | "nevolal" | "volal" | "odmietol" | "chce_email" | "nechce_email";
+  comment?: string;
   list_name?: string;
   user_email?: string;
   date_created?: string;
