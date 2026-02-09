@@ -346,12 +346,14 @@ export function ColdLeadsImportModal({
                      </div>
                    </div>
                  </div>
-               </div>
-             </div>
-           )}
-         </div>
- 
-         {step !== "enrich" && ( 
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {step !== "enrich" && ( 
              <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-4">
              <button onClick={onClose} disabled={isUploading} className="px-6 py-3 text-xs font-black uppercase tracking-widest text-gray-400 disabled:opacity-50">Zrušiť</button>
              {step !== "upload" && (
@@ -360,8 +362,8 @@ export function ColdLeadsImportModal({
                  </button>
              )}
              </div>
-         )}
-       </div>
-     </div>
-   );
+        )}
+      </div>
+    </div>
+  );
 }
