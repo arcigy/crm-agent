@@ -3,7 +3,7 @@
 import directus from '@/lib/directus';
 import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
 import { revalidatePath, unstable_noStore } from 'next/cache';
-import { getUserEmail } from '@/lib/auth';
+import { getUserEmail, getAuthorizedEmails } from '@/lib/auth';
 
 const COLLECTION = 'google_maps_jobs';
 const APP_PATH = '/dashboard/outreach/google-maps';
@@ -28,13 +28,13 @@ export interface ScrapeJob {
 export async function getScrapeJobs(): Promise<ScrapeJob[]> {
     unstable_noStore();
     try {
-        const email = await getUserEmail();
-        if (!email) return [];
+        const authEmails = await getAuthorizedEmails();
+        if (authEmails.length === 0) return [];
 
         const items = await directus.request(readItems(COLLECTION, {
             fields: ['*'],
             filter: {
-                owner_email: { _eq: email }
+                owner_email: { _in: authEmails }
             },
             sort: ['-date_created']
         }));

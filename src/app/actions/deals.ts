@@ -4,21 +4,24 @@ import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { readItems, createItem, updateItem, readItem } from "@directus/sdk";
 import { revalidatePath } from "next/cache";
 import { Deal } from "@/types/deal";
-import { getUserEmail } from "@/lib/auth";
+import { getUserEmail, getAuthorizedEmails, isTeamMember } from "@/lib/auth";
 
 export async function getDeals(): Promise<{
   data: Deal[] | null;
   error: string | null;
 }> {
   try {
-    const email = await getUserEmail();
-    if (!email) throw new Error("Unauthorized");
+    const authEmails = await getAuthorizedEmails();
+    if (authEmails.length === 0) throw new Error("Unauthorized");
 
     // @ts-ignore
     const deals = await directus.request(
       readItems("deals", {
         filter: {
-          _and: [{ deleted_at: { _null: true } }, { user_email: { _eq: email } }],
+          _and: [
+            { deleted_at: { _null: true } }, 
+            { user_email: { _in: authEmails } }
+          ],
         },
         sort: ["-date_created"],
       }),
@@ -66,7 +69,7 @@ export async function updateDeal(id: number, data: Partial<Deal>) {
 
     // Verify ownership
     const current = (await directus.request(readItem("deals", id))) as any;
-    if (current.user_email !== email) throw new Error("Access denied");
+    if (!isTeamMember(current.user_email)) throw new Error("Access denied");
 
     // @ts-ignore
     await directus.request(

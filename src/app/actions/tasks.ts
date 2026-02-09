@@ -3,7 +3,7 @@
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { readItems, createItem, updateItem, deleteItem, readItem } from "@directus/sdk";
 import { revalidatePath } from "next/cache";
-import { getUserEmail } from "@/lib/auth";
+import { getUserEmail, getAuthorizedEmails, isTeamMember } from "@/lib/auth";
 
 export interface Task {
   id: string;
@@ -15,14 +15,14 @@ export interface Task {
 
 export async function getTasks(date?: string) {
   try {
-    const email = await getUserEmail();
-    if (!email) return { success: false as const, error: "Unauthorized" };
+    const authEmails = await getAuthorizedEmails();
+    if (authEmails.length === 0) return { success: false as const, error: "Unauthorized" };
 
-    const filter: Record<string, unknown> = { user_email: { _eq: email } };
+    const filter: any = { user_email: { _in: authEmails } };
 
     if (date) {
       filter._and = [
-        { user_email: { _eq: email } },
+        { user_email: { _in: authEmails } },
         {
           _or: [
             { due_date: { _starts_with: date } },
@@ -149,7 +149,7 @@ export async function removeTask(id: string) {
     if (!email) return { success: false as const, error: "Unauthorized" };
 
     const current = (await directus.request(readItem("crm_tasks", id))) as any;
-    if (current.user_email?.toLowerCase() !== email.toLowerCase()) {
+    if (!isTeamMember(current.user_email)) {
       throw new Error("Access denied");
     }
 

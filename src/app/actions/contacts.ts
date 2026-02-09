@@ -3,8 +3,9 @@
 
 import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
-import { createItem, updateItem, readItems, readItem } from "@directus/sdk";
-import { getUserEmail } from "@/lib/auth";
+import { createItem, readItems, deleteItem, updateItem, deleteItems, updateItems, createItems, readItem } from "@directus/sdk";
+import { getUserEmail, getAuthorizedEmails, isTeamMember } from "@/lib/auth";
+import { scrapeWebsite, generatePersonalization } from "@/lib/enrichment";
 
 export interface ContactItem {
   id: string | number;
@@ -30,14 +31,14 @@ export interface ContactItem {
 
 export async function getContact(id: string | number) {
   try {
-    const userEmail = await getUserEmail();
-    if (!userEmail) throw new Error("Unauthorized");
+    const authEmails = await getAuthorizedEmails();
+    if (authEmails.length === 0) throw new Error("Unauthorized");
 
     const contact = (await directus.request(
       readItem("contacts", id),
     )) as unknown as ContactItem;
 
-    if (!contact || contact.user_email !== userEmail) {
+    if (!contact || !contact.user_email || !authEmails.includes(contact.user_email)) {
       return { success: false, error: "Contact not found or access denied" };
     }
 
@@ -48,7 +49,7 @@ export async function getContact(id: string | number) {
             filter: {
               _and: [
                 { contact_id: { _eq: id } },
-                { user_email: { _eq: userEmail } },
+                { user_email: { _in: authEmails } },
               ],
             },
           }),
@@ -58,7 +59,7 @@ export async function getContact(id: string | number) {
             filter: {
               _and: [
                 { contact_id: { _eq: id } },
-                { user_email: { _eq: userEmail } },
+                { user_email: { _in: authEmails } },
               ],
             },
           }),
@@ -84,15 +85,15 @@ export async function getContact(id: string | number) {
 
 export async function getContacts() {
   try {
-    const userEmail = await getUserEmail();
-    if (!userEmail) throw new Error("Unauthorized");
+    const authEmails = await getAuthorizedEmails();
+    if (authEmails.length === 0) throw new Error("Unauthorized");
 
     const contacts = (await directus.request(
       readItems("contacts", {
         filter: {
           _and: [
             { deleted_at: { _null: true } },
-            { user_email: { _eq: userEmail } },
+            { user_email: { _in: authEmails } },
           ],
         },
         fields: [
@@ -111,7 +112,7 @@ export async function getContacts() {
           filter: {
             _and: [
               { contact_id: { _nnull: true } },
-              { user_email: { _eq: userEmail } },
+              { user_email: { _in: authEmails } },
             ],
           },
           limit: -1,
@@ -190,11 +191,11 @@ export async function updateContact(
   data: Partial<ContactItem>,
 ) {
   try {
-    const userEmail = await getUserEmail();
-    if (!userEmail) throw new Error("Unauthorized");
+    const email = await getUserEmail();
+    if (!email) throw new Error("Unauthorized");
 
     const current = (await directus.request(readItem("contacts", id))) as any;
-    if (current.user_email !== userEmail) throw new Error("Access denied");
+    if (!isTeamMember(current.user_email)) throw new Error("Access denied");
 
     // Perform the update in CRM
     await directus.request(updateItem("contacts", id, data));

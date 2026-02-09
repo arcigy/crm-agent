@@ -10,21 +10,24 @@ import {
   updateFolderDescription,
 } from "@/lib/google-drive";
 import { getCalendarClient } from "@/lib/google";
-import { getUserEmail } from "@/lib/auth";
+import { getUserEmail, getAuthorizedEmails, isTeamMember } from "@/lib/auth";
 
 export async function getProjects(): Promise<{
   data: Project[] | null;
   error: string | null;
 }> {
   try {
-    const email = await getUserEmail();
-    if (!email) throw new Error("Unauthorized");
+    const authEmails = await getAuthorizedEmails();
+    if (authEmails.length === 0) throw new Error("Unauthorized");
 
     // @ts-ignore
     const projects = await directus.request(
       readItems("projects", {
         filter: {
-          _and: [{ deleted_at: { _null: true } }, { user_email: { _eq: email } }],
+          _and: [
+            { deleted_at: { _null: true } }, 
+            { user_email: { _in: authEmails } }
+          ],
         },
         sort: ["-date_created"],
       }),
@@ -43,13 +46,14 @@ export async function getProject(id: string | number): Promise<{
 }> {
   try {
     const email = await getUserEmail();
-    if (!email) throw new Error("Unauthorized");
+    const authEmails = await getAuthorizedEmails();
+    if (authEmails.length === 0) throw new Error("Unauthorized");
 
     // 1. Fetch project with potential relation
     // @ts-ignore
     const project = await directus.request(
       readItems("projects", {
-        filter: { _and: [{ id: { _eq: id } }, { user_email: { _eq: email } }] },
+        filter: { _and: [{ id: { _eq: id } }, { user_email: { _in: authEmails } }] },
         fields: ["*", { contact_id: ["id", "first_name", "last_name"] }],
         limit: 1,
       }),
@@ -198,7 +202,7 @@ export async function updateProject(id: number, data: Partial<Project>) {
 
     // Verify ownership
     const current = (await directus.request(readItem("projects", id))) as any;
-    if (current.user_email !== email) throw new Error("Access denied");
+    if (!isTeamMember(current.user_email)) throw new Error("Access denied");
 
     // @ts-ignore
     await directus.request(
@@ -227,7 +231,7 @@ export async function deleteProject(id: number) {
 
     // Verify ownership
     const current = (await directus.request(readItem("projects", id))) as any;
-    if (current.user_email !== email) throw new Error("Access denied");
+    if (!isTeamMember(current.user_email)) throw new Error("Access denied");
 
     // @ts-ignore
     await directus.request(

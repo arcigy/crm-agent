@@ -4,7 +4,7 @@ import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { readItems } from "@directus/sdk";
 import { getCalendarClient } from "@/lib/google";
 import { clerkClient, currentUser } from "@clerk/nextjs/server";
-import { getUserEmail } from "@/lib/auth";
+import { getAuthorizedEmails } from "@/lib/auth";
 
 async function getAccessToken() {
   const user = await currentUser();
@@ -60,7 +60,7 @@ export async function getCalendarConnectionStatus() {
 export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
   try {
     const token = await getAccessToken();
-    const userEmail = await getUserEmail();
+    const authEmails = await getAuthorizedEmails();
 
     let googleEvents: any[] = [];
 
@@ -81,13 +81,13 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
       }
     }
 
-    // 2. Fetch Projects & Contacts from Directus (filtered by user)
+    // 2. Fetch Projects & Contacts from Directus (filtered by team)
     // @ts-ignore
     const projectData = await directus.request(
       readItems("projects", {
         filter: {
           _and: [
-            { user_email: { _eq: userEmail } },
+            { user_email: { _in: authEmails } },
             { deleted_at: { _null: true } },
           ],
         },
@@ -98,16 +98,16 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
     // @ts-ignore
     const contactsData = await directus.request(
       readItems("contacts", {
-        filter: { user_email: { _eq: userEmail } },
+        filter: { user_email: { _in: authEmails } },
         limit: -1,
       }),
     );
 
     // @ts-ignore
-    const tasksData = userEmail
+    const tasksData = authEmails.length > 0
       ? await directus.request(
           readItems("crm_tasks", {
-            filter: { user_email: { _eq: userEmail } },
+            filter: { user_email: { _in: authEmails } },
             limit: -1,
           }),
         )

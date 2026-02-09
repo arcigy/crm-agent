@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, readItems, deleteItem, updateItem, deleteItems, updateItems, createItems } from "@directus/sdk";
-import { getUserEmail } from "@/lib/auth";
+import { getUserEmail, getAuthorizedEmails } from "@/lib/auth";
 import { scrapeWebsite, generatePersonalization } from "@/lib/enrichment";
 
 export interface ColdLeadItem {
@@ -40,11 +40,11 @@ export interface ColdLeadList {
 
 export async function getColdLeads(listName?: string) {
   try {
-    const userEmail = await getUserEmail();
-    if (!userEmail) throw new Error("Unauthorized");
+    const authEmails = await getAuthorizedEmails();
+    if (authEmails.length === 0) throw new Error("Unauthorized");
 
     const filter: any = {
-      user_email: { _eq: userEmail },
+      user_email: { _in: authEmails },
     };
     
     if (listName && listName.startsWith("SL_")) {
