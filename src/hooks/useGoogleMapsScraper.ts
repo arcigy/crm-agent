@@ -6,7 +6,7 @@ import { ScrapedPlace } from '@/types/google-maps';
 import directus from '@/lib/directus';
 import { readItems } from '@directus/sdk';
 
-export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<React.SetStateAction<ApiKey[]>>) {
+export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<React.SetStateAction<ApiKey[]>>) {
     const [isScraping, setIsScraping] = useState(false);
     const [places, setPlaces] = useState<ScrapedPlace[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
@@ -18,32 +18,34 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
     }, []);
 
     const loadQueue = useCallback(async () => {
-        const jobs = await getScrapeJobs();
-        const activeJobs = jobs.filter(j => j.status === 'queued' || j.status === 'paused' || j.status === 'processing');
-        setQueue(activeJobs);
-        
-        // If there's an active job, we should be in "scraping" mode visually
-        const isProcessing = activeJobs.some(j => j.status === 'processing');
-        setIsScraping(isProcessing);
+        try {
+            const jobs = await getScrapeJobs();
+            const activeJobs = jobs.filter(j => j.status === 'queued' || j.status === 'paused' || j.status === 'processing');
+            setQueue(activeJobs);
+            
+            const isProcessing = activeJobs.some(j => j.status === 'processing' || j.status === 'queued');
+            setIsScraping(isProcessing);
 
-        return activeJobs;
+            return activeJobs;
+        } catch (e) {
+            console.error("Load queue failed", e);
+            return [];
+        }
     }, []);
 
     const pollJobStatus = useCallback(async () => {
         const jobs = await loadQueue();
-        const processingJob = jobs.find(j => j.status === 'processing');
+        const activeJob = jobs.find(j => j.status === 'processing' || j.status === 'queued');
         
-        if (processingJob) {
-            // Load newest leads for this job to show in UI
+        if (activeJob) {
             try {
                 const leads = await directus.request(readItems('cold_leads', {
                     filter: {
-                        google_maps_job_id: { _eq: processingJob.id }
+                        google_maps_job_id: { _eq: activeJob.id }
                     },
                     limit: 100,
                     sort: ['-date_created']
                 }));
-                // Map to ScrapedPlace
                 const mappedLeads: ScrapedPlace[] = (leads as any[]).map(l => ({
                     id: String(l.id),
                     name: l.title,
@@ -54,11 +56,15 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
                     source_city: l.source_city
                 }));
                 setPlaces(mappedLeads);
+                
+                if (activeJob.status === 'processing') {
+                    // Update logs only if we see progress
+                    // (Log update logic could be added here if needed)
+                }
             } catch (e) {
                 console.error("Polling leads failed", e);
             }
         } else {
-            // No job is processing, stop polling if it was active
             if (pollIntervalRef.current) {
                 clearInterval(pollIntervalRef.current);
                 pollIntervalRef.current = null;
@@ -69,7 +75,6 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
 
     useEffect(() => {
         loadQueue();
-        // Start polling if there are active jobs
         pollIntervalRef.current = setInterval(pollJobStatus, 5000);
         return () => {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -81,7 +86,6 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
         addLog(`🚀 Inicializujem pozadový proces pre "${searchTerm}"...`);
 
         try {
-            // 1. Create Job in DB
             const jobResult = await createScrapeJob({
                 search_term: searchTerm,
                 location: location,
@@ -91,15 +95,15 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
 
             if (!jobResult.success) throw new Error(jobResult.error);
 
-            addLog("✅ Úloha pridaná do poradia. Spúšťam serverový worker...");
-
-            // 2. Ping Background Worker (Trigger first run)
-            // We use fetch without await to not block the UI, or just trust the next cron run
-            fetch('/api/cron/google-maps-worker').catch(e => console.error("Worker ping failed", e));
+            addLog("✅ Úloha pridaná do poradia.");
+            
+            // Absolute URL to trigger the worker (important for localhost)
+            const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+            fetch(`${baseUrl}/api/cron/google-maps-worker`, { mode: 'no-cors' })
+                .then(() => addLog("📡 Serverový worker bol úspešne pingnutý."))
+                .catch(e => console.error("Worker trigger failed", e));
             
             toast.success("Scraping beží na pozadí. Môžete zavrieť okno.");
-            
-            // Start polling immediately
             pollJobStatus();
 
         } catch (e: any) {
@@ -109,7 +113,6 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
     };
 
     const stopScraping = useCallback(async () => {
-        // In background mode, "stopping" involves updating the job status in DB
         const jobs = await loadQueue();
         const activeJob = jobs.find(j => j.status === 'processing' || j.status === 'queued' || j.status === 'paused');
         
@@ -121,5 +124,17 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
         }
     }, [loadQueue, addLog]);
 
-    return { isScraping, places, logs, queue, runScraper, stopScraping, loadQueue };
+    const forceStartWorker = useCallback(async () => {
+        addLog("⚡ Manuálne spúšťam worker...");
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+        try {
+            await fetch(`${baseUrl}/api/cron/google-maps-worker`, { mode: 'no-cors' });
+            toast.success("Worker bol znova naštartovaný.");
+            pollJobStatus();
+        } catch (e) {
+            toast.error("Nepodarilo sa naštartovať worker.");
+        }
+    }, [addLog, pollJobStatus]);
+
+    return { isScraping, places, logs, queue, runScraper, stopScraping, loadQueue, forceStartWorker };
 }

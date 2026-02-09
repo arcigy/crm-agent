@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, Clock, RefreshCw, XCircle, CheckCircle } from "lucide-react";
+import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, Clock, RefreshCw, XCircle, CheckCircle, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { ToolWrapper } from "@/components/tools/ToolWrapper";
 import { ApiKeyManager, ApiKey } from "./ApiKeyManager";
@@ -12,7 +12,7 @@ export default function GoogleMapsScraper() {
     const [limit, setLimit] = useState(200);
     const [keys, setKeys] = useState<ApiKey[]>([]);
     
-    const { isScraping, places, logs, queue, runScraper, stopScraping, loadQueue } = useGoogleMapsScraper(keys, setKeys);
+    const { isScraping, places, logs, queue, runScraper, stopScraping, loadQueue, forceStartWorker } = useGoogleMapsScraper(keys, setKeys);
 
     const handleStart = async () => {
         if (!searchTerm || !location) {
@@ -106,9 +106,18 @@ export default function GoogleMapsScraper() {
                         {/* Queue A Panel (Waiting/Paused) */}
                         {queue.some(j => j.status !== 'processing') && (
                             <div className="bg-amber-50 rounded-3xl border border-amber-100 p-6 space-y-4">
-                                <h3 className="text-amber-900 font-black flex items-center gap-2 uppercase tracking-tight text-sm">
-                                    <Clock className="w-4 h-4" /> Queue A (Čakajúce úlohy)
-                                </h3>
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-amber-900 font-black flex items-center gap-2 uppercase tracking-tight text-sm">
+                                        <Clock className="w-4 h-4" /> Queue A (Čakajúce úlohy)
+                                    </h3>
+                                    <button 
+                                        onClick={forceStartWorker}
+                                        className="text-[10px] font-black bg-amber-200 text-amber-900 px-3 py-1 rounded-full hover:bg-amber-300 transition-colors flex items-center gap-1 uppercase"
+                                        title="Vynútiť štart worker-a"
+                                    >
+                                        <Zap className="w-3 h-3 fill-current" /> Bleskový štart
+                                    </button>
+                                </div>
                                 <div className="space-y-3">
                                     {queue.filter(j => j.status !== 'processing').map(job => (
                                         <div key={job.id} className="bg-white/80 p-4 rounded-2xl border border-amber-200/50 flex items-center justify-between group">
@@ -119,7 +128,7 @@ export default function GoogleMapsScraper() {
                                                 <div>
                                                     <div className="font-bold text-gray-900">{job.search_term} <span className="text-gray-400 font-normal">v</span> {job.location}</div>
                                                     <div className="text-[10px] uppercase font-black text-gray-400 mt-1">
-                                                        Zostáva: {job.limit - job.found_count} • {job.status === 'paused' ? 'Čaká na limit kľúčov' : 'V poradí'}
+                                                        Stav: <span className="text-amber-600">{job.status === 'paused' ? 'Limit kľúčov' : 'Čaká na server'}</span> • Zostáva: {job.limit - job.found_count}
                                                     </div>
                                                 </div>
                                             </div>
@@ -131,6 +140,16 @@ export default function GoogleMapsScraper() {
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+                        )}
+
+                        {queue.length === 0 && (
+                            <div className="bg-gray-50 rounded-3xl border border-dashed border-gray-200 p-12 text-center space-y-3">
+                                <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center mx-auto text-gray-300">
+                                    <Clock className="w-6 h-6" />
+                                </div>
+                                <div className="text-gray-400 font-bold">Žiadne čakajúce úlohy</div>
+                                <div className="text-xs text-gray-300">Zadajte hľadanie vyššie a začnite zbierať leady</div>
                             </div>
                         )}
 

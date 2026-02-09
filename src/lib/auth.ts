@@ -6,19 +6,6 @@ import { currentUser, auth, clerkClient } from "@clerk/nextjs/server";
  * and direct management API fetch as a last resort.
  */
 export async function getUserEmail(retries = 3): Promise<string | null> {
-  // DEV BYPASS: Allow local development without Clerk auth
-  // Check this BEFORE calling auth() which might hang on localhost with live keys
-  if (process.env.NODE_ENV === "development") {
-      const isLocal = typeof window === 'undefined' || 
-                      (typeof window !== 'undefined' && 
-                       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
-      
-      if (isLocal) {
-          console.warn("[Auth - DEV BYPASS] Local development detected, bypassing Clerk.");
-          return "arcigyback@gmail.com";
-      }
-  }
-
   const session = await auth();
   const userId = session.userId;
   
