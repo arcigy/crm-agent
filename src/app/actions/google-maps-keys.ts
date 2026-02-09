@@ -5,6 +5,7 @@ import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
 import { encrypt, decrypt } from '@/lib/encryption';
 import { revalidatePath } from 'next/cache';
 import { currentUser } from '@clerk/nextjs/server';
+import { headers } from 'next/headers';
 
 const COLLECTION = 'google_maps_keys';
 const APP_PATH = '/dashboard/outreach/google-maps';
@@ -27,10 +28,14 @@ export async function getApiKeys(): Promise<ApiKey[]> {
         const user = await currentUser();
         let email = user?.emailAddresses[0]?.emailAddress;
 
-        // DEV BYPASS: If on localhost and no user, use dev email
-        if (!email && (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_APP_URL?.includes('localhost'))) {
+        // DEV BYPASS: If on localhost, allow dev email fallback
+        const headerList = await headers();
+        const host = headerList.get('host');
+        const isLocal = host?.includes('localhost') || host?.includes('127.0.0.1');
+
+        if (!email && isLocal) {
             email = 'dev@arcigy.sk';
-            console.log("DEV MODE: Using fallback email dev@arcigy.sk");
+            console.log("DEV MODE (getApiKeys): Using fallback email dev@arcigy.sk");
         }
 
         if (!email) {
@@ -83,10 +88,14 @@ export async function saveApiKey(keyData: Partial<ApiKey>) {
         const user = await currentUser();
         let email = user?.emailAddresses[0]?.emailAddress;
         
-        // DEV BYPASS: If on localhost and no user, use dev email
-        if (!email && (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_APP_URL?.includes('localhost'))) {
+        // DEV BYPASS: If on localhost, allow dev email fallback
+        const headerList = await headers();
+        const host = headerList.get('host');
+        const isLocal = host?.includes('localhost') || host?.includes('127.0.0.1');
+
+        if (!email && isLocal) {
             email = 'dev@arcigy.sk';
-            console.log("DEV MODE: Saving as dev@arcigy.sk");
+            console.log("DEV MODE (saveApiKey): Saving as dev@arcigy.sk");
         }
 
         if (!email) throw new Error("Musíte byť prihlásený.");
@@ -99,7 +108,7 @@ export async function saveApiKey(keyData: Partial<ApiKey>) {
             status: keyData.status || 'validating',
             usage_month: keyData.usageMonth || 0,
             usage_today: keyData.usageToday || 0,
-            usage_limit: keyData.usageLimit || 5000,
+            usage_limit: keyData.usageLimit || 300,
             owner_email: email, 
             last_used: new Date().toISOString(),
             error_message: keyData.errorMessage || ''
