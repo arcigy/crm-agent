@@ -74,32 +74,56 @@ export default function GoogleMapsScraper() {
                     {/* Left Side: Results & Queue */}
                     <div className="lg:col-span-7 space-y-6">
                         
-                        {/* Queue A Panel */}
-                        {queue.length > 0 && (
+                        {/* Active Job Panel */}
+                        {queue.some(j => j.status === 'processing') && (
+                            <div className="bg-blue-50 rounded-3xl border border-blue-100 p-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                <h3 className="text-blue-900 font-black flex items-center gap-2 uppercase tracking-tight text-sm">
+                                    <RefreshCw className="w-4 h-4 animate-spin" /> Aktívny proces na serveri
+                                </h3>
+                                {queue.filter(j => j.status === 'processing').map(job => (
+                                    <div key={job.id} className="bg-white p-5 rounded-2xl border border-blue-200/50 shadow-sm">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <div className="font-black text-gray-900 text-lg leading-tight">{job.search_term}</div>
+                                                <div className="text-sm text-gray-500 font-medium">Lokalita: <span className="text-blue-600">{job.location}</span></div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-2xl font-black text-blue-600">{job.found_count} <span className="text-gray-300 text-sm">/ {job.limit}</span></div>
+                                                <div className="text-[10px] uppercase font-bold text-blue-400">Nájdených firiem</div>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-blue-100 h-3 rounded-full overflow-hidden">
+                                            <div 
+                                                className="bg-blue-600 h-full transition-all duration-1000 ease-out" 
+                                                style={{ width: `${Math.min(100, (job.found_count / job.limit) * 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Queue A Panel (Waiting/Paused) */}
+                        {queue.some(j => j.status !== 'processing') && (
                             <div className="bg-amber-50 rounded-3xl border border-amber-100 p-6 space-y-4">
                                 <h3 className="text-amber-900 font-black flex items-center gap-2 uppercase tracking-tight text-sm">
-                                    <Clock className="w-4 h-4" /> Queue A (Čakajúce procesy)
+                                    <Clock className="w-4 h-4" /> Queue A (Čakajúce úlohy)
                                 </h3>
                                 <div className="space-y-3">
-                                    {queue.map(job => (
+                                    {queue.filter(j => j.status !== 'processing').map(job => (
                                         <div key={job.id} className="bg-white/80 p-4 rounded-2xl border border-amber-200/50 flex items-center justify-between group">
                                             <div className="flex items-center gap-4">
-                                                <div className={`p-2 rounded-xl ${job.status === 'paused' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600 animate-pulse'}`}>
-                                                    {job.status === 'paused' ? <Clock className="w-5 h-5" /> : <RefreshCw className="w-5 h-5 animate-spin" />}
+                                                <div className="p-2 rounded-xl bg-amber-100 text-amber-600">
+                                                    <Clock className="w-5 h-5" />
                                                 </div>
                                                 <div>
-                                                    <div className="font-bold text-gray-900 leading-none">{job.search_term} <span className="text-gray-400 font-normal">v</span> {job.location}</div>
+                                                    <div className="font-bold text-gray-900">{job.search_term} <span className="text-gray-400 font-normal">v</span> {job.location}</div>
                                                     <div className="text-[10px] uppercase font-black text-gray-400 mt-1">
-                                                        Pokrok: {job.found_count} / {job.limit} • {job.status === 'paused' ? 'Čaká na limit' : 'Spracováva sa'}
+                                                        Zostáva: {job.limit - job.found_count} • {job.status === 'paused' ? 'Čaká na limit kľúčov' : 'V poradí'}
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {job.status === 'paused' && (
-                                                    <button onClick={() => handleResume(job)} className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-sm">
-                                                        <Play className="w-4 h-4 fill-current" />
-                                                    </button>
-                                                )}
                                                 <button onClick={() => handleCancelJob(job.id)} className="p-2 bg-white text-red-500 border border-red-100 rounded-lg hover:bg-red-50 transition-all shadow-sm">
                                                     <XCircle className="w-4 h-4" />
                                                 </button>

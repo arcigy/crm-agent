@@ -6,7 +6,7 @@ import { searchBusinesses, getPlaceDetails } from '@/app/actions/google-maps';
 import { SLOVAKIA_CITIES, CITY_COORDINATES } from '@/tools/google-maps/constants';
 
 const JOBS_COLLECTION = 'google_maps_jobs';
-const LEADS_COLLECTION = 'contacts'; // Or cold_leads if separate
+const LEADS_COLLECTION = 'cold_leads';
 
 // Standard distance formula
 const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -108,11 +108,12 @@ export async function GET(request: Request) {
                             company_name_reworked: details.name,
                             website: details.website,
                             phone: details.formatted_phone_number || details.international_phone_number,
-                            city: currentCity,
+                            city: details.formatted_address || currentCity,
                             google_maps_url: details.url,
-                            source_keyword: job.search_term,
+                            google_maps_job_id: job.id,
                             source_city: currentCity,
-                            status: 'active', // default for contacts
+                            status: 'active',
+                            user_email: job.owner_email,
                             list_name: `GMap Scrape - ${job.search_term} - ${new Date(job.date_created).toLocaleDateString()}`
                         });
                         totalFound++;

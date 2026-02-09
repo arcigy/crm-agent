@@ -36,10 +36,9 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
         if (processingJob) {
             // Load newest leads for this job to show in UI
             try {
-                const leads = await directus.request(readItems('contacts', {
+                const leads = await directus.request(readItems('cold_leads', {
                     filter: {
-                        source_keyword: { _eq: processingJob.search_term },
-                        source_city: { _eq: processingJob.location }
+                        google_maps_job_id: { _eq: processingJob.id }
                     },
                     limit: 100,
                     sort: ['-date_created']
