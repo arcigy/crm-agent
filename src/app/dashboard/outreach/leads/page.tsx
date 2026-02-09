@@ -13,6 +13,8 @@ import {
     sendColdLeadEmail,
     getSmartLeadCampaigns,
     bulkQueueForSmartLead,
+    bulkReEnrichLeads,
+    bulkSortLeads,
     type ColdLeadItem, 
     type ColdLeadList 
 } from "@/app/actions/cold-leads";
@@ -231,6 +233,39 @@ export default function OutreachLeadsPage() {
       setIsSending(false);
       setSelectedIds(new Set());
       refreshLeads(activeListName);
+  };
+
+  const handleBulkReEnrich = async () => {
+      const ids = Array.from(selectedIds);
+      if (!confirm(`Re-spustiť scraping a AI spracovanie pre ${ids.length} leadov?`)) return;
+      
+      const toastId = toast.loading("Restartujem procesy...");
+      const res = await bulkReEnrichLeads(ids);
+      
+      if (res.success) {
+          toast.success("Procesy reštartované na pozadí", { id: toastId });
+          setSelectedIds(new Set());
+          refreshLeads(activeListName);
+          fetch("/api/cron/enrich-leads").catch(console.error);
+      } else {
+          toast.error("Chyba: " + res.error, { id: toastId });
+      }
+  };
+
+  const handleBulkSort = async () => {
+      const ids = Array.from(selectedIds);
+      if (!confirm(`Roztriediť ${ids.length} leadov podľa web-stránky? (Bez webu pôjdu do Cold Call)`)) return;
+      
+      const toastId = toast.loading("Triedim leady...");
+      const res = await bulkSortLeads(ids);
+      
+      if (res.success) {
+          toast.success("Leady roztriedené", { id: toastId });
+          setSelectedIds(new Set());
+          refreshLeads(activeListName);
+      } else {
+          toast.error("Chyba: " + res.error, { id: toastId });
+      }
   };
 
 
@@ -528,6 +563,24 @@ export default function OutreachLeadsPage() {
                              Vymazať
                          </button>
                          
+                         <div className="h-8 w-px bg-gray-100 mx-1"></div>
+
+                         <button 
+                             onClick={handleBulkReEnrich}
+                             className="px-4 py-2 hover:bg-violet-50 text-violet-600 rounded-xl flex items-center gap-2 font-bold text-xs transition-colors"
+                         >
+                             <RefreshCw className="w-4 h-4" />
+                             Znovu Scrape
+                         </button>
+
+                         <button 
+                             onClick={handleBulkSort}
+                             className="px-4 py-2 hover:bg-amber-50 text-amber-600 rounded-xl flex items-center gap-2 font-bold text-xs transition-colors"
+                         >
+                             <ArrowRightLeft className="w-4 h-4" />
+                             Upratať Zoznam
+                         </button>
+
                          <div className="h-8 w-px bg-gray-100 mx-1"></div>
 
                          <button 

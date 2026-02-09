@@ -128,11 +128,13 @@ export async function bulkCreateColdLeads(leads: Partial<ColdLeadItem>[]) {
         }
 
         // Add to unique list
+        const hasWeb = !!lead.website;
         uniqueLeads.push({
             ...lead,
             user_email: userEmail,
             status: "new",
-            enrichment_status: "pending"
+            list_name: hasWeb ? lead.list_name : "Cold Call",
+            enrichment_status: hasWeb ? "pending" : "completed"
         });
 
         // Add to validation sets to prevent duplicates within the upload itself
@@ -183,7 +185,7 @@ export async function bulkDeleteColdLeads(ids: (string | number)[]) {
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
         
-        await directus.request(deleteItems("cold_leads", ids));
+        await directus.request(deleteItems("cold_leads", ids as any));
         
         revalidatePath("/dashboard/cold-outreach");
         return { success: true };
@@ -213,7 +215,7 @@ export async function bulkUpdateColdLeads(ids: (string | number)[], data: Partia
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
         
-        await directus.request(updateItems("cold_leads", ids, data));
+        await directus.request(updateItems("cold_leads", ids as any, data));
         
         revalidatePath("/dashboard/cold-outreach");
         return { success: true };
@@ -433,19 +435,19 @@ export async function syncLeadsToSmartLead(ids: (string | number)[], campaignId:
             website: l.website,
             phone_number: l.phone,
             custom_fields: {
-                city: l.city,
-                category: l.category,
-                ai_intro: l.ai_first_sentence
+                city: l.city || "",
+                category: l.category || "",
+                ai_intro: l.ai_first_sentence || ""
             }
         }));
 
         const { smartLead } = await import("@/lib/smartlead");
         await smartLead.addLeadsToCampaign({
             campaign_id: Number(campaignId),
-            leads: smartLeadsPayload
+            leads: smartLeadsPayload as any
         });
 
-        await directus.request(updateItems("cold_leads", ids, { status: "contacted" }));
+        await directus.request(updateItems("cold_leads", ids as any, { status: "contacted" }));
         
         revalidatePath("/dashboard/cold-outreach");
         return { success: true, count: smartLeadsPayload.length };
@@ -473,7 +475,7 @@ export async function bulkQueueForSmartLead(ids: (string | number)[], campaignId
         
         if (validIds.length === 0) throw new Error("No leads with valid email found.");
 
-        await directus.request(updateItems("cold_leads", validIds, { 
+        await directus.request(updateItems("cold_leads", validIds as any, { 
             smartlead_campaign_id: campaignId,
             smartlead_status: "queued"
         }));
@@ -484,5 +486,54 @@ export async function bulkQueueForSmartLead(ids: (string | number)[], campaignId
     } catch (e: any) {
         console.error("Queue for SmartLeads failed:", e);
         return { success: false, error: e.message || String(e) };
+    }
+}
+
+export async function bulkReEnrichLeads(ids: (string | number)[]) {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+        
+        // Reset enrichment status to pending to trigger re-scraping
+        await directus.request(updateItems("cold_leads", ids as any, { 
+            enrichment_status: "pending",
+            enrichment_error: null,
+            // We keep ai_first_sentence to avoid empty fields during processing, 
+            // the worker will overwrite it.
+        }));
+        
+        revalidatePath("/dashboard/cold-outreach");
+        return { success: true };
+    } catch (e: any) {
+        console.error("Bulk re-enrich failed:", e);
+        return { success: false, error: getDirectusErrorMessage(e) };
+    }
+}
+
+export async function bulkSortLeads(ids: (string | number)[]) {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+        
+        const leads = (await directus.request(readItems("cold_leads", {
+            filter: { id: { _in: ids } },
+            limit: -1
+        }))) as unknown as ColdLeadItem[];
+        
+        for (const lead of leads) {
+            const hasWeb = !!lead.website;
+            const updates: Partial<ColdLeadItem> = {
+                list_name: hasWeb ? (lead.list_name === "Cold Call" ? "Zoznam 1" : lead.list_name) : "Cold Call",
+                enrichment_status: hasWeb ? (lead.ai_first_sentence ? "completed" : "pending") : "completed"
+            };
+            
+            await directus.request(updateItem("cold_leads", lead.id, updates));
+        }
+        
+        revalidatePath("/dashboard/cold-outreach");
+        return { success: true };
+    } catch (e: any) {
+        console.error("Bulk sort failed:", e);
+        return { success: false, error: getDirectusErrorMessage(e) };
     }
 }

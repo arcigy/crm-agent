@@ -115,3 +115,33 @@ export async function refreshAccessToken(refreshToken: string) {
   const { credentials } = await client.refreshAccessToken();
   return credentials;
 }
+
+export async function sendEmail({ accessToken, to, subject, body }: { accessToken: string, to: string, subject: string, body: string }) {
+    const gmail = getGmailClient(accessToken);
+    
+    // Create RFC 2822 message
+    const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
+    const messageParts = [
+        `To: ${to}`,
+        `Content-Type: text/html; charset=utf-8`,
+        `MIME-Version: 1.0`,
+        `Subject: ${utf8Subject}`,
+        '',
+        body
+    ];
+    const message = messageParts.join('\n');
+    
+    // The body needs to be base64url encoded
+    const encodedMessage = Buffer.from(message)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+    await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: {
+            raw: encodedMessage
+        }
+    });
+}
