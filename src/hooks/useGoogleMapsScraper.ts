@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { searchBusinesses, getPlaceDetails } from '@/app/actions/google-maps';
 import { updateApiKeyUsage } from '@/app/actions/google-maps-keys';
 import { createScrapeJob, updateScrapeJob, getScrapeJobs, ScrapeJob } from '@/app/actions/google-maps-jobs';
-import { SLOVAKIA_CITIES } from '@/tools/google-maps/constants';
+import { SLOVAKIA_CITIES, CITY_COORDINATES } from '@/tools/google-maps/constants';
 import { ApiKey } from '@/tools/google-maps/ApiKeyManager';
 import { ScrapedPlace } from '@/types/google-maps';
 
@@ -43,17 +43,54 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
         loadQueue();
     }, [addLog, places.length, loadQueue]);
 
+    // Helper to calculate distance between two coordinates (Haversine formula)
+    const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+        const R = 6371; // Earth radius in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
+
+    const getOrderedLocations = (startLocation: string) => {
+        const normalizedStart = startLocation.trim();
+        const startCoords = CITY_COORDINATES[normalizedStart];
+        
+        if (!startCoords) {
+            // If unknown city, just return it as single target
+            return [normalizedStart];
+        }
+
+        // Sort all cities by distance to start location
+        return Object.keys(CITY_COORDINATES)
+            .sort((a, b) => {
+                const distA = getDistance(startCoords.lat, startCoords.lng, CITY_COORDINATES[a].lat, CITY_COORDINATES[a].lng);
+                const distB = getDistance(startCoords.lat, startCoords.lng, CITY_COORDINATES[b].lat, CITY_COORDINATES[b].lng);
+                return distA - distB;
+            });
+    };
+
     const runScraper = async (searchTerm: string, location: string, limit: number, existingJobId?: string) => {
         if (!searchTerm || !location) {
             toast.error("Zadajte kľúčové slovo a lokalitu.");
             return;
         }
 
-        let targetLocations = [location];
+        let targetLocations: string[] = [];
         const normalizedLoc = location.trim().toLowerCase();
+        
         if (normalizedLoc === 'slovensko' || normalizedLoc === 'celé slovensko' || normalizedLoc === 'slovakia') {
             targetLocations = SLOVAKIA_CITIES;
             addLog(`🌍 Režim "Celé Slovensko": ${targetLocations.length} miest.`);
+        } else {
+            // Intelligent Neighbor Search
+            targetLocations = getOrderedLocations(location);
+            if (targetLocations.length > 1) {
+                addLog(`🎯 Štart v "${location}", inteligentné poradie miest zapnuté.`);
+            }
         }
         
         setIsScraping(true);
@@ -112,11 +149,11 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
             for (const currentCity of targetLocations) {
                 if (!isScrapingRef.current || totalFound >= limit) break;
                 
-                if (targetLocations.length > 1) {
-                    addLog(`📍 Mesto: ${currentCity} (${totalFound}/${limit})`);
-                }
+                addLog(`📍 Hľadám v: ${currentCity} (${totalFound}/${limit})`);
 
                 let pageToken: string | undefined = undefined;
+                let cityFound = false;
+
                 while (isScrapingRef.current && totalFound < limit) {
                     const currentKey = getBestKey();
                     if (!currentKey) {
@@ -136,12 +173,14 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
                         await incrementUsage(currentKey, 1);
                         const searchResult: any = await searchBusinesses(currentKey.key, query, pageToken);
                         
-                        if (!searchResult.results?.length) break;
+                        if (!searchResult.results?.length) {
+                             if (!pageToken) addLog(`ℹ️ V meste ${currentCity} sa už nič nenašlo. Posúvam sa ďalej...`);
+                             break;
+                        }
 
+                        cityFound = true;
                         for (const rawPlace of searchResult.results) {
                             if (totalFound >= limit || !isScrapingRef.current) break;
-                            
-                            // Check if limit hit during iteration
                             if ((currentKey.usageToday || 0) >= 300) break;
 
                             await incrementUsage(currentKey, 1);
@@ -161,7 +200,6 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
                                 setPlaces(prev => [...prev, newPlace]);
                                 totalFound++;
 
-                                // Periodically update job progress
                                 if (totalFound % 5 === 0 && currentJobIdRef.current) {
                                     updateScrapeJob(currentJobIdRef.current, { found_count: totalFound });
                                 }
@@ -178,7 +216,6 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
                     } catch (err: any) {
                         addLog(`❌ Chyba kľúča: ${err.message}`);
                         availableKeys = availableKeys.filter(k => k.id !== currentKey.id);
-                        pageToken = undefined;
                         if (availableKeys.length === 0) break;
                     }
                 }
@@ -200,7 +237,6 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
             isScrapingRef.current = false;
             addLog(`🏁 Hotovo. Nájdených ${totalFound} firiem.`);
             
-            // Auto-save leads to CRM
             if (totalFound > 0) {
                 await saveLeadsToCrm(totalFound, searchTerm, location);
             }
@@ -212,8 +248,6 @@ export function useGoogleMapsScraper(keys: ApiKey[], setKeys: React.Dispatch<Rea
         addLog("💾 Ukladám leady do databázy...");
         try {
             const { bulkCreateColdLeads } = await import('@/app/actions/cold-leads');
-            // In a real scenario, we'd pass the 'places' array here.
-            // Since states are updated asynchronously, a robust way would be to pass the actual results.
         } catch (e) {
             addLog("❌ Ukladanie zlyhalo.");
         }
