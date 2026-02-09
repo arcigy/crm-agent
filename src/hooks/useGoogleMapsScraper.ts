@@ -135,10 +135,19 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
         addLog("⚡ Manuálne spúšťam worker...");
         const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
         try {
-            await fetch(`${baseUrl}/api/cron/google-maps-worker`, { mode: 'no-cors' });
-            toast.success("Worker bol znova naštartovaný.");
+            const res = await fetch(`${baseUrl}/api/cron/google-maps-worker`);
+            if (res.ok) {
+                const data = await res.json();
+                addLog(`⚡ Worker naštartovaný: ${data.status} (Nájdené: ${data.total_found})`);
+                toast.success("Worker bol znova naštartovaný.");
+            } else {
+                const err = await res.text();
+                addLog(`⚠️ Chyba pri štarte: ${res.status} - ${err}`);
+                console.error("Force start failed", err);
+            }
             pollJobStatus();
-        } catch (e) {
+        } catch (e: any) {
+            addLog(`❌ Sieťová chyba: ${e.message}`);
             toast.error("Nepodarilo sa naštartovať worker.");
         }
     }, [addLog, pollJobStatus]);
