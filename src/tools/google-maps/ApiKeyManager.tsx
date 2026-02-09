@@ -150,51 +150,54 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-3 mb-1">
-                        <Key className="w-5 h-5 text-blue-500" />
-                        <span className="text-sm font-medium text-gray-500">Aktívne kľúče</span>
+            <div className="grid grid-cols-1 gap-3">
+                <div className="bg-blue-50/50 p-3 rounded-2xl border border-blue-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
+                            <Key className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-blue-900">Aktívne kľúče</span>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">{activeCount} / {keys.length}</div>
+                    <div className="text-lg font-black text-blue-700">{activeCount} / {keys.length}</div>
                 </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-3 mb-1">
-                        <RefreshCw className="w-5 h-5 text-green-500" />
-                        <span className="text-sm font-medium text-gray-500">Dnešné využitie</span>
+                <div className="bg-green-50/50 p-3 rounded-2xl border border-green-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-100 text-green-600 rounded-xl">
+                            <RefreshCw className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-green-900">Dnešný náklad</span>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">{totalToday}</div>
+                    <div className="text-lg font-black text-green-700">{totalToday} <span className="text-[10px] font-normal opacity-60">req</span></div>
                 </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-3 mb-1">
-                        <ShieldAlert className="w-5 h-5 text-orange-500" />
-                        <span className="text-sm font-medium text-gray-500">Mesačné využitie</span>
+                <div className="bg-orange-50/50 p-3 rounded-2xl border border-orange-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-orange-100 text-orange-600 rounded-xl">
+                            <ShieldAlert className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-orange-900">Mesačný náklad</span>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">{totalMonth}</div>
+                    <div className="text-lg font-black text-orange-700">{totalMonth}</div>
                 </div>
             </div>
 
-            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Plus className="w-5 h-5 text-blue-600" />
-                    Hromadný import kľúčov
+            <div className="bg-gray-50 p-5 rounded-3xl border border-gray-200">
+                <h3 className="text-sm font-black text-gray-900 mb-3 flex items-center gap-2 uppercase tracking-widest">
+                    <Plus className="w-4 h-4 text-blue-600" />
+                    Hromadný import
                 </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                    Vložte zoznam kľúčov (jeden na riadok). Podporovaný formát: <code>KĽÚČ</code> alebo <code>KĽÚČ, e-mail</code>.
-                </p>
                 <textarea
                     value={importText}
                     onChange={(e) => setImportText(e.target.value)}
                     placeholder="AIza...&#10;AIza..., email@firma.sk"
-                    className="w-full h-32 p-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4 font-mono text-sm"
+                    className="w-full h-24 p-3 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white font-mono text-xs mb-3"
                 />
                 <button
                     onClick={handleImport}
                     disabled={isImporting || !importText.trim()}
-                    className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 px-6 rounded-xl transition-all"
+                    className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-black disabled:bg-gray-300 text-white font-bold py-3 px-4 rounded-2xl transition-all text-sm"
                 >
-                    {isImporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-                    Importovať do Directus DB
+                    {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                    Importovať kľúče
                 </button>
             </div>
 
