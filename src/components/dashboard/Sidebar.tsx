@@ -119,8 +119,8 @@ export function Sidebar({ className }: { className?: string }) {
           {navigation
             .filter((item: any) => {
               if (!item.allowedEmails) return true;
-              const userEmail = user?.primaryEmailAddress?.emailAddress;
-              return item.allowedEmails.includes(userEmail);
+              const currentEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+              return currentEmail && item.allowedEmails.some((e: string) => e.toLowerCase() === currentEmail);
             })
             .map((item) => {
               // Support sub-paths by checking startWith if necessary, but exact match for now

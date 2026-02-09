@@ -14,7 +14,10 @@ export default function OutreachLayout({ children }: { children: React.ReactNode
 
   useEffect(() => {
     if (isLoaded) {
-        if (!userEmail || !ALLOWED_EMAILS.includes(userEmail)) {
+        const emailLower = userEmail?.toLowerCase();
+        const allowedLower = ALLOWED_EMAILS.map(e => e.toLowerCase());
+        
+        if (!emailLower || !allowedLower.includes(emailLower)) {
           router.replace("/dashboard");
         }
     }
@@ -22,7 +25,7 @@ export default function OutreachLayout({ children }: { children: React.ReactNode
 
   if (!isLoaded && process.env.NODE_ENV !== 'development') return null;
 
-  if (!userEmail || !ALLOWED_EMAILS.includes(userEmail)) {
+  if (!userEmail || !ALLOWED_EMAILS.some(e => e.toLowerCase() === userEmail.toLowerCase())) {
     return null;
   }
 

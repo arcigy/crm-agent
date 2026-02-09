@@ -45,7 +45,7 @@ const menuGroups = [
         name: "Cold Outreach", 
         href: "/dashboard/outreach", 
         icon: Zap,
-        allowedEmails: ['branislav@arcigy.group', 'arcigyback@gmail.com']
+        allowedEmails: ['branislav@arcigy.group', 'andrej@arcigy.group', 'arcigyback@gmail.com']
       },
     ]
   },
@@ -135,9 +135,13 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
         </div>
 
         <nav className="flex-1 px-4 flex flex-col justify-center gap-2 overflow-y-auto scrollbar-hide">
-          {menuGroups.flatMap(group => 
+          {menuGroups.flatMap(group =>
             group.items
-              .filter(item => !item.allowedEmails || (userEmail && item.allowedEmails.includes(userEmail)))
+              .filter(item => {
+                if (!item.allowedEmails) return true;
+                const currentEmail = userEmail?.toLowerCase();
+                return currentEmail && item.allowedEmails.some(e => e.toLowerCase() === currentEmail);
+              })
           ).map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -148,8 +152,8 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
                 onClick={() => setIsMenuOpen(false)}
                 className={`
                   flex items-center justify-between px-6 py-4 rounded-2xl text-base font-medium transition-all duration-200 group
-                  ${isActive 
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-[1.02]" 
+                  ${isActive
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-[1.02]"
                     : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-100 active:scale-95"
                   }
                 `}
