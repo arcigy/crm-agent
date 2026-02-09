@@ -38,7 +38,6 @@ export async function GET(request: Request) {
         const timestamp = new Date().toLocaleTimeString();
         const formattedMsg = `[${timestamp}] ${msg}`;
         jobLogs.push(formattedMsg);
-        // Only keep last 50 logs to avoid DB bloat
         if (jobLogs.length > 50) jobLogs.shift();
         
         try {
@@ -53,17 +52,30 @@ export async function GET(request: Request) {
     try {
         console.log("--- [GMAP WORKER] Starting Background Check ---");
         
-        // 1. Fetch active jobs
+        // 1. Fetch active jobs with locking logic
+        // We pick jobs that are:
+        // - queued/paused
+        // - OR processing but haven't been updated for > 2 minutes (stale)
+        const twoMinutesAgo = new Date(Date.now() - 2 * 60000).toISOString();
+        
         const jobs = await directus.request(readItems(JOBS_COLLECTION, {
             filter: {
-                status: { _in: ['queued', 'processing', 'paused'] }
+                _or: [
+                    { status: { _in: ['queued', 'paused'] } },
+                    { 
+                        _and: [
+                            { status: { _eq: 'processing' } },
+                            { date_updated: { _lt: twoMinutesAgo } }
+                        ]
+                    }
+                ]
             },
             limit: 1,
             sort: ['date_created']
         }));
 
         if (!jobs || jobs.length === 0) {
-            console.log("[GMAP WORKER] No active jobs in queue.");
+            console.log("[GMAP WORKER] No active or stale jobs found.");
             return NextResponse.json({ message: "No jobs to process." });
         }
 
@@ -71,27 +83,29 @@ export async function GET(request: Request) {
         currentJobId = job.id;
         jobLogs = job.logs ? job.logs.split('\n') : [];
 
-        console.log(`[GMAP WORKER] Processing Job: ${job.id} | Term: "${job.search_term}" | Loc: ${job.location}`);
+        console.log(`[GMAP WORKER] Picking Job: ${job.id} | Status: ${job.status}`);
 
-        // Update status to processing immediately to show activity
-        if (job.status === 'queued') {
-            await directus.request(updateItem(JOBS_COLLECTION, job.id, { status: 'processing', last_error: null }));
-            await addLog(job.id, "🚀 Štartujem novú úlohu...");
+        // Update status to processing and set date_updated to "lock" the job
+        await directus.request(updateItem(JOBS_COLLECTION, job.id, { 
+            status: 'processing', 
+            last_error: null,
+            date_updated: new Date().toISOString()
+        }));
+
+        if (job.status !== 'processing') {
+            await addLog(job.id, "🚀 Štartujem alebo obnovujem úlohu...");
         }
 
         // 2. Fetch Keys
-        console.log("[GMAP WORKER] Fetching API keys...");
         const keys = await getSystemApiKeys();
         const activeKeys = keys.filter(k => (k.usageToday || 0) < (k.usageLimit || 300));
 
-        console.log(`[GMAP WORKER] Found ${activeKeys.length} active keys out of ${keys.length} total.`);
-
         if (activeKeys.length === 0) {
-            console.warn("[GMAP WORKER] ABORT: No available API keys.");
-            const errorMsg = "Limit dosiahnutý: Žiadne dostupné Google API kľúče s voľným limitom.";
+            const errorMsg = "Limit dosiahnutý: Žiadne dostupné kľúče.";
             await directus.request(updateItem(JOBS_COLLECTION, job.id, { 
                 status: 'paused', 
-                last_error: errorMsg
+                last_error: errorMsg,
+                date_updated: new Date().toISOString()
             }));
             await addLog(job.id, `❌ ${errorMsg}`);
             return NextResponse.json({ message: "No available API keys." });
@@ -106,50 +120,64 @@ export async function GET(request: Request) {
         let totalFound = job.found_count || 0;
         let foundThisRun = 0;
         let leadsWithWebsites = 0;
-        const limitPerRun = 10; 
-
-        console.log(`[GMAP WORKER] Iteration Start: CityIndex ${cityIndex}, TotalFound ${totalFound}, PageToken: ${pageToken ? 'YES' : 'NO'}`);
+        const limitPerRun = 15; 
 
         // 4. Execution Loop
         const startTime = Date.now();
-        const MAX_RUNTIME = 45000; // Increased runtime for better throughput
+        const MAX_RUNTIME = 50000; 
 
         while (totalFound < job.limit && (Date.now() - startTime) < MAX_RUNTIME && foundThisRun < limitPerRun) {
+            // Heartbeat: Check if job was cancelled by user
+            const currentJobStatus: any = await directus.request(readItems(JOBS_COLLECTION, {
+                filter: { id: { _eq: job.id } },
+                fields: ['status']
+            }));
+            
+            if (!currentJobStatus?.[0] || currentJobStatus[0].status === 'cancelled') {
+                console.log("[GMAP WORKER] Job cancelled during loop.");
+                return NextResponse.json({ message: "Job cancelled." });
+            }
+
             const currentCity = targetLocations[cityIndex];
             if (!currentCity) {
-                await addLog(job.id, "✅ Žiadne ďalšie mestá v zozname. Dokončené.");
+                await addLog(job.id, "✅ Koniec zoznamu miest.");
                 break;
             }
 
             const currentKey = activeKeys.find(k => (k.usageToday || 0) < (k.usageLimit || 300));
             if (!currentKey) {
-                await addLog(job.id, "⚠️ Všetky kľúče vyčerpané počas behu.");
+                await addLog(job.id, "⚠️ Všetky kľúče vyčerpané.");
                 break;
             }
 
             try {
+                // Update job's date_updated as a keep-alive
+                await directus.request(updateItem(JOBS_COLLECTION, job.id, { 
+                    date_updated: new Date().toISOString() 
+                }));
+
                 // Search Businesses
                 const query = `${job.search_term} in ${currentCity}`;
-                await addLog(job.id, `🔍 Hľadám "${job.search_term}" v ${currentCity} (Kľúč: ${currentKey.label})`);
+                await addLog(job.id, `🔍 "${job.search_term}" -> ${currentCity} (${currentKey.label}: ${currentKey.usageToday}/${currentKey.usageLimit || 300})`);
                 
                 const searchResult: any = await searchBusinesses(currentKey.key, query, pageToken);
 
-                // Update key usage immediately after call
+                // CRITICAL: Update usage in DB immediately
                 currentKey.usageToday = (currentKey.usageToday || 0) + 1;
                 const isLimitReached = currentKey.usageToday >= (currentKey.usageLimit || 300);
                 
-                await updateApiKeyUsage(currentKey.id, { 
-                    usageToday: currentKey.usageToday, 
-                    lastUsed: new Date().toISOString(),
+                await directus.request(updateItem('google_maps_keys', currentKey.id, { 
+                    usage_today: currentKey.usageToday, 
+                    last_used: new Date().toISOString(),
                     status: isLimitReached ? 'limit_reached' : 'active'
-                });
+                }));
 
                 if (isLimitReached) {
-                    await addLog(job.id, `⚠️ Kľúč ${currentKey.label} dosiahol denný limit.`);
+                    await addLog(job.id, `⚠️ Kľúč ${currentKey.label} vyčerpal limit.`);
                 }
 
                 if (!searchResult.results?.length) {
-                    await addLog(job.id, `ℹ️ V ${currentCity} sa nič nenašlo. Skáčem na ďalšie mesto.`);
+                    await addLog(job.id, `ℹ️ Žiadne výsledky v ${currentCity}.`);
                     cityIndex++;
                     pageToken = undefined;
                     continue;
@@ -161,7 +189,7 @@ export async function GET(request: Request) {
                     
                     // Increment usage for details call
                     currentKey.usageToday = (currentKey.usageToday || 0) + 1;
-                    await updateApiKeyUsage(currentKey.id, { usageToday: currentKey.usageToday, lastUsed: new Date().toISOString() });
+                    await directus.request(updateItem('google_maps_keys', currentKey.id, { usage_today: currentKey.usageToday }));
                     
                     const details: any = await getPlaceDetails(currentKey.key, rawPlace.place_id);
                     if (details) {
@@ -181,20 +209,19 @@ export async function GET(request: Request) {
                         };
 
                         await directus.request(createItem(LEADS_COLLECTION, newLead));
-                        await addLog(job.id, `💾 Uložené: ${newLead.title} ${hasWebsite ? '(Web ✅)' : '(Bez webu -> Cold Call)'}`);
+                        await addLog(job.id, `💾 ${newLead.title} ${hasWebsite ? '✅' : '❌'}`);
 
                         totalFound++;
                         foundThisRun++;
                         if (hasWebsite) leadsWithWebsites++;
 
-                        // Update progress in job immediately
                         await directus.request(updateItem(JOBS_COLLECTION, job.id, {
-                            found_count: totalFound
+                            found_count: totalFound,
+                            date_updated: new Date().toISOString()
                         }));
                     }
                 }
 
-                // Prepare next page or next city
                 if (searchResult.next_page_token && totalFound < job.limit) {
                     pageToken = searchResult.next_page_token;
                     await new Promise(r => setTimeout(r, 2000));
@@ -210,7 +237,6 @@ export async function GET(request: Request) {
             }
         }
 
-        // 5. Final Batch State Sync
         const isFinished = totalFound >= job.limit;
         const nextStatus = isFinished ? 'completed' : 'processing';
         
@@ -219,40 +245,33 @@ export async function GET(request: Request) {
             found_count: totalFound,
             current_city_index: cityIndex,
             next_page_token: pageToken || null,
-            last_error: null
+            last_error: null,
+            date_updated: new Date().toISOString()
         }));
 
-        if (isFinished) await addLog(job.id, "🏁 Úloha úspešne dokončená.");
+        if (isFinished) await addLog(job.id, "🏁 Hotovo.");
 
-        // 6. Turbo Pings (Self-recursion & Enrichment)
         const proto = request.headers.get("x-forwarded-proto") || "http";
         const host = request.headers.get("host");
         const baseUrl = `${proto}://${host}`;
 
-        // Ping enrichment worker if we added leads with websites
         if (leadsWithWebsites > 0) {
-            console.log("[GMAP WORKER] Pinging enrichment worker...");
             fetch(`${baseUrl}/api/cron/enrich-leads`, { headers: { 'Cache-Control': 'no-cache' }}).catch(() => {});
         }
 
         if (!isFinished && foundThisRun > 0) {
-            console.log("[GMAP WORKER] Sending self-ping for next batch...");
             const nextUrl = `${baseUrl}/api/cron/google-maps-worker`;
             fetch(nextUrl, { headers: { 'Cache-Control': 'no-cache' }}).catch(() => {});
         }
 
-        return NextResponse.json({ 
-            success: true, 
-            status: nextStatus, 
-            total_found: totalFound,
-            processed_this_run: foundThisRun
-        });
+        return NextResponse.json({ success: true, status: nextStatus, total_found: totalFound, processed_this_run: foundThisRun });
 
     } catch (error: any) {
         console.error("[GMAP WORKER] FATAL ERROR:", error);
         if (currentJobId) {
             await directus.request(updateItem(JOBS_COLLECTION, currentJobId, { 
-                last_error: `Fatálna chyba worker-a: ${error.message}` 
+                last_error: `Fatálna chyba: ${error.message}`,
+                date_updated: new Date().toISOString()
             }));
         }
         return NextResponse.json({ error: error.message }, { status: 500 });

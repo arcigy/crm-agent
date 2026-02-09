@@ -22,6 +22,7 @@ export interface ScrapeJob {
     last_error?: string | null;
     target_list?: string;
     logs?: string;
+    date_updated?: string;
 }
 
 export async function getScrapeJobs(): Promise<ScrapeJob[]> {
