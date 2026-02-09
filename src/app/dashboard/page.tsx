@@ -55,20 +55,20 @@ export default async function DashboardPage() {
   const activeTools = new Set(tools.map((t) => t.id));
 
   return (
-    <div className="h-[calc(100vh-140px)] md:h-[calc(100vh-64px)] flex flex-col max-w-[1600px] mx-auto overflow-hidden">
+    <div className="flex flex-col max-w-[1600px] mx-auto gap-8 pb-8">
       <PaymentSuccessToast />
 
       {/* Primary Stats */}
-      <div className="flex-shrink-0">
+      <div>
         <DashboardStats stats={stats} />
       </div>
 
       {/* Main Operations Grid */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 grid-rows-2 gap-6 pb-6">
-        <div className="min-h-0"><TodoListWidget tasks={tasks} mode="today" /></div>
-        <div className="min-h-0"><ChartsRow deals={deals} projects={projects} /></div>
-        <div className="min-h-0"><AnalyticsSection contacts={contacts} deals={deals} projects={projects} /></div>
-        <div className="min-h-0"><CalendarWidget events={calendarEvents} /></div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="min-h-[400px]"><TodoListWidget tasks={tasks} mode="today" /></div>
+        <div className="min-h-[400px] md:h-full"><ChartsRow deals={deals} projects={projects} /></div>
+        <div className="min-h-[400px] md:h-full"><AnalyticsSection contacts={contacts} deals={deals} projects={projects} /></div>
+        <div className="min-h-[400px]"><CalendarWidget events={calendarEvents} /></div>
       </div>
 
       <div className="hidden">

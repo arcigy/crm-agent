@@ -186,12 +186,12 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
 
       <main 
         className={`
-          flex-1 min-w-0 h-full overflow-y-auto bg-transparent relative z-10 transition-all duration-300 ease-out
+          flex-1 min-w-0 min-h-full overflow-y-auto bg-transparent relative z-10 transition-all duration-300 ease-out
           ${isMenuOpen ? "md:pl-64" : "pl-0"}
         `}
       >
-        <div className="p-4 md:p-8 pt-20 md:pt-8 transition-all h-full">
-          <div className="max-w-[1600px] mx-auto">
+        <div className="p-4 md:p-8 pt-20 md:pt-12 transition-all min-h-full flex flex-col">
+          <div className="max-w-[1600px] mx-auto w-full flex-1 flex flex-col">
              {children}
           </div>
         </div>
