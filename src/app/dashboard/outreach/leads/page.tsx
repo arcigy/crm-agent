@@ -105,7 +105,7 @@ export default function OutreachLeadsPage() {
           const isSmartLeadView = activeListName.startsWith("SL_");
           
           if (!isSmartLeadView && listsRes.data.length > 0 && !listsRes.data.find(l => l.name === activeListName)) {
-              if (activeListName === "Zoznam 1") {
+              if (activeListName === "Zoznam 1" || activeListName === "Cold Call") {
                    // Keep it
               } else {
                    setActiveListName(listsRes.data[0].name);
