@@ -17,7 +17,7 @@ export const tools: Tool[] = [
     description: 'Automatizované získavanie kontaktov z Google Maps (Safe Mode).',
     icon: MapPin,
     path: '/dashboard/outreach/google-maps',
-    allowedEmails: ['arcigyback@gmail.com', 'branislav@acg.group'] 
+    allowedEmails: ['arcigyback@gmail.com', 'branislav@arcigy.group', 'andrej@arcigy.group'] 
   },
   {
     id: 'projects',
@@ -113,6 +113,6 @@ export const tools: Tool[] = [
     description: 'Automatizovaný cold outreach s AI analýzou odpovedí.',
     icon: Zap,
     path: '/dashboard/outreach',
-    allowedEmails: ['branislav@arcigy.group', 'arcigyback@gmail.com'],
+    allowedEmails: ['branislav@arcigy.group', 'andrej@arcigy.group', 'arcigyback@gmail.com'],
   }
 ];

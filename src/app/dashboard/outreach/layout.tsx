@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 
-const ALLOWED_EMAILS = ["branislav@arcigy.group", "arcigyback@gmail.com"];
+const ALLOWED_EMAILS = ["branislav@arcigy.group", "andrej@arcigy.group", "arcigyback@gmail.com"];
 
 export default function OutreachLayout({ children }: { children: React.ReactNode }) {
   const { isLoaded, user } = useUser();

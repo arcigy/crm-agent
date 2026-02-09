@@ -46,13 +46,13 @@ const navigation = [
     name: "Cold Outreach",
     href: "/dashboard/outreach",
     icon: Zap,
-    allowedEmails: ['branislav@arcigy.group', 'arcigyback@gmail.com', 'branislav@acg.group']
+    allowedEmails: ['branislav@arcigy.group', 'andrej@arcigy.group', 'arcigyback@gmail.com', 'branislav@acg.group']
   },
   {
     name: "Maps Scraper",
     href: "/dashboard/outreach/google-maps",
     icon: MapPin,
-    allowedEmails: ['branislav@arcigy.group', 'arcigyback@gmail.com', 'branislav@acg.group']
+    allowedEmails: ['branislav@arcigy.group', 'andrej@arcigy.group', 'arcigyback@gmail.com', 'branislav@acg.group']
   },
 ];
 
