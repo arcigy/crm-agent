@@ -8,12 +8,10 @@ import {
   Search,
   Loader2,
   X,
-  Check,
   Link as LinkIcon,
   HardDrive,
   User,
   FolderKanban,
-  CheckSquare,
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -45,7 +43,7 @@ export default function NotesTool() {
       const res = await fetch("/api/notes");
       const data = await res.json();
       if (Array.isArray(data)) setNotes(data);
-    } catch (error) {
+    } catch {
       toast.error("Nepodarilo sa načítať poznámky");
     } finally {
       setLoading(false);
@@ -69,7 +67,7 @@ export default function NotesTool() {
         setNotes([newNote, ...notes]);
         setSelectedNote(newNote);
       }
-    } catch (error) {
+    } catch {
       toast.error("Chyba pri vytváraní");
     }
   };
@@ -94,7 +92,7 @@ export default function NotesTool() {
       if (res.ok) {
         setNotes(notes.map((n) => (n.id === updatedNote.id ? updatedNote : n)));
       }
-    } catch (error) {
+    } catch {
       toast.error("Chyba pri ukladaní");
     } finally {
       setIsSaving(false);
@@ -109,7 +107,7 @@ export default function NotesTool() {
     try {
       const res = await fetch(`/api/notes?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-    } catch (error) {
+    } catch {
       fetchNotes();
       toast.error("Chyba pri mazaní");
     }
@@ -117,14 +115,14 @@ export default function NotesTool() {
 
   const updateLink = (
     type: "contact" | "project" | "task" | "file",
-    value: any,
+    value: number | string | null,
   ) => {
     if (!selectedNote) return;
     const updated = { ...selectedNote };
-    if (type === "contact") updated.contact_id = value;
-    if (type === "project") updated.project_id = value;
-    if (type === "task") updated.task_id = value;
-    if (type === "file") updated.file_link = value;
+    if (type === "contact") updated.contact_id = value as number;
+    if (type === "project") updated.project_id = value as number;
+    if (type === "task") updated.task_id = value as number;
+    if (type === "file") updated.file_link = value as string;
 
     setSelectedNote(updated);
     saveNote(updated);
@@ -143,11 +141,8 @@ export default function NotesTool() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-black text-foreground tracking-tighter uppercase italic">
-            Notes / <span className="text-blue-500">Complex</span>
+            Notes
           </h1>
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mt-2 opacity-60">
-            Interconnected database of knowledge
-          </p>
         </div>
         <div className="flex gap-4">
           <div className="relative w-64">
