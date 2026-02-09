@@ -190,7 +190,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           ${isMenuOpen ? "md:pl-64" : "pl-0"}
         `}
       >
-        <div className="p-2 md:p-4 pt-16 md:pt-4 transition-all h-full flex flex-col">
+        <div className="p-4 md:p-8 pt-20 md:pt-8 transition-all h-full flex flex-col">
           <div className="max-w-[1920px] mx-auto w-full flex-1 flex flex-col min-h-0">
              {children}
           </div>
