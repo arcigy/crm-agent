@@ -144,7 +144,11 @@ export async function GET(request: Request) {
                 break;
             }
 
-            const currentKey = activeKeys.find(k => (k.usageToday || 0) < (k.usageLimit || 300));
+            // Dynamic key selection: Always pick the one with lowest current usage
+            const currentKey = activeKeys
+                .filter(k => (k.usageToday || 0) < (k.usageLimit || 300))
+                .sort((a, b) => (a.usageToday || 0) - (b.usageToday || 0))[0];
+
             if (!currentKey) {
                 await addLog(job.id, "⚠️ Všetky kľúče vyčerpané.");
                 break;
