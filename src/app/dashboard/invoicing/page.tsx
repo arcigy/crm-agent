@@ -53,11 +53,8 @@ export default function InvoicingPage() {
           </div>
           <div>
             <h1 className="text-4xl font-black text-zinc-900 dark:text-white tracking-tighter uppercase italic leading-none">
-              Custom / <span className="text-blue-600">Fakturácia</span>
+              Fakturácia
             </h1>
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.4em] mt-1 opacity-70">
-              Vaše vlastné fakturačné údaje a nastavenia
-            </p>
           </div>
         </div>
       </header>
@@ -181,7 +178,7 @@ export default function InvoicingPage() {
             </div>
             <div className="mt-8 pt-8 border-t border-zinc-800">
               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Pätka faktúry</p>
-              <p className="text-xs font-bold italic text-zinc-400">"{settings.invoiceFooter}"</p>
+              <p className="text-xs font-bold italic text-zinc-400">&quot;{settings.invoiceFooter}&quot;</p>
             </div>
           </div>
         </div>
