@@ -70,12 +70,14 @@ export async function GET(request: Request) {
 
         // 4. Recursive Call (Turbo Boost)
         if (pendingLeads.length === BATCH_SIZE) {
-            const proto = request.headers.get("x-forwarded-proto") || "http";
-            const host = request.headers.get("host");
+            const proto = request.headers.get("x-forwarded-proto") || "https";
+            const host = request.headers.get("host") || "crm-agent-production-d1eb.up.railway.app";
             const nextUrl = `${proto}://${host}/api/cron/enrich-leads`;
             
+            console.log(`[ENRICHMENT CRON] 🚀 Triggering next batch: ${nextUrl}`);
+            
             // Fire and forget
-            fetch(nextUrl, { headers: { 'Cache-Control': 'no-cache' }}).catch(console.error);
+            fetch(nextUrl, { headers: { 'Cache-Control': 'no-cache' }}).catch(e => console.error("[ENRICHMENT CRON] Failed to trigger next batch:", e));
         }
 
         return NextResponse.json({ 
