@@ -18,9 +18,11 @@ import {
 } from "@/app/actions/cold-leads";
 import { SmartLeadCampaign } from "@/types/smartlead";
 import { ColdLeadsImportModal } from "@/components/dashboard/ColdLeadsImportModal";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Phone, QrCode } from "lucide-react";
 
 export default function OutreachLeadsPage() {
   // Data State
@@ -353,6 +355,8 @@ export default function OutreachLeadsPage() {
     l.company_name_reworked?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    l.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    l.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     l.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -596,6 +600,7 @@ export default function OutreachLeadsPage() {
                         </th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Firma & Detail</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Email</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Telefón</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Personalizácia</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right"></th>
                       </tr>
@@ -716,6 +721,46 @@ export default function OutreachLeadsPage() {
                                                 </div>
                                             ) : (
                                                 <span className="text-gray-300 font-medium italic">Chýba</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                             </td>
+                             <td className="px-6 py-6 align-top">
+                                <div 
+                                    className="cursor-pointer"
+                                    onDoubleClick={() => startEditing(lead, "phone", lead.phone || "")}
+                                >
+                                    {editingCell?.id === lead.id && editingCell?.field === "phone" ? (
+                                        <input
+                                            ref={editInputRef as React.RefObject<HTMLInputElement>}
+                                            className="w-full p-2 border border-blue-500 rounded-lg bg-white text-xs font-bold text-gray-900 shadow-lg ring-4 ring-blue-50 z-20 relative"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            onBlur={saveEdit}
+                                            onKeyDown={handleKeyDown}
+                                        />
+                                    ) : (
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                                {lead.phone ? (
+                                                    <>
+                                                        <Phone className="w-3 h-3 text-blue-500" />
+                                                        {lead.phone}
+                                                    </>
+                                                ) : (
+                                                    <span className="text-gray-300 font-medium italic">Chýba</span>
+                                                )}
+                                            </div>
+                                            {lead.phone && (
+                                                <div className="p-1 bg-white border border-gray-100 rounded-lg shadow-sm group-hover:scale-110 transition-transform cursor-help" title="Naskenujte pre volanie">
+                                                    <QRCodeSVG 
+                                                        value={`tel:${lead.phone.replace(/\s/g, '')}`}
+                                                        size={40}
+                                                        level="L"
+                                                        includeMargin={false}
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                     )}
