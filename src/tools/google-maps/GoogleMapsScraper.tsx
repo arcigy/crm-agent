@@ -31,7 +31,7 @@ export default function GoogleMapsScraper() {
         setSearchTerm(job.search_term);
         setLocation(job.location);
         setLimit(job.limit);
-        await runScraper(job.search_term, job.location, job.limit, job.id);
+        await runScraper(job.search_term, job.location, job.limit);
     };
 
     const handleCancelJob = async (id: string) => {

@@ -18,4 +18,6 @@ export interface ScrapeJob {
     found_count: number;
     owner_email: string;
     date_created: string;
+    current_city_index?: number;
+    next_page_token?: string;
 }

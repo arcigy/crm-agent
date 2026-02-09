@@ -223,9 +223,9 @@ export async function bulkUpdateColdLeads(ids: (string | number)[], data: Partia
     }
 }
 
-export async function enrichColdLead(id: string | number) {
+export async function enrichColdLead(id: string | number, overrideEmail?: string) {
     try {
-        const userEmail = await getUserEmail();
+        const userEmail = overrideEmail || await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
 
         const items = await directus.request(readItems("cold_leads", { filter: { id: { _eq: id }}}));

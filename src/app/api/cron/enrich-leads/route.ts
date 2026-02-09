@@ -16,7 +16,7 @@ export async function GET(request: Request) {
                 enrichment_status: { _eq: "pending" }
             },
             limit: BATCH_SIZE,
-            fields: ["id", "website", "title"]
+            fields: ["id", "website", "title", "user_email"]
         })) as unknown as ColdLeadItem[];
 
         if (!pendingLeads || pendingLeads.length === 0) {
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
                 );
 
                 const result: any = await Promise.race([
-                    enrichColdLead(lead.id),
+                    enrichColdLead(lead.id, lead.user_email),
                     timeoutPromise
                 ]);
                 

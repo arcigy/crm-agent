@@ -154,3 +154,32 @@ export async function updateApiKeyUsage(id: string, updates: Partial<ApiKey>) {
         return { success: false, error: error.message };
     }
 }
+// Internal function for background worker (ignores user session)
+export async function getSystemApiKeys(): Promise<ApiKey[]> {
+    try {
+        const items = await directus.request(readItems(COLLECTION, {
+            fields: ['*'],
+            filter: {
+                status: { _eq: 'active' }
+            }
+        }));
+
+        if (!items || items.length === 0) return [];
+
+        return items.map((item: any) => ({
+            id: item.id,
+            key: decrypt(item.encrypted_key),
+            label: item.label,
+            status: item.status,
+            usageMonth: item.usage_month || 0,
+            usageToday: item.usage_today || 0,
+            usageLimit: item.usage_limit || 300,
+            ownerEmail: item.owner_email,
+            lastUsed: item.last_used,
+            errorMessage: item.error_message
+        }));
+    } catch (error) {
+        console.error("System Keys Fetch Failed", error);
+        return [];
+    }
+}
