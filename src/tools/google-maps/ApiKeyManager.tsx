@@ -26,9 +26,16 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
     const [importText, setImportText] = useState('');
     const [isImporting, setIsImporting] = useState(false);
 
-    // Initial Load from DB
+    // Initial Load from DB and Auto-Validate
     useEffect(() => {
-        loadKeys();
+        const init = async () => {
+            const loadedKeys = await loadKeys();
+            if (loadedKeys.length > 0) {
+                // Auto-validate all keys as soon as they are loaded from DB
+                await validateKeys(loadedKeys);
+            }
+        };
+        init();
     }, []);
 
     const loadKeys = async () => {
