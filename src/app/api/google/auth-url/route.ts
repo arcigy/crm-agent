@@ -3,9 +3,7 @@ import { getAuthUrl } from '@/lib/google';
 
 export async function GET(req: Request) {
     try {
-        const { origin } = new URL(req.url);
-        const redirectUri = `${origin}/oauth-callback`;
-        const url = getAuthUrl(undefined, redirectUri);
+        const url = getAuthUrl(undefined);
         return NextResponse.json({ url });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
