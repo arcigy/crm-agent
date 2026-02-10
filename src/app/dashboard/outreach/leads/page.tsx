@@ -25,7 +25,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { Phone, QrCode } from "lucide-react";
+import { Phone, QrCode, Eye } from "lucide-react";
+import { ColdLeadDetailModal } from "@/components/dashboard/ColdLeadDetailModal";
 
 export default function OutreachLeadsPage() {
   // Data State
@@ -54,6 +55,9 @@ export default function OutreachLeadsPage() {
   const [editValue, setEditValue] = useState("");
   const editInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   
+  // Modal for lead detail
+  const [openedLead, setOpenedLead] = useState<ColdLeadItem | null>(null);
+
   // QR Hover state
   const [hoveredQrLeadId, setHoveredQrLeadId] = useState<string | number | null>(null);
   const qrTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -800,7 +804,10 @@ export default function OutreachLeadsPage() {
                                       onKeyDown={handleKeyDown}
                                     />
                                   ) : (
-                                      <div className="font-black text-gray-900 text-base flex items-center gap-2">
+                                      <div 
+                                        className="font-black text-gray-900 text-base flex items-center gap-2 hover:text-blue-600 transition-colors"
+                                        onClick={() => setOpenedLead(lead)}
+                                      >
                                         {lead.company_name_reworked || lead.title}
                                       </div>
                                   )}
@@ -1040,6 +1047,13 @@ export default function OutreachLeadsPage() {
                             </td>
                              <td className="px-6 py-6 text-right align-middle">
                                 <div className="flex items-center justify-end gap-2">
+                                    <button
+                                        onClick={() => setOpenedLead(lead)}
+                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                        title="Detail a oslovenie"
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                    </button>
                                     {lead.email && (
                                         <button
                                             onClick={() => handleSendEmail(lead.id)}
@@ -1125,6 +1139,12 @@ export default function OutreachLeadsPage() {
         onClose={() => setIsImportModalOpen(false)} 
         onSuccess={() => refreshLeads(activeListName)} 
         initialListName={activeListName}
+      />
+
+      <ColdLeadDetailModal
+        lead={openedLead}
+        isOpen={!!openedLead}
+        onClose={() => setOpenedLead(null)}
       />
 
         {/* SmartLead Modal */}

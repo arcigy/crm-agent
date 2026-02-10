@@ -8,10 +8,11 @@ import { QRCodeSVG } from "qrcode.react";
 interface SmsQrViewProps {
   contact: Lead;
   onClose: () => void;
+  initialBody?: string;
 }
 
-export function SmsQrView({ contact, onClose }: SmsQrViewProps) {
-  const [draftBody, setDraftBody] = React.useState("");
+export function SmsQrView({ contact, onClose, initialBody = "" }: SmsQrViewProps) {
+  const [draftBody, setDraftBody] = React.useState(initialBody);
 
   return (
     <div className="flex flex-col h-full bg-white animate-in slide-in-from-bottom duration-300">

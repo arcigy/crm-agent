@@ -1,20 +1,60 @@
 "use client";
 
 import * as React from "react";
-import { Mail, X, Paperclip, Send, Sparkles } from "lucide-react";
+import { Mail, X, Paperclip, Send, Sparkles, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import RichTextEditor from "../RichTextEditor";
 import { Lead } from "@/types/contact";
 
 interface EmailComposerViewProps {
   contact: Lead;
   onClose: () => void;
+  initialSubject?: string;
+  initialBody?: string;
 }
 
 export function EmailComposerView({
   contact,
   onClose,
+  initialSubject = "",
+  initialBody = "",
 }: EmailComposerViewProps) {
-  const [subject, setSubject] = React.useState("");
-  const [body, setBody] = React.useState("");
+  const [subject, setSubject] = React.useState(initialSubject);
+  const [body, setBody] = React.useState(initialBody);
+  const [isSending, setIsSending] = React.useState(false);
+
+  const handleSend = async () => {
+    if (!subject || !body) {
+      toast.error("Please fill in both subject and body");
+      return;
+    }
+
+    setIsSending(true);
+    const toastId = toast.loading("Odosielam email...");
+    try {
+      // We need a server action to send this email via Google API
+      // I'll check if we have one or if I should use a new one.
+      // Actions like sendColdLeadEmail already exists, but it's for automated sending.
+      // Let's use a generic email sender.
+      const { sendGeneralEmail } = await import("@/app/actions/google-email");
+      const res = await sendGeneralEmail({
+        to: contact.email,
+        subject,
+        body
+      });
+
+      if (res.success) {
+        toast.success("Email odoslaný", { id: toastId });
+        onClose();
+      } else {
+        toast.error(res.error || "Chyba pri odosielaní", { id: toastId });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Chyba", { id: toastId });
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-white animate-in slide-in-from-bottom duration-300">
@@ -59,20 +99,21 @@ export function EmailComposerView({
               onChange={(e) => setSubject(e.target.value)}
             />
           </div>
-          <div className="flex-1 flex flex-col min-h-[300px]">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-2 flex justify-between items-center">
-              Message{" "}
-              <button className="flex items-center gap-1 text-purple-600">
-                <Sparkles className="w-3 h-3" />{" "}
-                <span className="text-[10px]">AI Assistant</span>
+          <div className="flex-1 flex flex-col min-h-[400px]">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-3 flex justify-between items-center px-1">
+              Message Content
+              <button className="flex items-center gap-1.5 text-blue-600 font-black text-[10px] uppercase tracking-wider hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all">
+                <Sparkles className="w-3.5 h-3.5 fill-current" />
+                AI Rewrite
               </button>
             </label>
-            <textarea
-              className="flex-1 w-full p-4 bg-gray-50/30 rounded-xl border border-gray-100 outline-none focus:ring-1 focus:ring-blue-100 focus:bg-white transition-all resize-none text-sm"
-              placeholder="Write your message here..."
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-            />
+            <div className="flex-1 flex flex-col">
+                <RichTextEditor
+                    content={body}
+                    onChange={setBody}
+                    placeholder="Začnite písať váš email..."
+                />
+            </div>
           </div>
         </div>
       </div>
@@ -90,8 +131,12 @@ export function EmailComposerView({
           >
             Discard
           </button>
-          <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg active:scale-95 transition-all">
-            Send Message <Send className="w-3.5 h-3.5" />
+          <button 
+            disabled={isSending}
+            onClick={handleSend}
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg active:scale-95 transition-all disabled:opacity-50"
+          >
+            {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Message"} <Send className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
