@@ -538,3 +538,86 @@ export async function bulkSortLeads(ids: (string | number)[]) {
         return { success: false, error: getDirectusErrorMessage(e) };
     }
 }
+
+export async function cleanupDuplicates(listName?: string) {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+
+        const filter: any = {
+            user_email: { _eq: userEmail }
+        };
+
+        if (listName && listName !== "All") {
+            filter.list_name = { _eq: listName };
+        }
+
+        const leads = (await directus.request(readItems("cold_leads", {
+            filter,
+            limit: -1,
+            sort: ["id"], // Oldest first
+            fields: ["id", "website", "google_maps_url", "email", "title"]
+        }))) as unknown as ColdLeadItem[];
+
+        if (!leads || leads.length === 0) return { success: true, count: 0 };
+
+        const seenWebsites = new Set<string>();
+        const seenMapsUrls = new Set<string>();
+        const seenEmails = new Set<string>();
+        
+        const idsToDelete: (string | number)[] = [];
+
+        for (const lead of leads) {
+            let isDuplicate = false;
+
+            // Check Website
+            if (lead.website) {
+                // Normalize website (remove protocol, www, trailing slash)
+                const normalizedWeb = lead.website.toLowerCase().replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+                if (seenWebsites.has(normalizedWeb)) {
+                    isDuplicate = true;
+                } else {
+                    seenWebsites.add(normalizedWeb);
+                }
+            }
+
+            // Check Google Maps URL
+            if (lead.google_maps_url) {
+                if (seenMapsUrls.has(lead.google_maps_url)) {
+                    isDuplicate = true;
+                } else {
+                    seenMapsUrls.add(lead.google_maps_url);
+                }
+            }
+
+            // Check Email
+            if (lead.email) {
+                 if (seenEmails.has(lead.email.toLowerCase())) {
+                     isDuplicate = true;
+                 } else {
+                     seenEmails.add(lead.email.toLowerCase());
+                 }
+            }
+
+            if (isDuplicate) {
+                idsToDelete.push(lead.id);
+            }
+        }
+
+        if (idsToDelete.length > 0) {
+            // Delete in chunks of 100 to avoid limits
+            const chunkSize = 100;
+            for (let i = 0; i < idsToDelete.length; i += chunkSize) {
+                const chunk = idsToDelete.slice(i, i + chunkSize);
+                await directus.request(deleteItems("cold_leads", chunk as any));
+            }
+        }
+
+        revalidatePath("/dashboard/cold-outreach");
+        return { success: true, count: idsToDelete.length };
+
+    } catch (e: any) {
+        console.error("Cleanup duplicates failed:", e);
+        return { success: false, error: getDirectusErrorMessage(e) };
+    }
+}

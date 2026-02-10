@@ -15,6 +15,7 @@ import {
     bulkQueueForSmartLead,
     bulkReEnrichLeads,
     bulkSortLeads,
+    cleanupDuplicates,
     type ColdLeadItem, 
     type ColdLeadList 
 } from "@/app/actions/cold-leads";
@@ -311,6 +312,20 @@ export default function OutreachLeadsPage() {
       }
   };
 
+  const handleCleanup = async () => {
+      if (!confirm(`Naozaj chcete vyhľadať a vymazať duplikáty v aktuálnom zozname ${activeListName}? Táto akcia je nevratná.`)) return;
+      
+      const toastId = toast.loading("Hľadám a mažem duplikáty...");
+      const res = await cleanupDuplicates(activeListName);
+      
+      if (res.success) {
+          toast.success(`Hotovo. Vymazaných ${res.count} duplikátov.`, { id: toastId });
+          refreshLeads(activeListName);
+      } else {
+          toast.error("Chyba: " + res.error, { id: toastId });
+      }
+  };
+
 
   // --- Individual Actions ---
   const handleDelete = async (id: string | number) => {
@@ -529,6 +544,14 @@ export default function OutreachLeadsPage() {
                   </h2>
                 </div>
                 <div className="flex gap-3">
+                  <button
+                    onClick={handleCleanup}
+                    className="bg-white border text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 px-4 py-3 rounded-[1.2rem] font-bold uppercase tracking-wide text-[11px] flex items-center gap-2 transition-all"
+                    title="Vymazať duplikáty v tomto zozname"
+                  >
+                     <Trash2 className="w-4 h-4" />
+                     <span className="max-md:hidden">Vyčistiť Duplikáty</span>
+                  </button>
                   <button 
                     onClick={() => setIsImportModalOpen(true)}
                     className="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-[1.2rem] font-bold uppercase tracking-wide text-[11px] flex items-center gap-2 transition-all shadow-lg shadow-gray-200 active:scale-95"
