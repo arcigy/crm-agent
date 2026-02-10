@@ -58,23 +58,29 @@ export default function OutreachLeadsPage() {
   const [hoveredQrLeadId, setHoveredQrLeadId] = useState<string | number | null>(null);
   const qrTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const refreshLeads = React.useCallback(async (listName: string) => {
-    setLoading(true);
+  /* eslint-disable react-hooks/exhaustive-deps */
+  const refreshLeads = React.useCallback(async (listName: string, isBackground = false) => {
+    if (!isBackground) setLoading(true);
+    
     const res = await getColdLeads(listName);
+    
     if (res.success && res.data) {
       setLeads(res.data);
-      setSelectedIds(new Set()); // Clear selection on list change
-      setCurrentPage(1);
+      if (!isBackground) {
+          setSelectedIds(new Set()); // Clear selection only on explicit list change
+          setCurrentPage(1);
+      }
     }
-    setLoading(false);
+    if (!isBackground) setLoading(false);
   }, []);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Polling for background process status
   useEffect(() => {
     const interval = setInterval(() => {
         const hasPending = leads.some(l => l.enrichment_status === 'pending' || l.enrichment_status === 'processing');
         if (hasPending) {
-            refreshLeads(activeListName);
+            refreshLeads(activeListName, true);
         }
     }, 5000); // Check every 5 seconds
     
