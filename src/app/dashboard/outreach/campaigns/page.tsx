@@ -26,7 +26,10 @@ export default function OutreachCampaignsPage() {
     body: "",
     followup_subject: "",
     followup_body: "",
-    followup_days: 3
+    followup_days: 3,
+    smartlead_id: null as number | null,
+    selected_list: "",
+    auto_sync: false
   });
   const [lastFocused, setLastFocused] = useState<{ id: string; selectionStart: number } | null>(null);
 
@@ -156,7 +159,10 @@ export default function OutreachCampaignsPage() {
       body: "",
       followup_subject: "",
       followup_body: "",
-      followup_days: 3
+      followup_days: 3,
+      smartlead_id: null,
+      selected_list: "",
+      auto_sync: false
     });
     setIsEditing(true);
   };
@@ -169,8 +175,12 @@ export default function OutreachCampaignsPage() {
         body: c.body || "",
         followup_subject: c.followup_subject || "",
         followup_body: c.followup_body || "",
-        followup_days: c.followup_days || 3
+        followup_days: c.followup_days || 3,
+        smartlead_id: c.smartlead_id || null,
+        selected_list: c.selected_list || "",
+        auto_sync: c.auto_sync || false
     });
+    if (c.selected_list) setSelectedList(c.selected_list);
     setIsEditing(true);
   };
 
@@ -213,7 +223,10 @@ export default function OutreachCampaignsPage() {
                             <LayoutList className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                             <select
                                 value={selectedList}
-                                onChange={(e) => setSelectedList(e.target.value)}
+                                onChange={(e) => {
+                                    setSelectedList(e.target.value);
+                                    setFormData({...formData, selected_list: e.target.value});
+                                }}
                                 className="w-full bg-slate-50 dark:bg-slate-900 border border-border rounded-2xl pl-12 pr-5 py-4 font-bold outline-none focus:ring-2 focus:ring-blue-600/20 appearance-none cursor-pointer"
                             >
                                 <option value="" disabled>-- Vyberte zoznam --</option>
@@ -224,6 +237,20 @@ export default function OutreachCampaignsPage() {
                             <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 rotate-90 pointer-events-none" />
                         </div>
                         <p className="text-[10px] text-muted-foreground px-2">Prehľad vpravo sa aktualizuje podľa prvého kontaktu z tohto zoznamu.</p>
+                        
+                        <div className="flex items-center gap-3 mt-4 p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-800/30 rounded-2xl">
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-orange-900 dark:text-orange-200">Automatický import do SmartLead</p>
+                                <p className="text-[10px] text-orange-700 dark:text-orange-400/70">Ak je zapnuté, každý kontakt v tomto zozname s emailom a AI introm sa automaticky odošle do kampane.</p>
+                            </div>
+                            <button 
+                                type="button"
+                                onClick={() => setFormData({...formData, auto_sync: !formData.auto_sync})}
+                                className={`w-12 h-6 rounded-full transition-colors relative ${formData.auto_sync ? 'bg-orange-500' : 'bg-slate-300'}`}
+                            >
+                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${formData.auto_sync ? 'left-7' : 'left-1'}`} />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="p-6 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 rounded-[2rem] space-y-4">

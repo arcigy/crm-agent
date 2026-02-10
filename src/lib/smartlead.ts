@@ -98,5 +98,33 @@ export const smartLead = {
       method: "POST",
       body: JSON.stringify(settings),
     });
+  },
+
+  /**
+   * Fetch all leads in a campaign
+   */
+  async getCampaignLeads(campaignId: number): Promise<any[]> {
+    return smartLeadRequest<any[]>(`/campaigns/${campaignId}/leads`);
+  },
+
+  /**
+   * Fetch lead by email
+   */
+  async getLeadByEmail(email: string): Promise<any> {
+    try {
+        return await smartLeadRequest<any>(`/leads/?email=${encodeURIComponent(email)}`);
+    } catch (e) {
+        // If 404, return null
+        return null;
+    }
+  },
+
+  /**
+   * Delete lead from a campaign
+   */
+  async deleteLeadFromCampaign(campaignId: number, leadId: number): Promise<any> {
+    return smartLeadRequest<any>(`/campaigns/${campaignId}/leads/${leadId}`, {
+      method: "DELETE"
+    });
   }
 };
