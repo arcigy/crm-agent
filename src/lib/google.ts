@@ -3,10 +3,10 @@ import { google } from "googleapis";
 const getBaseUrl = () => {
   // Hardcoded production URL fallback to eliminate env var mistakes
   if (process.env.NODE_ENV === "production") {
-    // If we have NEXT_PUBLIC_APP_URL, use it, otherwise fallback to Railway
+    // If we have NEXT_PUBLIC_APP_URL, use it, otherwise fallback to our main subdomain
     return (
       process.env.NEXT_PUBLIC_APP_URL ||
-      "https://crm-agent-production-d1eb.up.railway.app"
+      "https://crm.arcigy.cloud"
     );
   }
   // For development
