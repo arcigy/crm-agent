@@ -25,17 +25,14 @@ export async function GET(req: Request) {
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const client = await clerkClient();
-    const response = await client.users.getUserOauthAccessToken(
-      user.id,
-      "oauth_google",
-    );
-    const token = response.data[0]?.token;
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+    const { getValidToken } = await import("@/lib/google");
+    const token = await getValidToken(user.id, userEmail);
 
     if (!token) {
       return NextResponse.json({
         isConnected: false,
-        error: "Google account not linked",
+        error: "Google account not linked or tokens expired",
       });
     }
 
@@ -94,16 +91,13 @@ export async function POST(req: Request) {
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const client = await clerkClient();
-    const response = await client.users.getUserOauthAccessToken(
-      user.id,
-      "oauth_google",
-    );
-    const token = response.data[0]?.token;
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+    const { getValidToken } = await import("@/lib/google");
+    const token = await getValidToken(user.id, userEmail);
 
     if (!token)
       return NextResponse.json(
-        { error: "Google not connected" },
+        { error: "Google not connected or token expired" },
         { status: 400 },
       );
 
@@ -135,16 +129,13 @@ export async function DELETE(req: Request) {
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const client = await clerkClient();
-    const response = await client.users.getUserOauthAccessToken(
-      user.id,
-      "oauth_google",
-    );
-    const token = response.data[0]?.token;
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+    const { getValidToken } = await import("@/lib/google");
+    const token = await getValidToken(user.id, userEmail);
 
     if (!token)
       return NextResponse.json(
-        { error: "Google not connected" },
+        { error: "Google not connected or token expired" },
         { status: 400 },
       );
 
@@ -164,16 +155,13 @@ export async function PATCH(req: Request) {
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const client = await clerkClient();
-    const response = await client.users.getUserOauthAccessToken(
-      user.id,
-      "oauth_google",
-    );
-    const token = response.data[0]?.token;
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+    const { getValidToken } = await import("@/lib/google");
+    const token = await getValidToken(user.id, userEmail);
 
     if (!token)
       return NextResponse.json(
-        { error: "Google not connected" },
+        { error: "Google not connected or token expired" },
         { status: 400 },
       );
 

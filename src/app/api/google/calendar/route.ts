@@ -9,28 +9,13 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
     try {
         const user = await currentUser();
-        if (!user) return NextResponse.json({ isConnected: false, error: 'User not authenticated' }, { status: 401 });
+        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const client = await clerkClient();
-        const response = await client.users.getUserOauthAccessToken(user.id, 'oauth_google');
-        let token = response.data[0]?.token;
+        const userEmail = user.emailAddresses[0]?.emailAddress;
+        const { getValidToken } = await import("@/lib/google");
+        const token = await getValidToken(user.id, userEmail);
 
-        // Fallback to Directus
-        if (!token) {
-            const userEmail = user.emailAddresses[0]?.emailAddress?.toLowerCase();
-            const tokens = await directus.request(readItems('google_tokens', {
-                filter: { 
-                    _or: [
-                        { user_id: { _eq: user.id } },
-                        { user_email: { _eq: userEmail } }
-                    ]
-                },
-                limit: 1
-            }));
-            if (Array.isArray(tokens) && tokens.length > 0) {
-                token = tokens[0].access_token;
-            }
-        }
+        if (!token) return NextResponse.json({ isConnected: false, error: 'Google account not linked or token expired' });
 
         let googleEvents: any[] = [];
         let isConnected = !!token;
@@ -122,11 +107,11 @@ export async function POST(req: Request) {
         const user = await currentUser();
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const client = await clerkClient();
-        const response = await client.users.getUserOauthAccessToken(user.id, 'oauth_google');
-        const token = response.data[0]?.token;
+        const userEmail = user.emailAddresses[0]?.emailAddress;
+        const { getValidToken } = await import("@/lib/google");
+        const token = await getValidToken(user.id, userEmail);
 
-        if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 400 });
+        if (!token) return NextResponse.json({ error: 'Google not connected or token expired' }, { status: 400 });
 
         const { action, eventData } = await req.json();
 

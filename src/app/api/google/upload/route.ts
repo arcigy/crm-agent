@@ -10,11 +10,11 @@ export async function POST(req: Request) {
         const user = await currentUser();
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const client = await clerkClient();
-        const response = await client.users.getUserOauthAccessToken(user.id, 'oauth_google');
-        const token = response.data[0]?.token;
+        const userEmail = user.emailAddresses[0]?.emailAddress;
+        const { getValidToken } = await import("@/lib/google");
+        const token = await getValidToken(user.id, userEmail);
 
-        if (!token) return NextResponse.json({ error: 'Google not connected' }, { status: 400 });
+        if (!token) return NextResponse.json({ error: 'Google not connected or token expired' }, { status: 400 });
 
         const formData = await req.formData();
         const file = formData.get('file') as File;

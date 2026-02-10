@@ -63,14 +63,11 @@ export async function GET() {
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const client = await clerkClient();
-    const response = await client.users.getUserOauthAccessToken(
-      user.id,
-      "oauth_google",
-    );
-    const token = response.data[0]?.token;
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+    const { getValidToken } = await import("@/lib/google");
+    const token = await getValidToken(user.id, userEmail);
 
-    if (!token) return NextResponse.json({ isConnected: false });
+    if (!token) return NextResponse.json({ isConnected: false, error: "Google account not linked or token expired" });
 
     const auth = new google.auth.OAuth2();
     auth.setCredentials({ access_token: token });
@@ -140,12 +137,11 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { messageId } = await req.json();
-    const client = await clerkClient();
-    const response = await client.users.getUserOauthAccessToken(
-      user.id,
-      "oauth_google",
-    );
-    const token = response.data[0]?.token;
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+    const { getValidToken } = await import("@/lib/google");
+    const token = await getValidToken(user.id, userEmail);
+
+    if (!token) return NextResponse.json({ error: "Google account not linked or token expired" }, { status: 400 });
 
     const auth = new google.auth.OAuth2();
     auth.setCredentials({ access_token: token });
@@ -172,12 +168,11 @@ export async function POST(req: Request) {
     const user = await currentUser();
     if (!user) return new Response("Unauthorized", { status: 401 });
 
-    const client = await clerkClient();
-    const response = await client.users.getUserOauthAccessToken(
-      user.id,
-      "oauth_google",
-    );
-    const token = response.data[0]?.token;
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+    const { getValidToken } = await import("@/lib/google");
+    const token = await getValidToken(user.id, userEmail);
+
+    if (!token) return new Response("Google account not linked or token expired", { status: 400 });
 
     const auth = new google.auth.OAuth2();
     auth.setCredentials({ access_token: token });

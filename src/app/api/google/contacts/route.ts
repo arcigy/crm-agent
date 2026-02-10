@@ -9,22 +9,11 @@ export async function GET() {
         const user = await currentUser();
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const client = await clerkClient();
-        const response = await client.users.getUserOauthAccessToken(user.id, 'oauth_google');
-        let token = response.data[0]?.token;
+        const userEmail = user.emailAddresses[0]?.emailAddress;
+        const { getValidToken } = await import("@/lib/google");
+        const token = await getValidToken(user.id, userEmail);
 
-        // Fallback to Directus
-        if (!token) {
-            const { default: directus } = await import('@/lib/directus');
-            const { readItems } = await import('@directus/sdk');
-            const dbTokens = await directus.request(readItems('google_tokens', {
-                filter: { user_id: { _eq: user.id } },
-                limit: 1
-            })) as any[];
-            if (dbTokens && dbTokens[0]) {
-                token = dbTokens[0].access_token;
-            }
-        }
+        if (!token) return NextResponse.json({ isConnected: false, error: 'Google account not linked or token expired' });
 
         if (!token) return NextResponse.json({ isConnected: false });
 

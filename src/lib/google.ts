@@ -34,6 +34,7 @@ const SCOPES = [
   "https://www.googleapis.com/auth/calendar",
   "https://www.googleapis.com/auth/gmail.modify",
   "https://www.googleapis.com/auth/contacts",
+  "https://www.googleapis.com/auth/drive",
 ];
 
 export const oauth2Client = createOAuthClient();
@@ -52,6 +53,63 @@ export async function getTokensFromCode(code: string, redirectUri?: string) {
   const client = createOAuthClient(redirectUri);
   const { tokens } = await client.getToken(code);
   return tokens;
+}
+
+// Unified token getter with automatic refresh
+export async function getValidToken(clerkUserId: string, userEmail?: string) {
+  try {
+    const { default: directus } = await import("@/lib/directus");
+    const { readItems, updateItem } = await import("@directus/sdk");
+
+    // 1. Check Directus first (our source of truth with full scopes)
+    const filters: any[] = [{ user_id: { _eq: clerkUserId } }];
+    if (userEmail) filters.push({ user_email: { _eq: userEmail.toLowerCase() } });
+
+    const tokens = await directus.request(
+      readItems("google_tokens" as any, {
+        filter: { _or: filters },
+        limit: 1,
+      }),
+    );
+
+    if (Array.isArray(tokens) && tokens.length > 0) {
+      const tokenRecord = tokens[0];
+      const expiryDate = tokenRecord.expiry_date
+        ? new Date(tokenRecord.expiry_date).getTime()
+        : 0;
+      const now = Date.now();
+
+      // Check if expired or expiring soon (5 minutes buffer)
+      if (expiryDate && now > expiryDate - 300000 && tokenRecord.refresh_token) {
+        console.log("🔄 Token expired, refreshing for user:", clerkUserId);
+        try {
+          const credentials = await refreshAccessToken(tokenRecord.refresh_token);
+          const newTokenData: any = {
+            access_token: credentials.access_token,
+            date_updated: new Date().toISOString(),
+          };
+          if (credentials.expiry_date) {
+            newTokenData.expiry_date = new Date(
+              credentials.expiry_date,
+            ).toISOString();
+          }
+
+          await directus.request(
+            updateItem("google_tokens" as any, tokenRecord.id, newTokenData),
+          );
+          return credentials.access_token;
+        } catch (refreshError) {
+          console.error("❌ Failed to refresh token:", refreshError);
+        }
+      }
+      return tokenRecord.access_token;
+    }
+
+    return null;
+  } catch (err) {
+    console.error("Error in getValidToken:", err);
+    return null;
+  }
 }
 
 // Helpers for clients...
@@ -116,32 +174,42 @@ export async function refreshAccessToken(refreshToken: string) {
   return credentials;
 }
 
-export async function sendEmail({ accessToken, to, subject, body }: { accessToken: string, to: string, subject: string, body: string }) {
-    const gmail = getGmailClient(accessToken);
-    
-    // Create RFC 2822 message
-    const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
-    const messageParts = [
-        `To: ${to}`,
-        `Content-Type: text/html; charset=utf-8`,
-        `MIME-Version: 1.0`,
-        `Subject: ${utf8Subject}`,
-        '',
-        body
-    ];
-    const message = messageParts.join('\n');
-    
-    // The body needs to be base64url encoded
-    const encodedMessage = Buffer.from(message)
-        .toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
+export async function sendEmail({
+  accessToken,
+  to,
+  subject,
+  body,
+}: {
+  accessToken: string;
+  to: string;
+  subject: string;
+  body: string;
+}) {
+  const gmail = getGmailClient(accessToken);
 
-    await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: {
-            raw: encodedMessage
-        }
-    });
+  // Create RFC 2822 message
+  const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString("base64")}?=`;
+  const messageParts = [
+    `To: ${to}`,
+    `Content-Type: text/html; charset=utf-8`,
+    `MIME-Version: 1.0`,
+    `Subject: ${utf8Subject}`,
+    "",
+    body,
+  ];
+  const message = messageParts.join("\n");
+
+  // The body needs to be base64url encoded
+  const encodedMessage = Buffer.from(message)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+  await gmail.users.messages.send({
+    userId: "me",
+    requestBody: {
+      raw: encodedMessage,
+    },
+  });
 }
