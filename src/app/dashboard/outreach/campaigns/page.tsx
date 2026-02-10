@@ -1,10 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Zap, Save, Plus, ArrowLeft, Send, Clock, Mail, ChevronRight, Loader2 } from "lucide-react";
-import { getOutreachCampaigns, saveOutreachCampaign, getOutreachLeadForPreview } from "@/app/actions/outreach";
+import { Save, Plus, ArrowLeft, Send, Clock, Mail, ChevronRight, Loader2, User, RefreshCw, LayoutList } from "lucide-react";
+import { getOutreachCampaigns, saveOutreachCampaign } from "@/app/actions/outreach";
+import { getColdLeadLists, getPreviewLead } from "@/app/actions/cold-leads";
 import { toast } from "sonner";
 import Link from "next/link";
+
+import { useUser } from "@clerk/nextjs";
 
 export default function OutreachCampaignsPage() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -12,6 +15,10 @@ export default function OutreachCampaignsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sampleLead, setSampleLead] = useState<any>(null);
+  const [lists, setLists] = useState<any[]>([]);
+  const [selectedList, setSelectedList] = useState<string>("");
+  const { user } = useUser();
+
   const [formData, setFormData] = useState({
     id: null,
     name: "",
@@ -59,27 +66,55 @@ export default function OutreachCampaignsPage() {
     { label: 'AI Intro', value: '{{ai_intro}}' },
   ];
 
-  const refreshCampaigns = async (silent = false) => {
+  const refreshCampaigns = React.useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
-    const [campRes, leadRes] = await Promise.all([
+    
+    // 1. Load Campaigns & Lists
+    const [campRes, listRes] = await Promise.all([
         getOutreachCampaigns(),
-        getOutreachLeadForPreview()
+        getColdLeadLists()
     ]);
 
     if (campRes.success) setCampaigns(campRes.data);
-    if (leadRes.success && leadRes.data) {
-        setSampleLead(leadRes.data);
+    
+    let currentListName = selectedList;
+    if (listRes.success && listRes.data) {
+        setLists(listRes.data);
+        // Default to first list if none selected
+        if (!currentListName && listRes.data.length > 0) {
+            currentListName = listRes.data[0].name;
+            setSelectedList(currentListName);
+        }
     }
+
+    // 2. Load Preview Lead based on selected list
+    if (currentListName) {
+        const leadRes = await getPreviewLead(currentListName);
+        if (leadRes.success && leadRes.data) {
+            setSampleLead(leadRes.data);
+        } else {
+            setSampleLead(null);
+        }
+    }
+    
     setLoading(false);
-  };
+  }, [selectedList, setLists]);
+  useEffect(() => {
+    if (selectedList) {
+        getPreviewLead(selectedList).then(res => {
+            if (res.success && res.data) setSampleLead(res.data);
+            else setSampleLead(null);
+        });
+    }
+  }, [selectedList]);
 
   const replaceVariables = (text: string) => {
     if (!text) return "";
     if (!sampleLead) return text;
 
     return text
-        .replace(/{{first_name}}/g, sampleLead.first_name || "Meno")
-        .replace(/{{company_name}}/g, sampleLead.company_name || sampleLead.company || "Firma")
+        .replace(/{{first_name}}/g, sampleLead.title || "Meno")
+        .replace(/{{company_name}}/g, sampleLead.company_name_reworked || "Firma")
         .replace(/{{email}}/g, sampleLead.email || "email@klient.sk")
         .replace(/{{website}}/g, sampleLead.website || "www.web.sk")
         .replace(/{{category}}/g, sampleLead.category || "Služby")
@@ -88,7 +123,7 @@ export default function OutreachCampaignsPage() {
 
   useEffect(() => {
     refreshCampaigns();
-  }, []);
+  }, [refreshCampaigns]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,6 +196,25 @@ export default function OutreachCampaignsPage() {
                             value={formData.name}
                             onChange={e => setFormData({...formData, name: e.target.value})}
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Vyberte zoznam kontaktov</label>
+                        <div className="relative">
+                            <LayoutList className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+                            <select
+                                value={selectedList}
+                                onChange={(e) => setSelectedList(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-border rounded-2xl pl-12 pr-5 py-4 font-bold outline-none focus:ring-2 focus:ring-blue-600/20 appearance-none cursor-pointer"
+                            >
+                                <option value="" disabled>-- Vyberte zoznam --</option>
+                                {lists.map(l => (
+                                    <option key={l.id} value={l.name}>{l.name}</option>
+                                ))}
+                            </select>
+                            <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 rotate-90 pointer-events-none" />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground px-2">Prehľad vpravo sa aktualizuje podľa prvého kontaktu z tohto zoznamu.</p>
                     </div>
 
                     <div className="p-6 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 rounded-[2rem]">
@@ -254,79 +308,115 @@ export default function OutreachCampaignsPage() {
                     </div>
                 </div>
 
-                {/* RIGHT: LIVE PREVIEW */}
-                <div className="lg:sticky lg:top-8 space-y-6">
-                    <div className="bg-slate-900 text-white rounded-[3rem] p-4 shadow-2xl overflow-hidden border-8 border-slate-800">
-                        <div className="bg-slate-800/50 px-6 py-4 border-b border-white/5 flex items-center gap-3">
-                            <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                            <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-                            <div className="w-3 h-3 rounded-full bg-green-500/50" />
-                            <span className="text-[10px] font-black uppercase tracking-tighter opacity-30 ml-auto mr-4">Preview</span>
+                {/* RIGHT: LIVE PREVIEW (GMAIL STYLE) */}
+                <div className="lg:sticky lg:top-8 space-y-6 lg:min-w-[600px] xl:min-w-[700px]">
+                    
+                    {/* Gmail-style Container */}
+                    <div className="bg-white text-gray-900 rounded-xl shadow-2xl overflow-hidden border border-gray-200 font-sans">
+                        {/* Status Bar */}
+                        <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-red-400" />
+                                <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                                <div className="w-3 h-3 rounded-full bg-green-400" />
+                            </div>
+                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Gmail Preview</span>
                         </div>
                         
-                        <div className="p-8 space-y-8">
-                            {/* EMAIL HEADER */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3 pb-4 border-b border-white/5">
-                                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-black text-xs uppercase">
-                                        {sampleLead?.first_name?.[0] || sampleLead?.email?.[0] || "L"}
+                        <div className="p-6 md:p-8 space-y-6">
+                            
+                            {/* Email Header */}
+                            <div className="space-y-1 pb-4 border-b border-gray-100">
+                                <h1 className="text-xl md:text-2xl font-normal text-gray-900">
+                                    {replaceVariables(formData.subject) || <span className="text-gray-300 italic">Predmet správy...</span>}
+                                </h1>
+                                <div className="flex items-center gap-2 mt-4">
+                                    <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
+                                        You
                                     </div>
-                                    <div>
-                                        <p className="text-xs font-black">{sampleLead?.first_name || "Meno Leadov"}</p>
-                                        <p className="text-[10px] opacity-40">{sampleLead?.email || "email@klient.sk"}</p>
+                                    <div className="flex flex-col text-sm">
+                                        <div className="font-bold text-gray-900 flex items-center gap-1">
+                                            {user?.fullName || "Vaše Meno"} 
+                                            <span className="text-gray-500 font-normal">
+                                                &lt;{user?.primaryEmailAddress?.emailAddress || "vy@firma.sk"}&gt;
+                                            </span>
+                                        </div>
+                                        <div className="text-gray-500">
+                                            to <span className="text-gray-900 font-medium">{sampleLead?.email || "klient@firma.sk"}</span>
+                                        </div>
                                     </div>
-                                    <div className="ml-auto text-[10px] opacity-20 font-mono italic">Práve teraz</div>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-30">Predmet</p>
-                                    <h4 className="text-lg font-black text-blue-400 leading-tight">
-                                        {replaceVariables(formData.subject) || "..."}
-                                    </h4>
+                                    <div className="ml-auto text-xs text-gray-400">
+                                        {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} (0 minutes ago)
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* EMAIL BODY */}
-                            <div className="bg-white/5 rounded-2xl p-6 min-h-[250px] border border-white/5 backdrop-blur-sm">
-                                <p className="text-sm leading-relaxed whitespace-pre-wrap opacity-90">
-                                    {replaceVariables(formData.body) || "Sem sa zobrazí náhľad Vášho emailu so skutočnými údajmi..."}
-                                </p>
+                            {/* Email Body */}
+                            <div className="text-[15px] leading-relaxed text-gray-800 whitespace-pre-wrap min-h-[200px] font-sans">
+                                {replaceVariables(formData.body) || <span className="text-gray-300 italic">Tu sa zobrazí text Vášho emailu...</span>}
                             </div>
 
-                            {/* FOLLOWUP PREVIEW */}
+                            {/* Follow-up Preview Section */}
                             {formData.followup_body && (
-                                <div className="space-y-4 mt-8 opacity-60 border-t border-white/5 pt-8">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Clock className="w-3 h-3 text-orange-500" />
-                                        <span className="text-[10px] font-black uppercase tracking-tighter text-orange-500">
-                                            Follow-up po {formData.followup_days} dňoch
-                                        </span>
+                                <div className="mt-12 pt-8 border-t border-gray-100 relative">
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 text-xs font-bold text-gray-400 uppercase tracking-widest border border-gray-100 rounded-full py-1">
+                                        + {formData.followup_days} dní
                                     </div>
-                                    <div className="p-6 bg-orange-500/5 rounded-2xl border border-orange-500/10">
-                                        <p className="text-sm italic opacity-80 whitespace-pre-wrap">
+                                    
+                                    <div className="opacity-70 bg-gray-50/50 p-6 rounded-lg border border-dashed border-gray-200">
+                                        <div className="flex items-center gap-2 mb-4 border-b border-gray-200 pb-2">
+                                            <div className="font-bold text-sm text-gray-700">Re: {replaceVariables(formData.subject) || "Predmet..."}</div>
+                                            <div className="ml-auto text-xs text-orange-500 font-bold uppercase tracking-wider">Follow-up</div>
+                                        </div>
+                                        <div className="text-sm leading-relaxed text-gray-600 whitespace-pre-wrap">
                                             {replaceVariables(formData.followup_body)}
-                                        </p>
+                                        </div>
                                     </div>
                                 </div>
                             )}
+
                         </div>
                     </div>
 
-                    <div className="bg-card border border-border p-6 rounded-[2.5rem] shadow-sm space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                            <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest">Použité dáta z prvého leadu:</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <p className="text-[9px] opacity-40 font-black uppercase">Meno</p>
-                                <p className="text-xs font-black truncate">{sampleLead?.first_name || "Neznáme"}</p>
+                    {/* Variable Data Card */}
+                    {sampleLead ? (
+                        <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-lg border border-slate-800">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <RefreshCw className="w-4 h-4 text-blue-400" />
+                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                                        Dáta z: <span className="text-white">{selectedList || "Neznámy zoznam"}</span>
+                                    </span>
+                                </div>
+                                <span className="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded">ID: {sampleLead.id}</span>
                             </div>
-                            <div className="space-y-1">
-                                <p className="text-[9px] opacity-40 font-black uppercase">Firma</p>
-                                <p className="text-xs font-black truncate">{sampleLead?.company_name || sampleLead?.company || "Neznáma"}</p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                <div>
+                                    <p className="text-[9px] font-black uppercase text-slate-500 mb-0.5">Meno</p>
+                                    <p className="text-xs font-bold truncate">{sampleLead.title || sampleLead.keyword || "-"}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[9px] font-black uppercase text-slate-500 mb-0.5">Firma</p>
+                                    <p className="text-xs font-bold truncate">{sampleLead.company_name_reworked || "-"}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[9px] font-black uppercase text-slate-500 mb-0.5">Web</p>
+                                    <p className="text-xs font-bold truncate text-blue-400">{sampleLead.website || "-"}</p>
+                                </div>
+                                <div className="col-span-3">
+                                    <p className="text-[9px] font-black uppercase text-slate-500 mb-0.5">AI Intro</p>
+                                    <p className="text-xs font-medium text-slate-300 line-clamp-2 italic">
+                                        &quot;{sampleLead.ai_first_sentence || "Zatiaľ nevygenerované..."}&quot;
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    ) : (
+                         <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex items-center gap-3">
+                            <User className="w-5 h-5 text-yellow-600" />
+                            <p className="text-sm text-yellow-800 font-medium">Pre tento zoznam nebol nájdený žiadny kontakt na ukážku.</p>
+                         </div>
+                    )}
                 </div>
             </div>
 

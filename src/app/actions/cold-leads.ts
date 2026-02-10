@@ -621,3 +621,45 @@ export async function cleanupDuplicates(listName?: string) {
         return { success: false, error: getDirectusErrorMessage(e) };
     }
 }
+
+export async function getPreviewLead(listName: string) {
+    try {
+        const authEmails = await getAuthorizedEmails();
+        if (authEmails.length === 0) throw new Error("Unauthorized");
+
+        const filter: any = {
+            user_email: { _in: authEmails }
+        };
+
+        if (listName) {
+            filter.list_name = { _eq: listName };
+        }
+
+        // Try to get an enriched lead first for better preview
+        const leads = (await directus.request(
+            readItems("cold_leads", {
+                filter: { ...filter, enrichment_status: { _eq: "completed" } },
+                sort: ["-date_created"],
+                limit: 1,
+            }),
+        )) as unknown as ColdLeadItem[];
+
+        if (leads.length > 0) {
+            return { success: true, data: leads[0] };
+        }
+
+        // Fallback to any lead if no enriched ones
+        const fallbackLeads = (await directus.request(
+            readItems("cold_leads", {
+                filter,
+                sort: ["-date_created"],
+                limit: 1,
+            }),
+        )) as unknown as ColdLeadItem[];
+
+        return { success: true, data: fallbackLeads.length > 0 ? fallbackLeads[0] : null };
+    } catch (error) {
+        console.error("Failed to fetch preview lead:", error);
+        return { success: false, error: String(error) };
+    }
+}
