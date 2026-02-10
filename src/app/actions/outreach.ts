@@ -150,7 +150,7 @@ export async function saveOutreachCampaign(data: any) {
             sequences.push({
                 seq_number: 1,
                 seq_delay_details: { delay_in_days: 0 },
-                variant_distribution_type: "AI_EQUAL",
+                variant_distribution_type: "EQUAL",
                 seq_variants: [{
                     subject: item.subject,
                     email_body: item.body,
@@ -164,7 +164,7 @@ export async function saveOutreachCampaign(data: any) {
                 sequences.push({
                     seq_number: 2,
                     seq_delay_details: { delay_in_days: item.followup_days || 3 },
-                    variant_distribution_type: "AI_EQUAL",
+                    variant_distribution_type: "EQUAL",
                     seq_variants: [{
                         subject: item.followup_subject,
                         email_body: item.followup_body,
@@ -188,13 +188,27 @@ export async function saveOutreachCampaign(data: any) {
 
                 if (slId) {
                     const { smartLead } = await import("@/lib/smartlead");
+                    console.log(`[Outreach] Syncing update to SmartLead campaign ${slId}`);
+                    
                     // 1. Update Settings
-                    await smartLead.updateCampaignSettings(slId, { name: data.name });
+                    try {
+                        await smartLead.updateCampaignSettings(slId, { name: data.name });
+                    } catch (err) {
+                        console.error(`[Outreach] SmartLead Settings Update failed for ID ${slId}:`, err);
+                        // Carry on, settings are less critical than sequences
+                    }
+
                     // 2. Update Sequence
-                    await smartLead.saveCampaignSequence(slId, prepareSequences(data));
+                    try {
+                        const sequences = prepareSequences(data);
+                        await smartLead.saveCampaignSequence(slId, sequences);
+                    } catch (err) {
+                        console.error(`[Outreach] SmartLead Sequence Update failed for ID ${slId}:`, err);
+                        throw err; // Sequences are more critical
+                    }
                 }
             } catch (slError) {
-                console.error("[Outreach] SmartLead Sync on update failed:", slError);
+                console.error("[Outreach] Total SmartLead Sync on update failed:", slError);
             }
 
             res = await directus.request(updateItem("outreach_campaigns", data.id, payload));
