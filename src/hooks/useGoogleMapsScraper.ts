@@ -234,5 +234,24 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
         }
     }, [addLog, pollJobStatus]);
 
+    const resumeJob = useCallback(async (jobId: string) => {
+        const { updateScrapeJob } = await import('@/app/actions/google-maps-jobs');
+        
+        try {
+            await updateScrapeJob(jobId, { status: 'w', last_error: null });
+            
+            addLog(`▶️ Reštartujem pozastavenú úlohu...`);
+            
+            const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+            fetch(`${baseUrl}/api/cron/google-maps-worker`).catch(() => {});
+            
+            setIsScraping(true);
+            loadQueue();
+            toast.success("Úloha pokračuje.");
+        } catch (e: any) {
+            toast.error(e.message);
+        }
+    }, [loadQueue, addLog]);
+
     return { isScraping, places, logs, queue, runScraper, stopScraping, loadQueue, forceStartWorker, continueScraping, resumingJobId, setResumingJobId, resumeAmount, setResumeAmount, resumeJob };
 }
