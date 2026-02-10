@@ -30,11 +30,11 @@ export async function sendGeneralEmail({ to, subject, body }: SendEmailParams) {
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to send email:", error);
     return {
       success: false,
-      error: error.message || String(error),
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }

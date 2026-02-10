@@ -3,17 +3,19 @@ import { google } from "googleapis";
 const getBaseUrl = () => {
   // Hardcoded production URL fallback to eliminate env var mistakes
   if (process.env.NODE_ENV === "production") {
+    // If we have NEXT_PUBLIC_APP_URL, use it, otherwise fallback to Railway
     return (
       process.env.NEXT_PUBLIC_APP_URL ||
       "https://crm-agent-production-d1eb.up.railway.app"
     );
   }
+  // For development
   return "http://localhost:3000";
 };
 
 const getRedirectUrl = () => {
-  // FRONTEND-FIRST STRATEGY: Redirect to a visible page, then POST to API
-  return `${(getBaseUrl() || "").toString().replace(/\/$/, "")}/oauth-callback`;
+  const base = getBaseUrl().toString().replace(/\/$/, "");
+  return `${base}/oauth-callback`;
 };
 
 // Funkcia na vytvorenie novej inštancie klienta
@@ -50,9 +52,20 @@ export function getAuthUrl(state?: string, redirectUri?: string): string {
 }
 
 export async function getTokensFromCode(code: string, redirectUri?: string) {
-  const client = createOAuthClient(redirectUri);
-  const { tokens } = await client.getToken(code);
-  return tokens;
+  const finalRedirect = redirectUri || getRedirectUrl();
+  console.log("📡 Exchanging code for tokens with Redirect URI:", finalRedirect);
+  const client = createOAuthClient(finalRedirect);
+  try {
+    const { tokens } = await client.getToken(code);
+    return tokens;
+  } catch (err: any) {
+    console.error("❌ Google Exchange Error Details:", {
+      message: err.message,
+      response: err.response?.data,
+      redirectUsed: finalRedirect
+    });
+    throw err;
+  }
 }
 
 // Unified token getter with automatic refresh
