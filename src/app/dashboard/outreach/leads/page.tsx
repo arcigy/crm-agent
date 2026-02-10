@@ -59,20 +59,52 @@ export default function OutreachLeadsPage() {
   const qrTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   /* eslint-disable react-hooks/exhaustive-deps */
+  /* eslint-disable react-hooks/exhaustive-deps */
   const refreshLeads = React.useCallback(async (listName: string, isBackground = false) => {
     if (!isBackground) setLoading(true);
+    
+    // If background refresh, we only want to fetch updates for currently visible items or changed items 
+    // to avoid full re-render. But getColdLeads fetches all.
+    // For true flicker-free experience, we should compare and only update state if deep changed.
     
     const res = await getColdLeads(listName);
     
     if (res.success && res.data) {
-      setLeads(res.data);
-      if (!isBackground) {
-          setSelectedIds(new Set()); // Clear selection only on explicit list change
+      if (isBackground) {
+          // Smart Merge: Only update items that have changed status/data
+          setLeads(prev => {
+              const newLeadsMap = new Map(res.data?.map(l => [l.id, l]));
+              let hasChanges = false;
+              
+              const merged = prev.map(oldLead => {
+                  const newLead = newLeadsMap.get(oldLead.id);
+                  if (!newLead) return oldLead; // Should not happen usually in this view
+
+                  // Check for critical updates that we want to show immediately
+                  if (
+                      newLead.enrichment_status !== oldLead.enrichment_status ||
+                      newLead.email !== oldLead.email ||
+                      newLead.ai_first_sentence !== oldLead.ai_first_sentence
+                  ) {
+                      hasChanges = true;
+                      return newLead;
+                  }
+                  return oldLead;
+              });
+
+              // If new leads were added (scraper finished), we might want to include them
+              // But simplistic merge for now
+              return hasChanges ? merged : prev;
+          });
+      } else {
+          setLeads(res.data);
+          setSelectedIds(new Set()); 
           setCurrentPage(1);
       }
     }
     if (!isBackground) setLoading(false);
   }, []);
+  /* eslint-enable react-hooks/exhaustive-deps */
   /* eslint-enable react-hooks/exhaustive-deps */
 
   // Polling for background process status
@@ -82,7 +114,7 @@ export default function OutreachLeadsPage() {
         if (hasPending) {
             refreshLeads(activeListName, true);
         }
-    }, 5000); // Check every 5 seconds
+    }, 2500); // Check every 2.5 seconds for smoother updates
     
     return () => clearInterval(interval);
   }, [leads, activeListName, refreshLeads]);
