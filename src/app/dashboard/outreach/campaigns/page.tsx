@@ -57,7 +57,7 @@ export default function OutreachCampaignsPage() {
     });
   };
 
-  const variables = [
+  const leadVariables = [
     { label: 'Meno', value: '{{first_name}}' },
     { label: 'Firma', value: '{{company_name}}' },
     { label: 'Web', value: '{{website}}' },
@@ -65,6 +65,11 @@ export default function OutreachCampaignsPage() {
     { label: 'Kategória', value: '{{category}}' },
     { label: 'AI Intro', value: '{{ai_intro}}' },
     { label: 'Oslovenie', value: '{{oslovenie}}' },
+  ];
+
+  const senderVariables = [
+    { label: 'Odosielateľ (Meno)', value: '%sender-firstname%' },
+    { label: 'Odosielateľ (Celé)', value: '%sender-name%' },
   ];
 
   const refreshCampaigns = React.useCallback(async (silent = false) => {
@@ -120,7 +125,9 @@ export default function OutreachCampaignsPage() {
         .replace(/{{website}}/g, sampleLead.website || "www.web.sk")
         .replace(/{{category}}/g, sampleLead.category || "Služby")
         .replace(/{{ai_intro}}/g, sampleLead.ai_first_sentence || "Zaujala ma Vaša práca...")
-        .replace(/{{oslovenie}}/g, (sampleLead.ai_first_sentence || "Dobrý deň").split('\n')[0]);
+        .replace(/{{oslovenie}}/g, (sampleLead.ai_first_sentence || "Dobrý deň").split('\n')[0])
+        .replace(/%sender-firstname%/g, user?.firstName || "Andrej/Branislav")
+        .replace(/%sender-name%/g, user?.fullName || "Andrej/Branislav Priezvisko");
   };
 
   useEffect(() => {
@@ -219,19 +226,37 @@ export default function OutreachCampaignsPage() {
                         <p className="text-[10px] text-muted-foreground px-2">Prehľad vpravo sa aktualizuje podľa prvého kontaktu z tohto zoznamu.</p>
                     </div>
 
-                    <div className="p-6 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 rounded-[2rem]">
-                        <p className="text-[10px] font-black uppercase text-blue-600 mb-3 ml-1 tracking-widest">Kliknutím vložíte premennú:</p>
-                        <div className="flex flex-wrap gap-2">
-                            {variables.map(v => (
-                                <button 
-                                    key={v.value} 
-                                    type="button"
-                                    onClick={() => insertVariable(v.value)}
-                                    className="bg-white dark:bg-slate-900 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl border border-blue-200 dark:border-blue-800 text-xs font-black text-blue-800 dark:text-blue-400 transition-all active:scale-95 shadow-sm"
-                                >
-                                    {v.label} <span className="opacity-50 font-medium ml-1">{v.value}</span>
-                                </button>
-                            ))}
+                    <div className="p-6 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 rounded-[2rem] space-y-4">
+                        <div>
+                            <p className="text-[10px] font-black uppercase text-blue-600 mb-2 ml-1 tracking-widest">Premenné leadu:</p>
+                            <div className="flex flex-wrap gap-2">
+                                {leadVariables.map(v => (
+                                    <button 
+                                        key={v.value} 
+                                        type="button"
+                                        onClick={() => insertVariable(v.value)}
+                                        className="bg-white dark:bg-slate-900 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-xl border border-blue-200 dark:border-blue-800 text-[11px] font-black text-blue-800 dark:text-blue-400 transition-all active:scale-95 shadow-sm"
+                                    >
+                                        {v.label} <span className="opacity-50 font-medium ml-1">{v.value}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <p className="text-[10px] font-black uppercase text-orange-600 mb-2 ml-1 tracking-widest">Dynamický odosielateľ (SmartLead):</p>
+                            <div className="flex flex-wrap gap-2">
+                                {senderVariables.map(v => (
+                                    <button 
+                                        key={v.value} 
+                                        type="button"
+                                        onClick={() => insertVariable(v.value)}
+                                        className="bg-white dark:bg-slate-900 hover:bg-orange-600 hover:text-white px-3 py-1.5 rounded-xl border border-orange-200 dark:border-orange-800 text-[11px] font-black text-orange-800 dark:text-orange-400 transition-all active:scale-95 shadow-sm"
+                                    >
+                                        {v.label} <span className="opacity-50 font-medium ml-1">{v.value}</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
