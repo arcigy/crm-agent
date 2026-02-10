@@ -72,9 +72,9 @@ export async function getTokensFromCode(code: string, redirectUri?: string) {
 export async function getValidToken(clerkUserId: string, userEmail?: string) {
   try {
     const { default: directus } = await import("@/lib/directus");
-    const { readItems, updateItem } = await import("@directus/sdk");
+    const { readItems, updateItem, createItem } = await import("@directus/sdk");
 
-    // 1. Check Directus first (our source of truth with full scopes)
+    // Strategy 1: Check Directus cache first (fastest, supports offline)
     const filters: any[] = [{ user_id: { _eq: clerkUserId } }];
     if (userEmail) filters.push({ user_email: { _eq: userEmail.toLowerCase() } });
 
@@ -92,8 +92,13 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
         : 0;
       const now = Date.now();
 
-      // Check if expired or expiring soon (5 minutes buffer)
-      if (expiryDate && now > expiryDate - 300000 && tokenRecord.refresh_token) {
+      // If valid, return it
+      if (expiryDate && now < expiryDate - 60000) {
+        return tokenRecord.access_token;
+      }
+
+      // If expired but we have a refresh token, try to refresh it
+      if (tokenRecord.refresh_token) {
         console.log("🔄 Token expired, refreshing for user:", clerkUserId);
         try {
           const credentials = await refreshAccessToken(tokenRecord.refresh_token);
@@ -102,9 +107,7 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
             date_updated: new Date().toISOString(),
           };
           if (credentials.expiry_date) {
-            newTokenData.expiry_date = new Date(
-              credentials.expiry_date,
-            ).toISOString();
+            newTokenData.expiry_date = new Date(credentials.expiry_date).toISOString();
           }
 
           await directus.request(
@@ -112,10 +115,41 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
           );
           return credentials.access_token;
         } catch (refreshError) {
-          console.error("❌ Failed to refresh token:", refreshError);
+          console.error("❌ Failed to refresh token, falling back to Clerk:", refreshError);
         }
       }
-      return tokenRecord.access_token;
+    }
+
+    // Strategy 2: Fallback to Clerk (The "Classic" way that worked before)
+    console.log("🔑 Fetching fresh token from Clerk for user:", clerkUserId);
+    const { clerkClient } = await import("@clerk/nextjs/server");
+    const client = await clerkClient();
+    const clerkResponse = await client.users.getUserOauthAccessToken(clerkUserId, "oauth_google");
+    
+    const clerkTokenData = clerkResponse.data[0];
+    if (clerkTokenData && clerkTokenData.token) {
+        // Sync Clerk's token back to Directus so we have it for background tasks
+        const tokenData = {
+            user_id: clerkUserId,
+            user_email: userEmail?.toLowerCase() || null,
+            access_token: clerkTokenData.token,
+            // Clerk doesn't always provide refresh_token here unless configured, 
+            // but we at least get the access_token
+            date_updated: new Date().toISOString(),
+            expiry_date: null // We don't always know it from Clerk response easily
+        };
+
+        if (Array.isArray(tokens) && tokens.length > 0) {
+            await directus.request(updateItem("google_tokens" as any, tokens[0].id, tokenData));
+        } else {
+            // @ts-expect-error - Directus SDK types
+            await directus.request(createItem("google_tokens", {
+                ...tokenData,
+                date_created: new Date().toISOString()
+            }));
+        }
+
+        return clerkTokenData.token;
     }
 
     return null;
