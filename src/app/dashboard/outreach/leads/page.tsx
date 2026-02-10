@@ -59,7 +59,6 @@ export default function OutreachLeadsPage() {
   const qrTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   /* eslint-disable react-hooks/exhaustive-deps */
-  /* eslint-disable react-hooks/exhaustive-deps */
   const refreshLeads = React.useCallback(async (listName: string, isBackground = false) => {
     if (!isBackground) setLoading(true);
     
@@ -105,16 +104,25 @@ export default function OutreachLeadsPage() {
     if (!isBackground) setLoading(false);
   }, []);
   /* eslint-enable react-hooks/exhaustive-deps */
-  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Polling for background process status
   useEffect(() => {
     const interval = setInterval(() => {
-        const hasPending = leads.some(l => l.enrichment_status === 'pending' || l.enrichment_status === 'processing');
+        // We want to poll if there are pending items OR if we just want to see new items coming in randomly
+        // But mainly for pending items.
+        // Also check if any items are stuck in "processing" for too long?
+        
+        const hasPending = leads.some(l => 
+            l.enrichment_status === 'pending' || 
+            l.enrichment_status === 'processing' ||
+            // Also refresh if we have items without status but with website (just in case)
+            (!l.enrichment_status && l.website)
+        );
+        
         if (hasPending) {
             refreshLeads(activeListName, true);
         }
-    }, 2500); // Check every 2.5 seconds for smoother updates
+    }, 3000); 
     
     return () => clearInterval(interval);
   }, [leads, activeListName, refreshLeads]);
