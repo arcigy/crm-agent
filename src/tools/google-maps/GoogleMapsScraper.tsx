@@ -29,7 +29,8 @@ export default function GoogleMapsScraper() {
         resumingJobId,
         setResumingJobId,
         resumeAmount,
-        setResumeAmount
+        setResumeAmount,
+        resumeJob
     } = useGoogleMapsScraper(keys, setKeys);
 
     useEffect(() => {
@@ -270,8 +271,8 @@ export default function GoogleMapsScraper() {
                                                 <p className="text-[10px] text-gray-500 font-bold">{job.location}</p>
                                             </div>
                                             <div className="flex gap-1">
-                                                {job.status === 'p' && (
-                                                    <button onClick={() => handleResume(job)} className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                                {['p', 'error'].includes(job.status) && (
+                                                    <button onClick={() => resumeJob(job.id)} className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700" title="Pokračovať v prerušenej úlohe">
                                                         <Play className="w-3 h-3" />
                                                     </button>
                                                 )}

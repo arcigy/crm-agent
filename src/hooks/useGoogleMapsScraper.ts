@@ -234,5 +234,5 @@ export function useGoogleMapsScraper(keys?: ApiKey[], setKeys?: React.Dispatch<R
         }
     }, [addLog, pollJobStatus]);
 
-    return { isScraping, places, logs, queue, runScraper, stopScraping, loadQueue, forceStartWorker, continueScraping, resumingJobId, setResumingJobId, resumeAmount, setResumeAmount };
+    return { isScraping, places, logs, queue, runScraper, stopScraping, loadQueue, forceStartWorker, continueScraping, resumingJobId, setResumingJobId, resumeAmount, setResumeAmount, resumeJob };
 }
