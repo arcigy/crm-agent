@@ -64,6 +64,7 @@ export default function OutreachCampaignsPage() {
     { label: 'Email', value: '{{email}}' },
     { label: 'Kategória', value: '{{category}}' },
     { label: 'AI Intro', value: '{{ai_intro}}' },
+    { label: 'Oslovenie', value: '{{oslovenie}}' },
   ];
 
   const refreshCampaigns = React.useCallback(async (silent = false) => {
@@ -118,7 +119,8 @@ export default function OutreachCampaignsPage() {
         .replace(/{{email}}/g, sampleLead.email || "email@klient.sk")
         .replace(/{{website}}/g, sampleLead.website || "www.web.sk")
         .replace(/{{category}}/g, sampleLead.category || "Služby")
-        .replace(/{{ai_intro}}/g, sampleLead.ai_first_sentence || "Zaujala ma Vaša práca...");
+        .replace(/{{ai_intro}}/g, sampleLead.ai_first_sentence || "Zaujala ma Vaša práca...")
+        .replace(/{{oslovenie}}/g, (sampleLead.ai_first_sentence || "Dobrý deň").split('\n')[0]);
   };
 
   useEffect(() => {
@@ -403,8 +405,14 @@ export default function OutreachCampaignsPage() {
                                     <p className="text-[9px] font-black uppercase text-slate-500 mb-0.5">Web</p>
                                     <p className="text-xs font-bold truncate text-blue-400">{sampleLead.website || "-"}</p>
                                 </div>
+                                <div className="col-span-1">
+                                    <p className="text-[9px] font-black uppercase text-slate-500 mb-0.5">Oslovenie</p>
+                                    <p className="text-xs font-bold truncate text-orange-400">
+                                        {(sampleLead.ai_first_sentence || "Dobrý deň").split('\n')[0]}
+                                    </p>
+                                </div>
                                 <div className="col-span-3">
-                                    <p className="text-[9px] font-black uppercase text-slate-500 mb-0.5">AI Intro</p>
+                                    <p className="text-[9px] font-black uppercase text-slate-500 mb-0.5">AI Intro (Celé)</p>
                                     <p className="text-xs font-medium text-slate-300 line-clamp-2 italic">
                                         &quot;{sampleLead.ai_first_sentence || "Zatiaľ nevygenerované..."}&quot;
                                     </p>
