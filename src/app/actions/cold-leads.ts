@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, readItems, deleteItem, updateItem, deleteItems, updateItems, createItems } from "@directus/sdk";
 import { getUserEmail, getAuthorizedEmails } from "@/lib/auth";
-import { scrapeWebsite, generatePersonalization, classifyLeadCategory } from "@/lib/enrichment";
+import { scrapeWebsite, generatePersonalization, identifyIndustry, classifyLeadCategory } from "@/lib/enrichment";
 
 export interface ColdLeadItem {
   id: string | number;
@@ -32,6 +32,7 @@ export interface ColdLeadItem {
   smartlead_pushed_at?: string;
   source_city?: string;
   source_keyword?: string;
+  industry_description?: string;
 }
 
 export interface ColdLeadList {
@@ -283,28 +284,35 @@ export async function enrichColdLead(id: string | number, overrideEmail?: string
                 updateData.ai_first_sentence = aiResult.sentence;
                 debugInfo.aiGenerated = true;
 
-                // --- AI SEPARATOR ---
+                // --- NEW TWO-STEP AI SEPARATOR ---
                 try {
-                    console.log(`[ENRICHMENT-ACTION] Running AI Separator for Lead ${id}...`);
+                    console.log(`[ENRICHMENT-ACTION] Running AI Industry ID for Lead ${id}...`);
+                    
+                    // Step 1: Industry Description
+                    const industryDesc = await identifyIndustry(
+                        aiResult.sentence || "", 
+                        scrapedText || ""
+                    );
+                    updateData.industry_description = industryDesc;
+
+                    // Step 2: Sorting (Optional auto-move if categories exist)
                     const listsRes = await getColdLeadLists();
                     if (listsRes.success && listsRes.data) {
                         const categoryNames = listsRes.data.map(l => l.name);
                         const bestCategory = await classifyLeadCategory(
-                            aiResult.sentence || "", 
-                            scrapedText || "", 
+                            industryDesc, 
                             categoryNames
                         );
                         
-                        // Only update if it's different and not "Všeobecné" unless it's already there
                         if (bestCategory && bestCategory !== lead.list_name) {
                             updateData.list_name = bestCategory;
-                            console.log(`[ENRICHMENT-ACTION] Lead ${id} moved to: ${bestCategory}`);
+                            console.log(`[ENRICHMENT-ACTION] Lead ${id} suggested list: ${bestCategory}`);
                         }
                     }
                 } catch (sepError) {
-                    console.error("[ENRICHMENT-ACTION] AI Separator failed:", sepError);
+                    console.error("[ENRICHMENT-ACTION] AI Industry ID failed:", sepError);
                 }
-                // ---------------------
+                // ----------------------------------
             } else if (aiResult && aiResult.error) {
                 debugInfo.error = `AI Error: ${aiResult.error}`;
                 updateData.enrichment_error = aiResult.error;
@@ -687,7 +695,7 @@ export async function getPreviewLead(listName: string) {
     }
 }
 
-export async function bulkClassifyLeads(ids: (string | number)[]) {
+export async function identifyIndustryLead(ids: (string | number)[]) {
     try {
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
@@ -697,42 +705,55 @@ export async function bulkClassifyLeads(ids: (string | number)[]) {
             limit: -1
         }))) as unknown as ColdLeadItem[];
         
-        if (!leads || leads.length === 0) throw new Error("No leads found");
+        for (const lead of leads) {
+            // We need some text. If not scraped, we might need a quick scrape here or just use what we have.
+            // For now use what is in DB.
+            const contextText = lead.abstract || lead.category || lead.title || "";
+            const industryDesc = await identifyIndustry(lead.ai_first_sentence || "", contextText);
+            
+            await directus.request(updateItem("cold_leads", lead.id, { 
+                industry_description: industryDesc 
+            }));
+        }
+        
+        revalidatePath("/dashboard/cold-outreach");
+        return { success: true };
+    } catch (e: any) {
+        console.error("Industry ID failed:", e);
+        return { success: false, error: getDirectusErrorMessage(e) };
+    }
+}
+
+export async function bulkSortLeadsByIndustry(ids: (string | number)[]) {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+        
+        const leads = (await directus.request(readItems("cold_leads", {
+            filter: { id: { _in: ids } },
+            limit: -1
+        }))) as unknown as ColdLeadItem[];
 
         const listsRes = await getColdLeadLists();
         if (!listsRes.success || !listsRes.data) throw new Error("Failed to load lists");
-        const categoryNames = listsRes.data.map(l => l.name).filter(n => n !== "Cold Call" && n !== "Všeobecné");
-
-        if (categoryNames.length === 0) {
-            throw new Error("Nemáte vytvorené žiadne cieľové kategórie okrem 'Všeobecné'. Vytvorte si najprv zoznamy (napr. Statik, Architekt).");
-        }
-
-        console.log(`[BULK-AI-SEPARATOR] Starting classification for ${leads.length} leads...`);
+        const categoryNames = listsRes.data.map(l => l.name);
 
         for (const lead of leads) {
-            // We need either a website scrape or at least the personalization to classify
-            if (!lead.ai_first_sentence && !lead.website) continue;
+            if (!lead.industry_description) continue;
 
-            // Re-scrape if needed to get better context, or use existing info
-            // For bulk classification, we use a lighter version avoiding full re-scrape unless necessary
-            const bestCategory = await classifyLeadCategory(
-                lead.ai_first_sentence || "", 
-                lead.abstract || lead.category || lead.title || "", // Context
-                categoryNames
-            );
+            const bestCategory = await classifyLeadCategory(lead.industry_description, categoryNames);
 
-            if (bestCategory && bestCategory !== lead.list_name && bestCategory !== "Všeobecné") {
+            if (bestCategory && bestCategory !== lead.list_name) {
                 await directus.request(updateItem("cold_leads", lead.id, { 
                     list_name: bestCategory 
                 }));
-                console.log(`[BULK-AI-SEPARATOR] Lead ${lead.id} moved to: ${bestCategory}`);
             }
         }
         
         revalidatePath("/dashboard/cold-outreach");
         return { success: true };
     } catch (e: any) {
-        console.error("Bulk classify failed:", e);
+        console.error("Sorting failed:", e);
         return { success: false, error: getDirectusErrorMessage(e) };
     }
 }

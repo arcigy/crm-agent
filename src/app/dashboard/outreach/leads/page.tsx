@@ -15,7 +15,8 @@ import {
     bulkQueueForSmartLead,
     bulkReEnrichLeads,
     bulkSortLeads,
-    bulkClassifyLeads,
+    identifyIndustryLead,
+    bulkSortLeadsByIndustry,
     cleanupDuplicates,
     type ColdLeadItem, 
     type ColdLeadList 
@@ -332,19 +333,35 @@ export default function OutreachLeadsPage() {
   };
 
 
-  const handleBulkClassify = async () => {
+  const handleIndustryClassifier = async () => {
       const ids = Array.from(selectedIds);
-      if (!confirm(`Spustiť AI Separátor pre ${ids.length} leadov? AI ich roztriedi do správnych zoznamov podľa ich zamerania.`)) return;
+      if (!confirm(`Spustiť Industry Classifier pre ${ids.length} leadov? AI analyzuje ich zameranie do jednej vety.`)) return;
       
-      const toastId = toast.loading("AI Separátor pracuje...");
-      const res = await bulkClassifyLeads(ids);
+      const toastId = toast.loading("AI analyzuje odborné zameranie...");
+      const res = await identifyIndustryLead(ids);
       
       if (res.success) {
-          toast.success("Leady boli úspešne roztriedené", { id: toastId });
+          toast.success("Odborné zameranie bolo identifikované", { id: toastId });
           setSelectedIds(new Set());
           refreshLeads(activeListName);
       } else {
-          toast.error(res.error || "Chyba pri AI triedení", { id: toastId });
+          toast.error(res.error || "Chyba pri analýze", { id: toastId });
+      }
+  };
+
+  const handleIndustrySorting = async () => {
+      const ids = Array.from(selectedIds);
+      if (!confirm(`Roztriediť ${ids.length} leadov do zoznamov podľa ich Industry vetu?`)) return;
+      
+      const toastId = toast.loading("AI triedi kontakty...");
+      const res = await bulkSortLeadsByIndustry(ids);
+      
+      if (res.success) {
+          toast.success("Kontakty boli úspešne roztriedené", { id: toastId });
+          setSelectedIds(new Set());
+          refreshLeads(activeListName);
+      } else {
+          toast.error(res.error || "Chyba pri triedení", { id: toastId });
       }
   };
 
@@ -679,21 +696,21 @@ export default function OutreachLeadsPage() {
                          </button>
 
                           <button 
-                              onClick={handleBulkSort}
-                              className="px-4 py-2 hover:bg-amber-50 text-amber-600 rounded-xl flex items-center gap-2 font-bold text-xs transition-colors"
-                              title="Základné upratanie zoznamu"
+                              onClick={handleIndustryClassifier}
+                              className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl flex items-center gap-2 font-bold text-xs transition-colors border border-blue-100"
+                              title="Zistíme, v akom odbore tento podnik pracuje"
                           >
-                              <ArrowRightLeft className="w-4 h-4" />
-                              Upratať
+                              <Search className="w-4 h-4" />
+                              Industry Classifier
                           </button>
 
                           <button 
-                              onClick={handleBulkClassify}
-                              className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl flex items-center gap-2 font-bold text-xs transition-colors border border-blue-100"
-                              title="Pokročilé AI roztriedenie do správnych kategórií"
+                              onClick={handleIndustrySorting}
+                              className="px-4 py-2 bg-violet-50 text-violet-600 hover:bg-violet-100 rounded-xl flex items-center gap-2 font-bold text-xs transition-colors border border-violet-100"
+                              title="Roztriediť do zoznamov podľa Industry vety"
                           >
-                              <Sparkles className="w-4 h-4" />
-                              AI Classifier
+                              <ArrowRightLeft className="w-4 h-4" />
+                              AI Sorting
                           </button>
 
                          <div className="h-8 w-px bg-gray-100 mx-1"></div>
@@ -1068,6 +1085,18 @@ export default function OutreachLeadsPage() {
                                                     <span className="text-gray-300 italic">Dvakrát kliknite pre napísanie alebo použite AI...</span>
                                                 )
                                            )}
+
+                                           {lead.industry_description && (
+                                                <div className="mt-4 pt-4 border-t border-blue-600/10">
+                                                    <p className="text-[10px] font-black uppercase text-blue-600 mb-1 flex items-center gap-1.5">
+                                                        <Briefcase className="w-3 h-3" />
+                                                        Industry ID
+                                                    </p>
+                                                    <p className="text-xs font-bold text-gray-800 leading-relaxed bg-blue-50/50 p-2 rounded-xl">
+                                                        {lead.industry_description}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
