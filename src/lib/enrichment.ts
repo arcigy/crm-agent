@@ -532,8 +532,11 @@ export async function identifyIndustry(
     Personalization Context:
     ${personalization}
     
-    Instruction: Write ONLY ONE short sentence describing what this business does. 
-    Example: "Táto firma sa zaoberá projektovaním nosných konštrukcií a statikou stavieb."
+    Instruction: Write EXACTLY ONE concise sentence in Slovak describing the core business activity. 
+    Focus on WHAT they do, not WHERE or WHO they are. 
+    Avoid fluff like "Tento podnik je..." or "Naša spoločnosť...".
+    Example: "Firma poskytuje kompletné stavebné práce od základov až po strechu so zameraním na rodinné domy."
+    Example: "Špecializovaný e-shop s prémiovou kávou a príslušenstvom pre baristov."
     
     Industry Description:
     `;
@@ -569,20 +572,23 @@ export async function classifyLeadCategory(
     if (filteredCategories.length === 0) return "Všeobecné";
 
     const prompt = `
-    Role: You are a lead sorting assistant.
-    Task: Based on the industry description, decide which category (list) this business belongs to.
+    Role: Lead sorting specialist.
+    Task: Match a business to a category based on their specific work.
     
-    Industry Description:
-    ${industryDescription}
+    Business Description:
+    "${industryDescription}"
     
     Available Categories:
     ${filteredCategories.join(", ")}
     
-    CRITICAL RULES:
-    1. Reply ONLY with the EXACT name of the selected category from the list above.
-    2. If NONE of the categories are a good fit (e.g. it's a restaurant and no restaurant list exists), reply with "Všeobecné".
-    3. If multiple categories fit, choose the MOST specific one.
-    4. Do NOT say anything else.
+    CRITICAL QUALITY RULES:
+    1. EXCLUSIVITY: Only match if the business specialized activity EXACTLY fits the category.
+    2. NO LOOSE ASSOCIATIONS: 
+       - e.g. "Concrete drilling" is NOT "Statik".
+       - e.g. "Selling windows" is NOT "Stavebná firma" unless they do full construction.
+    3. FALLBACK: If there is no 90%+ match, or the available categories are too generic/unrelated, respond ONLY with "Všeobecné".
+    4. ACCURACY: If you are even slightly unsure, choose "Všeobecné".
+    5. OUTPUT: Reply ONLY with the EXACT name of the category or "Všeobecné".
     
     Decision:
     `;
@@ -590,7 +596,7 @@ export async function classifyLeadCategory(
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
         const result = await model.generateContent(prompt);
-        const textResponse = result.response.text().trim();
+        const textResponse = result.response.text().trim().replace(/[*_]/g, "");
 
         const match = filteredCategories.find(c => c.toLowerCase() === textResponse.toLowerCase());
         return match || "Všeobecné";

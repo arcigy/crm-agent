@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, ChevronLeft, ChevronRight, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, PlayCircle, RefreshCw, Clock, Check, AlertCircle, ArrowLeft, Sparkles } from "lucide-react";
+import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, RefreshCw, Clock, Check, AlertCircle, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { 
     getColdLeads, 
     deleteColdLead, 
@@ -88,8 +88,11 @@ export default function OutreachLeadsPage() {
                   // Check for critical updates that we want to show immediately
                   if (
                       newLead.enrichment_status !== oldLead.enrichment_status ||
+                      newLead.industry_status !== oldLead.industry_status ||
                       newLead.email !== oldLead.email ||
-                      newLead.ai_first_sentence !== oldLead.ai_first_sentence
+                      newLead.ai_first_sentence !== oldLead.ai_first_sentence ||
+                      newLead.industry_description !== oldLead.industry_description ||
+                      newLead.list_name !== oldLead.list_name
                   ) {
                       hasChanges = true;
                       return newLead;

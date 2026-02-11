@@ -296,6 +296,7 @@ export async function enrichColdLead(id: string | number, overrideEmail?: string
                         scrapedText || ""
                     );
                     updateData.industry_description = industryDesc;
+                    updateData.industry_status = "completed";
 
                     // Step 2: Sorting (Optional auto-move if categories exist)
                     const listsRes = await getColdLeadLists();
@@ -308,11 +309,13 @@ export async function enrichColdLead(id: string | number, overrideEmail?: string
                         
                         if (bestCategory && bestCategory !== lead.list_name) {
                             updateData.list_name = bestCategory;
-                            console.log(`[ENRICHMENT-ACTION] Lead ${id} suggested list: ${bestCategory}`);
+                            console.log(`[ENRICHMENT-ACTION] Lead ${id} auto-sorted list: ${bestCategory}`);
                         }
                     }
                 } catch (sepError) {
                     console.error("[ENRICHMENT-ACTION] AI Industry ID failed:", sepError);
+                    updateData.industry_status = "failed";
+                    updateData.industry_error = String(sepError);
                 }
                 // ----------------------------------
             } else if (aiResult && aiResult.error) {
