@@ -561,15 +561,21 @@ export async function identifyIndustry(
 // 4. AI Category Sorting (Step 2)
 export async function classifyLeadCategory(
     industryDescription: string, 
-    categories: string[]
+    lists: { name: string, description?: string }[]
 ): Promise<string> {
-    if (!categories || categories.length === 0) return "Všeobecné";
+    if (!lists || lists.length === 0) return "Všeobecné";
     
-    const filteredCategories = categories.filter(c => 
-        !["všeobecné", "cold call", "all", "nový zoznam", "zoznam 1"].includes(c.toLowerCase())
+    const filteredLists = lists.filter(l => 
+        !["všeobecné", "cold call", "all", "nový zoznam", "zoznam 1"].includes(l.name.toLowerCase())
     );
 
-    if (filteredCategories.length === 0) return "Všeobecné";
+    if (filteredLists.length === 0) return "Všeobecné";
+
+    const categoriesWithInfo = filteredLists.map(l => 
+        `- ${l.name}${l.description ? `: ${l.description}` : ''}`
+    ).join("\n");
+
+    const categoryNames = filteredLists.map(l => l.name);
 
     const prompt = `
     Role: Lead sorting specialist.
@@ -578,17 +584,17 @@ export async function classifyLeadCategory(
     Business Description:
     "${industryDescription}"
     
-    Available Categories:
-    ${filteredCategories.join(", ")}
+    Available Categories and their Definitions:
+    ${categoriesWithInfo}
     
     CRITICAL QUALITY RULES:
-    1. EXCLUSIVITY: Only match if the business specialized activity EXACTLY fits the category.
+    1. EXCLUSIVITY: Only match if the business specialized activity EXACTLY fits the category definition.
     2. NO LOOSE ASSOCIATIONS: 
-       - e.g. "Concrete drilling" is NOT "Statik".
+       - e.g. "Concrete drilling" is NOT "Statik" unless the Statik definition explicitly includes it.
        - e.g. "Selling windows" is NOT "Stavebná firma" unless they do full construction.
-    3. FALLBACK: If there is no 90%+ match, or the available categories are too generic/unrelated, respond ONLY with "Všeobecné".
+    3. FALLBACK: If there is no 90%+ match, or the available categories are too generic/unrelated based on their definitions, respond ONLY with "Všeobecné".
     4. ACCURACY: If you are even slightly unsure, choose "Všeobecné".
-    5. OUTPUT: Reply ONLY with the EXACT name of the category or "Všeobecné".
+    5. OUTPUT: Reply ONLY with the EXACT name of the category from the list above or "Všeobecné".
     
     Decision:
     `;
@@ -598,7 +604,7 @@ export async function classifyLeadCategory(
         const result = await model.generateContent(prompt);
         const textResponse = result.response.text().trim().replace(/[*_]/g, "");
 
-        const match = filteredCategories.find(c => c.toLowerCase() === textResponse.toLowerCase());
+        const match = categoryNames.find(c => c.toLowerCase() === textResponse.toLowerCase());
         return match || "Všeobecné";
     } catch (e) {
         console.error("[AI-SORTING] Classification failed:", e);

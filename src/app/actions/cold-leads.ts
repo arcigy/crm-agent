@@ -40,6 +40,7 @@ export interface ColdLeadItem {
 export interface ColdLeadList {
   id: number;
   name: string;
+  description?: string;
 }
 
 export async function getColdLeads(listName?: string) {
@@ -90,13 +91,24 @@ export async function getColdLeadLists() {
     }
 }
 
-export async function createColdLeadList(name: string) {
+export async function createColdLeadList(name: string, description?: string) {
     try {
-         await directus.request(createItem("cold_leads_lists", { name }));
+         await directus.request(createItem("cold_leads_lists", { name, description }));
          revalidatePath("/dashboard/cold-outreach");
          return { success: true };
     } catch (e: any) {
         console.error("Failed to create list:", e);
+        return { success: false, error: getDirectusErrorMessage(e) };
+    }
+}
+
+export async function updateColdLeadList(id: number, data: Partial<ColdLeadList>) {
+    try {
+        await directus.request(updateItem("cold_leads_lists", id, data));
+        revalidatePath("/dashboard/cold-outreach");
+        return { success: true };
+    } catch (e: any) {
+        console.error("Failed to update list:", e);
         return { success: false, error: getDirectusErrorMessage(e) };
     }
 }
@@ -301,10 +313,9 @@ export async function enrichColdLead(id: string | number, overrideEmail?: string
                     // Step 2: Sorting (Optional auto-move if categories exist)
                     const listsRes = await getColdLeadLists();
                     if (listsRes.success && listsRes.data) {
-                        const categoryNames = listsRes.data.map(l => l.name);
                         const bestCategory = await classifyLeadCategory(
                             industryDesc, 
-                            categoryNames
+                            listsRes.data
                         );
                         
                         if (bestCategory && bestCategory !== lead.list_name) {
@@ -736,12 +747,11 @@ export async function bulkSortLeadsByIndustry(ids: (string | number)[]) {
 
         const listsRes = await getColdLeadLists();
         if (!listsRes.success || !listsRes.data) throw new Error("Failed to load lists");
-        const categoryNames = listsRes.data.map(l => l.name);
 
         for (const lead of leads) {
             if (!lead.industry_description) continue;
 
-            const bestCategory = await classifyLeadCategory(lead.industry_description, categoryNames);
+            const bestCategory = await classifyLeadCategory(lead.industry_description, listsRes.data);
 
             if (bestCategory && bestCategory !== lead.list_name) {
                 await directus.request(updateItem("cold_leads", lead.id, { 

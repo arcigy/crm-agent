@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, RefreshCw, Clock, Check, AlertCircle, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, RefreshCw, Clock, Check, AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, Edit3, Settings } from "lucide-react";
 import { 
     getColdLeads, 
     deleteColdLead, 
@@ -18,6 +18,7 @@ import {
     identifyIndustryLead,
     bulkSortLeadsByIndustry,
     cleanupDuplicates,
+    updateColdLeadList,
     type ColdLeadItem, 
     type ColdLeadList 
 } from "@/app/actions/cold-leads";
@@ -57,6 +58,13 @@ export default function OutreachLeadsPage() {
   const [editValue, setEditValue] = useState("");
   const editInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   
+  // List Management State
+  const [isListModalOpen, setIsListModalOpen] = useState(false);
+  const [editingList, setEditingList] = useState<ColdLeadList | null>(null);
+  const [listNameInput, setListNameInput] = useState("");
+  const [listDescriptionInput, setListDescriptionInput] = useState("");
+  const [isSavingList, setIsSavingList] = useState(false);
+
   // Modal for lead detail
   const [openedLead, setOpenedLead] = useState<ColdLeadItem | null>(null);
 
@@ -204,22 +212,43 @@ export default function OutreachLeadsPage() {
     setCurrentPage(1);
   };
 
-  const handleCreateList = async () => {
-      const name = prompt("Zadajte názov nového zoznamu:");
-      if (!name) return;
+   const handleCreateList = () => {
+      setEditingList(null);
+      setListNameInput("");
+      setListDescriptionInput("");
+      setIsListModalOpen(true);
+  };
+
+  const handleEditList = (list: ColdLeadList, e: React.MouseEvent) => {
+      e.stopPropagation();
+      setEditingList(list);
+      setListNameInput(list.name);
+      setListDescriptionInput(list.description || "");
+      setIsListModalOpen(true);
+  };
+
+  const saveList = async () => {
+      if (!listNameInput.trim()) return toast.error("Názov je povinný");
+      setIsSavingList(true);
       
-      const res = await createColdLeadList(name);
+      const res = editingList
+          ? await updateColdLeadList(editingList.id, { name: listNameInput, description: listDescriptionInput })
+          : await createColdLeadList(listNameInput, listDescriptionInput);
+
       if (res.success) {
-          toast.success("Zoznam vytvorený");
+          toast.success(editingList ? "Zoznam upravený" : "Zoznam vytvorený");
+          setIsListModalOpen(false);
+          
           // Refresh lists
           const listsRes = await getColdLeadLists();
           if (listsRes.success && listsRes.data) {
               setLists(listsRes.data);
-              setActiveListName(name);
+              if (!editingList) setActiveListName(listNameInput);
           }
       } else {
-          toast.error("Chyba pri vytváraní zoznamu");
+          toast.error("Chyba: " + res.error);
       }
+      setIsSavingList(false);
   };
 
   // --- Bulk Actions ---
@@ -591,24 +620,32 @@ export default function OutreachLeadsPage() {
                  </button>
              </div>
 
-             <div className="px-2 py-2">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 pl-2">Moje Zoznamy</p>
-                 {lists.map(list => (
-                     <button
-                        key={list.id}
-                        onClick={() => setActiveListName(list.name)}
-                        className={cn(
-                            "w-full text-left px-4 py-3 rounded-[1rem] flex items-center gap-3 transition-all text-xs font-bold",
-                            activeListName === list.name 
-                              ? "bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100" 
-                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                        )}
-                     >
-                        <Folder className={cn("w-4 h-4", activeListName === list.name ? "fill-blue-200" : "")} />
-                        {list.name}
-                     </button>
-                 ))}
-             </div>
+              <div className="px-2 py-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 pl-2">Moje Zoznamy</p>
+                  {lists.map(list => (
+                      <div key={list.id} className="group relative">
+                          <button
+                            onClick={() => setActiveListName(list.name)}
+                            className={cn(
+                                "w-full text-left px-4 py-3 rounded-[1rem] flex items-center gap-3 transition-all text-xs font-bold pr-10",
+                                activeListName === list.name 
+                                  ? "bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100" 
+                                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                            )}
+                          >
+                            <Folder className={cn("w-4 h-4", activeListName === list.name ? "fill-blue-200" : "")} />
+                            <span className="truncate">{list.name}</span>
+                          </button>
+                          <button 
+                            onClick={(e) => handleEditList(list, e)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                            title="Upraviť zoznam"
+                          >
+                             <Settings className="w-3.5 h-3.5" />
+                          </button>
+                      </div>
+                  ))}
+              </div>
          </div>
 
          <div className="mt-4 pt-4 border-t border-gray-100 px-2">
@@ -634,10 +671,17 @@ export default function OutreachLeadsPage() {
                     <ArrowLeft className="w-3.5 h-3.5" />
                     Späť na Outreach
                   </Link>
-                  <h2 className="text-3xl font-black tracking-tight text-gray-900 flex items-center gap-3">
-                    {activeListName}
-                    <span className="text-sm font-bold bg-gray-100 text-gray-500 px-3 py-1 rounded-full">{filteredLeads.length}</span>
-                  </h2>
+                  <div className="flex flex-col gap-0.5">
+                    <h2 className="text-3xl font-black tracking-tight text-gray-900 flex items-center gap-3">
+                        {activeListName}
+                        <span className="text-sm font-bold bg-gray-100 text-gray-500 px-3 py-1 rounded-full">{filteredLeads.length}</span>
+                    </h2>
+                    {lists.find(l => l.name === activeListName)?.description && (
+                        <p className="text-xs text-gray-500 font-medium max-w-2xl mt-1 italic">
+                            {lists.find(l => l.name === activeListName)?.description}
+                        </p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-3">
                   <button
@@ -1306,6 +1350,65 @@ export default function OutreachLeadsPage() {
                                 className="flex-1 py-3 bg-blue-600 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50"
                             >
                                 Pridať do Fronty
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+        {/* List Management Modal */}
+        {isListModalOpen && (
+            <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                <div className="bg-white max-w-md w-full rounded-[2rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+                    <h3 className="text-xl font-black text-gray-900 mb-2 flex items-center gap-2">
+                        {editingList ? <Edit3 className="w-6 h-6 text-blue-600" /> : <Plus className="w-6 h-6 text-blue-600" />}
+                        {editingList ? "Upraviť Zoznam" : "Nový Zoznam"}
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-6 font-medium">
+                        {editingList ? "Zmeňte názov alebo definíciu zoznamu pre lepšie AI triedenie." : "Vytvorte nový zoznam a definujte, čo doň patrí."}
+                    </p>
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 block mb-2">
+                                Názov Zoznamu
+                            </label>
+                            <input 
+                                type="text"
+                                value={listNameInput}
+                                onChange={(e) => setListNameInput(e.target.value)}
+                                placeholder="Napr. Statika, Stavebné firmy..."
+                                className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-500 transition-colors"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 pl-1 block mb-2">
+                                Definícia pre AI (Info)
+                            </label>
+                            <textarea 
+                                value={listDescriptionInput}
+                                onChange={(e) => setListDescriptionInput(e.target.value)}
+                                placeholder="Popíšte na 2-3 vety, aké firmy sem patria. AI to použije pri automatickom triedení."
+                                rows={4}
+                                className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-500 transition-colors resize-none"
+                            />
+                        </div>
+
+                        <div className="flex gap-3 pt-4">
+                            <button 
+                                onClick={() => setIsListModalOpen(false)}
+                                className="flex-1 py-3 text-gray-500 font-black text-xs uppercase tracking-widest hover:bg-gray-50 rounded-xl transition-colors"
+                            >
+                                Zrušiť
+                            </button>
+                            <button 
+                                onClick={saveList}
+                                disabled={isSavingList}
+                                className="flex-1 py-3 bg-blue-600 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {isSavingList ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                {editingList ? "Uložiť Zmeny" : "Vytvoriť Zoznam"}
                             </button>
                         </div>
                     </div>

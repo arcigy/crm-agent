@@ -48,8 +48,7 @@ export async function GET(request: Request) {
                 // Optional: Auto-sort based on industry
                 const listsRes = await getColdLeadLists();
                 if (listsRes.success && listsRes.data) {
-                    const categoryNames = listsRes.data.map(l => l.name);
-                    const bestCategory = await classifyLeadCategory(industryDesc, categoryNames);
+                    const bestCategory = await classifyLeadCategory(industryDesc, listsRes.data);
                     
                     if (bestCategory && bestCategory !== lead.list_name) {
                         updates.list_name = bestCategory;
