@@ -4,6 +4,8 @@ import { readItems, updateItem, updateItems } from "@directus/sdk";
 import { ColdLeadItem, getColdLeadLists } from "@/app/actions/cold-leads";
 import { identifyIndustry, classifyLeadCategory } from "@/lib/enrichment";
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export async function GET(request: Request) {
     try {
         const BATCH_SIZE = 10;
@@ -30,13 +32,20 @@ export async function GET(request: Request) {
             industry_status: "processing" 
         }));
 
-        // 3. Process each item
-        const processItem = async (lead: ColdLeadItem) => {
+        // 3. Pre-fetch lists once to avoid redundant calls
+        const listsRes = await getColdLeadLists();
+        const availableLists = listsRes.success ? listsRes.data : [];
+
+        // 4. Process items sequentially with small delay to prevent Gemini rate limits (429)
+        const results = [];
+        for (const lead of pendingLeads) {
             try {
+                console.log(`[INDUSTRY CRON] Processing ID ${lead.id}...`);
+                
                 // Use fallback text if ai_first_sentence is missing
                 const contextText = lead.abstract || lead.category || lead.title || "";
                 
-                // AI call
+                // AI call 1: Identify Industry
                 const industryDesc = await identifyIndustry(lead.ai_first_sentence || "", contextText);
                 
                 const updates: any = {
@@ -45,37 +54,44 @@ export async function GET(request: Request) {
                     industry_error: null
                 };
 
-                // Optional: Auto-sort based on industry
-                const listsRes = await getColdLeadLists();
-                if (listsRes.success && listsRes.data) {
-                    const bestCategory = await classifyLeadCategory(industryDesc, listsRes.data);
+                // AI call 2: Auto-sort if we have categories
+                if (availableLists && availableLists.length > 0) {
+                    const bestCategory = await classifyLeadCategory(industryDesc, availableLists);
                     
-                    if (bestCategory && bestCategory !== lead.list_name) {
+                    if (bestCategory && bestCategory !== "Všeobecné" && bestCategory !== lead.list_name) {
                         updates.list_name = bestCategory;
                         console.log(`[INDUSTRY CRON] Lead ${lead.id} auto-sorted to: ${bestCategory}`);
                     }
                 }
 
                 await directus.request(updateItem("cold_leads", lead.id, updates));
-                return { id: lead.id, success: true };
+                results.push({ id: lead.id, success: true });
+
+                // Small delay between leads to respect rate limits
+                await sleep(800); 
+
             } catch (e: any) {
                 console.error(`[INDUSTRY CRON] Error for ${lead.id}:`, e);
+                const isRateLimit = String(e).includes("429") || String(e).includes("quota");
+                
                 await directus.request(updateItem("cold_leads", lead.id, {
-                    industry_status: "failed",
+                    industry_status: isRateLimit ? "pending" : "failed", // Retry if rate limit
                     industry_error: e.message
                 }));
-                return { id: lead.id, success: false, error: e.message };
+                results.push({ id: lead.id, success: false, error: e.message });
             }
-        };
+        }
 
-        const results = await Promise.all(pendingLeads.map(lead => processItem(lead)));
-
-        // 4. Recursive trigger (fire and forget)
+        // 5. Recursive trigger (fire and forget)
         if (pendingLeads.length === BATCH_SIZE) {
             const proto = request.headers.get("x-forwarded-proto") || "https";
             const host = request.headers.get("host") || "crm.arcigy.cloud";
             const nextUrl = `${proto}://${host}/api/cron/industry-classifier`;
-            fetch(nextUrl, { headers: { 'Cache-Control': 'no-cache' }}).catch(() => {});
+            
+            // Wait slightly before next batch trigger
+            setTimeout(() => {
+                fetch(nextUrl, { headers: { 'Cache-Control': 'no-cache' }}).catch(() => {});
+            }, 2000);
         }
 
         return NextResponse.json({ success: true, processed: results.length, results });
