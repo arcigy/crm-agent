@@ -17,7 +17,7 @@ export async function bulkCreateContacts(contacts: Record<string, unknown>[]) {
       readItems("contacts", {
         filter: { user_email: { _eq: userEmail } },
         fields: ["email"] as string[],
-        limit: -1,
+        limit: 500,
       }),
     );
     const existingEmails = new Set(

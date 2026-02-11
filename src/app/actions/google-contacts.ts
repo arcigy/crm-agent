@@ -28,7 +28,7 @@ export async function normalizeAllCRMContacts() {
                 ]
             },
             fields: ["id", "phone"],
-            limit: -1
+            limit: 500
         }))) as any[];
 
         let updatedCount = 0;
@@ -83,7 +83,7 @@ export async function importGoogleContacts() {
     const crmContacts = (await directus.request(readItems("contacts", {
         filter: { user_email: { _eq: userEmail } },
         fields: ["id", "email", "google_id", "first_name", "last_name", "phone"],
-        limit: -1
+        limit: 500
     }))) as any[];
 
     const idMap = new Map();
@@ -192,7 +192,7 @@ export async function exportContactsToGoogle() {
                 { deleted_at: { _null: true } }
             ]
         },
-        limit: -1
+        limit: 500
     }))) as any[];
 
     if (crmContacts.length === 0) return { success: true, count: 0 };

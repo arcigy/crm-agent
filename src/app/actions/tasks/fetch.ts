@@ -36,7 +36,7 @@ export async function getTasks(date?: string) {
       readItems("crm_tasks", {
         filter,
         sort: ["date_created"] as string[],
-        limit: -1,
+        limit: 500,
       }),
     );
 
@@ -71,7 +71,7 @@ export async function getTasksForEntity(
           ],
         },
         sort: ["-date_created"] as string[],
-        limit: -1,
+        limit: 500,
       }),
     );
 

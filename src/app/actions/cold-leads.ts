@@ -62,7 +62,7 @@ export async function getColdLeads(listName?: string) {
       readItems("cold_leads", {
         filter,
         sort: ["-date_created"] as string[],
-        limit: -1,
+        limit: 500,
       }),
     )) as unknown as ColdLeadItem[];
 
@@ -111,7 +111,7 @@ export async function bulkCreateColdLeads(leads: Partial<ColdLeadItem>[]) {
             user_email: { _eq: userEmail }
         },
         fields: ["email", "website", "title"],
-        limit: -1
+        limit: 500
     })) as unknown as ColdLeadItem[];
 
     const existingEmails = new Set(existingLeads.map(l => l.email).filter(Boolean));
@@ -451,7 +451,7 @@ export async function syncLeadsToSmartLead(ids: (string | number)[], campaignId:
 
         const leads = (await directus.request(readItems("cold_leads", {
             filter: { id: { _in: ids } },
-            limit: -1
+            limit: 500
         }))) as unknown as ColdLeadItem[];
 
         if (!leads || leads.length === 0) throw new Error("No leads found");
@@ -498,7 +498,7 @@ export async function bulkQueueForSmartLead(ids: (string | number)[], campaignId
         const leads = (await directus.request(readItems("cold_leads", {
             filter: { id: { _in: ids } },
             fields: ["id", "email"],
-            limit: -1
+            limit: 500
         }))) as unknown as ColdLeadItem[];
 
         if (!leads || leads.length === 0) throw new Error("No leads found");
@@ -549,7 +549,7 @@ export async function bulkSortLeads(ids: (string | number)[]) {
         
         const leads = (await directus.request(readItems("cold_leads", {
             filter: { id: { _in: ids } },
-            limit: -1
+            limit: 500
         }))) as unknown as ColdLeadItem[];
         
         for (const lead of leads) {
@@ -585,7 +585,7 @@ export async function cleanupDuplicates(listName?: string) {
 
         const leads = (await directus.request(readItems("cold_leads", {
             filter,
-            limit: -1,
+            limit: 500,
             sort: ["id"], // Oldest first
             fields: ["id", "website", "google_maps_url", "email", "title"]
         }))) as unknown as ColdLeadItem[];
@@ -702,7 +702,7 @@ export async function identifyIndustryLead(ids: (string | number)[]) {
         
         const leads = (await directus.request(readItems("cold_leads", {
             filter: { id: { _in: ids } },
-            limit: -1
+            limit: 500
         }))) as unknown as ColdLeadItem[];
         
         for (const lead of leads) {
@@ -731,7 +731,7 @@ export async function bulkSortLeadsByIndustry(ids: (string | number)[]) {
         
         const leads = (await directus.request(readItems("cold_leads", {
             filter: { id: { _in: ids } },
-            limit: -1
+            limit: 500
         }))) as unknown as ColdLeadItem[];
 
         const listsRes = await getColdLeadLists();

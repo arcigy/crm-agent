@@ -21,7 +21,7 @@ export async function getOutreachLeads() {
             readItems("outreach_leads", {
                 filter: filter,
                 sort: ["-id"],
-                limit: -1
+                limit: 500
             })
         );
         return { success: true, data: leads };
@@ -61,7 +61,7 @@ export async function deleteAllLeads() {
             readItems("outreach_leads", {
                 filter: { user_email: { _eq: userEmail } },
                 fields: ["id"],
-                limit: -1
+                limit: 500
             })
         );
 

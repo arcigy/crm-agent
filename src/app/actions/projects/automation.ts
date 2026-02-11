@@ -30,7 +30,7 @@ export async function syncAllProjectDescriptions() {
       readItems("contacts", {
         filter: { user_email: { _eq: email } },
         fields: ["id", "first_name", "last_name"] as string[],
-        limit: -1,
+        limit: 500,
       }),
     )) as Record<string, unknown>[];
 

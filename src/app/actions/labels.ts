@@ -69,7 +69,7 @@ export async function syncLabelsFromGoogle() {
     // Get existing labels to avoid duplicates
     const existingLabels = await directus.request(readItems("contact_labels", {
       filter: { user_email: { _eq: userEmail } },
-      limit: -1
+      limit: 500
     })) as any[];
 
     const googleIdMap = new Map();

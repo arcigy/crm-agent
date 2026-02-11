@@ -43,20 +43,20 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
             ],
           },
           fields: ["*", { contact_id: ["id", "first_name", "last_name"] }] as string[],
-          limit: -1,
+          limit: 500,
         }),
       ) as Promise<Project[]>,
       directus.request(
         readItems("contacts", {
           filter: { user_email: { _in: authEmails } },
-          limit: -1,
+          limit: 500,
         }),
       ) as Promise<ContactItem[]>,
       authEmails.length > 0
         ? (directus.request(
             readItems("crm_tasks", {
               filter: { user_email: { _in: authEmails } },
-              limit: -1,
+              limit: 500,
             }),
           ) as Promise<Task[]>)
         : Promise.resolve([] as Task[]),

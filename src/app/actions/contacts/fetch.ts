@@ -76,7 +76,7 @@ export async function getContacts() {
           "labels.contact_labels_id.*",
         ] as string[],
         sort: ["-date_created"] as string[],
-        limit: -1,
+        limit: 500,
       }),
     )) as unknown as ContactItem[];
 
@@ -89,7 +89,7 @@ export async function getContacts() {
               { user_email: { _in: authEmails } },
             ],
           },
-          limit: -1,
+          limit: 500,
         }),
       )) as unknown as Project[];
 
