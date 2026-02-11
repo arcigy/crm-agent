@@ -85,7 +85,7 @@ export async function getContacts() {
         readItems("projects", {
           filter: {
             _and: [
-              { contact_id: { _nnull: true } },
+              { contact_id: { _null: false } },
               { user_email: { _in: authEmails } },
             ],
           },

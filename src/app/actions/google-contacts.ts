@@ -24,7 +24,7 @@ export async function normalizeAllCRMContacts() {
                 _and: [
                     { user_email: { _eq: userEmail } },
                     { deleted_at: { _null: true } },
-                    { phone: { _nnull: true } }
+                    { phone: { _null: false } }
                 ]
             },
             fields: ["id", "phone"],

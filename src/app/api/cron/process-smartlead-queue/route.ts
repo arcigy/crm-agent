@@ -11,7 +11,7 @@ export async function GET(_request: Request) {
         const queuedLeads = (await directus.request(readItems('cold_leads', {
             filter: { 
                 smartlead_status: { _eq: 'queued' },
-                smartlead_campaign_id: { _nnull: true }
+                smartlead_campaign_id: { _null: false }
             },
             limit: 20
         }))) as unknown as ColdLeadItem[];

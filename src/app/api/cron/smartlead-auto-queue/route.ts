@@ -9,8 +9,8 @@ export async function GET(_request: Request) {
         const activeCampaigns = await directus.request(readItems('outreach_campaigns', {
             filter: {
                 auto_sync: { _eq: true },
-                smartlead_id: { _nnull: true },
-                selected_list: { _nnull: true }
+                smartlead_id: { _null: false },
+                selected_list: { _null: false }
             }
         }));
 
@@ -29,8 +29,8 @@ export async function GET(_request: Request) {
                 filter: {
                     _and: [
                         { list_name: { _eq: campaign.selected_list } },
-                        { email: { _nnull: true } },
-                        { ai_first_sentence: { _nnull: true } },
+                        { email: { _null: false } },
+                        { ai_first_sentence: { _null: false } },
                         { smartlead_status: { _null: true } }
                     ]
                 },
