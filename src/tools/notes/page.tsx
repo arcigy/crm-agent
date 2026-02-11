@@ -15,7 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import RichTextEditor from "@/components/dashboard/RichTextEditor";
+import RichTextEditor from "@/components/dashboard/editor/RichTextEditor";
 
 interface Note {
   id: string;
