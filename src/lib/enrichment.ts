@@ -539,10 +539,16 @@ export async function identifyIndustry(
     `;
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        console.log(`[AI-INDUSTRY] Identifying for: ${personalization.slice(0, 50)}...`);
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
         const result = await model.generateContent(prompt);
         const text = result.response.text().trim();
-        return text || "Zisťujeme, v akom odbore tento podnik pracuje.";
+        
+        if (text && text.length > 5) {
+            return text;
+        }
+        
+        return "Zisťujeme, v akom odbore tento podnik pracuje.";
     } catch (e) {
         console.error("[AI-INDUSTRY] Identification failed:", e);
         return "Zisťujeme, v akom odbore tento podnik pracuje.";
@@ -582,7 +588,7 @@ export async function classifyLeadCategory(
     `;
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
         const result = await model.generateContent(prompt);
         const textResponse = result.response.text().trim();
 
