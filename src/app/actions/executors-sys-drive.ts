@@ -1,8 +1,9 @@
+"use server";
+
 import path from "path";
 import fs from "fs";
 import { execSync } from "child_process";
 import { clerkClient } from "@clerk/nextjs/server";
-import { getGmailClient } from "@/lib/google";
 
 /**
  * Reusing auth for Drive since it shared Google scope.

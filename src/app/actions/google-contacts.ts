@@ -71,7 +71,7 @@ export async function importGoogleContacts() {
     if (!tokens) return { success: false, error: "Google not connected" };
 
     const { getPeopleClient } = await import("@/lib/google");
-    const people = getPeopleClient(tokens);
+    const people = await getPeopleClient(tokens);
 
     const response = await people.people.connections.list({
       resourceName: "people/me",
@@ -182,7 +182,7 @@ export async function exportContactsToGoogle() {
     if (!tokens) return { success: false, error: "Google not connected" };
 
     const { getPeopleClient } = await import("@/lib/google");
-    const people = getPeopleClient(tokens);
+    const people = await getPeopleClient(tokens);
 
     const crmContacts = (await directus.request(readItems("contacts", {
         filter: {
@@ -272,7 +272,7 @@ export async function createTestGoogleContact() {
         if (!token) return { success: false, error: "No Google Token" };
 
         const { getPeopleClient } = await import("@/lib/google");
-        const people = getPeopleClient(token);
+        const people = await getPeopleClient(token);
 
         const res = await people.people.createContact({
             requestBody: {
@@ -311,7 +311,7 @@ export async function syncContactToGoogle(contactId: string | number) {
         if (!token) return { success: false, error: "No Google connection" };
 
         const { getPeopleClient } = await import("@/lib/google");
-        const people = getPeopleClient(token);
+        const people = await getPeopleClient(token);
 
         const contact = (await directus.request(readItem("contacts", contactId, {
             fields: ["*", "labels.contact_labels_id.*"]

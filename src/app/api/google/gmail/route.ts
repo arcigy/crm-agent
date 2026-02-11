@@ -63,7 +63,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const userEmail = user.emailAddresses[0]?.emailAddress;
-    const { getValidToken, getGmailClient } = await import("@/lib/google");
+    const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
     const token = await getValidToken(user.id, userEmail);
 
     if (!token) return NextResponse.json({ isConnected: false, error: "Google account not linked or token expired" });
@@ -135,7 +135,7 @@ export async function PATCH(req: Request) {
 
     const { messageId } = await req.json();
     const userEmail = user.emailAddresses[0]?.emailAddress;
-    const { getValidToken, getGmailClient } = await import("@/lib/google");
+    const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
     const token = await getValidToken(user.id, userEmail);
 
     if (!token) return NextResponse.json({ error: "Google account not linked or token expired" }, { status: 400 });
@@ -164,7 +164,7 @@ export async function POST(req: Request) {
     if (!user) return new Response("Unauthorized", { status: 401 });
 
     const userEmail = user.emailAddresses[0]?.emailAddress;
-    const { getValidToken, getGmailClient } = await import("@/lib/google");
+    const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
     const token = await getValidToken(user.id, userEmail);
 
     if (!token) return new Response("Google account not linked or token expired", { status: 400 });

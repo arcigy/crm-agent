@@ -1,3 +1,5 @@
+"use server";
+
 import { revalidatePath } from "next/cache";
 import directus from "@/lib/directus";
 import { createItem } from "@directus/sdk";

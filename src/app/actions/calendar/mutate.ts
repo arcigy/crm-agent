@@ -1,3 +1,5 @@
+"use server";
+
 import { getDirectusErrorMessage } from "@/lib/directus";
 import { getCalendarClient } from "@/lib/google";
 import { getAccessToken } from "./auth";

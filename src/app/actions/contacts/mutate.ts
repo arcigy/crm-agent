@@ -1,3 +1,5 @@
+"use server";
+
 import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, updateItem, readItem } from "@directus/sdk";
@@ -112,4 +114,27 @@ export async function deleteContact(id: string | number) {
 
 export async function updateContactComments(id: number | string, comments: string) {
   return updateContact(id, { comments });
+}
+
+export async function runTestSyncUpdate(id: string | number) {
+  try {
+    const { getUserEmail } = await import("@/lib/auth");
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
+    // We just update the contact with some test note or something to trigger sync
+    await directus.request(updateItem("contacts", id, {
+        comments: `Test Sync @ ${new Date().toLocaleString()}`
+    }));
+
+    const syncRes = await syncContactToGoogle(id);
+    return { 
+        success: true, 
+        sync: syncRes.success, 
+        syncError: syncRes.error 
+    };
+  } catch (err) {
+    console.error("Test Sync failed:", err);
+    return { success: false, error: String(err) };
+  }
 }
