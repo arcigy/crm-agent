@@ -1,3 +1,5 @@
+"use server";
+
 import directus from "@/lib/directus";
 import { readItems, updateItem, createItem } from "@directus/sdk";
 import { getUserEmail } from "@/lib/auth";

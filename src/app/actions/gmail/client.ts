@@ -1,3 +1,5 @@
+"use server";
+
 import { clerkClient } from "@clerk/nextjs/server";
 import { getGmailClient } from "@/lib/google";
 

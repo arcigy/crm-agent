@@ -1,3 +1,5 @@
+"use server";
+
 import { getGmail } from "./client";
 
 export async function executeGmailTool(
