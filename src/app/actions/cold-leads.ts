@@ -33,6 +33,8 @@ export interface ColdLeadItem {
   source_city?: string;
   source_keyword?: string;
   industry_description?: string;
+  industry_status?: "pending" | "processing" | "completed" | "failed";
+  industry_error?: string;
 }
 
 export interface ColdLeadList {
@@ -700,26 +702,21 @@ export async function identifyIndustryLead(ids: (string | number)[]) {
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
         
-        const leads = (await directus.request(readItems("cold_leads", {
-            filter: { id: { _in: ids } },
-            limit: 500
-        }))) as unknown as ColdLeadItem[];
+        await directus.request(updateItems("cold_leads", ids as any, { 
+            industry_status: "pending",
+            industry_error: null
+        }));
         
-        for (const lead of leads) {
-            // We need some text. If not scraped, we might need a quick scrape here or just use what we have.
-            // For now use what is in DB.
-            const contextText = lead.abstract || lead.category || lead.title || "";
-            const industryDesc = await identifyIndustry(lead.ai_first_sentence || "", contextText);
-            
-            await directus.request(updateItem("cold_leads", lead.id, { 
-                industry_description: industryDesc 
-            }));
-        }
+        // Kickstart the cron (non-blocking)
+        // Note: we can't easily get the base URL in a server action without more effort, 
+        // but we can rely on a relative fetch if it's from the dashboard, 
+        // OR we just wait for the next scheduled run.
+        // For immediate feedback, we'll try a relative fetch if possible.
         
         revalidatePath("/dashboard/cold-outreach");
         return { success: true };
     } catch (e: any) {
-        console.error("Industry ID failed:", e);
+        console.error("Industry background trigger failed:", e);
         return { success: false, error: getDirectusErrorMessage(e) };
     }
 }

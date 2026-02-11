@@ -121,7 +121,8 @@ export default function OutreachLeadsPage() {
         const hasPending = leads.some(l => 
             l.enrichment_status === 'pending' || 
             l.enrichment_status === 'processing' ||
-            // Also refresh if we have items without status but with website (just in case)
+            l.industry_status === 'pending' ||
+            l.industry_status === 'processing' ||
             (!l.enrichment_status && l.website)
         );
         
@@ -335,25 +336,33 @@ export default function OutreachLeadsPage() {
 
   const handleIndustryClassifier = async () => {
       const ids = Array.from(selectedIds);
-      if (!confirm(`Spustiť Industry Classifier pre ${ids.length} leadov? AI analyzuje ich zameranie do jednej vety.`)) return;
+      if (!confirm(`Spustiť Industry Classifier pre ${ids.length} leadov? AI analyzuje ich zameranie do jednej vety na pozadí.`)) return;
       
-      const toastId = toast.loading("AI analyzuje odborné zameranie...");
+      const toastId = toast.loading("Pridávam do fronty pre Industry AI...");
+      
+      // Optimistic update
+      setLeads(prev => prev.map(l => ids.includes(l.id) ? { ...l, industry_status: "pending" } : l));
+      setSelectedIds(new Set());
+
       const res = await identifyIndustryLead(ids);
       
       if (res.success) {
-          toast.success("Odborné zameranie bolo identifikované", { id: toastId });
-          setSelectedIds(new Set());
-          refreshLeads(activeListName);
+          toast.success("Úlohy pridané do fronty. Spracovanie beží na pozadí.", { id: toastId });
+          // Kickstart the cron
+          fetch("/api/cron/industry-classifier").catch(console.error);
       } else {
-          toast.error(res.error || "Chyba pri analýze", { id: toastId });
+          toast.error(res.error || "Chyba pri pridávaní do fronty", { id: toastId });
+          refreshLeads(activeListName);
       }
   };
 
   const handleIndustrySorting = async () => {
       const ids = Array.from(selectedIds);
-      if (!confirm(`Roztriediť ${ids.length} leadov do zoznamov podľa ich Industry vetu?`)) return;
+      if (!confirm(`Tento proces sa teraz deje automaticky v rámci Industry Classifiera. Chcete napriek tomu vynútiť okamžité roztriedenie do zoznamov na pozadí?`)) return;
       
       const toastId = toast.loading("AI triedi kontakty...");
+      // We keep this as direct action for now or make it background if requested, 
+      // but industry classifier cron already does this.
       const res = await bulkSortLeadsByIndustry(ids);
       
       if (res.success) {
@@ -1062,13 +1071,34 @@ export default function OutreachLeadsPage() {
                                         />
                                     ) : (
                                         <div className="flex flex-col gap-1">
-                                            {lead.industry_description ? (
+                                            {lead.industry_status === 'pending' && (
+                                                <div className="flex items-center gap-2 text-orange-500 animate-pulse bg-orange-50/50 p-2 rounded-xl border border-dashed border-orange-200">
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                    <span className="text-[10px] font-bold uppercase">Čaká...</span>
+                                                </div>
+                                            )}
+                                            {lead.industry_status === 'processing' && (
+                                                <div className="flex items-center gap-2 text-violet-600 bg-violet-50/50 p-2 rounded-xl border border-violet-100">
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                    <span className="text-[10px] font-bold uppercase">AI pracuje...</span>
+                                                </div>
+                                            )}
+                                            {lead.industry_status === 'failed' && (
+                                                <div className="bg-red-50 p-2 rounded-xl border border-red-100 text-red-500 flex items-center gap-2" title={lead.industry_error}>
+                                                    <X className="w-3 h-3" />
+                                                    <span className="text-[10px] font-bold uppercase">Chyba</span>
+                                                </div>
+                                            )}
+
+                                            {lead.industry_description && (
                                                 <div className="bg-blue-50/50 p-2.5 rounded-xl border border-blue-100/50">
                                                     <p className="text-[11px] font-bold text-gray-800 leading-tight">
                                                         {lead.industry_description}
                                                     </p>
                                                 </div>
-                                            ) : (
+                                            )}
+                                            
+                                            {!lead.industry_description && !lead.industry_status && (
                                                 <span className="text-gray-300 font-medium italic text-xs">Chýba (použite Classifier)</span>
                                             )}
                                         </div>
