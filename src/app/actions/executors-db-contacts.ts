@@ -21,15 +21,15 @@ function formatPhoneNumber(phone: string | null | undefined): string | null {
  */
 export async function executeDbContactTool(
   name: string,
-  args: Record<string, any>,
+  args: Record<string, unknown>,
   userEmail?: string,
 ) {
   if (!userEmail) throw new Error("Unauthorized access to DB Contact Tool");
 
   switch (name) {
     case "db_create_contact":
-      let firstName = args.first_name || "";
-      let lastName = args.last_name || "";
+      let firstName = (args.first_name as string) || "";
+      let lastName = (args.last_name as string) || "";
       if (firstName.includes(" ") && !lastName) {
         const parts = firstName.split(" ");
         firstName = parts[0];
@@ -39,15 +39,15 @@ export async function executeDbContactTool(
         createItem("contacts", {
           first_name: firstName,
           last_name: lastName,
-          email: args.email || null,
-          phone: formatPhoneNumber(args.phone),
-          company: args.company || null,
-          status: args.status || "new",
+          email: (args.email as string) || null,
+          phone: formatPhoneNumber(args.phone as string),
+          company: (args.company as string) || null,
+          status: (args.status as string) || "new",
           user_email: userEmail,
           date_created: new Date().toISOString(),
-        } as any),
-      )) as any;
-      const newContactId = newContact.id;
+        }),
+      )) as Record<string, unknown>;
+      const newContactId = newContact.id as string;
       // Real-time sync to Google
       await syncContactToGoogle(newContactId);
 
@@ -68,14 +68,14 @@ export async function executeDbContactTool(
             ],
           },
         }),
-      )) as any[];
+      )) as Record<string, unknown>[];
       if (current.length === 0) throw new Error("Access denied or not found");
 
       await directus.request(
-        updateItem("contacts", args.contact_id, args as any),
+        updateItem("contacts", args.contact_id as string, args as Record<string, unknown>),
       );
       // Real-time sync to Google
-      await syncContactToGoogle(args.contact_id);
+      await syncContactToGoogle(args.contact_id as string);
 
       return {
         success: true,
@@ -94,14 +94,14 @@ export async function executeDbContactTool(
                   { first_name: { _icontains: args.query } },
                   { last_name: { _icontains: args.query } },
                   { email: { _icontains: args.query } },
-                  { company: { _icontains: args.query } },
+                  { company: { _icontains: args.query as string } },
                 ],
               },
-            ] as any,
+            ] as Record<string, unknown>[],
           },
           limit: 20,
         }),
-      )) as any[];
+      )) as Record<string, unknown>[];
       return {
         success: true,
         data: searchRes,
@@ -116,10 +116,10 @@ export async function executeDbContactTool(
               { user_email: { _eq: userEmail } },
               { status: { _neq: "archived" } },
             ],
-          } as any,
-          limit: args.limit || 50,
+          } as Record<string, unknown>,
+          limit: (args.limit as number) || 50,
         }),
-      )) as any[];
+      )) as Record<string, unknown>[];
       return {
         success: true,
         data: allRes,
@@ -128,10 +128,10 @@ export async function executeDbContactTool(
 
     case "db_delete_contact":
       await directus.request(
-        updateItem("contacts", args.contact_id, {
+        updateItem("contacts", args.contact_id as string, {
           status: "archived",
           deleted_at: new Date().toISOString(),
-        } as any),
+        }),
       );
       return {
         success: true,
@@ -148,19 +148,19 @@ export async function executeDbContactTool(
             ],
           },
         }),
-      )) as any[];
+      )) as Record<string, unknown>[];
 
       if (contact.length === 0) throw new Error("Contact not found");
 
       const currentContact = contact[0];
       const newComment = currentContact.comments
-        ? `${currentContact.comments}\n\n[Agent]: ${args.comment}`
-        : `[Agent]: ${args.comment}`;
+        ? `${currentContact.comments}\n\n[Agent]: ${args.comment as string}`
+        : `[Agent]: ${args.comment as string}`;
 
       await directus.request(
-        updateItem("contacts", args.contact_id, {
+        updateItem("contacts", args.contact_id as string, {
           comments: newComment,
-        } as any),
+        }),
       );
       return {
         success: true,

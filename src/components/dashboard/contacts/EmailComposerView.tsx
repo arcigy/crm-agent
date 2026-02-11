@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Mail, X, Paperclip, Send, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import RichTextEditor from "../RichTextEditor";
+import RichTextEditor from "../editor/RichTextEditor";
 import { Lead } from "@/types/contact";
 
 interface EmailComposerViewProps {
@@ -38,7 +38,7 @@ export function EmailComposerView({
       // Let's use a generic email sender.
       const { sendGeneralEmail } = await import("@/app/actions/google-email");
       const res = await sendGeneralEmail({
-        to: contact.email,
+        to: contact.email || "",
         subject,
         body
       });
@@ -49,8 +49,8 @@ export function EmailComposerView({
       } else {
         toast.error(res.error || "Chyba pri odosielaní", { id: toastId });
       }
-    } catch (err: any) {
-      toast.error(err.message || "Chyba", { id: toastId });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Chyba", { id: toastId });
     } finally {
       setIsSending(false);
     }

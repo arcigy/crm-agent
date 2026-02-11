@@ -31,7 +31,7 @@ export async function getAgentChatById(id: string): Promise<AgentChat | null> {
   if (!email) return null;
 
   try {
-    const chat = await directus.request(readItem("agent_chats", id)) as any;
+    const chat = await directus.request(readItem("agent_chats", id)) as AgentChat;
     if (chat.user_email?.toLowerCase() !== email.toLowerCase()) {
         console.warn(`Access denied to chat ${id} for user ${email}`);
         return null;
@@ -58,7 +58,7 @@ export async function saveAgentChat(
       }),
     );
 
-    if (existing && (existing as any[]).length > 0) {
+    if (existing && (existing as unknown as AgentChat[]).length > 0) {
       await directus.request(
         updateItem("agent_chats", id, {
           title,
@@ -78,7 +78,7 @@ export async function saveAgentChat(
           date_created: new Date().toISOString(),
         }),
       );
-      return (newItem as any).id as string;
+      return (newItem as unknown as AgentChat).id as string;
     }
   } catch (err) {
     console.error("Failed to save chat:", err);
@@ -91,7 +91,7 @@ export async function deleteAgentChat(id: string) {
   if (!email) return { success: false };
 
   try {
-    const current = await directus.request(readItem("agent_chats", id)) as any;
+    const current = await directus.request(readItem("agent_chats", id)) as AgentChat;
     if (current.user_email?.toLowerCase() !== email.toLowerCase()) {
         return { success: false };
     }

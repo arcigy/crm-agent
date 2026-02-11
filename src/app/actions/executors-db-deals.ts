@@ -8,7 +8,7 @@ import { readItems, createItem, updateItem } from "@directus/sdk";
  */
 export async function executeDbDealTool(
   name: string,
-  args: Record<string, any>,
+  args: Record<string, unknown>,
   userEmail?: string,
 ) {
   if (!userEmail) throw new Error("Unauthorized access to DB Deal Tool");
@@ -17,14 +17,14 @@ export async function executeDbDealTool(
     case "db_create_deal":
       const nDeal = (await directus.request(
         createItem("deals", {
-          name: args.name,
-          contact_id: args.contact_id,
-          value: args.value || 0,
-          description: args.description || "",
+          name: args.name as string,
+          contact_id: args.contact_id as string,
+          value: (args.value as number) || 0,
+          description: (args.description as string) || "",
           user_email: userEmail,
           date_created: new Date().toISOString(),
-        } as any),
-      )) as any;
+        }),
+      )) as Record<string, unknown>;
       return {
         success: true,
         data: { deal_id: nDeal.id },
@@ -42,10 +42,10 @@ export async function executeDbDealTool(
             ],
           },
         }),
-      )) as any[];
+      )) as Record<string, unknown>[];
       if (current.length === 0) throw new Error("Access denied or not found");
 
-      await directus.request(updateItem("deals", args.deal_id, args as any));
+      await directus.request(updateItem("deals", args.deal_id as string, args));
       return {
         success: true,
         message: "Obchod bol úspešne aktualizovaný.",
@@ -60,9 +60,9 @@ export async function executeDbDealTool(
               { deleted_at: { _null: true } },
             ],
           },
-          limit: args.limit || 10,
+          limit: (args.limit as number) || 10,
         }),
-      )) as any[];
+      )) as Record<string, unknown>[];
       return {
         success: true,
         data: dealsRes,
@@ -71,7 +71,7 @@ export async function executeDbDealTool(
 
     case "db_invoice_deal":
       await directus.request(
-        updateItem("deals", args.deal_id, { paid: true } as any),
+        updateItem("deals", args.deal_id as string, { paid: true }),
       );
       return {
         success: true,

@@ -10,11 +10,11 @@ import { clerkClient } from "@clerk/nextjs/server";
  */
 export async function executeDbProjectTool(
   name: string,
-  args: Record<string, any>,
+  args: Record<string, unknown>,
   userEmail?: string,
   userId?: string,
 ) {
-  if (!userEmail) throw new Error("Unauthorized access to DB Project Tool");
+  if (!userEmail) throw new Error("Unauthorized access");
 
   switch (name) {
     case "db_fetch_projects":
@@ -26,116 +26,74 @@ export async function executeDbProjectTool(
               { deleted_at: { _null: true } },
             ],
           },
-          limit: args.limit || 20,
+          limit: (args.limit as number) || 20,
         }),
-      )) as any[];
-      return {
-        success: true,
-        data: prRes,
-        message: `Bolo načítaných ${prRes.length} projektov.`,
-      };
+      )) as Record<string, unknown>[];
+      return { success: true, data: prRes, message: `Načítaných ${prRes.length} projektov.` };
 
     case "db_create_project":
       const nProj = (await directus.request(
         createItem("projects", {
-          name: args.name || args.project_type,
-          project_type: args.project_type,
-          contact_id: args.contact_id,
-          contact_name: args.contact_name || "Neznámy",
-          value: args.value || 0,
-          stage: args.stage || "planning",
-          end_date: args.end_date || null,
+          name: (args.name as string) || (args.project_type as string),
+          project_type: args.project_type as string,
+          contact_id: args.contact_id as string,
+          contact_name: (args.contact_name as string) || "Neznámy",
+          value: (args.value as number) || 0,
+          stage: (args.stage as string) || "planning",
+          end_date: (args.end_date as string) || null,
           user_email: userEmail,
           date_created: new Date().toISOString(),
-        } as any),
-      )) as any;
+        }),
+      )) as Record<string, unknown>;
 
-      // Handle Automations if userId is provided
       if (userId) {
         try {
           const client = await clerkClient();
-          const tokenRes = await client.users.getUserOauthAccessToken(
-            userId,
-            "oauth_google",
-          );
+          const tokenRes = await client.users.getUserOauthAccessToken(userId, "oauth_google");
           const token = tokenRes.data[0]?.token;
 
           if (token) {
-            const year = new Date().getFullYear().toString();
             const driveId = await setupProjectStructure(token, {
-              projectName: args.name || args.project_type,
+              projectName: (args.name as string) || (args.project_type as string),
               projectNumber: String(nProj.id).padStart(3, "0"),
-              year,
-              contactName: args.contact_name || "Neznámy",
+              year: new Date().getFullYear().toString(),
+              contactName: (args.contact_name as string) || "Neznámy",
             });
-
-            await directus.request(
-              updateItem("projects", nProj.id, {
-                drive_folder_id: driveId,
-              } as any),
-            );
+            await directus.request(updateItem("projects", nProj.id as string, { drive_folder_id: driveId }));
           }
         } catch (err) {
-          console.error("Agent Project Automation failed:", err);
+          console.error("Automation failed:", err);
         }
       }
-
-      return {
-        success: true,
-        data: { project_id: nProj.id },
-        message: "Nový projekt bol úspešne založený vrátane automatizácií.",
-      };
+      return { success: true, data: { project_id: nProj.id }, message: "Projekt založený." };
 
     case "db_update_project":
-      // Ownership check
-      const current = (await directus.request(
+      const [current] = (await directus.request(
         readItems("projects", {
-          filter: {
-            _and: [
-              { id: { _eq: args.project_id } },
-              { user_email: { _eq: userEmail } },
-            ],
-          },
+          filter: { _and: [{ id: { _eq: args.project_id as string } }, { user_email: { _eq: userEmail } }] },
         }),
-      )) as any[];
-      if (current.length === 0) throw new Error("Access denied or not found");
+      )) as Record<string, unknown>[];
+      if (!current) throw new Error("Denied");
 
-      await directus.request(
-        updateItem("projects", args.project_id, args as any),
-      );
-      return {
-        success: true,
-        message: "Projekt bol úspešne aktualizovaný.",
-      };
+      await directus.request(updateItem("projects", args.project_id as string, args as Record<string, unknown>));
+      return { success: true, message: "Projekt aktualizovaný." };
 
     case "db_delete_project":
-      await directus.request(
-        updateItem("projects", args.project_id, {
-          status: "archived",
-          deleted_at: new Date().toISOString(),
-        } as any),
-      );
-      return { success: true, message: "Projekt bol archivovaný." };
+      await directus.request(updateItem("projects", args.project_id as string, {
+        status: "archived",
+        deleted_at: new Date().toISOString(),
+      }));
+      return { success: true, message: "Projekt archivovaný." };
 
     case "verify_project_exists":
-      const vProjId = args.project_id;
-      const vProjs = (await directus.request(
+      const [vProj] = (await directus.request(
         readItems("projects", {
-          filter: {
-            _and: [{ id: { _eq: vProjId } }, { user_email: { _eq: userEmail } }],
-          } as any,
+          filter: { _and: [{ id: { _eq: args.project_id as string } }, { user_email: { _eq: userEmail } }] },
         }),
-      )) as any[];
-      return {
-        success: vProjs.length > 0,
-        data: vProjs[0] || null,
-        message:
-          vProjs.length > 0
-            ? "Projekt bol nájdený a overený."
-            : "Projekt sa v databáze nenachádza.",
-      };
+      )) as Record<string, unknown>[];
+      return { success: !!vProj, data: vProj || null, message: vProj ? "Nájdený." : "Nenájdený." };
 
     default:
-      throw new Error(`Tool ${name} not found in DB Project executors`);
+      throw new Error(`Tool ${name} not found`);
   }
 }

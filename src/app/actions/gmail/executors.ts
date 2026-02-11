@@ -1,26 +1,8 @@
-import { clerkClient } from "@clerk/nextjs/server";
-import { getGmailClient } from "@/lib/google";
+import { getGmail } from "./client";
 
-/**
- * Gets a Gmail client for a specific user.
- */
-async function getGmail(userId: string) {
-  const client = await clerkClient();
-  const response = await client.users.getUserOauthAccessToken(
-    userId,
-    "oauth_google",
-  );
-  const token = response.data[0]?.token;
-  if (!token) throw new Error("Google account not connected");
-  return getGmailClient(token);
-}
-
-/**
- * Executes Gmail-related tools.
- */
 export async function executeGmailTool(
   name: string,
-  args: Record<string, any>,
+  args: Record<string, unknown>,
   userId: string,
 ) {
   const gmail = await getGmail(userId);
@@ -28,8 +10,8 @@ export async function executeGmailTool(
     case "gmail_fetch_list":
       const list = await gmail.users.messages.list({
         userId: "me",
-        q: args.q,
-        maxResults: args.maxResults || 5,
+        q: args.q as string,
+        maxResults: (args.maxResults as number) || 5,
       });
 
       const messages = list.data.messages || [];
@@ -78,7 +60,7 @@ export async function executeGmailTool(
     case "gmail_get_details":
       const msg = await gmail.users.messages.get({
         userId: "me",
-        id: args.messageId,
+        id: args.messageId as string,
         format: "full",
       });
       const headers = msg.data.payload?.headers;
@@ -95,7 +77,7 @@ export async function executeGmailTool(
       };
 
     case "gmail_trash_message":
-      await gmail.users.messages.trash({ userId: "me", id: args.messageId });
+      await gmail.users.messages.trash({ userId: "me", id: args.messageId as string });
       return {
         success: true,
         message: "E-mail bol presunutý do koša.",
@@ -104,7 +86,7 @@ export async function executeGmailTool(
     case "gmail_archive_message":
       await gmail.users.messages.modify({
         userId: "me",
-        id: args.messageId,
+        id: args.messageId as string,
         requestBody: { removeLabelIds: ["INBOX"] },
       });
       return {
@@ -115,7 +97,7 @@ export async function executeGmailTool(
     case "gmail_reply":
       const thread = await gmail.users.threads.get({
         userId: "me",
-        id: args.threadId,
+        id: args.threadId as string,
         format: "metadata",
         metadataHeaders: ["From", "Subject"],
       });
@@ -143,8 +125,8 @@ export async function executeGmailTool(
           subject: originalSubject.startsWith("Re:")
             ? originalSubject
             : `Re: ${originalSubject}`,
-          body: args.body,
-          threadId: args.threadId,
+          body: args.body as string,
+          threadId: args.threadId as string,
         },
         message:
           "Oknom s konceptom správy bolo otvorené v CRM. Používateľ teraz môže odpoveď upraviť a odoslať.",

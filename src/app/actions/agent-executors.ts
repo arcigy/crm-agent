@@ -2,7 +2,7 @@
 
 import { getDirectusErrorMessage } from "@/lib/directus";
 
-import { executeGmailTool } from "./executors-gmail";
+import { executeGmailTool } from "./gmail/executors";
 import { executeDbContactTool } from "./executors-db-contacts";
 import { executeDbProjectTool } from "./executors-db-projects";
 import { executeDbDealTool } from "./executors-db-deals";
@@ -19,7 +19,7 @@ export async function executeAtomicTool(
   args: Record<string, unknown>,
   user: { id: string; emailAddresses: { emailAddress: string }[] },
 ) {
-  const safeArgs = args as Record<string, any>; // Legacy compat for executors
+  const safeArgs = args; // Type is already Record<string, unknown>
   const userEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
   const userId = user?.id;
 
@@ -83,10 +83,10 @@ export async function executeAtomicTool(
     if (name === "ai_deep_analyze_lead") {
       const { classifyEmail } = await import("./ai");
       const analysis = await classifyEmail(
-        safeArgs.content,
+        safeArgs.content as string,
         userEmail,
-        safeArgs.sender,
-        safeArgs.subject,
+        safeArgs.sender as string,
+        safeArgs.subject as string,
       );
       return {
         success: true,
