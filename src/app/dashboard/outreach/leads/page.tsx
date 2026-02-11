@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, ChevronLeft, ChevronRight, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, PlayCircle, RefreshCw, Clock, Check, AlertCircle, ArrowLeft } from "lucide-react";
+import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, ChevronLeft, ChevronRight, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, PlayCircle, RefreshCw, Clock, Check, AlertCircle, ArrowLeft, Sparkles } from "lucide-react";
 import { 
     getColdLeads, 
     deleteColdLead, 
@@ -15,6 +15,7 @@ import {
     bulkQueueForSmartLead,
     bulkReEnrichLeads,
     bulkSortLeads,
+    bulkClassifyLeads,
     cleanupDuplicates,
     type ColdLeadItem, 
     type ColdLeadList 
@@ -330,6 +331,22 @@ export default function OutreachLeadsPage() {
       }
   };
 
+
+  const handleBulkClassify = async () => {
+      const ids = Array.from(selectedIds);
+      if (!confirm(`Spustiť AI Separátor pre ${ids.length} leadov? AI ich roztriedi do správnych zoznamov podľa ich zamerania.`)) return;
+      
+      const toastId = toast.loading("AI Separátor pracuje...");
+      const res = await bulkClassifyLeads(ids);
+      
+      if (res.success) {
+          toast.success("Leady boli úspešne roztriedené", { id: toastId });
+          setSelectedIds(new Set());
+          refreshLeads(activeListName);
+      } else {
+          toast.error(res.error || "Chyba pri AI triedení", { id: toastId });
+      }
+  };
 
   const handleSmartLeadClick = async () => {
     setIsSmartLeadModalOpen(true);
@@ -661,13 +678,23 @@ export default function OutreachLeadsPage() {
                              Znovu Scrape
                          </button>
 
-                         <button 
-                             onClick={handleBulkSort}
-                             className="px-4 py-2 hover:bg-amber-50 text-amber-600 rounded-xl flex items-center gap-2 font-bold text-xs transition-colors"
-                         >
-                             <ArrowRightLeft className="w-4 h-4" />
-                             Upratať Zoznam
-                         </button>
+                          <button 
+                              onClick={handleBulkSort}
+                              className="px-4 py-2 hover:bg-amber-50 text-amber-600 rounded-xl flex items-center gap-2 font-bold text-xs transition-colors"
+                              title="Základné upratanie zoznamu"
+                          >
+                              <ArrowRightLeft className="w-4 h-4" />
+                              Upratať
+                          </button>
+
+                          <button 
+                              onClick={handleBulkClassify}
+                              className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl flex items-center gap-2 font-bold text-xs transition-colors border border-blue-100"
+                              title="Pokročilé AI roztriedenie do správnych kategórií"
+                          >
+                              <Sparkles className="w-4 h-4" />
+                              AI Classifier
+                          </button>
 
                          <div className="h-8 w-px bg-gray-100 mx-1"></div>
 

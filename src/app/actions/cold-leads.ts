@@ -686,3 +686,54 @@ export async function getPreviewLead(listName: string) {
         return { success: false, error: String(error) };
     }
 }
+
+export async function bulkClassifyLeads(ids: (string | number)[]) {
+    try {
+        const userEmail = await getUserEmail();
+        if (!userEmail) throw new Error("Unauthorized");
+        
+        const leads = (await directus.request(readItems("cold_leads", {
+            filter: { id: { _in: ids } },
+            limit: -1
+        }))) as unknown as ColdLeadItem[];
+        
+        if (!leads || leads.length === 0) throw new Error("No leads found");
+
+        const listsRes = await getColdLeadLists();
+        if (!listsRes.success || !listsRes.data) throw new Error("Failed to load lists");
+        const categoryNames = listsRes.data.map(l => l.name).filter(n => n !== "Cold Call" && n !== "Všeobecné");
+
+        if (categoryNames.length === 0) {
+            throw new Error("Nemáte vytvorené žiadne cieľové kategórie okrem 'Všeobecné'. Vytvorte si najprv zoznamy (napr. Statik, Architekt).");
+        }
+
+        console.log(`[BULK-AI-SEPARATOR] Starting classification for ${leads.length} leads...`);
+
+        for (const lead of leads) {
+            // We need either a website scrape or at least the personalization to classify
+            if (!lead.ai_first_sentence && !lead.website) continue;
+
+            // Re-scrape if needed to get better context, or use existing info
+            // For bulk classification, we use a lighter version avoiding full re-scrape unless necessary
+            const bestCategory = await classifyLeadCategory(
+                lead.ai_first_sentence || "", 
+                lead.abstract || lead.category || lead.title || "", // Context
+                categoryNames
+            );
+
+            if (bestCategory && bestCategory !== lead.list_name && bestCategory !== "Všeobecné") {
+                await directus.request(updateItem("cold_leads", lead.id, { 
+                    list_name: bestCategory 
+                }));
+                console.log(`[BULK-AI-SEPARATOR] Lead ${lead.id} moved to: ${bestCategory}`);
+            }
+        }
+        
+        revalidatePath("/dashboard/cold-outreach");
+        return { success: true };
+    } catch (e: any) {
+        console.error("Bulk classify failed:", e);
+        return { success: false, error: getDirectusErrorMessage(e) };
+    }
+}
+
