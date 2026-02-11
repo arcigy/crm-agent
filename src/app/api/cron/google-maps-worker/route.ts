@@ -202,7 +202,7 @@ export async function GET(request: Request) {
                             source_city: currentCity,
                             status: 'lead',
                             user_email: job.owner_email,
-                            list_name: hasWebsite ? (job.target_list || job.search_term) : 'Cold Call',
+                            list_name: hasWebsite ? (job.target_list || "Všeobecné") : 'Cold Call',
                             enrichment_status: hasWebsite ? 'pending' : null
                         };
 

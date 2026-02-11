@@ -515,3 +515,66 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
         };
     }
 }
+
+// 3. AI Category Separator
+export async function classifyLeadCategory(
+    personalization: string, 
+    scrapedContent: string, 
+    categories: string[]
+): Promise<string> {
+    if (!categories || categories.length === 0) return "Všeobecné";
+    
+    // Normalize categories - we want to avoid classifying into "Cold Call" or "Všeobecné" 
+    // if a more specific one is available.
+    const filteredCategories = categories.filter(c => 
+        !["všeobecné", "cold call", "all", "nový zoznam", "zoznam 1"].includes(c.toLowerCase())
+    );
+
+    if (filteredCategories.length === 0) return "Všeobecné";
+
+    const prompt = `
+    Role: You are an expert lead qualification assistant.
+    Task: Based on the website content and the personalized intro message, decide which category (list) this business belongs to.
+    
+    Business Website Scraped Content (Summary):
+    ${scrapedContent.slice(0, 5000)}
+    
+    Our Personalization Intro (Context):
+    ${personalization}
+    
+    Available Categories:
+    ${filteredCategories.join(", ")}
+    
+    CRITICAL RULES:
+    1. Reply ONLY with the EXACT name of the selected category from the list above.
+    2. If NONE of the categories are a good fit, reply with "Všeobecné".
+    3. If multiple categories fit, choose the MOST specific one.
+    4. Do NOT say anything else. Just the name of the category.
+    
+    Decision:
+    `;
+
+    try {
+        console.log(`[AI-SEPARATOR] Classifying lead among: ${filteredCategories.join(", ")}`);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Use faster model for classification
+        
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const textResponse = response.text().trim();
+
+        // Validate that the AI actually returned one of the allowed strings (case-insensitive find)
+        const match = filteredCategories.find(c => c.toLowerCase() === textResponse.toLowerCase());
+        
+        if (match) {
+            console.log(`[AI-SEPARATOR] Classified as: ${match}`);
+            return match;
+        }
+
+        console.log(`[AI-SEPARATOR] Fallback to Všeobecné. AI returned: ${textResponse}`);
+        return "Všeobecné";
+
+    } catch (e) {
+        console.error("[AI-SEPARATOR] Classification failed:", e);
+        return "Všeobecné";
+    }
+}

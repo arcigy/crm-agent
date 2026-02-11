@@ -146,7 +146,7 @@ export function ColdLeadsImportModal({
         const row = processedRows[index];
         const website = String(row[mapping.website] || "").trim();
         // If no website, go straight to Cold Call list
-        const list_name = website ? (initialListName || "Zoznam 1") : "Cold Call";
+        const list_name = website ? (initialListName || "Všeobecné") : "Cold Call";
         
         return {
           title: String(row[mapping.title] || ""),

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, readItems, deleteItem, updateItem, deleteItems, updateItems, createItems } from "@directus/sdk";
 import { getUserEmail, getAuthorizedEmails } from "@/lib/auth";
-import { scrapeWebsite, generatePersonalization } from "@/lib/enrichment";
+import { scrapeWebsite, generatePersonalization, classifyLeadCategory } from "@/lib/enrichment";
 
 export interface ColdLeadItem {
   id: string | number;
@@ -134,7 +134,7 @@ export async function bulkCreateColdLeads(leads: Partial<ColdLeadItem>[]) {
             ...lead,
             user_email: userEmail,
             status: "new",
-            list_name: hasWeb ? lead.list_name : "Cold Call",
+            list_name: hasWeb ? (lead.list_name || "Všeobecné") : "Cold Call",
             enrichment_status: hasWeb ? "pending" : "completed"
         });
 
@@ -282,6 +282,29 @@ export async function enrichColdLead(id: string | number, overrideEmail?: string
                 updateData.company_name_reworked = aiResult.name;
                 updateData.ai_first_sentence = aiResult.sentence;
                 debugInfo.aiGenerated = true;
+
+                // --- AI SEPARATOR ---
+                try {
+                    console.log(`[ENRICHMENT-ACTION] Running AI Separator for Lead ${id}...`);
+                    const listsRes = await getColdLeadLists();
+                    if (listsRes.success && listsRes.data) {
+                        const categoryNames = listsRes.data.map(l => l.name);
+                        const bestCategory = await classifyLeadCategory(
+                            aiResult.sentence || "", 
+                            scrapedText || "", 
+                            categoryNames
+                        );
+                        
+                        // Only update if it's different and not "Všeobecné" unless it's already there
+                        if (bestCategory && bestCategory !== lead.list_name) {
+                            updateData.list_name = bestCategory;
+                            console.log(`[ENRICHMENT-ACTION] Lead ${id} moved to: ${bestCategory}`);
+                        }
+                    }
+                } catch (sepError) {
+                    console.error("[ENRICHMENT-ACTION] AI Separator failed:", sepError);
+                }
+                // ---------------------
             } else if (aiResult && aiResult.error) {
                 debugInfo.error = `AI Error: ${aiResult.error}`;
                 updateData.enrichment_error = aiResult.error;
@@ -524,7 +547,7 @@ export async function bulkSortLeads(ids: (string | number)[]) {
         for (const lead of leads) {
             const hasWeb = !!lead.website;
             const updates: Partial<ColdLeadItem> = {
-                list_name: hasWeb ? (lead.list_name === "Cold Call" ? "Zoznam 1" : lead.list_name) : "Cold Call",
+                list_name: hasWeb ? (lead.list_name === "Cold Call" || !lead.list_name ? "Všeobecné" : lead.list_name) : "Cold Call",
                 enrichment_status: hasWeb ? (lead.ai_first_sentence ? "completed" : "pending") : "completed"
             };
             
