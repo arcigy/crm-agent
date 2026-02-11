@@ -47,6 +47,7 @@ export async function GET() {
             hasTokenReturned: !!token,
             tokenType: typeof token,
             env,
+            strategy: "FORCE_PUBLIC_URL",
             timestamp: new Date().toISOString()
         });
 
