@@ -746,6 +746,8 @@ export default function OutreachLeadsPage() {
                 </div>
             )}
 
+
+
             {/* Table Container */}
             <div className="bg-white border border-gray-100 rounded-[2.5rem] overflow-visible shadow-xl shadow-gray-100/50">
                 {/* Filters Row */}
@@ -792,6 +794,7 @@ export default function OutreachLeadsPage() {
                             <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Komentár</th>
                           </>
                         )}
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Industry</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Personalizácia</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right"></th>
                       </tr>
@@ -799,13 +802,13 @@ export default function OutreachLeadsPage() {
                     <tbody className="divide-y divide-gray-50">
                       {loading ? (
                         <tr>
-                            <td colSpan={4} className="py-32 text-center">
+                            <td colSpan={8} className="py-32 text-center">
                                 <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-600/20" />
                             </td>
                         </tr>
                       ) : filteredLeads.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="px-8 py-20 text-center text-gray-400 font-bold uppercase tracking-widest text-xs">
+                          <td colSpan={8} className="px-8 py-20 text-center text-gray-400 font-bold uppercase tracking-widest text-xs">
                              Tento zoznam je prázdny.
                              <br/>
                              <span className="text-gray-300 text-[10px] mt-2 block">Importujte leady alebo ich sem presuňte.</span>
@@ -1043,6 +1046,35 @@ export default function OutreachLeadsPage() {
                                 </td>
                                </>
                              )}
+                             <td className="px-6 py-6 align-top min-w-[200px]">
+                                <div 
+                                    className="cursor-pointer"
+                                    onDoubleClick={() => startEditing(lead, "industry_description", lead.industry_description || "")}
+                                >
+                                    {editingCell?.id === lead.id && editingCell?.field === "industry_description" ? (
+                                        <input
+                                            ref={editInputRef as React.RefObject<HTMLInputElement>}
+                                            className="w-full p-2 border border-blue-500 rounded-lg bg-white text-xs font-bold text-gray-900 shadow-lg ring-4 ring-blue-50 z-20 relative"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            onBlur={saveEdit}
+                                            onKeyDown={handleKeyDown}
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col gap-1">
+                                            {lead.industry_description ? (
+                                                <div className="bg-blue-50/50 p-2.5 rounded-xl border border-blue-100/50">
+                                                    <p className="text-[11px] font-bold text-gray-800 leading-tight">
+                                                        {lead.industry_description}
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-300 font-medium italic text-xs">Chýba (použite Classifier)</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                             </td>
                              <td className="px-6 py-6 max-w-lg align-top">
                                 <div 
                                     className="cursor-pointer"
@@ -1085,18 +1117,6 @@ export default function OutreachLeadsPage() {
                                                     <span className="text-gray-300 italic">Dvakrát kliknite pre napísanie alebo použite AI...</span>
                                                 )
                                            )}
-
-                                           {lead.industry_description && (
-                                                <div className="mt-4 pt-4 border-t border-blue-600/10">
-                                                    <p className="text-[10px] font-black uppercase text-blue-600 mb-1 flex items-center gap-1.5">
-                                                        <Briefcase className="w-3 h-3" />
-                                                        Industry ID
-                                                    </p>
-                                                    <p className="text-xs font-bold text-gray-800 leading-relaxed bg-blue-50/50 p-2 rounded-xl">
-                                                        {lead.industry_description}
-                                                    </p>
-                                                </div>
-                                            )}
                                         </div>
                                     )}
                                 </div>

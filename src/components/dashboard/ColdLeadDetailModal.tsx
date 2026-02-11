@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ColdLeadItem } from "@/app/actions/cold-leads";
-import { X, Mail, MessageSquare, Phone, Globe, Building2, MapPin, Zap } from "lucide-react";
+import { X, Mail, MessageSquare, Phone, Globe, Building2, MapPin, Zap, Briefcase } from "lucide-react";
 import { EmailComposerView } from "./contacts/EmailComposerView";
 import { SmsQrView } from "./contacts/SmsQrView";
 import { Lead } from "@/types/contact";
@@ -117,6 +117,18 @@ export function ColdLeadDetailModal({
                  </div>
               </div>
            </div>
+
+            {lead.industry_description && (
+              <div className="bg-slate-100 border border-gray-200 p-5 rounded-[1.8rem] mb-4">
+                 <p className="text-[10px] font-black uppercase text-gray-500 mb-2 flex items-center gap-1.5">
+                    <Briefcase className="w-3 h-3" />
+                    Industry Identification
+                 </p>
+                 <p className="text-xs font-bold text-gray-700 leading-relaxed">
+                    {lead.industry_description}
+                 </p>
+              </div>
+            )}
 
            {lead.ai_first_sentence && (
              <div className="bg-blue-600/5 border border-blue-600/10 p-5 rounded-[1.8rem] mt-auto">
