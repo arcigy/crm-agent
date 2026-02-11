@@ -60,13 +60,15 @@ export async function getTokensFromCode(code: string, redirectUri?: string) {
 }
 
 export async function getValidToken(clerkUserId: string, userEmail?: string) {
+    console.log(`[getValidToken] Checking token for user: ${clerkUserId} (${userEmail})`);
     try {
         const { default: directus } = await import("@/lib/directus");
-        const { readItems, updateItem, createItem } = await import("@directus/sdk");
+        const { readItems, updateItem } = await import("@directus/sdk");
 
         const filters: any[] = [{ user_id: { _eq: clerkUserId } }];
         if (userEmail) filters.push({ user_email: { _eq: userEmail.toLowerCase() } });
 
+        console.log(`[getValidToken] Searching Directus with filters:`, JSON.stringify(filters));
         const tokens = (await directus.request(
             readItems("google_tokens" as any, {
                 filter: { _or: filters },
@@ -79,11 +81,15 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
             const expiryDate = tokenRecord.expiry_date ? new Date(tokenRecord.expiry_date).getTime() : 0;
             const now = Date.now();
 
+            console.log(`[getValidToken] Found token in DB. Expiry: ${tokenRecord.expiry_date} (Now: ${new Date(now).toISOString()})`);
+
             if (expiryDate && now < expiryDate - 60000) {
-                return tokenRecord.access_token;
+                console.log(`[getValidToken] Token is still valid.`);
+                return tokenRecord.access_token as string;
             }
 
             if (tokenRecord.refresh_token) {
+                console.log(`[getValidToken] Token expired, attempting refresh...`);
                 try {
                     const credentials = await refreshAccessToken(tokenRecord.refresh_token);
                     const newTokenData: any = {
@@ -97,25 +103,36 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
                     await directus.request(
                         updateItem("google_tokens" as any, tokenRecord.id, newTokenData)
                     );
-                    return credentials.access_token;
-                } catch (refreshError) {
-                    console.error("❌ Failed to refresh token:", refreshError);
+                    console.log(`[getValidToken] Refresh successful.`);
+                    return credentials.access_token as string;
+                } catch (refreshError: any) {
+                    console.error("❌ [getValidToken] Failed to refresh token:", refreshError.message || refreshError);
                 }
+            } else {
+                console.log(`[getValidToken] Token expired but no refresh_token found in DB.`);
             }
+        } else {
+            console.log(`[getValidToken] No token found in Directus.`);
         }
 
+        console.log(`[getValidToken] Falling back to Clerk Oauth Token...`);
         const { clerkClient } = await import("@clerk/nextjs/server");
         const client = await clerkClient();
         const clerkResponse = await client.users.getUserOauthAccessToken(clerkUserId, "oauth_google");
+        
+        console.log(`[getValidToken] Clerk returned ${clerkResponse.data.length} token(s).`);
+        
         const clerkTokenData = clerkResponse.data[0];
 
         if (clerkTokenData && clerkTokenData.token) {
+            console.log(`[getValidToken] Obtained valid token from Clerk.`);
             return clerkTokenData.token;
         }
 
+        console.warn(`[getValidToken] No token found in Clerk either.`);
         return null;
-    } catch (err) {
-        console.error("Error in getValidToken:", err);
+    } catch (err: any) {
+        console.error("❌ [getValidToken] Fatal error:", err.message || err);
         return null;
     }
 }
