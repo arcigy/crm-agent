@@ -1,9 +1,9 @@
 import { createDirectus, rest, staticToken } from "@directus/sdk";
 
 // Use private network URL for server-side, public URL for client-side
+// FORCE public URL for both server and client to avoid internal network timeouts
 const DIRECTUS_URL =
-  process.env.DIRECTUS_URL || // Manual override
-  process.env.NEXT_PUBLIC_DIRECTUS_URL || // Public URL
+  process.env.NEXT_PUBLIC_DIRECTUS_URL ||
   "https://directus-buk1-production.up.railway.app";
 
 const directus = createDirectus(DIRECTUS_URL)
