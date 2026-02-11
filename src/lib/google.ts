@@ -69,12 +69,23 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
         if (userEmail) filters.push({ user_email: { _eq: userEmail.toLowerCase() } });
 
         console.log(`[getValidToken] Searching Directus with filters:`, JSON.stringify(filters));
-        const tokens = (await directus.request(
-            readItems("google_tokens" as any, {
-                filter: { _or: filters },
-                limit: 1,
-            })
-        )) as any[];
+        
+        const fetchWithTimeout = async () => {
+             const request = directus.request(
+                 readItems("google_tokens" as any, {
+                     filter: { _or: filters },
+                     limit: 1,
+                 })
+             );
+             
+             const timeout = new Promise((_, reject) => 
+                 setTimeout(() => reject(new Error("Directus Request Timeout (5s)")), 5000)
+             );
+
+             return (await Promise.race([request, timeout])) as any[];
+        };
+
+        const tokens = await fetchWithTimeout();
 
         if (Array.isArray(tokens) && tokens.length > 0) {
             const tokenRecord = tokens[0];

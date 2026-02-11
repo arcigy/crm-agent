@@ -6,6 +6,8 @@ const DIRECTUS_URL =
   process.env.NEXT_PUBLIC_DIRECTUS_URL ||
   "https://directus-buk1-production.up.railway.app";
 
+console.log(`[Directus] Initializing client with URL: ${DIRECTUS_URL}`);
+
 const directus = createDirectus(DIRECTUS_URL)
   .with(
     staticToken(
