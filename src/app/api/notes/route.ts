@@ -5,14 +5,36 @@ import { createItem, readItems, updateItem, deleteItem, readItem } from "@direct
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const user = await currentUser();
     const userEmail = user?.emailAddresses[0]?.emailAddress;
     if (!userEmail)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    // @ts-ignore
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get("type");
+
+    if (type === "ai_analysis") {
+        // AI analysis is stored in activities with type 'ai_analysis'
+        // @ts-expect-error - Directus SDK types
+        const activities = await directus.request(
+            readItems("activities", {
+                filter: { 
+                    _and: [
+                        { type: { _eq: "ai_analysis" } },
+                        { user_email: { _eq: userEmail.toLowerCase() } }
+                    ]
+                },
+                sort: ["-activity_date"],
+                limit: 50,
+            }),
+        );
+        return NextResponse.json({ success: true, notes: activities });
+    }
+
+    // Standard notes
+    // @ts-expect-error - Directus SDK types
     const notes = await directus.request(
       readItems("crm_notes", {
         filter: { user_email: { _eq: userEmail } },
@@ -20,10 +42,11 @@ export async function GET() {
       }),
     );
 
-    return NextResponse.json(notes);
-  } catch (error: any) {
+    return NextResponse.json({ success: true, notes });
+  } catch (error: unknown) {
+    console.error("Notes GET error:", error);
     return NextResponse.json(
-      { error: getDirectusErrorMessage(error) },
+      { success: false, error: getDirectusErrorMessage(error) },
       { status: 500 },
     );
   }
@@ -39,7 +62,7 @@ export async function POST(req: Request) {
     const { title, content, contact_id, project_id, task_id, file_link } =
       await req.json();
 
-    // @ts-ignore
+    // @ts-expect-error - Directus SDK types
     const res = await directus.request(
       createItem("crm_notes", {
         title,
@@ -53,7 +76,7 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json(res);
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       { error: getDirectusErrorMessage(error) },
       { status: 500 },
@@ -72,12 +95,12 @@ export async function PATCH(req: Request) {
       await req.json();
 
     // Ownership check
-    const current = (await directus.request(readItem("crm_notes", id))) as any;
+    const current = (await directus.request(readItem("crm_notes", id))) as Record<string, any>;
     if (current.user_email !== userEmail) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // @ts-ignore
+    // @ts-expect-error - Directus SDK types
     const res = await directus.request(
       updateItem("crm_notes", id, {
         title,
@@ -90,7 +113,7 @@ export async function PATCH(req: Request) {
     );
 
     return NextResponse.json(res);
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       { error: getDirectusErrorMessage(error) },
       { status: 500 },
@@ -110,16 +133,16 @@ export async function DELETE(req: Request) {
     if (!id) return NextResponse.json({ error: "No ID" }, { status: 400 });
 
     // Ownership check
-    const current = (await directus.request(readItem("crm_notes", id))) as any;
+    const current = (await directus.request(readItem("crm_notes", id))) as Record<string, any>;
     if (current.user_email !== userEmail) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // @ts-ignore
+    // @ts-expect-error - Directus SDK types
     await directus.request(deleteItem("crm_notes", id));
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       { error: getDirectusErrorMessage(error) },
       { status: 500 },

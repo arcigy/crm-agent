@@ -42,7 +42,12 @@ export default function NotesTool() {
     try {
       const res = await fetch("/api/notes");
       const data = await res.json();
-      if (Array.isArray(data)) setNotes(data);
+      if (data.success && Array.isArray(data.notes)) {
+        setNotes(data.notes);
+      } else if (Array.isArray(data)) {
+        // Fallback for old format if somehow still hits it
+        setNotes(data);
+      }
     } catch {
       toast.error("Nepodarilo sa načítať poznámky");
     } finally {
