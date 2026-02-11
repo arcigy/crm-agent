@@ -17,7 +17,7 @@ export async function createCalendarEvent(eventData: {
   }
 
   try {
-    const calendar = getCalendarClient(token);
+    const calendar = await getCalendarClient(token);
     const response = await calendar.events.insert({
       calendarId: "primary",
       requestBody: {

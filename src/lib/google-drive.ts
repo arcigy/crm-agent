@@ -1,6 +1,5 @@
-import { google } from "googleapis";
-
 export async function getDriveClient(token: string) {
+  const { google } = await import("googleapis");
   const auth = new google.auth.OAuth2();
   auth.setCredentials({ access_token: token });
   return google.drive({ version: "v3", auth });

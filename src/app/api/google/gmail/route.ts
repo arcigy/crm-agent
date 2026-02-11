@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { currentUser, clerkClient } from "@clerk/nextjs/server";
-import { google } from "googleapis";
+import { currentUser } from "@clerk/nextjs/server";
 
 export const dynamic = "force-dynamic";
 
@@ -64,14 +63,12 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const userEmail = user.emailAddresses[0]?.emailAddress;
-    const { getValidToken } = await import("@/lib/google");
+    const { getValidToken, getGmailClient } = await import("@/lib/google");
     const token = await getValidToken(user.id, userEmail);
 
     if (!token) return NextResponse.json({ isConnected: false, error: "Google account not linked or token expired" });
 
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: token });
-    const gmail = google.gmail({ version: "v1", auth });
+    const gmail = await getGmailClient(token);
 
     const listRes = await gmail.users.messages.list({
       userId: "me",
@@ -138,14 +135,12 @@ export async function PATCH(req: Request) {
 
     const { messageId } = await req.json();
     const userEmail = user.emailAddresses[0]?.emailAddress;
-    const { getValidToken } = await import("@/lib/google");
+    const { getValidToken, getGmailClient } = await import("@/lib/google");
     const token = await getValidToken(user.id, userEmail);
 
     if (!token) return NextResponse.json({ error: "Google account not linked or token expired" }, { status: 400 });
 
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: token });
-    const gmail = google.gmail({ version: "v1", auth });
+    const gmail = await getGmailClient(token);
 
     await gmail.users.messages.batchModify({
       userId: "me",
@@ -169,14 +164,12 @@ export async function POST(req: Request) {
     if (!user) return new Response("Unauthorized", { status: 401 });
 
     const userEmail = user.emailAddresses[0]?.emailAddress;
-    const { getValidToken } = await import("@/lib/google");
+    const { getValidToken, getGmailClient } = await import("@/lib/google");
     const token = await getValidToken(user.id, userEmail);
 
     if (!token) return new Response("Google account not linked or token expired", { status: 400 });
 
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: token });
-    const gmail = google.gmail({ version: "v1", auth });
+    const gmail = await getGmailClient(token || "");
 
     const attRes = await gmail.users.messages.attachments.get({
       userId: "me",

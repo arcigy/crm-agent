@@ -2,8 +2,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 import { getMemories, saveNewMemories } from '@/lib/memory';
-import { currentUser, clerkClient } from '@clerk/nextjs/server';
-import { google } from 'googleapis';
+import { currentUser } from '@clerk/nextjs/server';
 import {
     agentCreateContact,
     agentCreateDeal
@@ -48,15 +47,12 @@ export async function POST(req: Request) {
                 parameters: z.object({ days: z.number().default(1) }),
                 execute: async ({ days }: { days: number }) => {
                     try {
-                        const client = await clerkClient();
-                        const response = await client.users.getUserOauthAccessToken(user.id, 'oauth_google');
-                        const token = response.data[0]?.token;
+                        const { getValidToken, getCalendarClient } = await import('@/lib/google');
+                        const token = await getValidToken(user.id, userEmail);
 
                         if (!token) return "Google account not linked. Ask user to connect Google in CRM.";
 
-                        const auth = new google.auth.OAuth2();
-                        auth.setCredentials({ access_token: token });
-                        const calendar = google.calendar({ version: 'v3', auth });
+                        const calendar = await getCalendarClient(token);
 
                         const timeMin = new Date().toISOString();
                         const timeMax = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();

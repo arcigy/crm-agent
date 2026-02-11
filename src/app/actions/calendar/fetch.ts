@@ -16,7 +16,7 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
     let googleEvents: CalendarEvent[] = [];
 
     if (token) {
-      const calendar = getCalendarClient(token);
+      const calendar = await getCalendarClient(token);
       try {
         const response = await calendar.events.list({
           calendarId: "primary",

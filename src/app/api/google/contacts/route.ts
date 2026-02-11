@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { currentUser, clerkClient } from '@clerk/nextjs/server';
-import { google } from 'googleapis';
+import { currentUser } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,12 +14,8 @@ export async function GET() {
 
         if (!token) return NextResponse.json({ isConnected: false, error: 'Google account not linked or token expired' });
 
-        if (!token) return NextResponse.json({ isConnected: false });
-
-        const auth = new google.auth.OAuth2();
-        auth.setCredentials({ access_token: token });
-
-        const people = google.people({ version: 'v1', auth });
+        const { getPeopleClient } = await import("@/lib/google");
+        const people = await getPeopleClient(token);
 
         const res = await people.people.connections.list({
             resourceName: 'people/me',

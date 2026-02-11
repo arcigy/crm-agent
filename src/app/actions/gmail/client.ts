@@ -9,5 +9,5 @@ export async function getGmail(userId: string) {
   );
   const token = response.data[0]?.token;
   if (!token) throw new Error("Google account not connected");
-  return getGmailClient(token);
+  return await getGmailClient(token);
 }

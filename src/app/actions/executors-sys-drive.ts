@@ -9,14 +9,12 @@ import { getGmailClient } from "@/lib/google";
  */
 async function getDrive(userId: string) {
   const client = await clerkClient();
-  const response = await client.users.getUserOauthAccessToken(
-    userId,
-    "oauth_google",
-  );
+  const response = await client.users.getUserOauthAccessToken(userId, "oauth_google");
   const token = response.data[0]?.token;
   if (!token) throw new Error("Google account not connected");
-  const { google } = await import("googleapis");
-  return google.drive({ version: "v3", auth: getGmailClient(token) as any });
+  
+  const { getDriveClient } = await import("@/lib/google");
+  return await getDriveClient(token);
 }
 
 export async function executeDriveTool(

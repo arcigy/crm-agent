@@ -44,7 +44,7 @@ export async function createProject(data: Partial<Project>) {
 
         let eventId: string | null = null;
         if (data.end_date) {
-          const cal = getCalendarClient(token);
+          const cal = await getCalendarClient(token);
           const ev = await cal.events.insert({
             calendarId: "primary",
             requestBody: {
