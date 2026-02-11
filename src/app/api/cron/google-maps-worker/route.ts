@@ -271,7 +271,7 @@ export async function GET(request: Request) {
         if (isFinished) await addLog(job.id, "🏁 Hotovo.");
 
         const proto = request.headers.get("x-forwarded-proto") || "https";
-        const host = request.headers.get("host") || "crm-agent-production-d1eb.up.railway.app";
+        const host = request.headers.get("host") || "crm.arcigy.cloud";
         const baseUrl = `${proto}://${host}`;
 
         // ALWAYS trigger enrichment just in case there are pending leads

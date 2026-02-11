@@ -83,7 +83,7 @@ VŽDY používať `Invoke-RestMethod` alebo `Invoke-WebRequest`.
 `$env:VAR = ...`
 
 🚀 8. RAILWAY & DIRECTUS KONFIGURÁCIA
-Produkčná URL CRM: https://crm-agent-production-d1eb.up.railway.app
+Produkčná URL CRM: https://crm.arcigy.cloud
 Directus Public URL: https://directus-buk1-production.up.railway.app
 Directus Private URL: http://directus-buk1.railway.internal:8055
 Directus Token: 3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE
