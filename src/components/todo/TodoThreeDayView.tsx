@@ -343,7 +343,7 @@ function TaskItem({
           setIsEditing(true);
         }
       }}
-      className={`group relative p-3 rounded-2xl transition-all duration-300 border overflow-hidden ${
+      className={`group relative p-3 rounded-2xl transition-all duration-200 border overflow-hidden ${
         task.completed
           ? "bg-zinc-50/50 dark:bg-zinc-800/20 border-transparent opacity-50"
           : isCenter
@@ -354,7 +354,7 @@ function TaskItem({
       <style jsx>{`
         @keyframes neonFlash {
           0% { transform: scaleX(0); opacity: 0; background: #22c55e; }
-          15% { transform: scaleX(1); opacity: 1; background: #4ade80; box-shadow: 0 0 30px #22c55e; }
+          15% { transform: scaleX(1); opacity: 1; background: #4ade80; box-shadow: 0 0 40px #22c55e, 0 0 20px #4ade80; }
           85% { transform: scaleX(1); opacity: 0.8; background: #22c55e; }
           100% { transform: scaleX(1); opacity: 0; }
         }
@@ -365,10 +365,10 @@ function TaskItem({
       `}</style>
       
       {isAnimating && (
-        <div className="absolute inset-0 bg-[#22c55e]/30 animate-neon-flash z-0" />
+        <div className="absolute inset-0 bg-[#22c55e]/40 animate-neon-flash z-0" />
       )}
 
-      <div className="flex items-center gap-3 relative z-10">
+      <div className="flex items-center gap-3 relative z-10 w-full">
         <button
           onClick={handleToggle}
           className={`flex-shrink-0 transition-all duration-300 transform active:scale-75 ${
@@ -378,18 +378,18 @@ function TaskItem({
           }`}
         >
           {task.completed ? (
-            <CheckCircle2 size={isCenter ? 22 : 18} strokeWidth={3} className="drop-shadow-[0_0_10px_rgba(34,197,94,0.6)]" />
+            <CheckCircle2 size={isCenter ? 22 : 18} strokeWidth={3} className="drop-shadow-[0_0_12px_rgba(34,197,94,0.8)]" />
           ) : (
             <Circle size={isCenter ? 22 : 18} strokeWidth={2.5} />
           )}
         </button>
 
-        <div className="flex-1 min-w-0 py-0.5">
-          <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0 flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
             {isEditing ? (
               <input
                 autoFocus
-                className="flex-1 bg-transparent border-none outline-none text-sm font-black text-zinc-900 dark:text-white p-0 m-0 w-full placeholder-zinc-400 italic"
+                className="w-full bg-transparent border-none outline-none text-sm font-black text-zinc-900 dark:text-white p-0 m-0 placeholder-zinc-400 leading-none"
                 value={editedTitle}
                 onChange={(e) => setEditedTitle(e.target.value)}
                 onBlur={handleTitleSubmit}
@@ -397,58 +397,54 @@ function TaskItem({
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <div className="flex-1 truncate">
-                <SmartText
-                  text={task.title}
-                  className={`text-sm font-black tracking-tight leading-none ${
-                    task.completed
-                      ? "line-through text-zinc-400 italic"
-                      : "text-zinc-800 dark:text-zinc-100"
-                  }`}
-                />
-              </div>
+              <SmartText
+                text={task.title}
+                className={`text-sm font-black tracking-tight leading-none truncate block ${
+                  task.completed
+                    ? "line-through text-zinc-400 italic"
+                    : "text-zinc-800 dark:text-zinc-100"
+                }`}
+              />
             )}
-            
-            {!isEditing && (
-              <div 
-                className="relative flex-shrink-0 group/timepicker"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className={`
-                   flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter transition-all duration-300 border
-                   ${time 
-                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200/50 dark:border-blue-800/50 shadow-sm" 
-                      : "bg-zinc-100 dark:bg-zinc-800/50 text-zinc-400 dark:text-zinc-500 border-dashed border-zinc-200 dark:border-zinc-700 opacity-60 group-hover/timepicker:opacity-100 group-hover/timepicker:border-blue-400/50 group-hover/timepicker:text-blue-500"}
-                `}>
-                  <Clock size={11} className={time ? "text-blue-500" : ""} />
-                  <span className="whitespace-nowrap">{time || "Čas"}</span>
-                </div>
-                <input
-                  type="time"
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20"
-                  value={time || ""}
-                  title="Zmeniť čas"
-                  onChange={(e) => {
-                    const newTime = e.target.value;
-                    if (!newTime) return;
-                    const datePart = task.due_date?.split("T")[0] || columnDate;
-                    const newDueDate = `${datePart}T${newTime}:00`;
-                    onUpdate(task.id, { due_date: newDueDate });
-                  }}
-                />
-              </div>
-            )}
+          </div>
+          
+          <div 
+            className="relative flex-shrink-0 group/timepicker"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`
+                flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter transition-all duration-300 border
+                ${time 
+                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200/50 dark:border-blue-800/50 shadow-sm" 
+                  : "bg-zinc-100 dark:bg-zinc-800/50 text-zinc-400 dark:text-zinc-500 border-dashed border-zinc-200 dark:border-zinc-700 opacity-60 group-hover/timepicker:opacity-100 group-hover/timepicker:border-blue-400/50 group-hover/timepicker:text-blue-500"}
+            `}>
+              <Clock size={11} className={time ? "text-blue-500" : ""} />
+              <span className="whitespace-nowrap">{time || "Čas"}</span>
+            </div>
+            <input
+              type="time"
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20"
+              value={time || ""}
+              title="Zmeniť čas"
+              onChange={(e) => {
+                const newTime = e.target.value;
+                if (!newTime) return;
+                const datePart = task.due_date?.split("T")[0] || columnDate;
+                const newDueDate = `${datePart}T${newTime}:00`;
+                onUpdate(task.id, { due_date: newDueDate });
+              }}
+            />
           </div>
         </div>
 
-        {/* Delete (visible on task hover but not during edit) */}
+        {/* Delete button (only show on row hover, and not when editing) */}
         {!isEditing && (
           <button
             onClick={(e) => {
               e.stopPropagation();
               onDelete(task.id);
             }}
-            className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-300 flex-shrink-0"
+            className="flex-shrink-0 opacity-0 group-hover:opacity-100 p-1.5 text-zinc-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200"
           >
             <Trash2 size={16} />
           </button>
