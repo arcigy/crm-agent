@@ -10,7 +10,7 @@ export default function TodoTool() {
     new Date().toISOString().split("T")[0],
   );
   // Load ALL tasks so we can filter them client-side for yesterday/today/tomorrow
-  const { tasks, add, toggle, remove } = useTasks();
+  const { tasks, add, toggle, remove, update } = useTasks();
 
   return (
     <div className="max-w-full mx-auto h-[calc(100vh-120px)] flex flex-col gap-4 p-4 animate-in fade-in duration-700 overflow-hidden">
@@ -61,6 +61,7 @@ export default function TodoTool() {
           onDateChange={setSelectedDate}
           onToggle={toggle}
           onDelete={remove}
+          onUpdate={update}
         />
       </div>
     </div>

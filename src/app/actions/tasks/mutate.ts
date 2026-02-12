@@ -73,7 +73,7 @@ export async function removeTask(id: string) {
     if (!email) return { success: false as const, error: "Unauthorized" };
 
     const current = (await directus.request(readItem("crm_tasks", id))) as Record<string, unknown>;
-    if (!isTeamMember(current.user_email as string)) {
+    if ((current.user_email as string).toLowerCase() !== email.toLowerCase()) {
       throw new Error("Access denied");
     }
 
@@ -82,6 +82,40 @@ export async function removeTask(id: string) {
     return { success: true as const };
   } catch (error) {
     console.error("Delete Task Error:", error);
+    return {
+      success: false as const,
+      error: getDirectusErrorMessage(error),
+    };
+  }
+}
+
+export async function updateTask(id: string, data: Partial<Task>) {
+  try {
+    const email = await getUserEmail();
+    if (!email) return { success: false as const, error: "Unauthorized" };
+
+    const current = (await directus.request(readItem("crm_tasks", id))) as Record<string, unknown>;
+    if ((current.user_email as string).toLowerCase() !== email.toLowerCase()) {
+      throw new Error("Access denied");
+    }
+
+    const updated = (await directus.request(
+      updateItem("crm_tasks", id, data)
+    )) as Record<string, unknown>;
+
+    revalidatePath("/dashboard/todo");
+    return { 
+      success: true as const,
+      data: {
+        id: updated.id as string,
+        title: updated.title as string,
+        completed: updated.completed as boolean,
+        due_date: updated.due_date as string | null,
+        user_email: updated.user_email as string
+      } as Task
+    };
+  } catch (error) {
+    console.error("Update Task Error:", error);
     return {
       success: false as const,
       error: getDirectusErrorMessage(error),

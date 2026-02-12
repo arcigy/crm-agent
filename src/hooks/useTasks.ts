@@ -6,11 +6,13 @@ import {
   createTask,
   toggleTaskStatus,
   removeTask,
+  updateTask,
+  type Task,
 } from "@/app/actions/tasks";
 import { toast } from "sonner";
 
 export function useTasks(date?: string) {
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refreshTasks = useCallback(async () => {
@@ -66,5 +68,21 @@ export function useTasks(date?: string) {
     }
   };
 
-  return { tasks, loading, add, toggle, remove, refreshTasks };
+  const update = async (id: string, data: any) => {
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...data } : t)),
+    );
+
+    const res = await updateTask(id, data);
+    if (!res.success) {
+        refreshTasks();
+        toast.error("Chyba pri aktualizácii");
+        return false;
+    }
+    toast.success("Úloha aktualizovaná");
+    return true;
+  };
+
+  return { tasks, loading, add, toggle, remove, update, refreshTasks };
 }

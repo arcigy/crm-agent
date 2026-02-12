@@ -27,6 +27,7 @@ interface TodoThreeDayViewProps {
   onDateChange: (date: string) => void;
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, data: Partial<Task>) => void;
 }
 
 export function TodoThreeDayView({
@@ -35,6 +36,7 @@ export function TodoThreeDayView({
   onDateChange,
   onToggle,
   onDelete,
+  onUpdate,
 }: TodoThreeDayViewProps) {
   const current = new Date(currentDate);
   const yesterday = subDays(current, 1);
@@ -125,6 +127,7 @@ export function TodoThreeDayView({
           tasks={yesterdayTasks}
           onToggle={onToggle}
           onDelete={onDelete}
+          onUpdate={onUpdate}
           variant="side"
           onClick={() => onDateChange(format(yesterday, "yyyy-MM-dd"))}
         />
@@ -136,6 +139,7 @@ export function TodoThreeDayView({
           tasks={todayTasks}
           onToggle={onToggle}
           onDelete={onDelete}
+          onUpdate={onUpdate}
           variant="center"
         />
 
@@ -146,6 +150,7 @@ export function TodoThreeDayView({
           tasks={tomorrowTasks}
           onToggle={onToggle}
           onDelete={onDelete}
+          onUpdate={onUpdate}
           variant="side"
           onClick={() => onDateChange(format(tomorrow, "yyyy-MM-dd"))}
         />
@@ -160,6 +165,7 @@ interface DayColumnProps {
   tasks: Task[];
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, data: Partial<Task>) => void;
   variant: "center" | "side";
   onClick?: () => void;
 }
@@ -170,6 +176,7 @@ function DayColumn({
   tasks,
   onToggle,
   onDelete,
+  onUpdate,
   variant,
   onClick,
 }: DayColumnProps) {
@@ -239,6 +246,7 @@ function DayColumn({
               onToggle={onToggle}
               isCenter={isCenter}
               onDelete={onDelete}
+              onUpdate={onUpdate}
             />
           ))
         ) : (
@@ -260,11 +268,13 @@ function TaskItem({
   task,
   onToggle,
   onDelete,
+  onUpdate,
   isCenter,
 }: {
   task: Task;
   onToggle: (id: string, s: boolean) => void;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, data: Partial<Task>) => void;
   isCenter: boolean;
 }) {
   // Extract time if exists in due_date (YYYY-MM-DDTHH:mm:ss)
@@ -312,11 +322,44 @@ function TaskItem({
                   : "text-zinc-700 dark:text-zinc-200"
               }`}
             />
-            {time && (
-              <span className="text-[9px] font-black text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded flex items-center gap-1">
-                <Clock size={8} /> {time}
-              </span>
-            )}
+            <div className="relative group/time">
+              {time ? (
+                <div className="relative cursor-pointer">
+                  <span className="text-[9px] font-black text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded flex items-center gap-1 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+                    <Clock size={8} /> {time}
+                  </span>
+                  <input
+                    type="time"
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                    value={time}
+                    onChange={(e) => {
+                      const newTime = e.target.value;
+                      if (!newTime || !task.due_date) return;
+                      const datePart = task.due_date.split("T")[0];
+                      const newDueDate = `${datePart}T${newTime}:00`;
+                      onUpdate(task.id, { due_date: newDueDate });
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="relative cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                   <span className="text-[9px] font-black text-zinc-400 bg-zinc-100 dark:bg-zinc-800/40 px-1.5 py-0.5 rounded flex items-center gap-1">
+                    <Clock size={8} /> --:--
+                  </span>
+                  <input
+                    type="time"
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                    onChange={(e) => {
+                      const newTime = e.target.value;
+                      if (!newTime || !task.due_date) return;
+                      const datePart = task.due_date.split("T")[0] || format(new Date(), "yyyy-MM-dd");
+                      const newDueDate = `${datePart}T${newTime}:00`;
+                      onUpdate(task.id, { due_date: newDueDate });
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
