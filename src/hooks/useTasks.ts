@@ -68,7 +68,7 @@ export function useTasks(date?: string) {
     }
   };
 
-  const update = async (id: string, data: any) => {
+  const update = async (id: string, data: Partial<Task>) => {
     // Optimistic update
     setTasks((prev) =>
       prev.map((t) => (t.id === id ? { ...t, ...data } : t)),

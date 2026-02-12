@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, updateItem, deleteItem, readItem } from "@directus/sdk";
-import { getUserEmail, isTeamMember } from "@/lib/auth";
+import { getUserEmail } from "@/lib/auth";
 import { Task } from "./fetch";
 
 export async function createTask(title: string, dueDate?: string) {
