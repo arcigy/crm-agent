@@ -324,9 +324,9 @@ function TaskItem({
             />
             <div className="relative group/time">
               {time ? (
-                <div className="relative cursor-pointer">
-                  <span className="text-[9px] font-black text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded flex items-center gap-1 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
-                    <Clock size={8} /> {time}
+                <div className="relative cursor-pointer group/timepicker active:scale-95 transition-transform">
+                  <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/30 px-2 py-1 rounded-lg flex items-center gap-1.5 hover:bg-blue-200 dark:hover:bg-blue-800 transition-all border border-blue-200 dark:border-blue-800">
+                    <Clock size={10} className="text-blue-500" /> {time}
                   </span>
                   <input
                     type="time"
@@ -342,17 +342,20 @@ function TaskItem({
                   />
                 </div>
               ) : (
-                <div className="relative cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                   <span className="text-[9px] font-black text-zinc-400 bg-zinc-100 dark:bg-zinc-800/40 px-1.5 py-0.5 rounded flex items-center gap-1">
-                    <Clock size={8} /> --:--
+                <div className="relative cursor-pointer active:scale-95 transition-transform group/timepicker">
+                   <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/40 px-2 py-1 rounded-lg flex items-center gap-1.5 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all border border-dashed border-zinc-200 dark:border-zinc-700 hover:border-blue-200 dark:hover:border-blue-800">
+                    <Clock size={10} /> 
+                    <span className="opacity-60">Pridať čas</span>
                   </span>
                   <input
                     type="time"
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                     onChange={(e) => {
                       const newTime = e.target.value;
-                      if (!newTime || !task.due_date) return;
-                      const datePart = task.due_date.split("T")[0] || format(new Date(), "yyyy-MM-dd");
+                      if (!newTime) return;
+                      // Fallback to today if not in a date-filtered view, 
+                      // but in 3-day view we know t.due_date exists as at least YYYY-MM-DD
+                      const datePart = task.due_date?.split("T")[0] || format(new Date(), "yyyy-MM-dd");
                       const newDueDate = `${datePart}T${newTime}:00`;
                       onUpdate(task.id, { due_date: newDueDate });
                     }}
