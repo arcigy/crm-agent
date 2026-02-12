@@ -186,8 +186,13 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
 
       <main 
         className={`
+<<<<<<< HEAD
           flex-1 min-w-0 h-full overflow-y-auto bg-transparent relative z-10 transition-all duration-300 ease-out
           ${isMenuOpen ? "md:pl-64" : "pl-0"}
+=======
+          flex-1 min-w-0 h-full overflow-hidden bg-transparent relative z-10 transition-all duration-300 ease-out
+          ${isMenuOpen ? "md:pl-64" : "pl-16"}
+>>>>>>> 8eb9155 (style: shift content to right when sidebar is closed to avoid hamburger menu overlap)
         `}
       >
         <div className="p-2 md:p-4 pt-16 md:pt-4 transition-all pb-20">
