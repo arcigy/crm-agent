@@ -19,6 +19,7 @@ import {
     bulkSortLeadsByIndustry,
     cleanupDuplicates,
     updateColdLeadList,
+    deleteColdLeadList,
     type ColdLeadItem, 
     type ColdLeadList 
 } from "@/app/actions/cold-leads";
@@ -50,6 +51,36 @@ export default function OutreachLeadsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 100;
 
+  const [isDeletingList, setIsDeletingList] = useState(false);
+  const [editingList, setEditingList] = useState<ColdLeadList | null>(null);
+  const [listNameInput, setListNameInput] = useState("");
+  const [listDescriptionInput, setListDescriptionInput] = useState("");
+
+  const handleDeleteList = async () => {
+    if (!editingList) return;
+    if (!confirm(`Naozaj chcete odstrániť zoznam "${editingList.name}"?`)) return;
+
+    setIsDeletingList(true);
+    try {
+        const res = await deleteColdLeadList(editingList.id);
+        if (res.success) {
+            toast.success("Zoznam bol odstránený");
+            setIsListModalOpen(false);
+            // Refresh lists
+            const listsRes = await getColdLeadLists();
+            if (listsRes.success && listsRes.data) setLists(listsRes.data);
+            if (activeListName === editingList.name) setActiveListName("All");
+        } else {
+            toast.error(res.error || "Chyba pri mazaní zoznamu");
+        }
+    } catch (e) {
+        toast.error("Nastala neočakávaná chyba");
+    } finally {
+        setIsDeletingList(false);
+    }
+  };
+  const [isSavingList, setIsSavingList] = useState(false);
+
   // Selection State
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
 
@@ -60,10 +91,6 @@ export default function OutreachLeadsPage() {
   
   // List Management State
   const [isListModalOpen, setIsListModalOpen] = useState(false);
-  const [editingList, setEditingList] = useState<ColdLeadList | null>(null);
-  const [listNameInput, setListNameInput] = useState("");
-  const [listDescriptionInput, setListDescriptionInput] = useState("");
-  const [isSavingList, setIsSavingList] = useState(false);
 
   // Modal for lead detail
   const [openedLead, setOpenedLead] = useState<ColdLeadItem | null>(null);
@@ -1395,21 +1422,33 @@ export default function OutreachLeadsPage() {
                             />
                         </div>
 
-                        <div className="flex gap-3 pt-4">
-                            <button 
-                                onClick={() => setIsListModalOpen(false)}
-                                className="flex-1 py-3 text-gray-500 font-black text-xs uppercase tracking-widest hover:bg-gray-50 rounded-xl transition-colors"
-                            >
-                                Zrušiť
-                            </button>
-                            <button 
-                                onClick={saveList}
-                                disabled={isSavingList}
-                                className="flex-1 py-3 bg-blue-600 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                                {isSavingList ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                                {editingList ? "Uložiť Zmeny" : "Vytvoriť Zoznam"}
-                            </button>
+                        <div className="flex flex-col gap-3 pt-4">
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => setIsListModalOpen(false)}
+                                    className="flex-1 py-3 text-gray-500 font-black text-xs uppercase tracking-widest hover:bg-gray-50 rounded-xl transition-colors"
+                                >
+                                    Zrušiť
+                                </button>
+                                <button 
+                                    onClick={saveList}
+                                    disabled={isSavingList}
+                                    className="flex-1 py-3 bg-blue-600 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isSavingList ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                    {editingList ? "Uložiť Zmeny" : "Vytvoriť Zoznam"}
+                                </button>
+                            </div>
+                            
+                            {editingList && (
+                                <button 
+                                    onClick={handleDeleteList}
+                                    disabled={isDeletingList}
+                                    className="w-full py-3 text-red-500 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-red-50 rounded-xl transition-colors mt-2"
+                                >
+                                    {isDeletingList ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : "Odstrániť tento zoznam"}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

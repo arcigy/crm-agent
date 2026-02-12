@@ -113,6 +113,17 @@ export async function updateColdLeadList(id: number, data: Partial<ColdLeadList>
     }
 }
 
+export async function deleteColdLeadList(id: number) {
+    try {
+        await directus.request(deleteItem("cold_leads_lists", id));
+        revalidatePath("/dashboard/cold-outreach");
+        return { success: true };
+    } catch (e: any) {
+        console.error("Failed to delete list:", e);
+        return { success: false, error: getDirectusErrorMessage(e) };
+    }
+}
+
 export async function bulkCreateColdLeads(leads: Partial<ColdLeadItem>[]) {
   try {
     const userEmail = await getUserEmail();

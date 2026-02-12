@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     let jobLogs: string[] = [];
     let totalFound = 0;
     let foundThisRun = 0;
-    let totalCalls = 0;
+    let totalCallsThisBatch = 0;
     const keysFailures: Record<string, number> = {};
 
     const addLog = async (jobId: string, msg: string) => {
@@ -54,9 +54,12 @@ export async function GET(request: Request) {
     };
 
     // Helper to update key usage in DB reliably
-    const syncKeyUsage = async (keyObj: any) => {
+    const syncKeyUsage = async (keyObj: any, callsDone: number) => {
         try {
+            keyObj.usageToday += callsDone;
+            keyObj.usageMonth += callsDone;
             const isLimitReached = keyObj.usageToday >= (keyObj.usageLimit || 300);
+            
             await directus.request(updateItem('google_maps_keys', keyObj.id, { 
                 usage_today: keyObj.usageToday, 
                 usage_month: keyObj.usageMonth,
@@ -70,20 +73,16 @@ export async function GET(request: Request) {
     };
     
     try {
-        console.log("--- [GMAP WORKER] Starting Robust Background Scraper ---");
+        console.log("--- [GMAP WORKER] Starting Optimized Background Scraper ---");
         
         // 1. Fetch active jobs
         const jobs = await directus.request(readItems(JOBS_COLLECTION, {
-            filter: {
-                status: { _in: ['w', 'p'] }
-            },
+            filter: { status: { _in: ['w', 'p'] } },
             limit: 1,
             sort: ['date_created']
         }));
 
-        if (!jobs || jobs.length === 0) {
-            return NextResponse.json({ message: "No jobs to process." });
-        }
+        if (!jobs || jobs.length === 0) return NextResponse.json({ message: "No jobs to process." });
 
         const job = jobs[0] as any;
         currentJobId = job.id;
@@ -91,7 +90,7 @@ export async function GET(request: Request) {
         totalFound = job.found_count || 0;
 
         await directus.request(updateItem(JOBS_COLLECTION, job.id, { status: 'r', last_error: null }));
-        if (job.status !== 'r') await addLog(job.id, "🚀 Štartujem robustný scraper...");
+        if (job.status !== 'r') await addLog(job.id, "🚀 Štartujem optimalizovaný scraper...");
 
         // 2. Fetch Keys
         const keys = await getSystemApiKeys();
@@ -110,13 +109,13 @@ export async function GET(request: Request) {
         
         let cityIndex = job.current_city_index || 0;
         let pageToken = job.next_page_token || undefined;
-        let currentKeyIndex = 0;
-        let callsOnCurrentKey = 0;
+        let currentKey = activeKeys.sort((a, b) => (a.usageToday || 0) - (b.usageToday || 0))[0];
+        
         const limitPerRun = 100;
         const startTime = Date.now();
-        const MAX_RUNTIME = 50000; 
+        const MAX_RUNTIME = 45000; // Stay safe within server limits
 
-        // 4. Execution Loop
+        // 4. Execution Loop (Paged Sections)
         while (totalFound < job.limit && (Date.now() - startTime) < MAX_RUNTIME && foundThisRun < limitPerRun) {
             // Heartbeat check
             const currentJobStatus: any = await directus.request(readItems(JOBS_COLLECTION, {
@@ -128,78 +127,38 @@ export async function GET(request: Request) {
             const currentCity = targetLocations[cityIndex];
             if (!currentCity) break;
 
-            // Key Selection Logic:
-            // 1. Maintain key affinity for pagination (pageToken must use the same key)
-            // 2. Rotate key every 20 calls (as requested)
-            // 3. Skip exhausted or failed keys
-            let currentKey = activeKeys[currentKeyIndex];
-
-            if (!currentKey || (callsOnCurrentKey >= 20 && !pageToken)) {
-                // Time to rotate or find a fresh key
+            // SECTION START: Select best key if not pagination-bound
+            if (!pageToken) {
                 activeKeys = activeKeys.filter(k => k.status !== 'error' && (k.usageToday || 0) < (k.usageLimit || 300));
                 if (activeKeys.length === 0) break;
-                
-                // Sort by usage to spread load
-                activeKeys.sort((a, b) => (a.usageToday || 0) - (b.usageToday || 0));
-                currentKeyIndex = 0;
-                currentKey = activeKeys[currentKeyIndex];
-                callsOnCurrentKey = 0;
-                await addLog(job.id, `🔃 Rotácia na kľúč: ${currentKey.label}`);
+                currentKey = activeKeys.sort((a, b) => (a.usageToday || 0) - (b.usageToday || 0))[0];
             }
 
+            let callsInThisSection = 0;
             try {
-                // Step A: Search Cities
+                // A. Search Call
                 const query = `${job.search_term} in ${currentCity}`;
                 if (!pageToken) await addLog(job.id, `🔍 "${job.search_term}" v ${currentCity} (${currentKey.label})`);
 
-                let searchResult: any;
-                try {
-                    searchResult = await searchBusinesses(currentKey.key, query, pageToken);
-                    totalCalls++;
-                    callsOnCurrentKey++;
-                    currentKey.usageToday++;
-                    currentKey.usageMonth++;
-                    await syncKeyUsage(currentKey); // Immediate sync
-                    keysFailures[currentKey.id] = 0; // Reset failures on success
-                } catch (searchErr: any) {
-                    keysFailures[currentKey.id] = (keysFailures[currentKey.id] || 0) + 1;
-                    await addLog(job.id, `⚠️ Chyba kľúča ${currentKey.label} (${keysFailures[currentKey.id]}/2)`);
-                    
-                    if (keysFailures[currentKey.id] >= 2) {
-                        await addLog(job.id, `🚫 Vyraďujem kľúč ${currentKey.label} kvôli chybám.`);
-                        currentKey.status = 'error';
-                        currentKey.errorMessage = searchErr.message;
-                        await syncKeyUsage(currentKey);
-                        currentKeyIndex++; // Force switch key
-                        callsOnCurrentKey = 0;
-                        continue; // Retry page with next key
-                    }
-                    await new Promise(r => setTimeout(r, 2000)); // Delay before retry
-                    continue;
-                }
+                const searchResult: any = await searchBusinesses(currentKey.key, query, pageToken);
+                callsInThisSection++;
+                totalCallsThisBatch++;
 
                 if (!searchResult.results?.length) {
                     cityIndex++;
                     pageToken = undefined;
+                    // End of city, sync key usage
+                    await syncKeyUsage(currentKey, callsInThisSection);
                     continue;
                 }
 
-                // Step B: Process Results
+                // B. Batch Process Details
                 for (const rawPlace of searchResult.results) {
                     if (totalFound >= job.limit || foundThisRun >= limitPerRun || (Date.now() - startTime) >= MAX_RUNTIME) break;
 
-                    // Detail call
-                    let details: any;
-                    try {
-                        details = await getPlaceDetails(currentKey.key, rawPlace.place_id);
-                        totalCalls++;
-                        callsOnCurrentKey++;
-                        currentKey.usageToday++;
-                        currentKey.usageMonth++;
-                        await syncKeyUsage(currentKey);
-                    } catch (detailsErr) {
-                        continue; // Detail failure doesn't kill the loop, just skip
-                    }
+                    const details: any = await getPlaceDetails(currentKey.key, rawPlace.place_id);
+                    callsInThisSection++;
+                    totalCallsThisBatch++;
 
                     if (details) {
                         const hasWebsite = !!details.website;
@@ -217,38 +176,49 @@ export async function GET(request: Request) {
                             enrichment_status: hasWebsite ? 'pending' : null
                         };
 
-                        // Duplicate check
+                        // Duplicate check (Keep it local if possible, but Directus is faster)
                         const existing: any[] = await directus.request(readItems(LEADS_COLLECTION, {
                             filter: { google_maps_url: { _eq: details.url } },
                             limit: 1, fields: ['id']
                         }));
 
-                        if (existing?.length > 0) {
-                            foundThisRun++; // Count as processed
-                            continue;
+                        if (existing?.length === 0) {
+                            await directus.request(createItem(LEADS_COLLECTION, newLead));
+                            totalFound++;
+                            foundThisRun++;
+                            // Fast update of found count in job
+                            if (totalFound % 5 === 0) {
+                                await directus.request(updateItem(JOBS_COLLECTION, job.id, { found_count: totalFound }));
+                            }
                         }
-
-                        await directus.request(createItem(LEADS_COLLECTION, newLead));
-                        totalFound++;
-                        foundThisRun++;
-                        await directus.request(updateItem(JOBS_COLLECTION, job.id, { found_count: totalFound }));
-                        if (totalFound % 5 === 0) await addLog(job.id, `💾 Nájdených: ${totalFound} leadov...`);
                     }
                 }
 
-                // Step C: Pagination
+                // SECTION END: Sync Key Usage once per page (up to 21 calls)
+                await syncKeyUsage(currentKey, callsInThisSection);
+
+                // C. Pagination handling
                 if (searchResult.next_page_token && totalFound < job.limit) {
                     pageToken = searchResult.next_page_token;
-                    await new Promise(r => setTimeout(r, 2000));
+                    // Google requires a short delay before the token becomes valid
+                    await new Promise(r => setTimeout(r, 1500));
                 } else {
                     cityIndex++;
                     pageToken = undefined;
-                    callsOnCurrentKey = 20; // Force rotation after city finish
                 }
 
-            } catch (loopErr: any) {
-                await addLog(job.id, `❌ Chyba slučky: ${loopErr.message}`);
-                break;
+            } catch (err: any) {
+                await addLog(job.id, `⚠️ Sekcia zlyhala: ${err.message}`);
+                // Still sync usage if we did some calls before failing
+                if (callsInThisSection > 0) await syncKeyUsage(currentKey, callsInThisSection);
+                
+                keysFailures[currentKey.id] = (keysFailures[currentKey.id] || 0) + 1;
+                if (keysFailures[currentKey.id] >= 2) {
+                    currentKey.status = 'error';
+                    currentKey.errorMessage = err.message;
+                    await syncKeyUsage(currentKey, 0);
+                }
+                break; 
             }
         }
 
@@ -257,27 +227,24 @@ export async function GET(request: Request) {
         const isCancelled = (await directus.request(readItems(JOBS_COLLECTION, { filter: { id: { _eq: job.id } }, fields: ['status'] })) as any)?.[0]?.status === 's';
         
         const nextStatus = isFinished ? 'd' : (isCancelled ? 's' : 'r');
-        const costEstimate = (totalCalls * 0.049).toFixed(2); // Estimated USD cost
         
         await directus.request(updateItem(JOBS_COLLECTION, job.id, {
             status: nextStatus,
             found_count: totalFound,
             current_city_index: cityIndex,
-            next_page_token: pageToken || null,
-            last_error: null
+            next_page_token: pageToken || null
         }));
 
-        await addLog(job.id, `📊 Súhrn: ${foundThisRun} leadov v tejto várke. Celkom ${totalFound}. Odhadovaná cena: $${costEstimate} (${totalCalls} volaní).`);
-        if (isFinished) await addLog(job.id, "🏁 Úloha úspešne dokončená.");
-
-        // Trigger chain/enrichment
+        await addLog(job.id, `📊 Súhrn várky: +${foundThisRun} leadov. Celkom ${totalFound}. (${totalCallsThisBatch} requestov zaznamenaných).`);
+        
+        // Trigger chain or enrichment
         const baseUrl = `${request.headers.get("x-forwarded-proto") || "https"}://${request.headers.get("host") || "crm.arcigy.cloud"}`;
         fetch(`${baseUrl}/api/cron/enrich-leads`).catch(() => {});
         if (!isFinished && !isCancelled && foundThisRun > 0) {
-            setTimeout(() => fetch(`${baseUrl}/api/cron/google-maps-worker`).catch(() => {}), 2000);
+            setTimeout(() => fetch(`${baseUrl}/api/cron/google-maps-worker`).catch(() => {}), 1000);
         }
 
-        return NextResponse.json({ success: true, status: nextStatus, total_found: totalFound, cost: costEstimate });
+        return NextResponse.json({ success: true, status: nextStatus, total_found: totalFound });
 
     } catch (error: any) {
         console.error("[GMAP WORKER] FATAL ERROR:", error);
@@ -286,7 +253,6 @@ export async function GET(request: Request) {
                 status: 'p',
                 last_error: `Fatálna chyba: ${error.message}`
             }));
-            await addLog(currentJobId, `❌ Fatálna chyba: ${error.message}`);
         }
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
