@@ -310,6 +310,8 @@ function TaskItem({
   columnDate: string;
 }) {
   const [isAnimating, setIsAnimating] = React.useState(false);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editedTitle, setEditedTitle] = React.useState(task.title);
 
   // Extract time if exists in due_date (YYYY-MM-DDTHH:mm:ss)
   const time =
@@ -326,19 +328,40 @@ function TaskItem({
     onToggle(task.id, task.completed);
   };
 
+  const handleTitleSubmit = () => {
+    if (editedTitle.trim() && editedTitle !== task.title) {
+      onUpdate(task.id, { title: editedTitle.trim() });
+    }
+    setIsEditing(false);
+  };
+
   return (
     <div
+      onDoubleClick={() => !task.completed && setIsEditing(true)}
       className={`group relative p-3 rounded-2xl transition-all border overflow-hidden ${
         task.completed
           ? "bg-zinc-50 dark:bg-zinc-800/30 border-transparent opacity-60"
           : isCenter
             ? "bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 shadow-sm hover:border-blue-200 dark:hover:border-blue-900"
             : "bg-white/50 dark:bg-zinc-900/50 border-transparent hover:bg-white"
-      }`}
+      } ${isEditing ? "ring-2 ring-blue-500/50 border-blue-500" : ""}`}
     >
-      {/* Dopamine Flash Background */}
+      {/* Dopamine Neon Flash Background */}
+      <style jsx>{`
+        @keyframes neonFlash {
+          0% { transform: scaleX(0); opacity: 0; background: #22c55e; }
+          20% { transform: scaleX(1); opacity: 1; background: #4ade80; box-shadow: 0 0 20px #22c55e; }
+          80% { transform: scaleX(1); opacity: 0.8; background: #22c55e; }
+          100% { transform: scaleX(1); opacity: 0; }
+        }
+        .animate-neon-flash {
+          animation: neonFlash 0.8s cubic-bezier(.17,.67(.19,.98) forwards;
+          transform-origin: left;
+        }
+      `}</style>
+      
       {isAnimating && (
-        <div className="absolute inset-0 bg-emerald-500/20 dark:bg-emerald-500/30 animate-full-fill z-0" />
+        <div className="absolute inset-0 bg-[#22c55e]/30 dark:bg-[#22c55e]/40 animate-neon-flash z-0" />
       )}
 
       <div className="flex items-start gap-3 relative z-10">
@@ -346,12 +369,12 @@ function TaskItem({
           onClick={handleToggle}
           className={`mt-0.5 transition-colors ${
             task.completed
-              ? "text-emerald-400"
+              ? "text-[#22c55e]"
               : "text-zinc-300 hover:text-blue-500"
           }`}
         >
           {task.completed ? (
-            <CheckCircle2 size={isCenter ? 20 : 16} strokeWidth={3} />
+            <CheckCircle2 size={isCenter ? 20 : 16} strokeWidth={3} className="drop-shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
           ) : (
             <Circle size={isCenter ? 20 : 16} strokeWidth={3} />
           )}
@@ -359,69 +382,86 @@ function TaskItem({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <SmartText
-              text={task.title}
-              className={`text-sm font-bold leading-tight ${
-                task.completed
-                  ? "line-through text-zinc-400"
-                  : "text-zinc-700 dark:text-zinc-200"
-              }`}
-            />
-            <div 
-              className="relative group/time"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {time ? (
-                <div className="relative cursor-pointer group/timepicker active:scale-95 transition-transform">
-                  <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/30 px-2 py-1 rounded-lg flex items-center gap-1.5 hover:bg-blue-200 dark:hover:bg-blue-800 transition-all border border-blue-200 dark:border-blue-800">
-                    <Clock size={10} className="text-blue-500" /> {time}
-                  </span>
-                  <input
-                    type="time"
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                    value={time}
-                    onChange={(e) => {
-                      const newTime = e.target.value;
-                      if (!newTime || !task.due_date) return;
-                      const datePart = task.due_date.split("T")[0];
-                      const newDueDate = `${datePart}T${newTime}:00`;
-                      onUpdate(task.id, { due_date: newDueDate });
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="relative cursor-pointer active:scale-95 transition-transform group/timepicker">
-                   <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/40 px-2 py-1 rounded-lg flex items-center gap-1.5 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all border border-dashed border-zinc-200 dark:border-zinc-700 hover:border-blue-200 dark:hover:border-blue-800">
-                    <Clock size={10} /> 
-                    <span className="opacity-60 whitespace-nowrap">Čas</span>
-                  </span>
-                  <input
-                    type="time"
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                    onChange={(e) => {
-                      const newTime = e.target.value;
-                      if (!newTime) return;
-                      const datePart = task.due_date?.split("T")[0] || columnDate;
-                      const newDueDate = `${datePart}T${newTime}:00`;
-                      onUpdate(task.id, { due_date: newDueDate });
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+            {isEditing ? (
+              <input
+                autoFocus
+                className="flex-1 bg-transparent border-none outline-none text-sm font-bold text-zinc-900 dark:text-white p-0 m-0 w-full"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                onBlur={handleTitleSubmit}
+                onKeyDown={(e) => e.key === "Enter" && handleTitleSubmit()}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <SmartText
+                text={task.title}
+                className={`text-sm font-bold leading-tight flex-1 truncate ${
+                  task.completed
+                    ? "line-through text-zinc-400"
+                    : "text-zinc-700 dark:text-zinc-200"
+                }`}
+              />
+            )}
+            
+            {!isEditing && (
+              <div 
+                className="relative group/time"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {time ? (
+                  <div className="relative cursor-pointer group/timepicker active:scale-95 transition-transform">
+                    <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/30 px-2 py-1 rounded-lg flex items-center gap-1.5 hover:bg-blue-200 dark:hover:bg-blue-800 transition-all border border-blue-200 dark:border-blue-800">
+                      <Clock size={10} className="text-blue-500" /> {time}
+                    </span>
+                    <input
+                      type="time"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                      value={time}
+                      onChange={(e) => {
+                        const newTime = e.target.value;
+                        if (!newTime) return;
+                        const datePart = task.due_date?.split("T")[0] || columnDate;
+                        const newDueDate = `${datePart}T${newTime}:00`;
+                        onUpdate(task.id, { due_date: newDueDate });
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="relative cursor-pointer active:scale-95 transition-transform group/timepicker">
+                     <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/40 px-2 py-1 rounded-lg flex items-center gap-1.5 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all border border-dashed border-zinc-200 dark:border-zinc-700 hover:border-blue-200 dark:hover:border-blue-800">
+                      <Clock size={10} /> 
+                      <span className="opacity-60 whitespace-nowrap">Čas</span>
+                    </span>
+                    <input
+                      type="time"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                      onChange={(e) => {
+                        const newTime = e.target.value;
+                        if (!newTime) return;
+                        const datePart = task.due_date?.split("T")[0] || columnDate;
+                        const newDueDate = `${datePart}T${newTime}:00`;
+                        onUpdate(task.id, { due_date: newDueDate });
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Delete Action (visible on hover) */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(task.id);
-          }}
-          className={`opacity-0 group-hover:opacity-100 p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all absolute right-2 top-2 lg:static`}
-        >
-          <Trash2 size={14} />
-        </button>
+        {!isEditing && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(task.id);
+            }}
+            className={`opacity-0 group-hover:opacity-100 p-1.5 text-zinc-300 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all absolute right-2 top-2 lg:static`}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
       </div>
     </div>
   );
