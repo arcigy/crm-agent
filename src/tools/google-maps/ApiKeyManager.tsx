@@ -35,6 +35,7 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
     useEffect(() => {
         const init = async () => {
             const loadedKeys = await loadKeys();
+            setKeys(loadedKeys);
             if (loadedKeys.length > 0) {
                 await validateKeys(loadedKeys);
             }
@@ -45,14 +46,7 @@ export function ApiKeyManager({ onKeysChange }: ApiKeyManagerProps) {
     const loadKeys = async () => {
         try {
             const data = await getApiKeys();
-            const today = new Date().toISOString().split('T')[0];
-            const processed = data?.map((k: ApiKey) => {
-                 const lastUsedDay = k.lastUsed ? k.lastUsed.split('T')[0] : '';
-                 if (lastUsedDay !== today) {
-                     return { ...k, usageToday: 0 }; 
-                 }
-                 return k;
-            }) || [];
+            const processed = data || [];
             
             setKeys(processed);
             return processed;

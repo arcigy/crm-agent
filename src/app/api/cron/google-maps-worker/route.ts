@@ -167,22 +167,26 @@ export async function GET(request: Request) {
 
                 // B. Batch Process Details
                 let newInThisPage = 0;
+                let processedInThisBatch = 0;
+
                 for (const rawPlace of searchResult.results) {
                     if (totalFound >= job.limit || foundThisRun >= limitPerRun || (Date.now() - startTime) >= MAX_RUNTIME) break;
 
-                    // Quick Deduplication Check (Title + City)
+                    processedInThisBatch++;
+
+                    // Quick Deduplication Check (Title only, as source_city doesn't exist)
+                    // We check if this title exists for the current user/job to minimize false positives across the whole DB
                     const quickCheck: any[] = await directus.request(readItems(LEADS_COLLECTION, {
                         filter: { 
                             _and: [
                                 { title: { _eq: rawPlace.name } },
-                                { source_city: { _eq: currentCity } }
+                                { google_maps_job_id: { _eq: job.id } }
                             ]
                         },
                         limit: 1, fields: ['id']
                     }));
 
                     if (quickCheck?.length > 0) {
-                        duplicatesInARow++;
                         continue; 
                     }
 
@@ -200,14 +204,13 @@ export async function GET(request: Request) {
                             city: details.formatted_address || currentCity,
                             google_maps_url: details.url,
                             google_maps_job_id: job.id,
-                            source_city: currentCity,
                             status: 'lead',
                             user_email: job.owner_email,
                             list_name: hasWebsite ? (job.target_list || "Všeobecné") : 'Cold Call',
                             enrichment_status: hasWebsite ? 'pending' : null
                         };
 
-                        // Duplicate check by URL
+                        // Duplicate check by URL (Universal)
                         const existing: any[] = await directus.request(readItems(LEADS_COLLECTION, {
                             filter: { google_maps_url: { _eq: details.url } },
                             limit: 1, fields: ['id']
@@ -218,20 +221,22 @@ export async function GET(request: Request) {
                             totalFound++;
                             foundThisRun++;
                             newInThisPage++;
-                            duplicatesInARow = 0;
                             if (totalFound % 5 === 0) {
                                 await directus.request(updateItem(JOBS_COLLECTION, job.id, { found_count: totalFound }));
                             }
-                        } else {
-                            duplicatesInARow++;
                         }
                     }
                 }
 
                 if (newInThisPage > 0) {
-                    await addLog(job.id, `💾 Stránka dokončená: +${newInThisPage} nových leadov.`);
+                    await addLog(job.id, `✅ Nájdených ${newInThisPage} nových leadov (z ${processedInThisBatch} výsledkov).`);
                 } else if (searchResult.results.length > 0) {
-                    await addLog(job.id, `⏭️ Stránka preskočená (iba duplikáty).`);
+                    // USER REQUEST: Move to next city if no progress in current results
+                    await addLog(job.id, `⏭️ V ${currentCity} nenájdení žiadni noví leadi. Prepínam na ďalšie mesto.`);
+                    cityIndex++;
+                    pageToken = undefined;
+                    await syncKeyUsage(job.id, currentKey, callsInThisSection);
+                    continue; // Jump to next city immediately
                 }
 
                 // SECTION END: Sync Key Usage once per page
