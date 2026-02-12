@@ -96,32 +96,35 @@ export function TodoThreeDayView({
       `}</style>
 
       {/* Navigation Header - Centered for Today */}
-      <div className="flex items-center justify-between px-4">
+      <div className="flex items-center justify-between px-4 mb-4">
         <button
           onClick={() => onDateChange(format(yesterday, "yyyy-MM-dd"))}
-          className="text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-600 flex items-center gap-1 select-none"
+          className="group/nav text-xs font-black text-zinc-400 uppercase tracking-widest hover:text-blue-500 flex items-center gap-2 transition-all active:scale-95 select-none"
         >
-          <ChevronLeft size={16} /> {getRelativeDateLabel(yesterday)}
+          <div className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-800 group-hover/nav:bg-blue-50 dark:group-hover/nav:bg-blue-900/30 group-hover/nav:shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all">
+            <ChevronLeft size={18} />
+          </div>
+          <span className="hidden sm:inline">{getRelativeDateLabel(yesterday)}</span>
         </button>
 
         <div className="flex flex-col items-center relative gap-1 select-none">
-          <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
+          <div className="flex items-center gap-4">
+            <h2 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter italic">
               {format(current, "EEEE", { locale: sk })}
             </h2>
-            <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-widest flex items-center gap-1">
+            <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-black uppercase tracking-tight shadow-lg shadow-blue-500/20">
               {getRelativeDateLabel(current) === "Dnes" ? "Dnes" : format(current, "d. MMMM", { locale: sk })}
             </div>
           </div>
 
-          <div className="relative group flex items-center gap-1.5">
+          <div className="relative group flex items-center gap-1.5 mt-1">
             <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest transition-all group-hover:text-blue-500 whitespace-nowrap">
               {format(current, "dd. MM. yyyy")}
             </span>
-            <div className="relative cursor-pointer p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors">
+            <div className="relative cursor-pointer p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors group/cal">
               <CalendarIcon
-                size={14}
-                className="text-zinc-400 group-hover:text-blue-500"
+                size={16}
+                className="text-zinc-400 group-hover/cal:text-blue-500 transition-colors"
               />
               <input
                 type="date"
@@ -135,9 +138,12 @@ export function TodoThreeDayView({
 
         <button
           onClick={() => onDateChange(format(tomorrow, "yyyy-MM-dd"))}
-          className="text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-600 flex items-center gap-1 select-none"
+          className="group/nav text-xs font-black text-zinc-400 uppercase tracking-widest hover:text-blue-500 flex items-center gap-2 transition-all active:scale-95 select-none text-right"
         >
-          {getRelativeDateLabel(tomorrow)} <ChevronRight size={16} />
+          <span className="hidden sm:inline">{getRelativeDateLabel(tomorrow)}</span>
+          <div className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-800 group-hover/nav:bg-blue-50 dark:group-hover/nav:bg-blue-900/30 group-hover/nav:shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all">
+            <ChevronRight size={18} />
+          </div>
         </button>
       </div>
 
@@ -361,7 +367,10 @@ function TaskItem({
                   : "text-zinc-700 dark:text-zinc-200"
               }`}
             />
-            <div className="relative group/time">
+            <div 
+              className="relative group/time"
+              onClick={(e) => e.stopPropagation()}
+            >
               {time ? (
                 <div className="relative cursor-pointer group/timepicker active:scale-95 transition-transform">
                   <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/30 px-2 py-1 rounded-lg flex items-center gap-1.5 hover:bg-blue-200 dark:hover:bg-blue-800 transition-all border border-blue-200 dark:border-blue-800">
