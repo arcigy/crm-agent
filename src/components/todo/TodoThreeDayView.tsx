@@ -42,6 +42,20 @@ export function TodoThreeDayView({
   const yesterday = subDays(current, 1);
   const tomorrow = addDays(current, 1);
 
+  // Helper for relative labels
+  const getRelativeDateLabel = (date: Date) => {
+    const today = new Date();
+    const dStr = format(date, "yyyy-MM-dd");
+    const tStr = format(today, "yyyy-MM-dd");
+    const yStr = format(subDays(today, 1), "yyyy-MM-dd");
+    const tmStr = format(addDays(today, 1), "yyyy-MM-dd");
+
+    if (dStr === tStr) return "Dnes";
+    if (dStr === yStr) return "Včera";
+    if (dStr === tmStr) return "Zajtra";
+    return format(date, "EEEE", { locale: sk });
+  };
+
   // Filter tasks
   const getTasksForDate = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
@@ -67,14 +81,27 @@ export function TodoThreeDayView({
   const tomorrowTasks = getTasksForDate(tomorrow);
 
   return (
-    <div className="flex flex-col h-full gap-4 select-none">
+    <div className="flex flex-col h-full gap-4 select-none relative">
+      <style jsx global>{`
+        @keyframes fullFill {
+          0% { transform: scaleX(0); opacity: 0; }
+          15% { transform: scaleX(1); opacity: 1; }
+          85% { transform: scaleX(1); opacity: 0.8; }
+          100% { transform: scaleX(1); opacity: 0; }
+        }
+        .animate-full-fill {
+          animation: fullFill 0.8s cubic-bezier(.17,.67,.19,.98) forwards;
+          transform-origin: left;
+        }
+      `}</style>
+
       {/* Navigation Header - Centered for Today */}
       <div className="flex items-center justify-between px-4">
         <button
           onClick={() => onDateChange(format(yesterday, "yyyy-MM-dd"))}
           className="text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-600 flex items-center gap-1 select-none"
         >
-          <ChevronLeft size={16} /> Včera
+          <ChevronLeft size={16} /> {getRelativeDateLabel(yesterday)}
         </button>
 
         <div className="flex flex-col items-center relative gap-1 select-none">
@@ -83,7 +110,7 @@ export function TodoThreeDayView({
               {format(current, "EEEE", { locale: sk })}
             </h2>
             <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-widest flex items-center gap-1">
-              {format(current, "d. MMMM", { locale: sk })}
+              {getRelativeDateLabel(current) === "Dnes" ? "Dnes" : format(current, "d. MMMM", { locale: sk })}
             </div>
           </div>
 
@@ -103,10 +130,6 @@ export function TodoThreeDayView({
                 onChange={(e) => onDateChange(e.target.value)}
               />
             </div>
-
-            <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[9px] font-black uppercase tracking-widest text-blue-500 opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap bg-white dark:bg-zinc-900 px-2 py-0.5 rounded shadow-sm border border-zinc-100 dark:border-zinc-800">
-              Zmeniť dátum
-            </span>
           </div>
         </div>
 
@@ -114,7 +137,7 @@ export function TodoThreeDayView({
           onClick={() => onDateChange(format(tomorrow, "yyyy-MM-dd"))}
           className="text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-600 flex items-center gap-1 select-none"
         >
-          Zajtra <ChevronRight size={16} />
+          {getRelativeDateLabel(tomorrow)} <ChevronRight size={16} />
         </button>
       </div>
 
@@ -122,7 +145,7 @@ export function TodoThreeDayView({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
         {/* YESTERDAY */}
         <DayColumn
-          title="Včera"
+          title={getRelativeDateLabel(yesterday)}
           date={yesterday}
           tasks={yesterdayTasks}
           onToggle={onToggle}
@@ -134,7 +157,7 @@ export function TodoThreeDayView({
 
         {/* TODAY */}
         <DayColumn
-          title="Dnes"
+          title={getRelativeDateLabel(current)}
           date={current}
           tasks={todayTasks}
           onToggle={onToggle}
@@ -145,7 +168,7 @@ export function TodoThreeDayView({
 
         {/* TOMORROW */}
         <DayColumn
-          title="Zajtra"
+          title={getRelativeDateLabel(tomorrow)}
           date={tomorrow}
           tasks={tomorrowTasks}
           onToggle={onToggle}
@@ -247,6 +270,7 @@ function DayColumn({
               isCenter={isCenter}
               onDelete={onDelete}
               onUpdate={onUpdate}
+              columnDate={format(date, "yyyy-MM-dd")}
             />
           ))
         ) : (
@@ -270,22 +294,35 @@ function TaskItem({
   onDelete,
   onUpdate,
   isCenter,
+  columnDate,
 }: {
   task: Task;
   onToggle: (id: string, s: boolean) => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, data: Partial<Task>) => void;
   isCenter: boolean;
+  columnDate: string;
 }) {
+  const [isAnimating, setIsAnimating] = React.useState(false);
+
   // Extract time if exists in due_date (YYYY-MM-DDTHH:mm:ss)
   const time =
     task.due_date && task.due_date.includes("T")
       ? format(parseISO(task.due_date), "HH:mm")
       : null;
 
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!task.completed) {
+      setIsAnimating(true);
+      setTimeout(() => setIsAnimating(false), 800);
+    }
+    onToggle(task.id, task.completed);
+  };
+
   return (
     <div
-      className={`group relative p-3 rounded-2xl transition-all border ${
+      className={`group relative p-3 rounded-2xl transition-all border overflow-hidden ${
         task.completed
           ? "bg-zinc-50 dark:bg-zinc-800/30 border-transparent opacity-60"
           : isCenter
@@ -293,12 +330,14 @@ function TaskItem({
             : "bg-white/50 dark:bg-zinc-900/50 border-transparent hover:bg-white"
       }`}
     >
-      <div className="flex items-start gap-3">
+      {/* Dopamine Flash Background */}
+      {isAnimating && (
+        <div className="absolute inset-0 bg-emerald-500/20 dark:bg-emerald-500/30 animate-full-fill z-0" />
+      )}
+
+      <div className="flex items-start gap-3 relative z-10">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggle(task.id, task.completed);
-          }}
+          onClick={handleToggle}
           className={`mt-0.5 transition-colors ${
             task.completed
               ? "text-emerald-400"
@@ -345,7 +384,7 @@ function TaskItem({
                 <div className="relative cursor-pointer active:scale-95 transition-transform group/timepicker">
                    <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800/40 px-2 py-1 rounded-lg flex items-center gap-1.5 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all border border-dashed border-zinc-200 dark:border-zinc-700 hover:border-blue-200 dark:hover:border-blue-800">
                     <Clock size={10} /> 
-                    <span className="opacity-60">Pridať čas</span>
+                    <span className="opacity-60 whitespace-nowrap">Čas</span>
                   </span>
                   <input
                     type="time"
@@ -353,9 +392,7 @@ function TaskItem({
                     onChange={(e) => {
                       const newTime = e.target.value;
                       if (!newTime) return;
-                      // Fallback to today if not in a date-filtered view, 
-                      // but in 3-day view we know t.due_date exists as at least YYYY-MM-DD
-                      const datePart = task.due_date?.split("T")[0] || format(new Date(), "yyyy-MM-dd");
+                      const datePart = task.due_date?.split("T")[0] || columnDate;
                       const newDueDate = `${datePart}T${newTime}:00`;
                       onUpdate(task.id, { due_date: newDueDate });
                     }}
