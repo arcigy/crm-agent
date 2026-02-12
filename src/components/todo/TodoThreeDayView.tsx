@@ -423,7 +423,7 @@ function TaskItem({
             </div>
             <input
               type="time"
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20"
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20 scale-[2] origin-center"
               value={time || ""}
               title="Zmeniť čas"
               onChange={(e) => {
