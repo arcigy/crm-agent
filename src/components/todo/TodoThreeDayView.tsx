@@ -93,6 +93,18 @@ export function TodoThreeDayView({
           animation: fullFill 0.8s cubic-bezier(.17,.67,.19,.98) forwards;
           transform-origin: left;
         }
+        /* Force time picker indicator to fill the whole input so it's clickable everywhere */
+        input[type="time"]::-webkit-calendar-picker-indicator {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          margin: 0;
+          padding: 0;
+          cursor: pointer;
+          opacity: 0;
+        }
       `}</style>
 
       {/* Navigation Header - Centered for Today */}
@@ -423,7 +435,7 @@ function TaskItem({
             </div>
             <input
               type="time"
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20 scale-[2] origin-center"
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20"
               value={time || ""}
               title="Zmeniť čas"
               onChange={(e) => {
