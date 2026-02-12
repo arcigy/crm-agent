@@ -55,10 +55,13 @@ export async function GET(request: Request) {
 
     // Helper to update key usage in DB reliably
     const syncKeyUsage = async (keyObj: any, callsDone: number) => {
+        if (callsDone <= 0) return;
         try {
             keyObj.usageToday += callsDone;
             keyObj.usageMonth += callsDone;
             const isLimitReached = keyObj.usageToday >= (keyObj.usageLimit || 300);
+            
+            console.log(`[DEBUG] Syncing ${callsDone} calls for key: ${keyObj.label}. New today: ${keyObj.usageToday}`);
             
             await directus.request(updateItem('google_maps_keys', keyObj.id, { 
                 usage_today: keyObj.usageToday, 
@@ -67,8 +70,10 @@ export async function GET(request: Request) {
                 status: isLimitReached ? 'limit_reached' : (keyObj.status === 'error' ? 'error' : 'active'),
                 error_message: keyObj.errorMessage || ''
             }));
+            return true;
         } catch (e) {
-            console.error(`Failed to sync usage for key ${keyObj.label}`, e);
+            console.error(`[CRITICAL] Failed to sync usage for key ${keyObj.label}:`, e);
+            return false;
         }
     };
     
@@ -130,8 +135,13 @@ export async function GET(request: Request) {
             // SECTION START: Select best key if not pagination-bound
             if (!pageToken) {
                 activeKeys = activeKeys.filter(k => k.status !== 'error' && (k.usageToday || 0) < (k.usageLimit || 300));
-                if (activeKeys.length === 0) break;
+                if (activeKeys.length === 0) {
+                    await addLog(job.id, "❌ Všetky kľúče vyčerpané alebo v chybe.");
+                    break;
+                }
+                // Picking the key with absolute minimum usage to be fair
                 currentKey = activeKeys.sort((a, b) => (a.usageToday || 0) - (b.usageToday || 0))[0];
+                console.log(`[DEBUG] Selected key for new section: ${currentKey.label} (Used today: ${currentKey.usageToday})`);
             }
 
             let callsInThisSection = 0;
@@ -153,8 +163,30 @@ export async function GET(request: Request) {
                 }
 
                 // B. Batch Process Details
+                console.log(`[DEBUG] Processing ${searchResult.results.length} results for ${currentCity}...`);
+                
                 for (const rawPlace of searchResult.results) {
-                    if (totalFound >= job.limit || foundThisRun >= limitPerRun || (Date.now() - startTime) >= MAX_RUNTIME) break;
+                    if (totalFound >= job.limit || foundThisRun >= limitPerRun || (Date.now() - startTime) >= MAX_RUNTIME) {
+                        console.log(`[DEBUG] Breaking results loop: Found=${totalFound}/${job.limit}, ThisRun=${foundThisRun}/${limitPerRun}, Time=${Date.now()-startTime}ms`);
+                        break;
+                    }
+
+                    // Optimization: Check if Title + City already exists to avoid Details call
+                    // This isn't perfect but saves $ and time.
+                    const quickCheck: any[] = await directus.request(readItems(LEADS_COLLECTION, {
+                        filter: { 
+                            _and: [
+                                { title: { _eq: rawPlace.name } },
+                                { source_city: { _eq: currentCity } }
+                            ]
+                        },
+                        limit: 1, fields: ['id']
+                    }));
+
+                    if (quickCheck?.length > 0) {
+                        console.log(`[DEBUG] Skipping known duplicate by title/city: ${rawPlace.name}`);
+                        continue; 
+                    }
 
                     const details: any = await getPlaceDetails(currentKey.key, rawPlace.place_id);
                     callsInThisSection++;
@@ -176,7 +208,7 @@ export async function GET(request: Request) {
                             enrichment_status: hasWebsite ? 'pending' : null
                         };
 
-                        // Duplicate check (Keep it local if possible, but Directus is faster)
+                        // Final duplicate check by URL
                         const existing: any[] = await directus.request(readItems(LEADS_COLLECTION, {
                             filter: { google_maps_url: { _eq: details.url } },
                             limit: 1, fields: ['id']
@@ -186,11 +218,15 @@ export async function GET(request: Request) {
                             await directus.request(createItem(LEADS_COLLECTION, newLead));
                             totalFound++;
                             foundThisRun++;
-                            // Fast update of found count in job
                             if (totalFound % 5 === 0) {
                                 await directus.request(updateItem(JOBS_COLLECTION, job.id, { found_count: totalFound }));
+                                await addLog(job.id, `💾 Priebežný stav: ${totalFound} leadov...`);
                             }
+                        } else {
+                            console.log(`[DEBUG] Skipping duplicate by URL: ${details.url}`);
                         }
+                    } else {
+                        console.warn(`[DEBUG] Failed to fetch details for ${rawPlace.place_id}`);
                     }
                 }
 
@@ -237,10 +273,23 @@ export async function GET(request: Request) {
 
         await addLog(job.id, `📊 Súhrn várky: +${foundThisRun} leadov. Celkom ${totalFound}. (${totalCallsThisBatch} requestov zaznamenaných).`);
         
-        // Trigger chain or enrichment
+        // Final usage sync if loop ended abruptly
+        if (foundThisRun === 0 && !isFinished && !isCancelled) {
+             console.log("[DEBUG] Found 0 leads this run (all duplicates?), but continuing chain...");
+        }
+
         const baseUrl = `${request.headers.get("x-forwarded-proto") || "https"}://${request.headers.get("host") || "crm.arcigy.cloud"}`;
+        
+        // Enrichment trigger
         fetch(`${baseUrl}/api/cron/enrich-leads`).catch(() => {});
-        if (!isFinished && !isCancelled && foundThisRun > 0) {
+
+        // Continuation trigger
+        // IMPORTANT: Chain should continue ONLY if we are not finished AND not cancelled.
+        // Even if foundThisRun is 0, we might have just hit a patch of duplicates and need to check the next city.
+        const canContinue = !isFinished && !isCancelled && cityIndex < targetLocations.length;
+
+        if (canContinue) {
+            console.log(`[DEBUG] Chaining worker. Next city index: ${cityIndex}`);
             setTimeout(() => fetch(`${baseUrl}/api/cron/google-maps-worker`).catch(() => {}), 1000);
         }
 
