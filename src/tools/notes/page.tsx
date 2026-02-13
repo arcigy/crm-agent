@@ -184,10 +184,10 @@ export default function NotesTool() {
                 <div
                   key={note.id}
                   onClick={() => setSelectedNote(note)}
-                  className={`p-5 rounded-[1.5rem] border transition-all duration-300 cursor-pointer group relative overflow-hidden ${
+                  className={`p-5 rounded-2xl border transition-all duration-300 cursor-pointer group relative overflow-hidden ${
                     selectedNote?.id === note.id 
-                      ? "bg-indigo-500/90 text-white border-transparent shadow-lg shadow-indigo-500/20 scale-[1.02]" 
-                      : "bg-white/50 dark:bg-white/5 text-foreground border-transparent hover:bg-white dark:hover:bg-white/10"
+                      ? "bg-indigo-500 text-white border-indigo-400 shadow-xl shadow-indigo-500/20 scale-[1.02] z-10" 
+                      : "bg-white dark:bg-zinc-900 border-zinc-100 dark:border-white/5 text-foreground hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 hover:border-indigo-200 dark:hover:border-indigo-800/50 hover:shadow-md"
                   }`}
                 >
                   <h3 className={`text-lg font-bold tracking-tight mb-1 truncate ${selectedNote?.id === note.id ? "text-white" : "text-gray-900 dark:text-gray-100"}`}>
