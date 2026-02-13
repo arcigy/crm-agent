@@ -42,10 +42,21 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
         </div>
         
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 border border-white/5 shadow-sm
-          ${label === "Hotové Úlohy" ? 'bg-green-500 text-white shadow-lg shadow-green-500/30' : `${color} bg-opacity-10`}
+          ${label === "Hotové Úlohy" 
+            ? 'bg-green-500 text-white shadow-lg shadow-green-500/30' 
+            : label === "Kontakty" ? 'bg-blue-500/10'
+            : label === "Projekty" ? 'bg-indigo-500/10'
+            : 'bg-emerald-500/10'
+          }
         `}>
           <Icon 
-            className={`w-6 h-6 ${label === "Hotové Úlohy" ? 'text-white' : color.replace('bg-', 'text-')}`} 
+            className={`w-6 h-6 
+              ${label === "Hotové Úlohy" ? 'text-white' 
+                : label === "Kontakty" ? 'text-blue-500'
+                : label === "Projekty" ? 'text-indigo-500'
+                : 'text-emerald-500'
+              }
+            `} 
             strokeWidth={label === "Hotové Úlohy" ? 4 : 2.5}
           />
         </div>
