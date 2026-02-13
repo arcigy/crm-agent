@@ -101,5 +101,15 @@ export function useProjectsTable(data: Project[], contacts: Lead[]) {
     setFullDetailTab,
     handleStageChange,
     handleExport,
+    handleCreateProject: async (data: any) => {
+      const { createProject } = await import("@/app/actions/projects/mutate");
+      const res = await createProject(data);
+      if (res.success) {
+        toast.success("Projekt vytvorený");
+        setIsModalOpen(false);
+      } else {
+        toast.error(res.error || "Chyba pri vytváraní");
+      }
+    }
   };
 }

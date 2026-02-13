@@ -92,7 +92,7 @@ export default async function ProjectsPage() {
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
-              Obchody
+              Projekty
             </h1>
           </div>
         </div>

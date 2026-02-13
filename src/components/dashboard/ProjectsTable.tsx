@@ -39,6 +39,7 @@ export function ProjectsTable({
     setFullDetailTab,
     handleStageChange,
     handleExport,
+    handleCreateProject,
   } = useProjectsTable(data, contacts);
 
   const columns = React.useMemo(
@@ -86,6 +87,7 @@ export function ProjectsTable({
       <CreateProjectModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSubmit={handleCreateProject}
         contacts={contacts}
       />
       <ContactDetailModal
@@ -110,19 +112,19 @@ export function ProjectsTable({
               placeholder="Hľadať v projektoch..."
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-2xl text-sm font-bold focus:border-blue-500 outline-none transition-all placeholder:text-muted-foreground/30 text-foreground"
+              className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-2xl text-sm font-bold focus:border-indigo-500 outline-none transition-all placeholder:text-muted-foreground/30 text-foreground"
             />
           </div>
           <button
             onClick={handleExport}
             className="flex items-center gap-2 px-4 py-3 bg-white border border-border rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground hover:bg-muted transition-all"
           >
-            <Download className="w-4 h-4 text-blue-500" /> Export
+            <Download className="w-4 h-4 text-indigo-500" /> Export
           </button>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
+          className="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" /> Nový Projekt
         </button>
@@ -130,7 +132,7 @@ export function ProjectsTable({
 
       <div className="overflow-x-auto flex-1 thin-scrollbar">
         <table className="w-full text-left border-collapse min-w-[800px]">
-          <thead className="bg-[#020617]/50 backdrop-blur-md sticky top-0 z-10 border-b border-border">
+          <thead className="bg-indigo-50/50 dark:bg-indigo-950/20 backdrop-blur-md sticky top-0 z-10 border-b border-border">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -151,7 +153,7 @@ export function ProjectsTable({
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="hover:bg-blue-500/5 transition-colors group"
+                className="hover:bg-indigo-500/5 transition-colors group"
               >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-6 py-4">

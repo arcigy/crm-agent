@@ -88,7 +88,7 @@ export function CreateProjectModal({
             </div>
             <div>
               <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase italic">
-                Pridať Deal
+                Pridať Projekt
               </h2>
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1 opacity-60">
                 Accelerate your pipeline
@@ -136,7 +136,7 @@ export function CreateProjectModal({
                   required
                   list="contacts-list"
                   type="text"
-                  className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-indigo-500 focus:bg-white transition-all outline-none"
+                  className="w-full h-14 bg-gray-50/50 border-2 border-indigo-50 dark:border-white/5 rounded-2xl px-5 font-bold text-sm focus:border-indigo-500 focus:bg-white transition-all outline-none"
                   placeholder="Začnite písať meno..."
                   onChange={(e) => {
                     const selected = contacts.find(
@@ -213,7 +213,7 @@ export function CreateProjectModal({
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                "Vytvoriť Deal"
+                "Vytvoriť Projekt"
               )}
             </button>
           </div>

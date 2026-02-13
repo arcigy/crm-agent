@@ -27,11 +27,11 @@ export const getProjectColumns = (
       return (
         <Link
           href={iso ? `/dashboard/calendar?date=${iso}` : "#"}
-          className="flex items-center gap-1.5 text-xs group hover:text-blue-600 transition-colors"
+          className="flex items-center gap-1.5 text-xs group hover:text-indigo-600 transition-colors"
           onClick={(e) => !iso && e.preventDefault()}
         >
           <Calendar className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-400" />
-          <span className="font-medium text-foreground group-hover:text-blue-700 dark:group-hover:text-blue-400 hover:underline">
+          <span className="font-medium text-foreground group-hover:text-indigo-700 dark:group-hover:text-indigo-400 hover:underline">
             {isValid
               ? d.toLocaleDateString("sk-SK", {
                   day: "numeric",
@@ -50,7 +50,7 @@ export const getProjectColumns = (
         className="flex flex-col cursor-pointer group/name"
         onClick={() => onProjectClick?.(info.row.original)}
       >
-        <span className="font-black text-foreground text-[11px] uppercase tracking-tight italic group-hover/name:text-blue-600 transition-colors">
+        <span className="font-black text-foreground text-[11px] uppercase tracking-tight italic group-hover/name:text-indigo-600 transition-colors">
           {info.getValue() || info.row.original.project_type}
         </span>
         <div className="flex items-center gap-1 opacity-50">
@@ -89,10 +89,10 @@ export const getProjectColumns = (
             if (c) onContactClick(c);
           }}
         >
-          <div className="w-6 h-6 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300">
+          <div className="w-6 h-6 rounded-full bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 flex items-center justify-center text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
             {initials}
           </div>
-          <span className="text-xs font-bold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          <span className="text-xs font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
             {name}
           </span>
         </div>
@@ -135,7 +135,7 @@ export const getProjectColumns = (
           <Calendar
             className={`w-4 h-4 ${isOverdue ? "text-red-400" : "text-gray-400"} group-hover:text-blue-400`}
           />
-          <span className="font-medium group-hover:text-blue-600">
+          <span className="font-medium group-hover:text-indigo-600">
             {isValidDate ? d.toLocaleDateString("sk-SK") : "—"}
           </span>
           {isOverdue && (
@@ -156,7 +156,7 @@ export const getProjectColumns = (
           e.stopPropagation();
           onDriveClick(info.row.original);
         }}
-        className={`p-1.5 rounded-lg border border-border transition-colors ${info.row.original.drive_folder_id ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white" : "bg-gray-50 dark:bg-slate-800 text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700"}`}
+        className={`p-1.5 rounded-lg border border-border transition-colors ${info.row.original.drive_folder_id ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white" : "bg-gray-50 dark:bg-slate-800 text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700"}`}
       >
         <HardDrive className="w-3.5 h-3.5" />
       </button>
