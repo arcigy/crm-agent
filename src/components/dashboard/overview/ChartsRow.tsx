@@ -16,10 +16,18 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
 
   const pipelineStages = useMemo(() => {
     const stages = ["lead", "planning", "active", "completed", "archived"];
+    const colors: Record<string, string> = {
+      lead: "bg-purple-500",
+      planning: "bg-blue-500",
+      active: "bg-emerald-500",
+      completed: "bg-teal-500",
+      archived: "bg-gray-500"
+    };
     return stages.map(s => ({
       label: s.charAt(0).toUpperCase() + s.slice(1),
       count: projects.filter(p => p.stage === s).length,
-      percentage: projects.length > 0 ? (projects.filter(p => p.stage === s).length / projects.length) * 100 : 0
+      percentage: projects.length > 0 ? (projects.filter(p => p.stage === s).length / projects.length) * 100 : 0,
+      color: colors[s] || "bg-zinc-900"
     }));
   }, [projects]);
 
@@ -48,7 +56,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
             </div>
             <div className="h-2.5 bg-muted/60 dark:bg-zinc-800/60 rounded-full overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/5">
               <div 
-                  className="h-full bg-zinc-900 dark:bg-zinc-100 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(0,0,0,0.2)]"
+                className={`h-full ${stage.color} transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(0,0,0,0.2)]`}
                 style={{ width: `${stage.percentage}%` }}
               />
             </div>

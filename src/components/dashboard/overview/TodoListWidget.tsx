@@ -46,22 +46,33 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   const handleToggle = async (id: string, currentStatus: boolean) => {
     if (animatingIds.some(a => a.id === id)) return;
     
+    // Optimistic update immediately
+    setLocalTasks(prev => 
+      prev.map(t => t.id === id ? { ...t, completed: !currentStatus } : t)
+    );
+    
+    // Animate
     const type = currentStatus ? 'uncomplete' : 'complete';
     setAnimatingIds(prev => [...prev, { id, type }]);
     
-    const waitTime = type === 'complete' ? 700 : 250;
+    // Sync with server (with small delay for animation)
+    const waitTime = type === 'complete' ? 500 : 0;
 
     setTimeout(async () => {
       try {
         const res = await toggleTaskStatus(id, !currentStatus);
-        if (res.success) {
+        if (!res.success) {
+          // Revert on error
           setLocalTasks(prev => 
-            prev.map(t => t.id === id ? { ...t, completed: !currentStatus } : t)
+            prev.map(t => t.id === id ? { ...t, completed: currentStatus } : t)
           );
-        } else {
           toast.error("Chyba synchronizácie");
         }
       } catch (e) {
+        // Revert on error
+        setLocalTasks(prev => 
+          prev.map(t => t.id === id ? { ...t, completed: currentStatus } : t)
+        );
         toast.error("Chyba pripojenia");
       } finally {
         setAnimatingIds(prev => prev.filter(item => item.id !== id));
@@ -154,14 +165,14 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                       handleToggle(task.id, !!isDone);
                     }}
                     disabled={isAnimating}
-                    className={`flex-shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center transition-all
+                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200
                       ${isDone 
-                        ? 'bg-[#16a34a] border-[#22c55e] text-white' 
-                        : 'bg-transparent border-zinc-200 dark:border-zinc-800 text-transparent group-hover/item:border-[#16a34a] group-hover/item:bg-[#16a34a]/20'}
-                      ${isCompleting ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}
+                        ? 'bg-emerald-500 border-emerald-500 text-white scale-100' 
+                        : 'bg-transparent border-zinc-300 dark:border-zinc-700 text-transparent hover:border-emerald-500 hover:text-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 active:scale-95'}
+                      ${isCompleting ? 'scale-110 bg-emerald-500 border-emerald-500 text-white' : ''}
                     `}
                   >
-                    {isDone ? <Undo2 className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+                    <Check className={`w-3.5 h-3.5 transition-transform ${isDone || isCompleting ? 'scale-100' : 'scale-75'}`} strokeWidth={3} />
                   </button>
                 </div>
 
