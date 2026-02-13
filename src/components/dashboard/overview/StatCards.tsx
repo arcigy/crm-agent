@@ -33,11 +33,13 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
           <h3 className="text-2xl font-black text-foreground italic tracking-tighter">
             {value}
           </h3>
-          {trend && (
+          {trend ? (
             <p className="text-[10px] font-black italic text-emerald-500 mt-1.5 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded-lg w-fit">
               <TrendingUp className="w-3 h-3" />
               {trend}
             </p>
+          ) : (
+            <div className="h-[21px] mt-1.5" /> // Keep height consistent for icon alignment
           )}
         </div>
         
