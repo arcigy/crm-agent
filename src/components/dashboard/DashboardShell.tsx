@@ -154,7 +154,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
         <nav className="flex-1 px-4 flex flex-col justify-start py-4 gap-6 overflow-y-auto scrollbar-hide">
           {menuGroups.map((group) => (
             <div key={group.title} className="space-y-2">
-              <h3 className="px-6 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-600 mb-4">
+              <h3 className="px-6 text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400/70 dark:text-indigo-500/50 mb-4 font-black">
                 {group.title}
               </h3>
               <div className="space-y-1">
