@@ -107,7 +107,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                 key={task.id} 
                 className={`flex items-center gap-4 p-3 rounded-2xl transition-all relative overflow-hidden group/item border shadow-none
                   ${isDone 
-                    ? 'opacity-40 grayscale-[0.8] bg-emerald-500/5 border-emerald-500/10' 
+                    ? 'bg-emerald-500/10 border-emerald-500/20' 
                     : 'bg-white/60 dark:bg-zinc-900/40 border-black/10 dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/30 cursor-pointer'}
                   ${isCompleting ? 'scale-[1.01] z-30' : 'z-10'}
                 `}
@@ -128,7 +128,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
 
                 <div className="flex-1 min-w-0 relative z-10 flex items-baseline justify-between gap-3">
                   <div className={`transition-all duration-300 flex-1 truncate
-                    ${isDone ? 'text-[#15803d] dark:text-[#4ade80] italic' : 'text-foreground font-black'}
+                    ${isDone ? 'text-emerald-700 dark:text-emerald-400 line-through decoration-emerald-500/50 decoration-2' : 'text-foreground font-black'}
                     ${isCompleting ? 'text-white' : ''}
                   `}>
                     <SmartText text={task.title} className="text-[14px] md:text-[15px] tracking-tight leading-none truncate block" />
@@ -150,14 +150,21 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                       e.stopPropagation();
                       handleToggle(task.id, !!isDone);
                     }}
-                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200
+                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 group/btn
                       ${isDone 
-                        ? 'bg-transparent border-red-200 hover:bg-red-50/50 hover:border-red-300' 
+                        ? 'bg-emerald-500 border-emerald-500 hover:bg-red-500 hover:border-red-500' // Green normally, Red on hover
                         : 'bg-transparent border-zinc-300 dark:border-zinc-700 text-zinc-300 dark:text-zinc-600 hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 active:scale-95'}
                       ${isCompleting ? 'scale-110 bg-emerald-500 border-emerald-500 text-white' : ''}
                     `}
                   >
-                    {isDone ? <Undo2 className="w-3.5 h-3.5 text-red-500" /> : <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+                    {isDone ? (
+                      <div className="relative w-3.5 h-3.5">
+                        <Check className="absolute inset-0 w-3.5 h-3.5 text-white scale-100 group-hover/btn:scale-0 transition-transform" strokeWidth={3} />
+                        <Undo2 className="absolute inset-0 w-3.5 h-3.5 text-white scale-0 group-hover/btn:scale-100 transition-transform" />
+                      </div>
+                    ) : (
+                      <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                    )}
                   </button>
                 </div>
 
