@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, RefreshCw, Clock, Check, AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, Edit3, Settings } from "lucide-react";
+import { Zap, Upload, Trash2, Search, Loader2, Link2, MapPin, Briefcase, Plus, Folder, CheckSquare, X, ArrowRightLeft, Send, RefreshCw, Clock, Check, AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, Edit3, Settings, Download } from "lucide-react";
 import { 
     getColdLeads, 
     deleteColdLead, 
@@ -478,6 +478,42 @@ export default function OutreachLeadsPage() {
       }
   };
 
+  const handleExport = () => {
+      const ids = Array.from(selectedIds);
+      const leadsToExport = leads.filter(l => ids.includes(l.id));
+      
+      if (leadsToExport.length === 0) return;
+
+      // Extract headers
+      const headers = ["Title", "Company", "Website", "Email", "Phone", "City", "Category", "AI First Sentence"];
+      
+      // Map data
+      const csvContent = [
+          headers.join(","),
+          ...leadsToExport.map(l => [
+              `"${(l.title || "").replace(/"/g, '""')}"`,
+              `"${(l.company_name_reworked || "").replace(/"/g, '""')}"`,
+              `"${(l.website || "").replace(/"/g, '""')}"`,
+              `"${(l.email || "").replace(/"/g, '""')}"`,
+              `"${(l.phone || "").replace(/"/g, '""')}"`,
+              `"${(l.city || "").replace(/"/g, '""')}"`,
+              `"${(l.category || "").replace(/"/g, '""')}"`,
+              `"${(l.ai_first_sentence || "").replace(/"/g, '""')}"`
+          ].join(","))
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `leads_export_${activeListName}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(`${leadsToExport.length} leadov vyexportovaných`);
+  };
+
 
   // --- Individual Actions ---
   const handleDelete = async (id: string | number) => {
@@ -794,6 +830,14 @@ export default function OutreachLeadsPage() {
                           >
                               <ArrowRightLeft className="w-4 h-4" />
                               AI Sorting
+                          </button>
+
+                          <button 
+                              onClick={handleExport}
+                              className="px-4 py-2 hover:bg-green-50 text-green-600 rounded-xl flex items-center gap-2 font-bold text-xs transition-colors"
+                          >
+                              <Download className="w-4 h-4" />
+                              Export
                           </button>
 
                          <div className="h-8 w-px bg-gray-100 mx-1"></div>

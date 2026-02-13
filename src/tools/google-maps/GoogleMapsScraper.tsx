@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, RefreshCw, Zap, Plus, FolderPlus, ArrowLeft, Mail, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Search, MapPin, Play, StopCircle, History, List, Settings, Database, RefreshCw, Zap, Plus, FolderPlus, ArrowLeft, Mail, Loader2, CheckCircle2, XCircle, Download } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ToolWrapper } from "@/components/tools/ToolWrapper";
@@ -45,6 +45,34 @@ export default function GoogleMapsScraper() {
         };
         fetchLists();
     }, [targetList]);
+
+    const handleExportCSV = () => {
+        if (places.length === 0) return toast.error("Žiadne výsledky na export");
+
+        const headers = ["Name", "Address", "Website", "Phone", "Email", "Status"];
+        const csvContent = [
+            headers.join(","),
+            ...places.map(p => [
+                `"${(p.name || "").replace(/"/g, '""')}"`,
+                `"${(p.address || "").replace(/"/g, '""')}"`,
+                `"${(p.website || "").replace(/"/g, '""')}"`,
+                `"${(p.phone || "").replace(/"/g, '""')}"`,
+                `"${(p.email || "").replace(/"/g, '""')}"`,
+                `"${p.enrichment_status || ""}"`
+            ].join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `google_maps_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("CSV exportované");
+    };
 
     const handleCreateList = async () => {
         const name = prompt("Zadajte názov nového zoznamu:");
@@ -175,9 +203,17 @@ export default function GoogleMapsScraper() {
                                 <h3 className="font-black text-gray-900 uppercase tracking-tight text-sm flex items-center gap-2">
                                     <Database className="w-4 h-4 text-blue-500" /> Aktuálne výsledky
                                 </h3>
-                                <a href="/dashboard/outreach/leads" className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest">
-                                    Správa leadov →
-                                </a>
+                                <div className="flex items-center gap-4">
+                                     <button 
+                                        onClick={handleExportCSV}
+                                        className="text-[10px] font-black text-green-600 hover:bg-green-50 px-3 py-1.5 rounded-xl border border-green-100 flex items-center gap-2 transition-all"
+                                    >
+                                        <Download className="w-3 h-3" /> EXPORT
+                                    </button>
+                                    <a href="/dashboard/outreach/leads" className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest">
+                                        Správa leadov →
+                                    </a>
+                                </div>
                             </div>
                             <div className="p-4 space-y-3 bg-gray-50/20">
                                 {places.length === 0 && !isScraping && (
