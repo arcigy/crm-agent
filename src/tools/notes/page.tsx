@@ -142,7 +142,7 @@ export default function NotesTool() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto w-full h-[calc(100vh-160px)] flex flex-col space-y-6 p-4 animate-in fade-in duration-700 overflow-hidden">
+    <div className="max-w-[1600px] mx-auto w-full h-[calc(100vh-140px)] flex flex-col space-y-6 p-4 animate-in fade-in duration-700 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -173,7 +173,7 @@ export default function NotesTool() {
       {/* Content Area */}
       <div className="flex-1 flex gap-8 overflow-hidden min-h-0">
         {/* sidebar */}
-        <div className="w-80 overflow-y-auto pr-2 custom-scrollbar shrink-0">
+        <div className="w-80 overflow-y-auto pr-2 custom-scrollbar shrink-0 flex flex-col gap-3">
           {loading ? (
             <div className="flex justify-center p-20">
               <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
@@ -184,25 +184,26 @@ export default function NotesTool() {
                 <div
                   key={note.id}
                   onClick={() => setSelectedNote(note)}
-                  className={`p-6 rounded-[2rem] border-2 transition-all duration-300 cursor-pointer group relative overflow-hidden shadow-none ${selectedNote?.id === note.id ? "bg-indigo-600 border-indigo-600 shadow-lg shadow-indigo-600/20 active:scale-[0.98]" : "bg-card text-foreground border-border hover:border-indigo-500/30 hover:bg-indigo-50/10"}`}
+                  className={`p-5 rounded-[1.5rem] border transition-all duration-300 cursor-pointer group relative overflow-hidden ${
+                    selectedNote?.id === note.id 
+                      ? "bg-indigo-500/90 text-white border-transparent shadow-lg shadow-indigo-500/20 scale-[1.02]" 
+                      : "bg-white/50 dark:bg-white/5 text-foreground border-transparent hover:bg-white dark:hover:bg-white/10"
+                  }`}
                 >
-                  <h3 className="text-xl font-black tracking-tight mb-2 truncate">
+                  <h3 className={`text-lg font-bold tracking-tight mb-1 truncate ${selectedNote?.id === note.id ? "text-white" : "text-gray-900 dark:text-gray-100"}`}>
                     {note.title || "Bez názvu"}
                   </h3>
                   <p
-                    className={`text-[11px] font-medium leading-relaxed line-clamp-2 ${selectedNote?.id === note.id ? "text-indigo-100/70" : "text-gray-500"}`}
+                    className={`text-[11px] font-medium leading-relaxed line-clamp-2 transition-colors ${
+                      selectedNote?.id === note.id ? "text-white/80" : "text-muted-foreground"
+                    }`}
                     dangerouslySetInnerHTML={{ __html: note.content }}
                   />
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {(note.contact_id || note.project_id || note.file_link) && (
-                      <div
-                        className={`w-2 h-2 rounded-full ${selectedNote?.id === note.id ? "bg-indigo-300" : "bg-indigo-500"}`}
-                      />
-                    )}
-                  </div>
                   <button
                     onClick={(e) => deleteNote(e, note.id)}
-                    className={`absolute top-4 right-4 p-2 rounded-xl transition-all opacity-0 group-hover:opacity-100 ${selectedNote?.id === note.id ? "hover:bg-indigo-500" : "hover:bg-red-50 hover:text-red-500"}`}
+                    className={`absolute top-3 right-3 p-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100 ${
+                      selectedNote?.id === note.id ? "hover:bg-white/20 text-white" : "hover:bg-red-50 dark:hover:bg-red-900/40 text-muted-foreground hover:text-red-500"
+                    }`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -291,7 +292,7 @@ export default function NotesTool() {
               )}
 
               <input
-                className="text-4xl font-black tracking-tighter text-foreground mb-8 outline-none placeholder:text-muted-foreground/30 shrink-0 bg-transparent border-none focus:ring-0 leading-tight italic"
+                className="text-4xl font-bold tracking-tighter text-foreground mb-8 outline-none placeholder:text-muted-foreground/30 shrink-0 bg-transparent border-none focus:ring-0 leading-tight italic"
                 value={selectedNote.title}
                 onChange={(e) => {
                   const newNote = { ...selectedNote, title: e.target.value };
