@@ -41,8 +41,10 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
           )}
         </div>
         
-        <div className={`w-12 h-12 rounded-2xl ${color.replace('bg-', 'bg-opacity-10 ')} flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-opacity-20 border border-white/5`}>
-          <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 border border-white/5 shadow-sm
+          ${label === "Hotové Úlohy" ? 'bg-green-500 text-white shadow-green-500/20' : `${color} bg-opacity-10`}
+        `}>
+          <Icon className={`w-6 h-6 ${label === "Hotové Úlohy" ? 'text-white' : color.replace('bg-', 'text-')}`} />
         </div>
       </div>
     </div>
@@ -77,7 +79,7 @@ export function DashboardStats({ stats }: { stats: any }) {
         label="Hotové Úlohy"
         value={stats.completedTasks || 0}
         icon={CheckCircle2}
-        color="bg-[#16a34a]"
+        color="bg-emerald-600"
       />
     </div>
   );
