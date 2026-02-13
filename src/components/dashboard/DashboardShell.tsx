@@ -25,36 +25,53 @@ import { LogoutButton } from "./LogoutButton";
 import { useUser } from "@clerk/nextjs";
 import { FloatingAgentChat } from "./FloatingAgentChat";
 
-const menuGroups = [
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: any;
+  allowedEmails?: string[];
+}
+
+interface MenuGroup {
+  title: string;
+  items: NavigationItem[];
+}
+
+const menuGroups: MenuGroup[] = [
   {
-    title: "Operatíva",
+    title: "Denný prehľad",
     items: [
       { name: "Nástenka", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Doručená pošta", href: "/dashboard/leads", icon: Mail },
       { name: "Kalendár", href: "/dashboard/calendar", icon: Calendar },
       { name: "Úlohy", href: "/dashboard/todo", icon: CheckSquare },
+      { name: "Doručená pošta", href: "/dashboard/leads", icon: Mail },
     ]
   },
   {
-    title: "Biznis & CRM",
+    title: "CRM & Sales",
     items: [
       { name: "Kontakty", href: "/dashboard/contacts", icon: Users },
       { name: "Obchody", href: "/dashboard/deals", icon: Briefcase },
+      { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
+    ]
+  },
+  {
+    title: "Produkcia",
+    items: [
       { name: "Projekty", href: "/dashboard/projects", icon: FolderKanban },
+      { name: "Poznámky", href: "/dashboard/notes", icon: FileText },
+      { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
+    ]
+  },
+  {
+    title: "Custom Functions",
+    items: [
       { 
         name: "Cold Outreach", 
         href: "/dashboard/outreach", 
         icon: Zap,
         allowedEmails: ['branislav@arcigy.group', 'andrej@arcigy.group', 'arcigyback@gmail.com']
       },
-    ]
-  },
-  {
-    title: "Kancelária",
-    items: [
-      { name: "Poznámky", href: "/dashboard/notes", icon: FileText },
-      { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
-      { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
     ]
   }
 ];
@@ -134,38 +151,56 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           </button>
         </div>
 
-        <nav className="flex-1 px-4 flex flex-col justify-start py-4 gap-2 overflow-y-auto scrollbar-hide">
-          {menuGroups.flatMap(group =>
-            group.items
-              .filter(item => {
-                if (!item.allowedEmails) return true;
-                const currentEmail = userEmail?.toLowerCase();
-                return currentEmail && item.allowedEmails.some(e => e.toLowerCase() === currentEmail);
-              })
-          ).map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                prefetch={true}
-                onClick={() => setIsMenuOpen(false)}
-                className={`
-                  flex items-center justify-between px-6 py-4 rounded-2xl text-base font-medium transition-all duration-200 group
-                  ${isActive
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-[1.02]"
-                    : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-100 active:scale-95"
-                  }
-                `}
-              >
-                <div className="flex items-center gap-4">
-                  <item.icon className={`w-5.5 h-5.5 transition-colors ${isActive ? "text-white" : "text-zinc-400 group-hover:text-indigo-500"}`} />
-                  <span className="tracking-tight">{item.name}</span>
-                </div>
-                <ChevronRight className={`w-4 h-4 transition-all opacity-0 group-hover:opacity-40 ${isActive ? "hidden" : "block"}`} />
-              </Link>
-            );
-          })}
+        <nav className="flex-1 px-4 flex flex-col justify-start py-4 gap-6 overflow-y-auto scrollbar-hide">
+          {menuGroups.map((group) => (
+            <div key={group.title} className="space-y-2">
+              <h3 className="px-6 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-600 mb-4">
+                {group.title}
+              </h3>
+              <div className="space-y-1">
+                {group.items
+                  .filter((item) => {
+                    if (!item.allowedEmails) return true;
+                    const currentEmail = userEmail?.toLowerCase();
+                    return (
+                      currentEmail &&
+                      item.allowedEmails.some(
+                        (e) => e.toLowerCase() === currentEmail,
+                      )
+                    );
+                  })
+                  .map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        prefetch={true}
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`
+                          flex items-center justify-between px-6 py-3.5 rounded-2xl text-[13px] font-bold transition-all duration-200 group
+                          ${
+                            isActive
+                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-[1.02]"
+                              : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-100 active:scale-95"
+                          }
+                        `}
+                      >
+                        <div className="flex items-center gap-4">
+                          <item.icon
+                            className={`w-5 h-5 transition-colors ${isActive ? "text-white" : "text-zinc-400 group-hover:text-indigo-500"}`}
+                          />
+                          <span className="tracking-tight">{item.name}</span>
+                        </div>
+                        <ChevronRight
+                          className={`w-4 h-4 transition-all opacity-0 group-hover:opacity-40 ${isActive ? "hidden" : "block"}`}
+                        />
+                      </Link>
+                    );
+                  })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="p-4 border-t border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-black/20 space-y-3">
