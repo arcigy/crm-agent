@@ -163,7 +163,7 @@ export default function NotesTool() {
           </div>
           <button
             onClick={createNote}
-            className="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 active:scale-95 transition-all"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 active:scale-95 transition-all shadow-lg shadow-indigo-600/20"
           >
             <Plus className="w-4 h-4" /> Nový záznam
           </button>
@@ -186,7 +186,7 @@ export default function NotesTool() {
                   onClick={() => setSelectedNote(note)}
                   className={`p-5 rounded-2xl border transition-all duration-300 cursor-pointer group relative overflow-hidden ${
                     selectedNote?.id === note.id 
-                      ? "bg-indigo-500 text-white border-indigo-400 shadow-xl shadow-indigo-500/20 scale-[1.02] z-10" 
+                      ? "bg-indigo-500 text-white border-indigo-400 scale-[1.02] z-10" 
                       : "bg-white dark:bg-zinc-900 border-zinc-100 dark:border-white/5 text-foreground hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 hover:border-indigo-200 dark:hover:border-indigo-800/50 hover:shadow-md"
                   }`}
                 >
