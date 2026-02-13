@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, FolderKanban, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Users, FolderKanban, TrendingUp, Check } from "lucide-react";
 
 interface StatCardProps {
   label: string;
@@ -42,9 +42,12 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
         </div>
         
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 border border-white/5 shadow-sm
-          ${label === "Hotové Úlohy" ? 'bg-green-500 text-white shadow-green-500/20' : `${color} bg-opacity-10`}
+          ${label === "Hotové Úlohy" ? 'bg-green-500 text-white shadow-lg shadow-green-500/30' : `${color} bg-opacity-10`}
         `}>
-          <Icon className={`w-6 h-6 ${label === "Hotové Úlohy" ? 'text-white' : color.replace('bg-', 'text-')}`} />
+          <Icon 
+            className={`w-6 h-6 ${label === "Hotové Úlohy" ? 'text-white' : color.replace('bg-', 'text-')}`} 
+            strokeWidth={label === "Hotové Úlohy" ? 4 : 2.5}
+          />
         </div>
       </div>
     </div>
@@ -78,8 +81,8 @@ export function DashboardStats({ stats }: { stats: any }) {
       <StatCard
         label="Hotové Úlohy"
         value={stats.completedTasks || 0}
-        icon={CheckCircle2}
-        color="bg-emerald-600"
+        icon={Check}
+        color="bg-green-500"
       />
     </div>
   );

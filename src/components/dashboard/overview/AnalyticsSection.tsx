@@ -62,7 +62,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
                   {item.projectName}
                 </span>
                 <Link 
-                  href={`/dashboard/contacts?id=${item.contactId}`}
+                  href={`/dashboard/contacts?id=${item.contactId?.id || item.contactId}`}
                   className="text-sm font-black text-foreground truncate tracking-tight hover:text-blue-500 transition-colors"
                 >
                   {item.contactName}
