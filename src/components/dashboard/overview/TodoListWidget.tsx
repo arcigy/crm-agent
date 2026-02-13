@@ -125,7 +125,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                     : 'bg-white/60 dark:bg-zinc-900/40 border-black/10 dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/30 cursor-pointer'}
                   ${isCompleting ? 'scale-[1.01] z-30' : 'z-10'}
                 `}
-                onClick={() => !isDone && !isAnimating && handleToggle(task.id, false)}
+                onClick={() => {}} // Remove row click handler
               >
                 {/* Full-Row Dopamine Fill */}
                 {isCompleting && (
@@ -167,12 +167,12 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                     disabled={isAnimating}
                     className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200
                       ${isDone 
-                        ? 'bg-emerald-500 border-emerald-500 text-white scale-100' 
-                        : 'bg-transparent border-zinc-300 dark:border-zinc-700 text-transparent hover:border-emerald-500 hover:text-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 active:scale-95'}
+                        ? 'bg-transparent border-red-200 hover:bg-red-50/50 hover:border-red-300' 
+                        : 'bg-transparent border-zinc-300 dark:border-zinc-700 text-zinc-300 dark:text-zinc-600 hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 active:scale-95'}
                       ${isCompleting ? 'scale-110 bg-emerald-500 border-emerald-500 text-white' : ''}
                     `}
                   >
-                    <Check className={`w-3.5 h-3.5 transition-transform ${isDone || isCompleting ? 'scale-100' : 'scale-75'}`} strokeWidth={3} />
+                    {isDone ? <Undo2 className="w-3.5 h-3.5 text-red-500" /> : <Check className="w-3.5 h-3.5" strokeWidth={3} />}
                   </button>
                 </div>
 

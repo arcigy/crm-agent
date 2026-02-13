@@ -34,14 +34,9 @@ export function CalendarWidget({ events }: { events: any[] }) {
     setSelectedDate(prev => addDays(prev, amount * 7));
   };
 
-  // Helper to clean "code-like" prefixes
+  // Extract helper function outside or use it inside render
   const cleanSummary = (text: string) => {
-    if (!text) return "";
-    return text
-      .replace(/^\[TODO\]\s*/i, "")
-      .replace(/^TASK:\s*/i, "")
-      .replace(/ID:\s*[a-z0-9-]+\s*\|\s*/i, "")
-      .trim();
+    return text || "Bez názvu";
   };
 
   return (
@@ -117,27 +112,43 @@ export function CalendarWidget({ events }: { events: any[] }) {
           {format(selectedDate, "d. MMMM yyyy", { locale: sk })}
         </div>
         
-        {dailyEvents.map((event, i) => {
-          const summary = cleanSummary(event.summary);
-          const time = event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "Udalosť";
+        {dailyEvents.length > 0 ? (
+          dailyEvents.map((event, i) => {
+            const summary = cleanSummary(event.summary);
+            const startTime = event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "Celý deň";
 
-          return (
-            <div key={i} className="relative pl-3 border-l-4 border-indigo-500/50 py-2 bg-white/40 dark:bg-zinc-900/30 hover:bg-white/70 dark:hover:bg-zinc-800/60 transition-all rounded-r-2xl group/event mb-1.5 border border-black/5 dark:border-white/5 group flex items-baseline gap-2">
-              <span className="text-[10px] font-black text-indigo-500 uppercase italic tracking-tighter bg-indigo-500/10 px-1.5 py-0.5 rounded leading-none flex-shrink-0">
-                {time}
-              </span>
-              <span className="text-zinc-400 text-[10px] font-black leading-none opacity-40">:</span>
-              <span className="text-[13px] font-black text-foreground leading-none tracking-tight truncate flex-1">
-                 <SmartText text={summary} />
-              </span>
-            </div>
-          );
-        })}
-        
-        {dailyEvents.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center opacity-20 py-8">
-            <CalendarIcon className="w-8 h-8 mb-3 text-muted-foreground" />
-            <p className="text-[10px] font-black italic uppercase tracking-widest leading-none">Žiadne udalosti</p>
+            return (
+              <div key={i} className="group flex items-center gap-3 p-3 bg-white/60 dark:bg-zinc-900/40 rounded-2xl border border-black/5 dark:border-white/5 hover:bg-white dark:hover:bg-zinc-800 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                <div className="flex flex-col items-center justify-center w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800/30 flex-shrink-0 group-hover:scale-105 transition-transform">
+                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-0.5">
+                    {startTime.split(':')[0]}
+                  </span>
+                  <span className="text-[10px] font-bold text-indigo-300 leading-none">
+                    {startTime.split(':')[1] || '00'}
+                  </span>
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-foreground truncate leading-tight mb-0.5 group-hover:text-indigo-600 transition-colors">
+                    {summary}
+                  </h4>
+                  <p className="text-[10px] font-medium text-muted-foreground truncate flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400/50 inline-block" />
+                    {event.description || "Udalosť z kalendára"}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-8 space-y-3">
+             <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center">
+                <CalendarIcon className="w-8 h-8 text-zinc-300 dark:text-zinc-600" />
+             </div>
+             <div>
+               <p className="text-sm font-bold text-foreground">Žiadne plány</p>
+               <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Užívajte si voľno</p>
+             </div>
           </div>
         )}
       </div>
