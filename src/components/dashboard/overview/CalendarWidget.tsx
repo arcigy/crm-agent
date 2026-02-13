@@ -34,9 +34,11 @@ export function CalendarWidget({ events }: { events: any[] }) {
     setSelectedDate(prev => addDays(prev, amount * 7));
   };
 
-  // Extract helper function outside or use it inside render
-  const cleanSummary = (text: string) => {
-    return text || "Bez názvu";
+  // Helper to remove HTML tags and clean text
+  const cleanText = (text: string) => {
+    if (!text) return "";
+    const doc = new DOMParser().parseFromString(text, 'text/html');
+    return doc.body.textContent || "";
   };
 
   return (
@@ -55,7 +57,10 @@ export function CalendarWidget({ events }: { events: any[] }) {
       
       {/* Header */}
       <div className="flex items-center justify-between mb-4 flex-shrink-0 relative z-10">
-        <h3 className="text-xl font-black uppercase italic tracking-tighter">Kalendár</h3>
+        <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">
+          <CalendarIcon className="w-5 h-5 text-indigo-500" />
+          Kalendár
+        </h3>
         <div className="flex items-center gap-1 bg-white/50 dark:bg-zinc-800/50 p-1 rounded-xl backdrop-blur-sm border border-black/5 dark:border-white/5">
           <button 
             onClick={() => changeWeek(-1)}
@@ -114,7 +119,6 @@ export function CalendarWidget({ events }: { events: any[] }) {
         
         {dailyEvents.length > 0 ? (
           dailyEvents.map((event, i) => {
-            const summary = cleanSummary(event.summary);
             const startTime = event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "Celý deň";
 
             return (
@@ -130,11 +134,11 @@ export function CalendarWidget({ events }: { events: any[] }) {
                 
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-bold text-foreground truncate leading-tight mb-0.5 group-hover:text-indigo-600 transition-colors">
-                    {summary}
+                    {event.summary || "Bez názvu"}
                   </h4>
                   <p className="text-[10px] font-medium text-muted-foreground truncate flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400/50 inline-block" />
-                    {event.description || "Udalosť z kalendára"}
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400/50 inline-block flex-shrink-0" />
+                    {cleanText(event.description) || "Udalosť z kalendára"}
                   </p>
                 </div>
               </div>
