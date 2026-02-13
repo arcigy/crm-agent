@@ -15,7 +15,7 @@ interface TodoListWidgetProps {
 
 export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   const [localTasks, setLocalTasks] = useState(tasks);
-  const [animatingIds, setAnimatingIds] = useState<{ id: string, type: 'complete' | 'uncomplete' }[]>([]);
+  // Removed animatingIds for rapid toggling support
 
   useEffect(() => {
     setLocalTasks(tasks);
@@ -44,40 +44,28 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
     });
 
   const handleToggle = async (id: string, currentStatus: boolean) => {
-    if (animatingIds.some(a => a.id === id)) return;
-    
-    // Optimistic update immediately
+    // Optimistic update immediately - allow rapid toggling
     setLocalTasks(prev => 
       prev.map(t => t.id === id ? { ...t, completed: !currentStatus } : t)
     );
     
-    // Animate
-    const type = currentStatus ? 'uncomplete' : 'complete';
-    setAnimatingIds(prev => [...prev, { id, type }]);
-    
-    // Sync with server (with small delay for animation)
-    const waitTime = type === 'complete' ? 500 : 0;
-
-    setTimeout(async () => {
-      try {
-        const res = await toggleTaskStatus(id, !currentStatus);
-        if (!res.success) {
-          // Revert on error
-          setLocalTasks(prev => 
-            prev.map(t => t.id === id ? { ...t, completed: currentStatus } : t)
-          );
-          toast.error("Chyba synchronizácie");
-        }
-      } catch (e) {
+    try {
+      // Fire and forget - if it fails, we revert
+      const res = await toggleTaskStatus(id, !currentStatus);
+      if (!res.success) {
         // Revert on error
         setLocalTasks(prev => 
           prev.map(t => t.id === id ? { ...t, completed: currentStatus } : t)
         );
-        toast.error("Chyba pripojenia");
-      } finally {
-        setAnimatingIds(prev => prev.filter(item => item.id !== id));
+        toast.error("Chyba synchronizácie");
       }
-    }, waitTime);
+    } catch (e) {
+      // Revert on error
+      setLocalTasks(prev => 
+        prev.map(t => t.id === id ? { ...t, completed: currentStatus } : t)
+      );
+      toast.error("Chyba pripojenia");
+    }
   };
 
   const title = mode === "today" ? "Úlohy na dnes" : "Tento týždeň";
@@ -110,10 +98,8 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
       <div className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-hide relative z-10">
         {filteredTasks.length > 0 ? (
           filteredTasks.map((task) => {
-            const animation = animatingIds.find(a => a.id === task.id);
-            const isAnimating = !!animation;
             const isDone = task.completed;
-            const isCompleting = animation?.type === 'complete';
+            const isCompleting = false; // Simplified animation logic
             const showTime = hasTime(task.due_date);
 
             return (
@@ -164,7 +150,6 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                       e.stopPropagation();
                       handleToggle(task.id, !!isDone);
                     }}
-                    disabled={isAnimating}
                     className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200
                       ${isDone 
                         ? 'bg-transparent border-red-200 hover:bg-red-50/50 hover:border-red-300' 
