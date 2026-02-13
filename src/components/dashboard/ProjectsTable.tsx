@@ -83,7 +83,7 @@ export function ProjectsTable({
     );
 
   return (
-    <div className="flex flex-col h-full bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden transition-all duration-300">
+    <div className="flex flex-col h-full bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-border shadow-xl shadow-black/5 dark:shadow-none overflow-hidden transition-all duration-300">
       <CreateProjectModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

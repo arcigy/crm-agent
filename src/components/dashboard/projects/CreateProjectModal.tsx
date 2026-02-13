@@ -185,7 +185,8 @@ export function CreateProjectModal({
                   label="Deadline"
                   value={formData.end_date}
                   onChange={(v) => setFormData({ ...formData, end_date: v })}
-                  type="date"
+                  type="text"
+                  placeholder="RRRR-MM-DD"
                 />
               </div>
             </>
@@ -249,7 +250,7 @@ function FormInput({
         required={required}
         type={type}
         placeholder={placeholder}
-        className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-indigo-500 focus:bg-white transition-all outline-none"
+        className="w-full h-14 bg-gray-50/50 border-2 border-indigo-50 dark:border-white/5 rounded-2xl px-5 font-bold text-sm focus:border-indigo-500 focus:bg-white transition-all outline-none"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
