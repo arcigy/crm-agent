@@ -64,13 +64,14 @@ export default function NotesTool() {
       const res = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Nová poznámka", content: "<p></p>" }),
+        body: JSON.stringify({ title: "", content: "<p></p>" }),
       });
 
       if (res.ok) {
         const newNote = await res.json();
         setNotes([newNote, ...notes]);
         setSelectedNote(newNote);
+        // Focus the title input after creation if possible, but for now just having it empty is better
       }
     } catch {
       toast.error("Chyba pri vytváraní");
@@ -141,7 +142,7 @@ export default function NotesTool() {
   );
 
   return (
-    <div className="max-w-full mx-auto h-[calc(100vh-160px)] flex flex-col space-y-8 p-4 animate-in fade-in duration-700 overflow-hidden">
+    <div className="max-w-7xl mx-auto w-full h-[calc(100vh-160px)] flex flex-col space-y-6 p-4 animate-in fade-in duration-700 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -164,7 +165,7 @@ export default function NotesTool() {
             onClick={createNote}
             className="bg-gray-900 hover:bg-black text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 active:scale-95 transition-all"
           >
-            <Plus className="w-4 h-4" /> Nová poznámka
+            <Plus className="w-4 h-4" /> Nový záznam
           </button>
         </div>
       </div>
@@ -183,13 +184,13 @@ export default function NotesTool() {
                 <div
                   key={note.id}
                   onClick={() => setSelectedNote(note)}
-                  className={`p-6 rounded-[2rem] border-2 transition-all cursor-pointer group relative overflow-hidden shadow-none ${selectedNote?.id === note.id ? "bg-blue-600 text-white border-blue-600" : "bg-card text-foreground border-border hover:border-blue-500/50"}`}
+                  className={`p-6 rounded-[2rem] border-2 transition-all duration-300 cursor-pointer group relative overflow-hidden shadow-none ${selectedNote?.id === note.id ? "bg-indigo-600 border-indigo-600 shadow-lg shadow-indigo-600/20 active:scale-[0.98]" : "bg-card text-foreground border-border hover:border-indigo-500/30 hover:bg-indigo-50/10"}`}
                 >
                   <h3 className="text-xl font-black tracking-tight mb-2 truncate">
                     {note.title || "Bez názvu"}
                   </h3>
                   <p
-                    className={`text-[11px] font-medium leading-relaxed line-clamp-2 ${selectedNote?.id === note.id ? "text-blue-100" : "text-gray-500"}`}
+                    className={`text-[11px] font-medium leading-relaxed line-clamp-2 ${selectedNote?.id === note.id ? "text-indigo-100/70" : "text-gray-500"}`}
                     dangerouslySetInnerHTML={{ __html: note.content }}
                   />
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -212,17 +213,22 @@ export default function NotesTool() {
         </div>
 
         {/* Editor Content */}
-        <div className="flex-1 bg-card rounded-[4rem] border border-border p-12 flex flex-col relative group min-w-0 transition-colors shadow-none">
+        <div className="flex-1 bg-white dark:bg-zinc-900 rounded-[3rem] border border-border p-10 flex flex-col relative group min-w-0 transition-all shadow-xl shadow-black/5 dark:shadow-none">
           {selectedNote ? (
             <>
               <div className="flex items-center justify-between mb-8 shrink-0">
                 <div className="flex items-center gap-4">
-                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground flex items-center gap-2">
-                    <Sparkles className="w-3 h-3 text-blue-500" />
-                    Deep Knowledge Node
-                  </span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-full border border-indigo-100/50 dark:border-indigo-800/30">
+                    <Sparkles className="w-3 h-3 text-indigo-500" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
+                      Editor Poznámky
+                    </span>
+                  </div>
                   {isSaving && (
-                    <Loader2 className="w-3 h-3 text-blue-400 animate-spin" />
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 animate-pulse">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Ukladám...</span>
+                    </div>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -237,7 +243,7 @@ export default function NotesTool() {
               </div>
 
               {showLinkMenu && (
-                <div className="absolute top-28 right-12 z-50 bg-white shadow-2xl border border-gray-100 rounded-3xl p-6 w-72 animate-in zoom-in-95 duration-200">
+                <div className="absolute top-24 right-10 z-50 bg-white dark:bg-zinc-800 shadow-2xl border border-gray-100 dark:border-white/5 rounded-[2.5rem] p-6 w-72 animate-in zoom-in-95 duration-200">
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">
@@ -285,14 +291,14 @@ export default function NotesTool() {
               )}
 
               <input
-                className="text-5xl font-black tracking-tighter text-foreground mb-6 outline-none placeholder:text-muted-foreground/20 shrink-0 bg-transparent"
+                className="text-4xl font-black tracking-tighter text-foreground mb-8 outline-none placeholder:text-muted-foreground/30 shrink-0 bg-transparent border-none focus:ring-0 leading-tight italic"
                 value={selectedNote.title}
                 onChange={(e) => {
                   const newNote = { ...selectedNote, title: e.target.value };
                   setSelectedNote(newNote);
                   saveNote(newNote);
                 }}
-                placeholder="Titulok poznámky..."
+                placeholder="Sem napíšte názov..."
               />
 
               <div className="flex gap-4 mb-8 shrink-0 flex-wrap">
@@ -339,15 +345,17 @@ export default function NotesTool() {
                 )}
               </div>
 
-              <RichTextEditor
-                content={selectedNote.content}
-                onChange={(newContent) => {
-                  const updated = { ...selectedNote, content: newContent };
-                  setSelectedNote(updated);
-                  saveNote(updated);
-                }}
-                placeholder="Píšte svoje myšlienky, využívajte formátovanie..."
-              />
+              <div className="flex-1 overflow-y-auto px-2 min-h-0">
+                <RichTextEditor
+                  content={selectedNote.content}
+                  onChange={(newContent) => {
+                    const updated = { ...selectedNote, content: newContent };
+                    setSelectedNote(updated);
+                    saveNote(updated);
+                  }}
+                  placeholder="Píšte svoje myšlienky, využívajte formátovanie..."
+                />
+              </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center p-8 select-none animate-in fade-in zoom-in duration-500">
