@@ -32,7 +32,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full overflow-hidden relative group transition-all duration-500">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full overflow-hidden relative group transition-all duration-300">
       {/* 1. Subtle Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
@@ -43,7 +43,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
       />
 
       {/* 2. Soft Radial Glows */}
-      <div className="absolute -top-24 -left-24 w-64 h-64 bg-zinc-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-zinc-500/20 transition-all duration-700" />
+      <div className="absolute -top-24 -left-24 w-64 h-64 bg-zinc-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-zinc-500/20 transition-all duration-300" />
       
       <h3 className="text-xl font-black uppercase italic tracking-tighter mb-6 flex-shrink-0 relative z-10">Pipeline Projektov</h3>
       
@@ -56,7 +56,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
             </div>
             <div className="h-2.5 bg-muted/60 dark:bg-zinc-800/60 rounded-full overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/5">
               <div 
-                className={`h-full ${stage.color} transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(0,0,0,0.2)]`}
+                className={`h-full ${stage.color} transition-all duration-500 ease-out shadow-[0_0_10px_rgba(0,0,0,0.2)]`}
                 style={{ width: `${stage.percentage}%` }}
               />
             </div>

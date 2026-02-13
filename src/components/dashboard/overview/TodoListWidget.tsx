@@ -18,7 +18,11 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   // Removed animatingIds for rapid toggling support
 
   useEffect(() => {
-    setLocalTasks(tasks);
+    // Only update if tasks prop changes (deep comparison would be better but this is a start)
+    // We want to avoid overwriting local optimistic state unnecessarily
+    if (JSON.stringify(tasks) !== JSON.stringify(localTasks)) {
+        setLocalTasks(tasks);
+    }
   }, [tasks]);
 
   const hasTime = (dateStr?: string) => {
@@ -73,7 +77,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   const badgeStyle = "bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50 backdrop-blur-sm";
 
   return (
-    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full w-full transition-all duration-500 overflow-hidden relative group">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full w-full transition-all duration-300 overflow-hidden relative group">
       {/* 1. Subtle Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
@@ -84,7 +88,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
       />
 
       {/* 2. Soft Radial Glows */}
-      <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-emerald-500/20 transition-all duration-700" />
+      <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-emerald-500/20 transition-all duration-300" />
       
       <div className="flex items-center justify-between mb-6 flex-shrink-0 relative z-10">
         <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">
@@ -150,7 +154,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                       e.stopPropagation();
                       handleToggle(task.id, !!isDone);
                     }}
-                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 group/btn
+                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-150 group/btn
                       ${isDone 
                         ? 'bg-emerald-500 border-emerald-500 hover:bg-red-500 hover:border-red-500' // Green normally, Red on hover
                         : 'bg-transparent border-zinc-300 dark:border-zinc-700 text-zinc-300 dark:text-zinc-600 hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 active:scale-95'}

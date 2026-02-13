@@ -58,7 +58,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
   };
 
   return (
-    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-6 md:p-7 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full w-full overflow-hidden relative group transition-all duration-500">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-6 md:p-7 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full w-full overflow-hidden relative group transition-all duration-300">
       {/* 1. Subtle Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
@@ -69,7 +69,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
       />
 
       {/* 2. Soft Radial Glows */}
-      <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-indigo-500/20 transition-all duration-700" />
+      <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-indigo-500/20 transition-all duration-300" />
       
       {/* Header */}
       <div className="flex items-center justify-between mb-6 flex-shrink-0 relative z-10">
@@ -114,7 +114,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
                 {SK_DAYS[i]}
               </span>
               <div className={`
-                w-9 h-9 flex items-center justify-center rounded-2xl text-[11px] font-black transition-all duration-300
+                w-9 h-9 flex items-center justify-center rounded-2xl text-[11px] font-black transition-all duration-200
                 ${isSelected 
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 scale-110' 
                   : isToday 
