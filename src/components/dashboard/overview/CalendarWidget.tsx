@@ -15,10 +15,14 @@ export function CalendarWidget({ events }: { events: any[] }) {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const currentWeekNumber = getISOWeek(selectedDate);
 
-  // Filter events for the selected day
+  // Filter events: Keep only real calendar events (exclude CRM tasks), for selected day
   const dailyEvents = useMemo(() => {
     return events
       .filter((event) => {
+        // Filter out tasks from Todo list
+        if (event.extendedProperties?.private?.type === 'task') return false;
+        if (event.summary?.includes('📝 TODO:')) return false;
+
         const eventDate = event.start?.dateTime || event.start?.date;
         if (!eventDate) return false;
         return isSameDay(new Date(eventDate), selectedDate);
@@ -40,7 +44,8 @@ export function CalendarWidget({ events }: { events: any[] }) {
     return text
       .replace(/<[^>]*>/g, '') // Remove HTML tags
       .replace(/^\[.*?\]\s*/g, '') // Remove [Tags]
-      .replace(/^(TASK|TODO|ID):\s*/i, '') // Remove prefixes
+      .replace(/^(TASK|TODO|ID|📝\s*TODO):\s*/i, '') // Remove prefixes and emojis
+      .replace(/📝/g, '') // Remove standalone emoji
       .trim();
   };
 
