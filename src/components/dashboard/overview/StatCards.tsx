@@ -77,7 +77,7 @@ export function DashboardStats({ stats }: { stats: any }) {
         label="Hotové Úlohy"
         value={stats.completedTasks || 0}
         icon={CheckCircle2}
-        color="bg-orange-500"
+        color="bg-[#16a34a]"
       />
     </div>
   );

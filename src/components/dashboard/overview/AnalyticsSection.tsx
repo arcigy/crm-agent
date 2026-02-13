@@ -1,6 +1,7 @@
 "use client";
 
 import { Phone, User, Briefcase } from "lucide-react";
+import Link from "next/link";
 
 interface AnalyticsSectionProps {
   contacts: any[];
@@ -20,6 +21,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
         id: p.id,
         projectName: p.name || p.project_type || 'Zákazka',
         contactName: contact ? `${contact.first_name || ''} ${contact.last_name || ''}`.trim() : 'Neznámy kontakt',
+        contactId: p.contact_id,
         phone: contact?.phone,
         status: p.stage
       };
@@ -59,9 +61,12 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
                 <span className="text-[10px] font-black text-blue-500 uppercase italic tracking-[0.2em] mb-1">
                   {item.projectName}
                 </span>
-                <span className="text-sm font-black text-foreground truncate tracking-tight">
+                <Link 
+                  href={`/dashboard/contacts?id=${item.contactId}`}
+                  className="text-sm font-black text-foreground truncate tracking-tight hover:text-blue-500 transition-colors"
+                >
                   {item.contactName}
-                </span>
+                </Link>
               </div>
               
               {item.phone && (
