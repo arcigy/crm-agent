@@ -28,7 +28,7 @@ export function ContactsTableToolbar({
                     onClick={onNewClick}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 shadow-sm transition-all active:scale-95"
                 >
-                    New <ChevronDown className="w-3 h-3 opacity-70" />
+                    Nový <ChevronDown className="w-3 h-3 opacity-70" />
                 </button>
                 <button
                     onClick={onImportClick}
@@ -41,7 +41,7 @@ export function ContactsTableToolbar({
                     <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Search all columns..."
+                        placeholder="Hľadať"
                         value={globalFilter ?? ''}
                         onChange={(e) => setGlobalFilter(e.target.value)}
                         className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs w-48 lg:w-56 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all font-medium placeholder:text-gray-400"

@@ -13,7 +13,7 @@ export default async function ContactsPage() {
   }
 
   return (
-    <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
+    <div className="space-y-6 h-[calc(100vh-40px)] flex flex-col">
       {/* Header - Clean "Nástenka" style */}
       <div className="flex items-center justify-between px-2">
         <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">

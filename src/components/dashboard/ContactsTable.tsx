@@ -320,16 +320,6 @@ export function ContactsTable({
               </tbody>
             </table>
           </div>
-          {/* Fixed footer - outside scroll container */}
-          <div
-            className="p-3 border-t border-white/10 dark:border-white/5 bg-card/50 backdrop-blur-sm transition-colors hover:bg-card/80 flex-shrink-0"
-            onClick={() => setIsModalOpen(true)}
-          >
-            <div className="flex items-center gap-2 text-muted-foreground text-sm hover:text-indigo-500 cursor-pointer font-medium group">
-              <Plus className="w-4 h-4 group-hover:scale-125 transition-transform" />
-              <span>Kliknite pre pridanie kontaktu...</span>
-            </div>
-          </div>
         </div>
       )}
     </DndContext>
