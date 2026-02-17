@@ -68,39 +68,30 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
         const filters: any[] = [{ user_id: { _eq: clerkUserId } }];
         if (userEmail) filters.push({ user_email: { _eq: userEmail.toLowerCase() } });
 
-        console.log(`[getValidToken] Searching Directus with filters:`, JSON.stringify(filters));
+        console.log(`[getValidToken] Searching Directus for existing tokens...`);
         
-        const fetchWithTimeout = async () => {
-             const request = directus.request(
-                 readItems("google_tokens" as any, {
-                     filter: { _or: filters },
-                     limit: 1,
-                 })
-             );
-             
-             const timeout = new Promise((_, reject) => 
-                 setTimeout(() => reject(new Error("Directus Request Timeout (5s)")), 5000)
-             );
-
-             return (await Promise.race([request, timeout])) as any[];
-        };
-
-        const tokens = await fetchWithTimeout();
+        const tokens = await directus.request(
+            readItems("google_tokens" as any, {
+                filter: { _or: filters },
+                limit: 1,
+            })
+        ) as any[];
 
         if (Array.isArray(tokens) && tokens.length > 0) {
             const tokenRecord = tokens[0];
             const expiryDate = tokenRecord.expiry_date ? new Date(tokenRecord.expiry_date).getTime() : 0;
             const now = Date.now();
 
-            console.log(`[getValidToken] Found token in DB. Expiry: ${tokenRecord.expiry_date} (Now: ${new Date(now).toISOString()})`);
+            console.log(`[getValidToken] DB Token Expiry: ${tokenRecord.expiry_date} (Now: ${new Date(now).toISOString()})`);
 
-            if (expiryDate && now < expiryDate - 60000) {
-                console.log(`[getValidToken] Token is still valid.`);
+            // If still valid (with 5 min buffer to be safe)
+            if (expiryDate && now < expiryDate - 300000) {
+                console.log(`[getValidToken] DB Token is still valid.`);
                 return tokenRecord.access_token as string;
             }
 
             if (tokenRecord.refresh_token) {
-                console.log(`[getValidToken] Token expired, attempting refresh...`);
+                console.log(`[getValidToken] DB Token expired/near-expiry, attempting refresh...`);
                 try {
                     const credentials = await refreshAccessToken(tokenRecord.refresh_token);
                     const newTokenData: any = {
@@ -108,35 +99,41 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
                         date_updated: new Date().toISOString(),
                     };
                     if (credentials.expiry_date) {
+                        // Google returns expiry_date as a timestamp in ms
                         newTokenData.expiry_date = new Date(credentials.expiry_date).toISOString();
+                    } else {
+                        // Default to 1 hour if not provided
+                        newTokenData.expiry_date = new Date(Date.now() + 3500 * 1000).toISOString();
                     }
 
                     await directus.request(
                         updateItem("google_tokens" as any, tokenRecord.id, newTokenData)
                     );
-                    console.log(`[getValidToken] Refresh successful.`);
+                    console.log(`[getValidToken] Refresh successful stored in DB.`);
                     return credentials.access_token as string;
                 } catch (refreshError: any) {
-                    console.error("❌ [getValidToken] Failed to refresh token:", refreshError.message || refreshError);
+                    console.error("❌ [getValidToken] Failed to refresh DB token:", refreshError.message || refreshError);
+                    // Continue to Clerk fallback if refresh fails
                 }
             } else {
-                console.log(`[getValidToken] Token expired but no refresh_token found in DB.`);
+                console.log(`[getValidToken] DB Token expired but no refresh_token found.`);
             }
         } else {
             console.log(`[getValidToken] No token found in Directus.`);
         }
 
+        // --- Clerk Fallback ---
         console.log(`[getValidToken] Falling back to Clerk Oauth Token...`);
         const { clerkClient } = await import("@clerk/nextjs/server");
         const client = await clerkClient();
         const clerkResponse = await client.users.getUserOauthAccessToken(clerkUserId, "oauth_google");
         
-        console.log(`[getValidToken] Clerk returned ${clerkResponse.data.length} token(s).`);
-        
-        const clerkTokenData = clerkResponse.data[0];
+        const clerkTokenData = clerkResponse.data.find(t => t.provider === "oauth_google") || clerkResponse.data[0];
 
         if (clerkTokenData && clerkTokenData.token) {
-            console.log(`[getValidToken] Obtained valid token from Clerk.`);
+            console.log(`[getValidToken] Obtained token from Clerk.`);
+            // Note: Clerk tokens are usually short-lived. We don't save them to DB here 
+            // to avoid overwriting a potentially better (but currently broken) refreshable DB entry.
             return clerkTokenData.token;
         }
 

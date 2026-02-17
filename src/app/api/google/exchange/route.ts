@@ -26,14 +26,17 @@ export async function POST(req: Request) {
             limit: 1
         }));
 
-        const tokenData = {
+        const tokenData: any = {
             user_id: user.id,
             user_email: userEmail,
             access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
             expiry_date: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
             date_updated: new Date().toISOString()
         };
+
+        if (tokens.refresh_token) {
+            tokenData.refresh_token = tokens.refresh_token;
+        }
 
         if (Array.isArray(existing) && existing.length > 0) {
             await directus.request(updateItem('google_tokens', existing[0].id, tokenData));

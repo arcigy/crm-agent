@@ -15,13 +15,10 @@ export async function syncAllProjectDescriptions() {
     const user = await currentUser();
     if (!user) throw new Error("Unauthorized");
 
-    const client = await clerkClient();
-    const tokenRes = await client.users.getUserOauthAccessToken(
-      user.id,
-      "oauth_google",
-    );
-    const token = tokenRes.data[0]?.token;
-    if (!token) throw new Error("Google Token not found");
+    const { getValidToken } = await import("@/lib/google");
+    const token = await getValidToken(user.id, email);
+
+    if (!token) throw new Error("Google Token not found / not connected");
 
     const { data: projects } = await getProjects();
     if (!projects) return { success: false, message: "No projects found" };

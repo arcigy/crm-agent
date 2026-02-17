@@ -28,12 +28,8 @@ export async function createProject(data: Partial<Project>) {
     )) as Record<string, unknown>;
 
     try {
-      const client = await clerkClient();
-      const tokenRes = await client.users.getUserOauthAccessToken(
-        user.id,
-        "oauth_google",
-      );
-      const token = tokenRes.data[0]?.token;
+      const { getValidToken } = await import("@/lib/google");
+      const token = await getValidToken(user.id, email);
 
       if (token) {
         const year = new Date().getFullYear().toString();
@@ -64,6 +60,8 @@ export async function createProject(data: Partial<Project>) {
             google_event_id: eventId,
           }),
         );
+      } else {
+        console.warn("No valid Google token found for user automations.");
       }
     } catch (err) {
       console.error("Automations failed:", err);

@@ -55,20 +55,10 @@ export async function importGoogleContacts() {
     if (!user) return { success: false, error: "Unauthorized" };
     const userEmail = user.emailAddresses[0].emailAddress.toLowerCase();
     
-    const { clerkClient } = await import("@clerk/nextjs/server");
-    const client = await clerkClient();
-    const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
-    let tokens = tokenResponse.data[0]?.token;
+    const { getValidToken } = await import("@/lib/google");
+    const tokens = await getValidToken(user.id, userEmail);
 
-    if (!tokens) {
-        const dbTokens = await directus.request(readItems("google_tokens", {
-            filter: { user_id: { _eq: user.id } },
-            limit: 1
-        })) as any[];
-        if (dbTokens && dbTokens[0]) tokens = dbTokens[0].access_token;
-    }
-
-    if (!tokens) return { success: false, error: "Google not connected" };
+    if (!tokens) return { success: false, error: "Pripojenie ku Google nie je dostupné. Prosím, prihláste sa znova." };
 
     const { getPeopleClient } = await import("@/lib/google");
     const people = await getPeopleClient(tokens);
@@ -166,20 +156,10 @@ export async function exportContactsToGoogle() {
     if (!user) return { success: false, error: "Unauthorized" };
     const userEmail = user.emailAddresses[0].emailAddress.toLowerCase();
 
-    const { clerkClient } = await import("@clerk/nextjs/server");
-    const client = await clerkClient();
-    const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
-    let tokens = tokenResponse.data[0]?.token;
+    const { getValidToken } = await import("@/lib/google");
+    const tokens = await getValidToken(user.id, userEmail);
 
-    if (!tokens) {
-        const dbTokens = await directus.request(readItems("google_tokens", {
-            filter: { user_id: { _eq: user.id } },
-            limit: 1
-        })) as any[];
-        if (dbTokens && dbTokens[0]) tokens = dbTokens[0].access_token;
-    }
-
-    if (!tokens) return { success: false, error: "Google not connected" };
+    if (!tokens) return { success: false, error: "Pripojenie ku Google nie je dostupné. Prosím, prihláste sa znova." };
 
     const { getPeopleClient } = await import("@/lib/google");
     const people = await getPeopleClient(tokens);
@@ -256,18 +236,8 @@ export async function createTestGoogleContact() {
         const user = await currentUser();
         if (!user) return { success: false, error: "Unauthorized" };
 
-        const { clerkClient } = await import("@clerk/nextjs/server");
-        const client = await clerkClient();
-        const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
-        let token = tokenResponse.data[0]?.token;
-
-        if (!token) {
-            const dbTokens = await directus.request(readItems("google_tokens", {
-                filter: { user_id: { _eq: user.id } },
-                limit: 1
-            })) as any[];
-            if (dbTokens && dbTokens[0]) token = dbTokens[0].access_token;
-        }
+        const { getValidToken } = await import("@/lib/google");
+        const token = await getValidToken(user.id);
 
         if (!token) return { success: false, error: "No Google Token" };
 
@@ -296,18 +266,10 @@ export async function syncContactToGoogle(contactId: string | number) {
         const user = await currentUser();
         if (!user) return { success: false, error: "Unauthorized" };
 
-        const { clerkClient } = await import("@clerk/nextjs/server");
-        const client = await clerkClient();
-        const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
-        let token = tokenResponse.data[0]?.token;
-
-        if (!token) {
-            const dbTokens = await directus.request(readItems("google_tokens", {
-                filter: { user_id: { _eq: user.id } },
-                limit: 1
-            })) as any[];
-            if (dbTokens && dbTokens[0]) token = dbTokens[0].access_token;
-        }
+        const { getValidToken } = await import("@/lib/google");
+        const userEmail = user.emailAddresses[0]?.emailAddress;
+        const token = await getValidToken(user.id, userEmail);
+        
         if (!token) return { success: false, error: "No Google connection" };
 
         const { getPeopleClient } = await import("@/lib/google");

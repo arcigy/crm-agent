@@ -398,19 +398,10 @@ export async function sendColdLeadEmail(id: string | number) {
         const user = await currentUser();
         if (!user) throw new Error("Clerk session not found");
 
-        const client = await clerkClient();
-        const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
-        let token = tokenResponse.data[0]?.token;
+        const { getValidToken } = await import("@/lib/google");
+        const token = await getValidToken(user.id, userEmail);
 
-        if (!token) {
-            const dbTokens = await directus.request(readItems("google_tokens", {
-                filter: { user_id: { _eq: user.id } },
-                limit: 1
-            })) as any[];
-            if (dbTokens && dbTokens[0]) token = dbTokens[0].access_token;
-        }
-
-        if (!token) throw new Error("Google account not connected. Please sync contacts first to connect.");
+        if (!token) throw new Error("Účet Google nie je prepojený alebo platnosť pripojenia vypršala. Prosím, prepojte Google účet v nastaveniach.");
 
         const { sendEmail } = await import("@/lib/google");
         const companyName = lead.company_name_reworked || lead.title;

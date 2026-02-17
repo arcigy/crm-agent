@@ -4,8 +4,7 @@ import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, updateItem, readItems, readItem, deleteItem } from "@directus/sdk";
 import { getUserEmail } from "@/lib/auth";
-import { currentUser, clerkClient } from "@clerk/nextjs/server";
-import { getPeopleClient } from "@/lib/google";
+import { currentUser } from "@clerk/nextjs/server";
 
 export interface ContactLabel {
   id: string | number;
@@ -44,22 +43,12 @@ export async function syncLabelsFromGoogle() {
     const userEmail = user.emailAddresses[0].emailAddress.toLowerCase();
     const userId = user.id;
 
-    const client = await clerkClient();
-    const tokenResponse = await client.users.getUserOauthAccessToken(userId, "oauth_google");
-    let token = tokenResponse.data[0]?.token;
+    const { getValidToken, getPeopleClient } = await import("@/lib/google");
+    const token = await getValidToken(userId, userEmail);
 
-    if (!token) {
-        // Fallback to database tokens
-        const dbTokens = await directus.request(readItems("google_tokens", {
-            filter: { user_id: { _eq: userId } },
-            limit: 1
-        })) as any[];
-        if (dbTokens && dbTokens[0]) token = dbTokens[0].access_token;
-    }
+    if (!token) return { success: false, error: "Pripojenie ku Google nie je dostupné. Prosím, prihláste sa znova." };
 
-    if (!token) return { success: false, error: "Google not connected" };
-
-    const people = getPeopleClient(token);
+    const people = await getPeopleClient(token);
     const response = await people.contactGroups.list({
       pageSize: 1000,
     });
@@ -223,10 +212,8 @@ async function syncLabelToGoogle(labelId: string | number) {
         const user = await currentUser();
         if (!user) return;
 
-        const { clerkClient } = await import("@clerk/nextjs/server");
-        const client = await clerkClient();
-        const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
-        let token = tokenResponse.data[0]?.token;
+        const { getValidToken } = await import("@/lib/google");
+        const token = await getValidToken(user.id);
 
         if (!token) return;
 
@@ -261,10 +248,8 @@ async function deleteGoogleLabel(googleId: string) {
     try {
         const user = await currentUser();
         if (!user) return;
-        const { clerkClient } = await import("@clerk/nextjs/server");
-        const client = await clerkClient();
-        const tokenResponse = await client.users.getUserOauthAccessToken(user.id, "oauth_google");
-        let token = tokenResponse.data[0]?.token;
+        const { getValidToken } = await import("@/lib/google");
+        const token = await getValidToken(user.id);
         if (!token) return;
 
         const { getPeopleClient } = await import("@/lib/google");
