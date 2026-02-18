@@ -1,34 +1,28 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useChat } from "ai/react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card } from "@/components/ui/card";
-import { Loader2, Terminal, User, Bot, Copy, Trash2 } from "lucide-react";
+import { Loader2, Terminal, User, Bot, Copy, Trash2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export default function AgentDebugPage() {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [debugLog, setDebugLog] = useState<any[]>([]);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
   const debugScrollRef = useRef<HTMLDivElement>(null);
-
-  const { messages, input, handleInputChange, isLoading, setMessages } = useChat({
-    api: "/api/ai/agent",
-    body: { debug: true },
-    onResponse: async () => {},
-  });
 
   // Custom chat handler for Debug mode (JSON instead of Stream)
   const sendDebugMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    const userMsg = { id: Date.now().toString(), role: "user" as const, content: input };
-    setMessages([...messages, userMsg]);
-    handleInputChange({ target: { value: "" } } as any);
+    const userMsg = { id: Date.now().toString(), role: "user", content: input };
+    setMessages(prev => [...prev, userMsg]);
+    setInput("");
+    setIsLoading(true);
 
     try {
       const res = await fetch("/api/ai/agent", {
@@ -40,6 +34,8 @@ export default function AgentDebugPage() {
         })
       });
 
+      if (!res.ok) throw new Error("API request failed");
+
       const data = await res.json();
       if (data.debugLog) {
         setDebugLog(data.debugLog);
@@ -47,13 +43,15 @@ export default function AgentDebugPage() {
       
       const assistantMsg = { 
         id: (Date.now() + 1).toString(), 
-        role: "assistant" as const, 
+        role: "assistant", 
         content: data.response || "No response" 
       };
-      setMessages([...messages, userMsg, assistantMsg]);
+      setMessages(prev => [...prev, assistantMsg]);
     } catch (error) {
       toast.error("Chyba pri komunikácii s agentom");
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -71,103 +69,139 @@ export default function AgentDebugPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] p-4 gap-4 overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-4rem)] p-4 gap-4 overflow-hidden bg-background">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Terminal className="text-primary" />
+          <Terminal className="text-blue-600" />
           Agent Black-Box Debugger
         </h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setMessages([])}>
-            <Trash2 className="w-4 h-4 mr-2" /> Vyčistiť chat
-          </Button>
-          <Button variant="outline" size="sm" onClick={copyDebug} disabled={debugLog.length === 0}>
-            <Copy className="w-4 h-4 mr-2" /> Kopírovať Debug
-          </Button>
+          <button 
+            onClick={() => setMessages([])}
+            className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm hover:bg-gray-100 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" /> Vyčistiť chat
+          </button>
+          <button 
+            onClick={copyDebug}
+            disabled={debugLog.length === 0}
+            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            <Copy className="w-4 h-4" /> Kopírovať Debug
+          </button>
         </div>
       </div>
 
       <div className="flex flex-1 gap-4 overflow-hidden">
         {/* Chat Panel */}
-        <Card className="flex-[0.4] flex flex-col overflow-hidden bg-background/50 backdrop-blur">
-          <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-            <div className="space-y-4">
-              {messages.map((m: any) => (
-                <div key={m.id} className={cn("flex gap-3", m.role === "user" ? "flex-row-reverse" : "")}>
-                  <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0", 
-                    m.role === "user" ? "bg-primary" : "bg-muted")}>
-                    {m.role === "user" ? <User size={16} className="text-primary-foreground" /> : <Bot size={16} />}
-                  </div>
-                  <div className={cn("p-3 rounded-lg max-w-[85%] text-sm", 
-                    m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted")}>
-                    {m.content}
-                  </div>
+        <div className="flex-[0.4] flex flex-col overflow-hidden bg-white border border-gray-200 rounded-xl shadow-sm">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
+            {messages.map((m: any) => (
+              <div key={m.id} className={cn("flex gap-3", m.role === "user" ? "flex-row-reverse" : "")}>
+                <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm", 
+                  m.role === "user" ? "bg-blue-600" : "bg-gray-100")}>
+                  {m.role === "user" ? <User size={16} className="text-white" /> : <Bot size={16} className="text-gray-600" />}
                 </div>
-              ))}
-              {isLoading && (
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <Loader2 size={16} className="animate-spin text-primary" />
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted text-sm italic">Agent premýšľa...</div>
+                <div className={cn("p-3 rounded-2xl max-w-[85%] text-sm leading-relaxed shadow-sm", 
+                  m.role === "user" ? "bg-blue-600 text-white rounded-tr-sm" : "bg-gray-50 border border-gray-100 text-gray-700 rounded-tl-sm")}>
+                  {m.content}
                 </div>
-              )}
-            </div>
-          </ScrollArea>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex gap-3 animate-pulse">
+                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                  <Loader2 size={16} className="animate-spin text-blue-600" />
+                </div>
+                <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm italic text-gray-400">Agent premýšľa...</div>
+              </div>
+            )}
+          </div>
           
-          <form onSubmit={sendDebugMessage} className="p-4 border-t flex gap-2">
-            <Input 
+          <form onSubmit={sendDebugMessage} className="p-4 border-t border-gray-100 flex gap-2 bg-gray-50/50">
+            <input 
               value={input} 
-              onChange={handleInputChange} 
+              onChange={(e) => setInput(e.target.value)} 
               placeholder="Zadaj úlohu pre agenta..." 
-              className="flex-1"
+              className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
             />
-            <Button type="submit" disabled={isLoading}>
-              Poslať
-            </Button>
+            <button 
+              type="submit" 
+              disabled={isLoading || !input.trim()}
+              className="bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
+            >
+              <Send size={18} />
+            </button>
           </form>
-        </Card>
+        </div>
 
         {/* Debug Console */}
-        <Card className="flex-[0.6] flex flex-col overflow-hidden bg-zinc-950 text-zinc-300 border-zinc-800 font-mono text-xs">
-          <div className="p-2 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between">
-            <span className="flex items-center gap-2">
+        <div className="flex-[0.6] flex flex-col overflow-hidden bg-zinc-950 text-zinc-300 border border-zinc-800 rounded-xl font-mono text-xs shadow-2xl">
+          <div className="p-3 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <Terminal size={14} className="text-emerald-500" />
-              LIVE BACKEND LOGS
-            </span>
-            <span className="text-[10px] text-zinc-500 uppercase tracking-widest">Black Box Execution Trace</span>
-          </div>
-          <ScrollArea className="flex-1 p-4" ref={debugScrollRef}>
-            <div className="space-y-3">
-              {debugLog.length === 0 ? (
-                <div className="text-zinc-600 italic">Čakám na prvý request...</div>
-              ) : (
-                debugLog.map((log, i) => (
-                  <div key={i} className="border-l-2 border-zinc-800 pl-3 py-1 hover:bg-zinc-900/50 transition-colors">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-bold uppercase", 
-                        log.stage === "ROUTER" ? "bg-blue-900/50 text-blue-400" :
-                        log.stage === "ORCHESTRATOR" ? "bg-purple-900/50 text-purple-400" :
-                        log.stage === "PREPARER" ? "bg-orange-900/50 text-orange-400" :
-                        log.stage === "EXECUTOR" ? "bg-emerald-900/50 text-emerald-400" :
-                        "bg-zinc-800 text-zinc-400")}>
-                        {log.stage}
-                      </span>
-                      <span className="text-zinc-500">{new Date(log.timestamp).toLocaleTimeString()}</span>
-                      <span className="text-zinc-200 font-medium">{log.message}</span>
-                    </div>
-                    {log.data && (
-                      <pre className="text-zinc-500 overflow-x-auto whitespace-pre-wrap mt-1 pb-1">
-                        {JSON.stringify(log.data, null, 2)}
-                      </pre>
-                    )}
-                  </div>
-                ))
-              )}
+              <span className="font-bold tracking-wider">LIVE BACKEND LOGS</span>
             </div>
-          </ScrollArea>
-        </Card>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] text-zinc-500 uppercase tracking-widest">Connected</span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 bg-zinc-800 rounded-full text-zinc-400 border border-zinc-700">TRACE V1</span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar" ref={debugScrollRef}>
+            {debugLog.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-zinc-600 italic space-y-2 opacity-50">
+                <Bot size={32} className="mb-2" />
+                <p>Čakám na prvý request...</p>
+                <p className="text-[10px] uppercase font-bold tracking-widest">Send a message to see execution trace</p>
+              </div>
+            ) : (
+              debugLog.map((log, i) => (
+                <div key={i} className="group border-l-2 border-zinc-800 pl-4 py-2 hover:bg-white/5 transition-all duration-200 ease-in-out">
+                  <div className="flex items-center gap-3 mb-1.5">
+                    <span className={cn("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter", 
+                      log.stage === "ROUTER" ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" :
+                      log.stage === "ORCHESTRATOR" ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" :
+                      log.stage === "PREPARER" ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" :
+                      log.stage === "EXECUTOR" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" :
+                      log.stage === "VERIFIER" ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" :
+                      "bg-zinc-800 text-zinc-400 border border-zinc-700")}>
+                      {log.stage}
+                    </span>
+                    <span className="text-zinc-600 text-[10px] tabular-nums font-light">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                    <span className="text-zinc-100 font-semibold tracking-tight">{log.message}</span>
+                  </div>
+                  {log.data && (
+                    <div className="mt-2 bg-zinc-900/50 rounded-lg p-3 border border-zinc-800/50 group-hover:border-zinc-700/50 transition-colors">
+                      <pre className="text-zinc-400 overflow-x-auto whitespace-pre-wrap leading-relaxed text-[10px]">
+                        {typeof log.data === 'string' ? log.data : JSON.stringify(log.data, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
+      
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #27272a;
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #3f3f46;
+        }
+      `}</style>
     </div>
   );
 }
