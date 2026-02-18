@@ -134,6 +134,35 @@ export async function executeGmailTool(
           "Oknom s konceptom správy bolo otvorené v CRM. Používateľ teraz môže odpoveď upraviť a odoslať.",
       };
 
+    case "gmail_forward_email":
+      const fwdMsg = await gmail.users.messages.get({
+        userId: "me",
+        id: args.messageId as string,
+        format: "metadata",
+        metadataHeaders: ["Subject"],
+      });
+      const fwdSubject =
+        fwdMsg.data.payload?.headers?.find((h) => h.name === "Subject")?.value ||
+        "";
+      
+      // Get full content for forwarding (simplified for now, usually we'd need full format)
+      // For privacy/simplicity, we just open compose with FW: Subject
+      return {
+        success: true,
+        action: "open_compose",
+        compose: {
+          to: args.to as string,
+          toName: "",
+          subject: fwdSubject.startsWith("Fwd:")
+            ? fwdSubject
+            : `Fwd: ${fwdSubject}`,
+          body: "<br><br>---------- Forwarded message ---------<br>From: ...", // Placeholder
+          threadId: undefined, // Up to frontend to handle new thread or strictly link
+        },
+        message:
+          "Oknom s konceptom prepusielania správy bolo otvorené.",
+      };
+
     default:
       throw new Error("Gmail tool not found");
   }

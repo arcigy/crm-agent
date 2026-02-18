@@ -137,3 +137,15 @@ export async function runToolManually(
   if (!user) throw new Error("Unauthorized");
   return (await executeAtomicTool(name, args, user)) as ActionResult;
 }
+export async function agentGenerateEmail(context: any[], instruction: string) {
+    const user = await currentUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+    
+    // @ts-ignore
+    return await executeAtomicTool("ai_generate_email", { context, instruction }, user);
+}
+
+export async function agentVerifyExecution(intent: string, results: any[]) {
+     const { verifyExecutionResults } = await import("./agent-verifier");
+     return await verifyExecutionResults(intent, results);
+}

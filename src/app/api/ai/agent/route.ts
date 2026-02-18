@@ -1,115 +1,139 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
-import { z } from 'zod';
-import { getMemories, saveNewMemories } from '@/lib/memory';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { streamText, generateText } from 'ai';
 import { currentUser } from '@clerk/nextjs/server';
-import {
-    agentCreateContact,
-    agentCreateDeal
-} from '@/app/actions/agent';
 
-export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+
+// ------------------------------------------------------------------
+// 5-STAGE AGENT PIPELINE IMPLEMENTATION
+// ------------------------------------------------------------------
+
+import { routeIntent } from '@/app/actions/agent-router';
+import { orchestrateParams } from '@/app/actions/agent-orchestrator';
+import { validateActionPlan } from '@/app/actions/agent-preparer';
+import { verifyExecutionResults } from '@/app/actions/agent-verifier';
+import { executeAtomicTool } from '@/app/actions/agent-executors';
 
 export async function POST(req: Request) {
-    const { messages } = await req.json();
+    const { messages, debug = false } = await req.json();
     const user = await currentUser();
 
-    if (!user) {
+    if (!user || !user.emailAddresses?.[0]?.emailAddress) {
         return new Response('Unauthorized', { status: 401 });
     }
 
-    const userEmail = user.emailAddresses[0]?.emailAddress;
-    if (!userEmail) {
-        return new Response('User email not found', { status: 401 });
+    const userEmail = user.emailAddresses[0].emailAddress;
+    const lastUserMsg = messages[messages.length - 1].content;
+    const debugLog: { stage: string; message: string; data?: any; timestamp: string }[] = [];
+
+    const log = (stage: string, message: string, data?: Record<string, unknown> | unknown) => {
+        const entry = { stage, message, data, timestamp: new Date().toISOString() };
+        debugLog.push(entry);
+        console.log(` [${stage}] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    };
+
+    // 1. ROUTER: Decide Intent
+    // ------------------------
+    log("ROUTER", "Analyzing intent...");
+    const routing = await routeIntent(lastUserMsg, messages);
+    log("ROUTER", "Result", routing);
+
+    if (routing.type === 'CONVERSATION') {
+        log("ROUTER", "Route: Simple Conversation");
+        const result = streamText({
+            model: google('gemini-2.0-flash'),
+            system: `You are a helpful CRM assistant. User: ${userEmail}. Be concise.`,
+            messages: messages,
+        });
+        
+        if (debug) {
+            const { text } = await generateText({
+                model: google('gemini-2.0-flash'),
+                system: `You are a helpful CRM assistant. User: ${userEmail}. Be concise.`,
+                messages: messages,
+            });
+            return Response.json({ response: text, debugLog });
+        }
+        
+        return result.toTextStreamResponse();
     }
 
-    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
-    const memoryContext = await getMemories(userEmail).catch(() => '');
+    // ---------------------------
+    // ITERATIVE EXECUTION LOOP (ReAct)
+    // ---------------------------
+    let iterations = 0;
+    const MAX_ITERATIONS = 5;
+    const finalResults = [];
+    const currentHistory = [...messages];
 
-    const systemPrompt = `
-    You are an advanced CRM AI Assistant. Use the available tools to help the user manage their business.
+    while (iterations < MAX_ITERATIONS) {
+        iterations++;
+        log("LOOP", `Iteration ${iterations}/${MAX_ITERATIONS}`);
+
+        // 2. ORCHESTRATE
+        log("ORCHESTRATOR", "Planning...");
+        const taskPlan = await orchestrateParams(null, currentHistory);
+        log("ORCHESTRATOR", "Plan", taskPlan.steps);
+
+        if (!taskPlan.steps || taskPlan.steps.length === 0) {
+            log("LOOP", "No more steps. Finished.");
+            break;
+        }
+
+        // 3. PREPARE (Pick next valid step)
+        log("PREPARER", "Validating next step...");
+        const nextStep = taskPlan.steps[0];
+        const validation = await validateActionPlan(taskPlan.intent, [nextStep], currentHistory);
+        log("PREPARER", "Validation", { valid: validation.valid, questions: validation.questions });
+
+        if (!validation.valid) {
+            log("LOOP", "Blocked. Asking user: " + validation.questions[0]);
+            if (debug) return Response.json({ response: validation.questions[0], debugLog, status: 'blocked' });
+            return new Response(validation.questions[0], { status: 200 }); 
+        }
+
+        // 4. EXECUTE (Run the single valid step)
+        const stepToRun = validation.validated_steps[0];
+        try {
+            log("EXECUTOR", `Executing ${stepToRun.tool}...`, stepToRun.args);
+            const res = await executeAtomicTool(stepToRun.tool, stepToRun.args, user);
+            log("EXECUTOR", "Result", res);
+            
+            const resultMsg = {
+                role: "assistant",
+                content: `Tool '${stepToRun.tool}' executed. Output: ${JSON.stringify(res)}`
+            };
+            currentHistory.push(resultMsg);
+            finalResults.push({ tool: stepToRun.tool, status: res.success ? 'success' : 'error', output: res });
+
+        } catch(e: unknown) {
+             const errorMessage = e instanceof Error ? e.message : String(e);
+             log("EXECUTOR", "Error", errorMessage);
+             finalResults.push({ tool: stepToRun.tool, status: 'error', output: errorMessage });
+             currentHistory.push({
+                 role: "assistant",
+                 content: `Tool '${stepToRun.tool}' failed. Error: ${errorMessage}`
+             });
+        }
+    }
+
+    // 5. VERIFIER: Analyze & Respond
+    // ------------------------------
+    log("VERIFIER", "Analyzing results...");
+    const finalIntent = lastUserMsg.length > 50 ? "complex_task" : "simple_task"; 
+    const verification = await verifyExecutionResults(finalIntent, finalResults);
+    log("VERIFIER", "Analysis", verification.analysis);
     
-    Current User: ${userEmail}
-    ${memoryContext}
-    
-    If you need to know about the user's schedule, call 'check_availability'.
-    If the user asks about files or documents, you can view them via Google Drive tools.
-    `;
+    const finalResponse = verification.analysis;
+
+    if (debug) {
+        return Response.json({ response: finalResponse, debugLog, status: 'complete' });
+    }
 
     const result = streamText({
-        model: openai('gpt-4o-mini'),
-        system: systemPrompt,
-        messages: messages,
-        tools: {
-            check_availability: tool({
-                description: 'Check user calendar for busy/free times',
-                parameters: z.object({ days: z.number().default(1) }),
-                execute: async ({ days }: { days: number }) => {
-                    try {
-                        const { getValidToken, getCalendarClient } = await import('@/lib/google');
-                        const token = await getValidToken(user.id, userEmail);
-
-                        if (!token) return "Google account not linked. Ask user to connect Google in CRM.";
-
-                        const calendar = await getCalendarClient(token);
-
-                        const timeMin = new Date().toISOString();
-                        const timeMax = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-
-                        const res = await calendar.events.list({
-                            calendarId: 'primary',
-                            timeMin,
-                            timeMax,
-                            singleEvents: true,
-                            orderBy: 'startTime'
-                        });
-
-                        const events = res.data.items || [];
-                        if (events.length === 0) return "User has no meetings scheduled in this period.";
-
-                        return events.map(e => `${e.summary} (${e.start?.dateTime || e.start?.date} to ${e.end?.dateTime || e.end?.date})`).join('\n');
-                    } catch (err: any) {
-                        return `Error checking calendar: ${err.message}`;
-                    }
-                }
-            } as any),
-            create_contact: tool({
-                description: 'Create a new contact in CRM',
-                parameters: z.object({
-                    name: z.string(),
-                    email: z.string(),
-                    phone: z.string().optional(),
-                    company: z.string().optional(),
-                    website: z.string().optional()
-                }),
-                execute: async (p: { name: string; email: string; phone?: string; company?: string; website?: string }) => {
-                    const res = await agentCreateContact(p);
-                    // @ts-ignore
-                    return res.success ? `Contact created: ${res.contact?.id}` : `Error: ${res.error}`;
-                }
-            } as any),
-            create_deal: tool({
-                description: 'Create a new deal',
-                parameters: z.object({ name: z.string(), value: z.number(), stage: z.string() }),
-                execute: async (p: { name: string; value: number; stage: string }) => {
-                    const res = await agentCreateDeal({
-                        name: p.name,
-                        value: p.value,
-                        stage: p.stage,
-                        contact_email: userEmail
-                    });
-                    return res.success ? `Deal created` : `Error: ${res.error}`;
-                }
-            } as any)
-        },
-        onFinish: async ({ text }) => {
-            const lastMsg = messages[messages.length - 1];
-            if (lastMsg && lastMsg.role === 'user') {
-                saveNewMemories(userEmail, lastMsg.content, text).catch(e => console.error(e));
-            }
-        }
+        model: google('gemini-2.0-flash'),
+        prompt: `System: Send this exact message to user: "${finalResponse}"`,
     });
-
-    return (result as any).toDataStreamResponse();
+    
+    return result.toTextStreamResponse();
 }

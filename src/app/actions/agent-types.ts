@@ -12,6 +12,8 @@ export interface ToolDefinition {
           description?: string;
           enum?: string[];
           default?: unknown;
+          items?: any; // For arrays
+          properties?: any; // For nested objects
         }
       >;
       required?: string[];
@@ -38,6 +40,7 @@ export interface AgentChat {
   user_email: string;
   date_created: string;
   date_updated: string;
+  context?: AgentContext; // Persisted state of the agent logic
 }
 
 export interface ChatVerdict {
@@ -52,6 +55,21 @@ export interface MissionHistoryItem {
     success: boolean;
     analysis?: string;
   };
+}
+
+export interface AgentTask {
+  id: string;
+  intent: string;
+  steps: any[]; // The plan
+  status: "PLANNING" | "WAITING_FOR_USER" | "EXECUTING" | "DONE";
+  missingInfo?: string[];
+  results?: any[];
+}
+
+export interface AgentContext {
+  userId: string;
+  userEmail: string;
+  currentTask?: AgentTask;
 }
 
 export interface UserResource {

@@ -9,6 +9,10 @@ import { executeDbDealTool } from "./executors-db-deals";
 import { executeDbVerificationTool } from "./executors-db-verification";
 import { executeDriveTool, executeSysTool } from "./executors-sys-drive";
 import { executeWebTool } from "./executors-web";
+import { executeDbTaskTool } from "./executors-tasks";
+import { executeDbLeadTool } from "./executors-leads";
+import { executeCalendarTool } from "./executors-calendar";
+import { executeAiTool } from "./executors-ai";
 
 /**
  * Main router for atomic tool execution.
@@ -79,25 +83,66 @@ export async function executeAtomicTool(
       return await executeDriveTool(name, safeArgs, userId);
     }
 
-    // AI Analysis Tool
-    if (name === "ai_deep_analyze_lead") {
-      const { classifyEmail } = await import("./ai");
-      const analysis = await classifyEmail(
-        safeArgs.content as string,
-        userEmail,
-        safeArgs.sender as string,
-        safeArgs.subject as string,
-      );
-      return {
-        success: true,
-        data: analysis,
-        message: "AI hĺbková analýza leada bola úspešne dokončená.",
-      };
+    // AI Tools
+    if (name.startsWith("ai_")) {
+        return await executeAiTool(name, safeArgs, userEmail);
     }
 
     // Web Tools
     if (name.startsWith("web_")) {
       return await executeWebTool(name, safeArgs);
+    }
+
+    // Task Tools
+    if (name.startsWith("db_") && (name.includes("task"))) {
+        return await executeDbTaskTool(name, safeArgs, userEmail);
+    }
+
+    // Lead Tools
+    if (name.startsWith("db_") && (name.includes("lead"))) {
+        return await executeDbLeadTool(name, safeArgs, userEmail);
+    }
+
+    // Calendar Tools
+    if (name.startsWith("calendar_")) {
+        return await executeCalendarTool(name, safeArgs, userEmail, userId);
+    }
+
+    // Meta-Tool (Dispatcher)
+    if (name === "sys_execute_plan") {
+        const steps = (safeArgs.steps as Array<{ tool_name: string; arguments: Record<string, unknown> }>) || [];
+        const results = [];
+        
+        console.log(`[Dispatcher] Executing plan with ${steps.length} steps...`);
+
+        for (const step of steps) {
+            try {
+                console.log(`[Dispatcher] Running ${step.tool_name}...`);
+                const result = await executeAtomicTool(step.tool_name, step.arguments, user);
+                results.push({
+                    tool: step.tool_name,
+                    status: result.success ? "success" : "error",
+                    output: result
+                });
+                
+                // Optional: Stop on error? For now we continue but log it.
+                if (!result.success) {
+                    console.error(`[Dispatcher] Step ${step.tool_name} failed:`, result.error);
+                }
+            } catch (err: any) {
+                 results.push({
+                    tool: step.tool_name,
+                    status: "failed",
+                    error: err.message
+                });
+            }
+        }
+
+        return {
+            success: true,
+            data: results,
+            message: `Plán bol vykonaný (${results.filter(r => r.status === 'success').length}/${steps.length} úspešných krokov).`
+        };
     }
 
     return { success: false, error: `Tool group not found for: ${name}` };

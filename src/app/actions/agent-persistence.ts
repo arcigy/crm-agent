@@ -47,6 +47,7 @@ export async function saveAgentChat(
   id: string,
   title: string,
   messages: ChatMessage[],
+  context?: any // AgentContext
 ) {
   const email = await getUserEmail();
   if (!email) return null;
@@ -63,6 +64,7 @@ export async function saveAgentChat(
         updateItem("agent_chats", id, {
           title,
           messages,
+          context: context || null,
           date_updated: new Date().toISOString(),
         }),
       );
@@ -73,6 +75,7 @@ export async function saveAgentChat(
           id,
           title,
           messages,
+          context: context || null,
           user_email: email,
           status: "active",
           date_created: new Date().toISOString(),

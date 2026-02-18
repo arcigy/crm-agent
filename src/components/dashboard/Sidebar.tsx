@@ -20,10 +20,8 @@ import {
   Receipt,
   BrainCircuit,
   History,
-  Bot,
   Terminal,
   Zap,
-  MapPin,
 } from "lucide-react";
 import { LogoutButton } from "./LogoutButton";
 import { ThemeToggle } from "./ThemeToggle";
@@ -46,6 +44,12 @@ const navigation = [
     name: "Cold Outreach",
     href: "/dashboard/outreach",
     icon: Zap,
+    allowedEmails: ['branislav@acg.group', 'arcigyback@gmail.com', 'branislav@arcigy.group', 'andrej@arcigy.group']
+  },
+  {
+    name: "Debug Agent",
+    href: "/dashboard/agent-debug",
+    icon: Terminal,
     allowedEmails: ['branislav@acg.group', 'arcigyback@gmail.com', 'branislav@arcigy.group', 'andrej@arcigy.group']
   },
 ];
@@ -107,7 +111,7 @@ export function Sidebar({ className }: { className?: string }) {
               </div>
             )}
             <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent truncate max-w-[140px]">
-              {(user as any)?.organization?.name ||
+              {(user as { organization?: { name: string }; firstName?: string })?.organization?.name ||
                 user?.firstName ||
                 "CRM"}
             </span>
@@ -117,7 +121,7 @@ export function Sidebar({ className }: { className?: string }) {
         {/* Navigation Links */}
         <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-1 scrollbar-hide">
           {navigation
-            .filter((item: any) => {
+            .filter((item: { allowedEmails?: string[] }) => {
               if (!item.allowedEmails) return true;
               const currentEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
               return currentEmail && item.allowedEmails.some((e: string) => e.toLowerCase() === currentEmail);

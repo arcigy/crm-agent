@@ -630,6 +630,197 @@ export const WEB_ATOMS: ToolDefinition[] = [
   },
 ];
 
+export const TASKS_ATOMS: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "db_create_task",
+      description: "Vytvorí novú úlohu (task).",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Znenie úlohy" },
+          due_date: {
+            type: "string",
+            description: "Dátum splnenia (YYYY-MM-DD)",
+          },
+          contact_id: { type: "number", description: "Voliteľné ID kontaktu" },
+          project_id: { type: "number", description: "Voliteľné ID projektu" },
+        },
+        required: ["title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_fetch_tasks",
+      description: "Načíta zoznam úloh.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: {
+            type: "string",
+            enum: ["all", "pending", "completed"],
+            default: "pending",
+          },
+          limit: { type: "number", default: 10 },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_complete_task",
+      description: "Označí úlohu ako splnenú (completed: true).",
+      parameters: {
+        type: "object",
+        properties: {
+          task_id: { type: "number" },
+        },
+        required: ["task_id"],
+      },
+    },
+  },
+];
+
+export const LEADS_ATOMS: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "db_fetch_leads",
+      description: "Načíta zoznam cold leadov.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: {
+            type: "string",
+            description: "Filter podľa statusu (napr. 'new')",
+          },
+          limit: { type: "number", default: 10 },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_create_lead",
+      description: "Vytvorí nového cold leada.",
+      parameters: {
+        type: "object",
+        properties: {
+          email: { type: "string" },
+          first_name: { type: "string" },
+          last_name: { type: "string" },
+          company: { type: "string" },
+          status: { type: "string", default: "new" },
+        },
+        required: ["email"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_update_lead_status",
+      description: "Zmení status cold leada.",
+      parameters: {
+        type: "object",
+        properties: {
+          lead_id: { type: "number" },
+          status: { type: "string" },
+        },
+        required: ["lead_id", "status"],
+      },
+    },
+  },
+];
+
+export const CALENDAR_ATOMS: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "calendar_check_availability",
+      description: "Skontroluje dostupnosť v kalendári na najbližšie dni.",
+      parameters: {
+        type: "object",
+        properties: {
+          days: { type: "number", default: 3 },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "calendar_schedule_event",
+      description: "Vytvorí novú udalosť v Google kalendári.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: { type: "string", description: "Názov udalosti" },
+          start_time: { type: "string", description: "ISO string začiatku" },
+          end_time: { type: "string", description: "ISO string konca" },
+          description: { type: "string", description: "Popis udalosti" },
+        },
+        required: ["summary", "start_time", "end_time"],
+      },
+    },
+  },
+];
+
+export const AI_ATOMS: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "ai_generate_email",
+      description: "Vygeneruje text emailu na základe kontextu a inštrukcie. Vstupom je história správ a čo chceme odpísať.",
+      parameters: {
+        type: "object",
+        properties: {
+          context: {
+             type: "array", 
+             description: "História správ (predošlé emaily)",
+             items: { type: "object" } 
+          },
+          instruction: { type: "string", description: "Čo má byť obsahom emailu (napr. 'Súhlasím s termínom')" },
+        },
+        required: ["context", "instruction"],
+      },
+    },
+  },
+];
+
+export const DISPATCHER_ATOM: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "sys_execute_plan",
+      description: "Vykoná sériu nástrojov v zadanom poradí. Použi toto VŽDY, keď potrebuješ vykonať viacero akcií naraz (napr. vytvoriť kontakt a hneď mu naplánovať meeting). Prijíma pole krokov.",
+      parameters: {
+        type: "object",
+        properties: {
+          steps: {
+            type: "array",
+            description: "Zoznam nástrojov na vykonanie",
+            items: {
+              type: "object",
+              properties: {
+                tool_name: { type: "string" },
+                arguments: { type: "object" },
+              },
+              required: ["tool_name", "arguments"],
+            },
+          },
+        },
+        required: ["steps"],
+      },
+    },
+  },
+];
+
 export const ALL_ATOMS = [
   ...INBOX_ATOMS,
   ...DEAL_ATOMS,
@@ -638,4 +829,9 @@ export const ALL_ATOMS = [
   ...SYSTEM_ATOMS,
   ...VERIFIER_ATOMS,
   ...WEB_ATOMS,
+  ...TASKS_ATOMS,
+  ...LEADS_ATOMS,
+  ...CALENDAR_ATOMS,
+  ...AI_ATOMS,
+  ...DISPATCHER_ATOM,
 ];
