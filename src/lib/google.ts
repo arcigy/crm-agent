@@ -148,7 +148,7 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
             if (clerkErr.errors) {
                 console.error("Details:", JSON.stringify(clerkErr.errors, null, 2));
             }
-            throw clerkErr; 
+            return null; // Return null instead of throwing to allow caller to handle it gracefully
         }
 
         console.warn(`[getValidToken] No token found in Clerk either.`);
