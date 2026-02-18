@@ -1,15 +1,20 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Loader2, Terminal, User, Bot, Copy, Trash2, Send } from "lucide-react";
+import { Loader2, Terminal, User, Bot, Copy, Trash2, Send, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { QuickComposerModal } from "@/components/dashboard/QuickComposerModal";
 
 export default function AgentDebugPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [debugLog, setDebugLog] = useState<any[]>([]);
+  
+  // Modal state for Tool Actions
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalData, setModalData] = useState({ body: "", name: "" });
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const debugScrollRef = useRef<HTMLDivElement>(null);
@@ -58,6 +63,16 @@ export default function AgentDebugPage() {
               try {
                 const logData = JSON.parse(line.substring(4));
                 setDebugLog(prev => [...prev, logData]);
+
+                // Handle specific tool actions (Side Effects)
+                if (logData.stage === "EXECUTOR" && logData.data?.action === "open_compose") {
+                  setModalData({
+                    body: logData.data.compose.body,
+                    name: logData.data.compose.toName || logData.data.compose.to
+                  });
+                  setModalOpen(true);
+                  toast.success("Koncept emailu pripravený!");
+                }
               } catch (e) {
                 console.warn("Failed to parse log line", e);
               }
@@ -239,6 +254,18 @@ export default function AgentDebugPage() {
         </div>
       </div>
       
+      {/* Tool Action Modals */}
+      <QuickComposerModal 
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        initialContent={modalData.body}
+        recruitName={modalData.name}
+        onSend={(content) => {
+          toast.success("Email bol odoslaný (Simulácia)");
+          setModalOpen(false);
+        }}
+      />
+
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
