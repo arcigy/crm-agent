@@ -6,8 +6,9 @@ export async function executeGmailTool(
   name: string,
   args: Record<string, unknown>,
   userId: string,
+  userEmail?: string,
 ) {
-  const gmail = await getGmail(userId);
+  const gmail = await getGmail(userId, userEmail);
   switch (name) {
     case "gmail_fetch_list":
       const list = await gmail.users.messages.list({

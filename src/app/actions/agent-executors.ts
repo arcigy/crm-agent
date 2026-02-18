@@ -30,7 +30,7 @@ export async function executeAtomicTool(
   try {
     // Gmail Tools
     if (name.startsWith("gmail_")) {
-      return await executeGmailTool(name, safeArgs, userId);
+      return await executeGmailTool(name, safeArgs, userId, userEmail);
     }
 
     // Database Tools - Contacts

@@ -35,6 +35,7 @@ export async function orchestrateParams(
       6. VÝSTUP MUSÍ BYŤ ČISTÝ JSON. Žiadne kecy okolo.
       7. NIKDY neopakuj ten istý krok s tými istými argumentmi, ak už bol úspešne vykonaný v histórii. Ak je krok hotový, prejdi na ďalší alebo vráť prázdne pole.
       8. Ak nevieš ID kontaktu/firmy, ale poznáš meno/názov, VŽDY najprv použi 'db_search_contacts' na získanie ID. Nepoužívaj "???" hneď v prvom kroku, ak môžeš ID zistiť vyhľadávaním.
+      9. V poli 'steps' používaj VÝHRADNE kľúče "tool" (meno nástroja) a "args" (argumenty). NEPOUŽÍVAJ tool_name ani arguments.
 
       Výstup (JSON):
       {
@@ -47,34 +48,54 @@ export async function orchestrateParams(
     `;
 
     const response = await generateText({
-      model: google("gemini-2.0-pro-exp-02-05"), // High quality reasoning model
+      model: google("gemini-2.0-flash"), // Flash is fast and works reliably
       system: systemPrompt,
       prompt: `HISTORY:\n${JSON.stringify(conversationHistory.slice(-5))}\n\nUSER INPUT:\n${lastUserMessage}`,
     });
 
     try {
-        const cleanText = response.text
-            .replace(/```json/g, "")
-            .replace(/```/g, "")
-            .replace(/\/\/.*$/gm, "") // Remove single line comments
-            .replace(/:\s*\?\?\?/g, ': "???"') // Quote bare ??? tokens for valid JSON
-            .trim();
-        return JSON.parse(cleanText);
+        let rawText = response.text.trim();
+        
+        // Find first '{' and last '}'
+        const firstBrace = rawText.indexOf('{');
+        const lastBrace = rawText.lastIndexOf('}');
+        let jsonText = (firstBrace !== -1 && lastBrace !== -1) 
+            ? rawText.substring(firstBrace, lastBrace + 1)
+            : rawText;
+
+        // Quote bare ??? tokens - handle both comma and closing brace
+        jsonText = jsonText
+            .replace(/:\s*\?\?\?\s*([,}])/g, ': "???"$1');
+            
+        try {
+            const parsed = JSON.parse(jsonText);
+            
+            // Normalization
+            if (parsed.steps && Array.isArray(parsed.steps)) {
+                parsed.steps = parsed.steps.map((s: any) => ({
+                    tool: s.tool || s.tool_name || s.name,
+                    args: s.args || s.arguments || s.params || {}
+                }));
+            }
+            return parsed;
+        } catch (jsonErr: any) {
+            console.error("Orchestrator JSON.parse failed on:", jsonText);
+            console.error("Error:", jsonErr.message);
+            throw jsonErr;
+        }
     } catch (e) {
-        console.error("Orchestrator JSON Parse Error", response.text);
         return {
             intent: "error_parsing",
-            thought: "Failed to parse JSON plan.",
+            thought: "Failed to parse JSON plan after cleanup.",
             steps: []
         };
     }
-
-  } catch (error: any) {
-    console.error("Orchestrator Error:", error);
+} catch (error: any) {
+    console.error("Orchestrator Fatal Error:", error);
     return {
         intent: "error",
         thought: error.message,
         steps: []
     };
-  }
+}
 }

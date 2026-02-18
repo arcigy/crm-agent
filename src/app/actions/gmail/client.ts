@@ -1,15 +1,9 @@
 "use server";
 
-import { clerkClient } from "@clerk/nextjs/server";
-import { getGmailClient } from "@/lib/google";
+import { getGmailClient, getValidToken } from "@/lib/google";
 
-export async function getGmail(userId: string) {
-  const client = await clerkClient();
-  const response = await client.users.getUserOauthAccessToken(
-    userId,
-    "oauth_google",
-  );
-  const token = response.data[0]?.token;
+export async function getGmail(userId: string, userEmail?: string) {
+  const token = await getValidToken(userId, userEmail);
   if (!token) throw new Error("Google account not connected");
   return await getGmailClient(token);
 }

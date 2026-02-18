@@ -84,9 +84,9 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
 
             console.log(`[getValidToken] DB Token Expiry: ${tokenRecord.expiry_date} (Now: ${new Date(now).toISOString()})`);
 
-            // If still valid (with 5 min buffer to be safe)
-            if (expiryDate && now < expiryDate - 300000) {
-                console.log(`[getValidToken] DB Token is still valid.`);
+            // If still valid (with 5 min buffer to be safe) OR no expiry date set at all (try our luck)
+            if (!expiryDate || (expiryDate && now < expiryDate - 300000)) {
+                console.log(`[getValidToken] DB Token is being used (Expiry: ${tokenRecord.expiry_date || 'N/A'}).`);
                 return tokenRecord.access_token as string;
             }
 
