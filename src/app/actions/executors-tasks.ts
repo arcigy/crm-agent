@@ -26,8 +26,10 @@ export async function executeDbTaskTool(
 
       return {
         success: true,
+        action: "open_task",
+        task_id: newTask.id,
         data: { task_id: newTask.id },
-        message: `Úloha "${args.title}" bola vytvorená.`,
+        message: `Úloha "${args.title}" bola vytvorená. Otváram detail úlohy...`,
       };
 
     case "db_fetch_tasks":

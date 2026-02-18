@@ -73,6 +73,21 @@ export default function AgentDebugPage() {
                   setModalOpen(true);
                   toast.success("Koncept emailu pripravený!");
                 }
+                
+                if (logData.stage === "EXECUTOR" && logData.data?.action === "open_url") {
+                  window.open(logData.data.url, "_blank");
+                  toast.success("Otváram externý odkaz...");
+                }
+
+                if (logData.stage === "EXECUTOR" && logData.data?.action === "open_task") {
+                   toast.success(`Úloha #${logData.data.task_id} vytvorená!`, {
+                     description: "V reálnej appke by sa teraz otvoril detail úlohy.",
+                     action: {
+                       label: "Pozrieť",
+                       onClick: () => console.log("Navigating to task", logData.data.task_id)
+                     }
+                   });
+                }
               } catch (e) {
                 console.warn("Failed to parse log line", e);
               }

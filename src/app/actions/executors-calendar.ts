@@ -74,8 +74,10 @@ export async function executeCalendarTool(
 
       return {
         success: true,
+        action: "open_url",
+        url: newEvent.data.htmlLink,
         data: { eventLink: newEvent.data.htmlLink },
-        message: "Udalosť bola úspešne pridaná do kalendára.",
+        message: "Udalosť bola úspešne pridaná do kalendára. Otváram detail v Google kalendári...",
       };
 
     default:
