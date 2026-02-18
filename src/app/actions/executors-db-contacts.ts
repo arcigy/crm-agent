@@ -48,13 +48,13 @@ export async function executeDbContactTool(
         }),
       )) as Record<string, unknown>;
       const newContactId = newContact.id as string;
-      // Real-time sync to Google
-      await syncContactToGoogle(newContactId);
+      // Real-time sync to Google (Non-blocking)
+      syncContactToGoogle(newContactId).catch(err => console.error("[Background Sync] Failed:", err));
 
       return {
         success: true,
         data: { contact_id: newContactId },
-        message: "Kontakt bol úspešne vytvorený v CRM a Google.",
+        message: "Kontakt bol úspešne vytvorený v CRM. Synchronizácia s Google prebieha na pozadí.",
       };
 
     case "db_update_contact":

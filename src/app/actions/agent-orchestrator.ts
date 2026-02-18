@@ -47,7 +47,7 @@ export async function orchestrateParams(
     `;
 
     const response = await generateText({
-      model: google("gemini-3-pro-preview"),
+      model: google("gemini-2.0-flash"),
       system: systemPrompt,
       prompt: `HISTORY:\n${JSON.stringify(conversationHistory.slice(-5))}\n\nUSER INPUT:\n${lastUserMessage}`,
     });

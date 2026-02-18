@@ -1,12 +1,12 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { streamText, generateText } from 'ai';
+import { streamText } from 'ai';
 import { currentUser } from '@clerk/nextjs/server';
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
-// ------------------------------------------------------------------
-// 5-STAGE AGENT PIPELINE IMPLEMENTATION
-// ------------------------------------------------------------------
+/* ------------------------------------------------------------------
+   5-STAGE AGENT PIPELINE IMPLEMENTATION
+   ------------------------------------------------------------------ */
 
 import { routeIntent } from '@/app/actions/agent-router';
 import { orchestrateParams } from '@/app/actions/agent-orchestrator';
@@ -24,116 +24,123 @@ export async function POST(req: Request) {
 
     const userEmail = user.emailAddresses[0].emailAddress;
     const lastUserMsg = messages[messages.length - 1].content;
-    const debugLog: { stage: string; message: string; data?: any; timestamp: string }[] = [];
 
-    const log = (stage: string, message: string, data?: Record<string, unknown> | unknown) => {
-        const entry = { stage, message, data, timestamp: new Date().toISOString() };
-        debugLog.push(entry);
-        console.log(` [${stage}] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+    // Use a TransformStream to send logs as they happen
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const encoder = new TextEncoder();
+
+    const log = async (stage: string, message: string, detail?: any) => {
+        const logEntry = { stage, message, data: detail, timestamp: new Date().toISOString(), isLog: true };
+        if (debug) {
+            // We encode the log as a special JSON line that the client can parse
+            await writer.write(encoder.encode(`LOG:${JSON.stringify(logEntry)}\n`));
+        }
+        console.log(` [${stage}] ${message}`, detail ? JSON.stringify(detail, null, 2) : '');
     };
 
-    // 1. ROUTER: Decide Intent
-    // ------------------------
-    log("ROUTER", "Analyzing intent...");
-    const routing = await routeIntent(lastUserMsg, messages);
-    log("ROUTER", "Result", routing);
-
-    if (routing.type === 'CONVERSATION') {
-        log("ROUTER", "Route: Simple Conversation");
-        const result = streamText({
-            model: google('gemini-2.0-flash'),
-            system: `You are a helpful CRM assistant. User: ${userEmail}. Be concise.`,
-            messages: messages,
-        });
-        
-        if (debug) {
-            const { text } = await generateText({
-                model: google('gemini-2.0-flash'),
-                system: `You are a helpful CRM assistant. User: ${userEmail}. Be concise.`,
-                messages: messages,
-            });
-            return Response.json({ response: text, debugLog });
-        }
-        
-        return result.toTextStreamResponse();
-    }
-
-    // ---------------------------
-    // ITERATIVE EXECUTION LOOP (ReAct)
-    // ---------------------------
-    let iterations = 0;
-    const MAX_ITERATIONS = 5;
-    const finalResults = [];
-    const currentHistory = [...messages];
-
-    while (iterations < MAX_ITERATIONS) {
-        iterations++;
-        log("LOOP", `Iteration ${iterations}/${MAX_ITERATIONS}`);
-
-        // 2. ORCHESTRATE
-        log("ORCHESTRATOR", "Planning...");
-        const taskPlan = await orchestrateParams(null, currentHistory);
-        log("ORCHESTRATOR", "Plan", taskPlan.steps);
-
-        if (!taskPlan.steps || taskPlan.steps.length === 0) {
-            log("LOOP", "No more steps. Finished.");
-            break;
-        }
-
-        // 3. PREPARE (Pick next valid step)
-        log("PREPARER", "Validating next step...");
-        const nextStep = taskPlan.steps[0];
-        const validation = await validateActionPlan(taskPlan.intent, [nextStep], currentHistory);
-        log("PREPARER", "Validation", { valid: validation.valid, questions: validation.questions });
-
-        if (!validation.valid) {
-            log("LOOP", "Blocked. Asking user: " + validation.questions[0]);
-            if (debug) return Response.json({ response: validation.questions[0], debugLog, status: 'blocked' });
-            return new Response(validation.questions[0], { status: 200 }); 
-        }
-
-        // 4. EXECUTE (Run the single valid step)
-        const stepToRun = validation.validated_steps[0];
+    // Keep the actual processing in the background but wait for it before ending the stream
+    const pipelinePromise = (async () => {
         try {
-            log("EXECUTOR", `Executing ${stepToRun.tool}...`, stepToRun.args);
-            const res = await executeAtomicTool(stepToRun.tool, stepToRun.args, user);
-            log("EXECUTOR", "Result", res);
+            // 1. ROUTER: Decide Intent
+            await log("ROUTER", "Analyzing intent...");
+            const routing = await routeIntent(lastUserMsg, messages);
+            await log("ROUTER", "Result", routing);
+
+            if (routing.type === 'CONVERSATION') {
+                await log("ROUTER", "Route: Simple Conversation");
+                const result = streamText({
+                    model: google('gemini-2.0-flash'),
+                    system: `You are a helpful CRM assistant. User: ${userEmail}. Be concise.`,
+                    messages: messages,
+                });
+                for await (const delta of result.textStream) {
+                    await writer.write(encoder.encode(delta));
+                }
+                return;
+            }
+
+            // ---------------------------
+            // ITERATIVE EXECUTION LOOP
+            // ---------------------------
+            let iterations = 0;
+            const MAX_ITERATIONS = 5;
+            const finalResults: any[] = [];
+            const currentHistory = [...messages];
+
+            while (iterations < MAX_ITERATIONS) {
+                iterations++;
+                await log("LOOP", `Iteration ${iterations}/${MAX_ITERATIONS}`);
+
+                await log("ORCHESTRATOR", "Planning...");
+                const taskPlan = await orchestrateParams(null, currentHistory);
+                await log("ORCHESTRATOR", "Plan", taskPlan.steps);
+
+                if (!taskPlan.steps || taskPlan.steps.length === 0) {
+                    await log("LOOP", "No more steps. Finished.");
+                    break;
+                }
+
+                await log("PREPARER", "Validating next step...");
+                const nextStep = taskPlan.steps[0];
+                const validation = await validateActionPlan(taskPlan.intent, [nextStep], currentHistory);
+                await log("PREPARER", "Validation", { valid: validation.valid, questions: validation.questions });
+
+                if (!validation.valid) {
+                    await log("LOOP", "Blocked. Asking user: " + validation.questions[0]);
+                    await writer.write(encoder.encode(validation.questions[0]));
+                    return;
+                }
+
+                const stepToRun = validation.validated_steps[0];
+                try {
+                    await log("EXECUTOR", `Executing ${stepToRun.tool}...`, stepToRun.args);
+                    const res = await executeAtomicTool(stepToRun.tool, stepToRun.args, user!);
+                    await log("EXECUTOR", "Result", res);
+                    
+                    const resultMsg = {
+                        role: "assistant",
+                        content: `Tool '${stepToRun.tool}' executed. Output: ${JSON.stringify(res)}`
+                    };
+                    currentHistory.push(resultMsg);
+                    finalResults.push({ tool: stepToRun.tool, status: res.success ? 'success' : 'error', output: res });
+
+                } catch(e: any) {
+                    const errorMessage = e instanceof Error ? e.message : String(e);
+                    await log("EXECUTOR", "Error", errorMessage);
+                    finalResults.push({ tool: stepToRun.tool, status: 'error', output: errorMessage });
+                    currentHistory.push({
+                        role: "assistant",
+                        content: `Tool '${stepToRun.tool}' failed. Error: ${errorMessage}`
+                    });
+                }
+            }
+
+            // 5. VERIFIER
+            await log("VERIFIER", "Analyzing results...");
+            const finalIntent = lastUserMsg.length > 50 ? "complex_task" : "simple_task"; 
+            const verification = await verifyExecutionResults(finalIntent, finalResults);
+            await log("VERIFIER", "Analysis", verification.analysis);
             
-            const resultMsg = {
-                role: "assistant",
-                content: `Tool '${stepToRun.tool}' executed. Output: ${JSON.stringify(res)}`
-            };
-            currentHistory.push(resultMsg);
-            finalResults.push({ tool: stepToRun.tool, status: res.success ? 'success' : 'error', output: res });
+            const finalResponseText = verification.analysis;
+            const result = streamText({
+                model: google('gemini-2.0-flash'),
+                prompt: `System: Send this exact message to user: "${finalResponseText}"`,
+            });
+            for await (const delta of result.textStream) {
+                await writer.write(encoder.encode(delta));
+            }
 
-        } catch(e: unknown) {
-             const errorMessage = e instanceof Error ? e.message : String(e);
-             log("EXECUTOR", "Error", errorMessage);
-             finalResults.push({ tool: stepToRun.tool, status: 'error', output: errorMessage });
-             currentHistory.push({
-                 role: "assistant",
-                 content: `Tool '${stepToRun.tool}' failed. Error: ${errorMessage}`
-             });
+        } catch (error: any) {
+            await log("ERROR", "Global Pipeline Error", error.message);
+            await writer.write(encoder.encode("Prepáč, nastala neočakávaná chyba pri spracovaní úlohy."));
+        } finally {
+            await writer.close();
         }
-    }
+    })();
 
-    // 5. VERIFIER: Analyze & Respond
-    // ------------------------------
-    log("VERIFIER", "Analyzing results...");
-    const finalIntent = lastUserMsg.length > 50 ? "complex_task" : "simple_task"; 
-    const verification = await verifyExecutionResults(finalIntent, finalResults);
-    log("VERIFIER", "Analysis", verification.analysis);
-    
-    const finalResponse = verification.analysis;
-
-    if (debug) {
-        return Response.json({ response: finalResponse, debugLog, status: 'complete' });
-    }
-
-    const result = streamText({
-        model: google('gemini-2.0-flash'),
-        prompt: `System: Send this exact message to user: "${finalResponse}"`,
+    // We return the readable stream immediately
+    return new Response(readable, {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
     });
-    
-    return result.toTextStreamResponse();
 }

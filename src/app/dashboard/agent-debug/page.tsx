@@ -36,17 +36,69 @@ export default function AgentDebugPage() {
 
       if (!res.ok) throw new Error("API request failed");
 
-      const data = await res.json();
-      if (data.debugLog) {
-        setDebugLog(data.debugLog);
-      }
+      const reader = res.body?.getReader();
+      const textDecoder = new TextDecoder();
+      let assistantContent = "";
+      let buffer = "";
       
-      const assistantMsg = { 
-        id: (Date.now() + 1).toString(), 
-        role: "assistant", 
-        content: data.response || "No response" 
-      };
-      setMessages(prev => [...prev, assistantMsg]);
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = textDecoder.decode(value, { stream: true });
+          buffer += chunk;
+          
+          const lines = buffer.split("\n");
+          // Keep the last partial line in the buffer
+          buffer = lines.pop() || "";
+          
+          for (const line of lines) {
+            if (line.startsWith("LOG:")) {
+              try {
+                const logData = JSON.parse(line.substring(4));
+                setDebugLog(prev => [...prev, logData]);
+              } catch (e) {
+                console.warn("Failed to parse log line", e);
+              }
+            } else if (line.trim()) {
+              assistantContent += line;
+              setMessages(prev => {
+                const newMsgs = [...prev];
+                const lastMsg = newMsgs[newMsgs.length - 1];
+                if (lastMsg && lastMsg.role === "assistant") {
+                  lastMsg.content = assistantContent;
+                  return [...newMsgs];
+                } else {
+                  return [...newMsgs, { id: "asst-" + Date.now(), role: "assistant", content: assistantContent }];
+                }
+              });
+            }
+          }
+        }
+        
+        // Handle remaining buffer
+        if (buffer.trim()) {
+            if (buffer.startsWith("LOG:")) {
+                try {
+                    const logData = JSON.parse(buffer.substring(4));
+                    setDebugLog(prev => [...prev, logData]);
+                } catch (e) {}
+            } else {
+                assistantContent += buffer;
+                setMessages(prev => {
+                   const newMsgs = [...prev];
+                   const lastMsg = newMsgs[newMsgs.length - 1];
+                   if (lastMsg && lastMsg.role === "assistant") {
+                       lastMsg.content = assistantContent;
+                       return [...newMsgs];
+                   } else {
+                       return [...newMsgs, { id: "asst-" + Date.now(), role: "assistant", content: assistantContent }];
+                   }
+                });
+            }
+        }
+      }
     } catch (error) {
       toast.error("Chyba pri komunikácii s agentom");
       console.error(error);

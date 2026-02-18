@@ -75,6 +75,9 @@ export async function executeSysTool(name: string, args: Record<string, any>) {
         data: content.slice(0, 10000),
         message: "Obsah súboru bol načítaný (limit 10k znakov).",
       };
+    case "sys_capture_memory":
+        const { addAIMemory } = await import("./memory");
+        return await addAIMemory(args.fact as string, args.category as string);
     case "sys_run_diagnostics":
       const output = execSync(args.command, {
         encoding: "utf-8",

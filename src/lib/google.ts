@@ -126,21 +126,32 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
         console.log(`[getValidToken] Falling back to Clerk Oauth Token...`);
         const { clerkClient } = await import("@clerk/nextjs/server");
         const client = await clerkClient();
-        const clerkResponse = await client.users.getUserOauthAccessToken(clerkUserId, "oauth_google");
         
-        const clerkTokenData = clerkResponse.data.find(t => t.provider === "oauth_google") || clerkResponse.data[0];
+        try {
+            console.log(`[getValidToken] Fetching Clerk token for: ${clerkUserId}`);
+            const clerkResponse = await client.users.getUserOauthAccessToken(clerkUserId, "oauth_google");
+            console.log(`[getValidToken] Clerk response: ${clerkResponse.data.length} tokens found.`);
+            
+            const clerkTokenData = clerkResponse.data.find(t => t.provider === "oauth_google") || clerkResponse.data[0];
 
-        if (clerkTokenData && clerkTokenData.token) {
-            console.log(`[getValidToken] Obtained token from Clerk.`);
-            // Note: Clerk tokens are usually short-lived. We don't save them to DB here 
-            // to avoid overwriting a potentially better (but currently broken) refreshable DB entry.
-            return clerkTokenData.token;
+            if (clerkTokenData && clerkTokenData.token) {
+                console.log(`[getValidToken] Obtained token from Clerk.`);
+                return clerkTokenData.token;
+            }
+        } catch (clerkErr: any) {
+            console.error("❌ [getValidToken] Clerk OAuth error:", clerkErr.status, clerkErr.message);
+            // Clerk often provides detailed errors in an array
+            if (clerkErr.errors) {
+                console.error("Details:", JSON.stringify(clerkErr.errors, null, 2));
+            }
+            // If it's 422, it might mean the user hasn't linked Google or the scope is missing
+            throw clerkErr; 
         }
 
         console.warn(`[getValidToken] No token found in Clerk either.`);
         return null;
     } catch (err: any) {
-        console.error("❌ [getValidToken] Fatal error:", err.message || err);
+        console.error("❌ [getValidToken] Final catch block error:", err.message || err);
         return null;
     }
 }
