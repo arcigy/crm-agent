@@ -15,15 +15,54 @@ import { executeCalendarTool } from "./executors-calendar";
 import { executeAiTool } from "./executors-ai";
 
 /**
- * Main router for atomic tool execution.
- * Orchestrates calls to specialized executors based on tool name prefixes.
+ * Normalizes arguments by mapping common aliases and fuzzy naming conventions
+ * to the exact keys expected by the tools.
  */
+function normalizeArgs(name: string, args: Record<string, any>): Record<string, any> {
+    const normalized: Record<string, any> = { ...args };
+    
+    // Common ID mapping aliases
+    const idAliases = ["id", "contactId", "contactID", "cid"];
+    const projectIdAliases = ["projectId", "projectID", "pid"];
+    const dealIdAliases = ["dealId", "dealID", "did"];
+    const taskIdAliases = ["taskId", "taskID", "tid"];
+
+    // Generic ID correction
+    if (name.includes("contact") || name.includes("lead")) {
+        idAliases.forEach(alias => {
+            if (args[alias] && !args.contact_id) normalized.contact_id = args[alias];
+        });
+    }
+    if (name.includes("project")) {
+        projectIdAliases.forEach(alias => {
+            if (args[alias] && !args.project_id) normalized.project_id = args[alias];
+        });
+    }
+    if (name.includes("deal")) {
+        dealIdAliases.forEach(alias => {
+            if (args[alias] && !args.deal_id) normalized.deal_id = args[alias];
+        });
+    }
+    if (name.includes("task")) {
+        taskIdAliases.forEach(alias => {
+            if (args[alias] && !args.task_id) normalized.task_id = args[alias];
+        });
+    }
+
+    // Gmail aliases
+    if (name.startsWith("gmail_")) {
+        if (args.id && !args.messageId) normalized.messageId = args.id;
+    }
+
+    return normalized;
+}
+
 export async function executeAtomicTool(
   name: string,
   args: Record<string, unknown>,
   user: { id: string; emailAddresses: { emailAddress: string }[] },
 ) {
-  const safeArgs = args; // Type is already Record<string, unknown>
+  const safeArgs = normalizeArgs(name, args); 
   const userEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
   const userId = user?.id;
 
