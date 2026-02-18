@@ -73,9 +73,45 @@ export async function executeAtomicTool(
       return await executeDbVerificationTool(name, safeArgs, userEmail);
     }
 
-    // System Tools
-    if (name.startsWith("sys_")) {
-      return await executeSysTool(name, safeArgs);
+    // Meta-Tool (Dispatcher)
+    if (name === "sys_execute_plan") {
+        const steps = (safeArgs.steps as Array<{ tool_name?: string; tool?: string; arguments?: Record<string, unknown>; args?: Record<string, unknown> }>) || [];
+        const results = [];
+        
+        console.log(`[Dispatcher] Executing plan with ${steps.length} steps...`);
+
+        for (const step of steps) {
+            try {
+                const toolName = step.tool_name || step.tool;
+                const toolArgs = step.arguments || step.args || {};
+                
+                if (!toolName) continue;
+
+                console.log(`[Dispatcher] Running ${toolName}...`);
+                const result = (await executeAtomicTool(toolName, toolArgs as any, user)) as any;
+                results.push({
+                    tool: toolName,
+                    status: result.success ? "success" : "error",
+                    output: result
+                });
+                
+                if (!result.success) {
+                    console.error(`[Dispatcher] Step ${toolName} failed:`, result.error);
+                }
+            } catch (err: any) {
+                 results.push({
+                    tool: step.tool_name || step.tool,
+                    status: "failed",
+                    error: err.message
+                });
+            }
+        }
+
+        return {
+            success: true,
+            data: results,
+            message: `Plán bol vykonaný (${results.filter(r => r.status === 'success').length}/${steps.length} úspešných krokov).`
+        };
     }
 
     // Drive Tools
@@ -108,41 +144,9 @@ export async function executeAtomicTool(
         return await executeCalendarTool(name, safeArgs, userEmail, userId);
     }
 
-    // Meta-Tool (Dispatcher)
-    if (name === "sys_execute_plan") {
-        const steps = (safeArgs.steps as Array<{ tool_name: string; arguments: Record<string, unknown> }>) || [];
-        const results = [];
-        
-        console.log(`[Dispatcher] Executing plan with ${steps.length} steps...`);
-
-        for (const step of steps) {
-            try {
-                console.log(`[Dispatcher] Running ${step.tool_name}...`);
-                const result = await executeAtomicTool(step.tool_name, step.arguments, user);
-                results.push({
-                    tool: step.tool_name,
-                    status: result.success ? "success" : "error",
-                    output: result
-                });
-                
-                // Optional: Stop on error? For now we continue but log it.
-                if (!result.success) {
-                    console.error(`[Dispatcher] Step ${step.tool_name} failed:`, result.error);
-                }
-            } catch (err: any) {
-                 results.push({
-                    tool: step.tool_name,
-                    status: "failed",
-                    error: err.message
-                });
-            }
-        }
-
-        return {
-            success: true,
-            data: results,
-            message: `Plán bol vykonaný (${results.filter(r => r.status === 'success').length}/${steps.length} úspešných krokov).`
-        };
+    // System Tools
+    if (name.startsWith("sys_")) {
+      return await executeSysTool(name, safeArgs);
     }
 
     return { success: false, error: `Tool group not found for: ${name}` };
