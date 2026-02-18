@@ -465,6 +465,21 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "sys_capture_memory",
+      description: "Uloží si dôležitý fakt o používateľovi alebo jeho preferenciách do dlhodobej pamäte.",
+      parameters: {
+        type: "object",
+        properties: {
+          fact: { type: "string", description: "Fakt na zapamätanie (napr. 'Používateľ preferuje fakturáciu v EUR')" },
+          category: { type: "string", description: "Kategória (napr. 'preferencie', 'osobné')", default: "general" }
+        },
+        required: ["fact"],
+      },
+    },
+  },
 ];
 
 export const VERIFIER_ATOMS: ToolDefinition[] = [

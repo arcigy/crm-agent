@@ -140,11 +140,14 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
             }
         } catch (clerkErr: any) {
             console.error("❌ [getValidToken] Clerk OAuth error:", clerkErr.status, clerkErr.message);
-            // Clerk often provides detailed errors in an array
+            
+            if (clerkErr.status === 422) {
+                console.error("💡 TIP: Užívateľ nemá prepojený Google účet v Clerk (OAuth). Je potrebné sa odhlásiť a znova prihlásiť cez Google, alebo prepojiť účet v nastaveniach Clerk.");
+            }
+
             if (clerkErr.errors) {
                 console.error("Details:", JSON.stringify(clerkErr.errors, null, 2));
             }
-            // If it's 422, it might mean the user hasn't linked Google or the scope is missing
             throw clerkErr; 
         }
 
