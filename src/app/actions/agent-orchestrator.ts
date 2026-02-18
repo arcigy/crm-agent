@@ -27,6 +27,10 @@ TASK:
 3. Break down the path into discrete "steps" using the AVAILABLE TOOLS.
 4. Output a strictly formatted JSON plan.
 
+INPUTS:
+1. USER INPUT: The latest message or command from the user.
+2. CONVERSATION HISTORY: A summary of the recent 5 messages and tool execution results. You MUST extract IDs and data from here to avoid redundant work.
+
 AVAILABLE TOOLS:
 ${JSON.stringify(toolsDocs.map(t => ({name: t.name, desc: t.description, params: t.parameters})), null, 2)}
 
