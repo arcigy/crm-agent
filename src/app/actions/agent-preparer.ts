@@ -73,10 +73,21 @@ Accuracy is key, but flexibility is your superpower. Your goal is to make the sy
     try {
         const cleanText = response.text.replace(/```json/g, "").replace(/```/g, "").trim();
         const parsed = JSON.parse(cleanText);
+        
+        let validatedSteps = parsed.validated_steps || steps;
+        
+        // Ensure normalization of keys for the executor
+        if (Array.isArray(validatedSteps)) {
+            validatedSteps = validatedSteps.map((s: any) => ({
+                tool: s.tool || s.tool_name || s.name,
+                args: s.args || s.arguments || s.params || {}
+            }));
+        }
+
         return {
             valid: parsed.valid ?? false,
             questions: parsed.questions ?? [],
-            validated_steps: parsed.validated_steps ?? steps
+            validated_steps: validatedSteps
         };
     } catch (e) {
         console.error("Preparer JSON Parse Error", response.text);

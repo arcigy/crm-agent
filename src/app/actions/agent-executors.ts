@@ -19,6 +19,7 @@ import { executeAiTool } from "./executors-ai";
  * to the exact keys expected by the tools.
  */
 function normalizeArgs(name: string, args: Record<string, any>): Record<string, any> {
+    if (!name) return args;
     const normalized: Record<string, any> = { ...args };
     
     // Common ID mapping aliases
@@ -62,6 +63,8 @@ export async function executeAtomicTool(
   args: Record<string, unknown>,
   user: { id: string; emailAddresses: { emailAddress: string }[] },
 ) {
+  if (!name) return { success: false, error: "Tool name is missing (undefined)." };
+  
   const safeArgs = normalizeArgs(name, args); 
   const userEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
   const userId = user?.id;
