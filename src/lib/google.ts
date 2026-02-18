@@ -84,13 +84,19 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
 
             console.log(`[getValidToken] DB Token Expiry: ${tokenRecord.expiry_date} (Now: ${new Date(now).toISOString()})`);
 
-            // If still valid (with 5 min buffer to be safe) OR no expiry date set at all (try our luck)
-            if (!expiryDate || (expiryDate && now < expiryDate - 300000)) {
+            // If still valid (with 5 min buffer)
+            const isExpired = expiryDate ? (now > expiryDate - 300000) : false;
+            
+            // If we don't have expiry_date, check how old the record is. If > 1 hour, it's likely stale.
+            const dateUpdated = tokenRecord.date_updated ? new Date(tokenRecord.date_updated).getTime() : 0;
+            const isStale = !expiryDate && (now - dateUpdated > 3600000); 
+
+            if (!isExpired && !isStale) {
                 console.log(`[getValidToken] DB Token is being used (Expiry: ${tokenRecord.expiry_date || 'N/A'}).`);
                 return tokenRecord.access_token as string;
             }
 
-            if (tokenRecord.refresh_token) {
+            if (tokenRecord.refresh_token && (isExpired || isStale)) {
                 console.log(`[getValidToken] DB Token expired/near-expiry, attempting refresh...`);
                 try {
                     const credentials = await refreshAccessToken(tokenRecord.refresh_token);
