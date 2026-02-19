@@ -79,8 +79,22 @@ OUTPUT FORMAT (STRICT JSON):
     );
 
     try {
-        const cleanText = response.text.replace(/```json/g, "").replace(/```/g, "").trim();
-        const parsed = JSON.parse(cleanText);
+        let clean = response.text.replace(/```json/g, "").replace(/```/g, "").trim();
+        const startIdx = clean.indexOf('{');
+        const endIdx = clean.lastIndexOf('}');
+        if (startIdx !== -1 && endIdx !== -1) {
+            clean = clean.substring(startIdx, endIdx + 1);
+        }
+
+        // Handle control characters/newlines
+        clean = clean.replace(/[\x00-\x1F\x7F-\x9F]/g, (match: string) => {
+            if (match === '\n') return "\\n";
+            if (match === '\r') return "\\r";
+            if (match === '\t') return "\\t";
+            return " ";
+        });
+
+        const parsed = JSON.parse(clean);
         
         let validatedSteps = parsed.validated_steps || steps;
         

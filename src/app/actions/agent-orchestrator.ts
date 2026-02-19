@@ -161,25 +161,29 @@ OUTPUT FORMAT (STRICT JSON):
 
     try {
         const rawText = response.text || "";
-        // Clean up markdown blocks and common junk
-        let jsonText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
-        const firstBrace = jsonText.indexOf('{');
-        const lastBrace = jsonText.lastIndexOf('}');
-        if (firstBrace !== -1 && lastBrace !== -1) {
-            jsonText = jsonText.substring(firstBrace, lastBrace + 1);
+        // 1. Basic markdown cleanup
+        let clean = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+        const startIdx = clean.indexOf('{');
+        const endIdx = clean.lastIndexOf('}');
+        if (startIdx !== -1 && endIdx !== -1) {
+            clean = clean.substring(startIdx, endIdx + 1);
         }
 
-        // Remove control characters (new lines in strings, etc.)
-        jsonText = jsonText.replace(/[\x00-\x1F\x7F-\x9F]/g, (match: string) => {
-            if (match === '\n' || match === '\r' || match === '\t') return match;
+        // 2. Handle literal newlines inside JSON strings (The most common cause of "Bad control character")
+        // This is tricky with regex, but we'll try to escape literal \n \r \t that are not already escaped
+        // or just replace all non-printable chars except those needed for structure.
+        clean = clean.replace(/[\x00-\x1F\x7F-\x9F]/g, (match: string) => {
+            if (match === '\n') return "\\n";
+            if (match === '\r') return "\\r";
+            if (match === '\t') return "\\t";
             return " ";
         });
 
-        // Quote bare ??? tokens
-        jsonText = jsonText.replace(/:\s*\?\?\?\s*([,}])/g, ': "???"$1');
-            
+        // 3. Fix unquoted "???" which LLM loves to use for "fill in later"
+        clean = clean.replace(/:\s*\?\?\?\s*([,}])/g, ': "???"$1');
+
         try {
-            const parsed = JSON.parse(jsonText);
+            const parsed = JSON.parse(clean);
             
             // Normalization
             if (parsed.steps && Array.isArray(parsed.steps)) {
@@ -190,8 +194,18 @@ OUTPUT FORMAT (STRICT JSON):
             }
             return parsed;
         } catch (jsonErr: any) {
-            console.error("Orchestrator JSON.parse failed on:", jsonText);
-            console.error("Error:", jsonErr.message);
+            console.error("CRITICAL JSON PARSE ERROR. Position:", jsonErr.message);
+            console.error("RAW OUTPUT:", rawText.substring(0, 500) + "...");
+            
+            // EMERGENCY FALLBACK: If JSON fails, try to extract steps via simple regex
+            // This allows the agent to at least DO something if the report part of JSON broke
+            const stepsMatch = clean.match(/"steps"\s*:\s*(\[[\s\S]*?\])/);
+            if (stepsMatch) {
+                try {
+                    const steps = JSON.parse(stepsMatch[1].replace(/\\/g, "\\\\"));
+                    return { intent: "fallback_rescue", thought: "JSON broke, rescued steps.", steps };
+                } catch { /* nested fail */ }
+            }
             throw jsonErr;
         }
     } catch (e) {
