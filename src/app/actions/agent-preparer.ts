@@ -21,35 +21,29 @@ export async function validateActionPlan(
 
     const systemPrompt = `
 ROLE:
-You are the Supreme Action Preparer and Normalizer for a High-Stakes Business CRM. Your mission is to be the "Safety Net" that heals minor discrepancies between the AI Orchestrator's plan and the literal technical requirements of the tools.
+You are the Action Preparer (Safety Net) for a CRM agent. Your job: validate and heal the plan, and detect user-facing ambiguity.
 
 TASK:
-1. ANALYZE the PROPOSED STEPS from the Orchestrator.
-2. NORMALIZE the naming conventions: 
-   - Mapping 'tool' or 'toolName' to 'tool_name'.
-   - Mapping 'args' to 'arguments'.
-   - Correcting argument keys (e.g., 'contactId' -> 'contact_id', 'id' -> 'contact_id', etc.).
-3. VALIDATE: Ensure all REQUIRED parameters for **EACH TOOL PRESENT IN THE STEPS** are provided.
-4. HEAL: If a required ID for a tool *in the steps* is missing but exists in history, inject it.
-5. VERDICT: Decide if the plan is safe to execute.
+1. NORMALIZE: Fix camelCase to snake_case. Map aliases (id → contact_id, etc.).
+2. HEAL: If a required ID is missing but exists in history, inject it.
+3. DETECT AMBIGUITY: If the previous step results contain MULTIPLE items (e.g. 2 notes, 3 contacts) and the NEXT STEPS require picking one specific item (e.g. db_update_note, db_delete_contact), the user must choose. Set valid=false and write a short, direct question in Slovak listing the options.
+4. VALIDATE: Only block if a required arg is truly missing and cannot be healed.
 
 RULES:
-1. PROACTIVE EXPLORATION: If the steps focus on SEARCHING (e.g., db_search_contacts), the plan is VALID even if the final action (e.g., db_create_note) is not present yet. Do NOT block search steps just because the final action's IDs are missing.
-2. NOMENCLATURE ALIGNMENT: Tools follow 'snake_case'. If the AI uses 'camelCase', convert it.
-3. COMPLETENESS: Only set 'valid' to false if a tool **ALREADY IN THE STEPS** is missing a strictly required argument that you cannot heal.
-4. HEALING IS BETTER THAN ASKING: If you can make a step work by fixing a key or finding an ID in history, do it. Only ask questions as a last resort.
+1. Search steps (db_fetch_notes, db_search_contacts) are ALWAYS valid — never block them.
+2. HEALING IS BETTER THAN ASKING: Fix if possible. Ask only as last resort.
+3. AMBIGUITY CHECK: Look at the PREVIOUS RESULTS in history. If they show 2+ items and the plan needs one specific item, set valid=false and ask which one.
+   Example question: "Našiel som 2 poznámky: (1) Názov A, (2) Názov B. Ktorú chceš upraviť?"
+4. BREVITY: questions must be 1-2 sentences max in Slovak, no technical jargon.
 
 OUTPUT FORMAT (STRICT JSON):
 {
   "valid": boolean,
-  "questions": string[], // Only if valid=false and you cannot heal the steps.
+  "questions": string[], // Max 1 question if valid=false
   "validated_steps": [
     { "tool": "tool_name", "args": { "key": "value" } }
   ]
 }
-
-SPECIFICS:
-Accuracy is key, but flexibility is your superpower. Your goal is to make the system 'Antifragile'.
 `;
 
     const prompt = `
@@ -62,8 +56,8 @@ Accuracy is key, but flexibility is your superpower. Your goal is to make the sy
       PROPOSED STEPS:
       ${JSON.stringify(steps, null, 2)}
       
-      CONVERSATION HISTORY (Last 5 messages):
-      ${JSON.stringify(conversationHistory.slice(-5), null, 2)}
+      PREVIOUS ITERATION RESULTS (check for multiple items that require user choice):
+      ${JSON.stringify(conversationHistory.slice(-3), null, 2)}
     `;
 
     const response = await generateText({
