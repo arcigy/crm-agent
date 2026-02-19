@@ -19,29 +19,31 @@ const gemini = geminiBase.getGenerativeModel({ model: "gemini-2.0-flash" });
 export async function runGatekeeper(
   messages: ChatMessage[],
 ): Promise<ChatVerdict> {
-  // DETERMINISTIC PRE-CHECK: Capability questions are ALWAYS INFO_ONLY
-  const lastUserMsg = messages.filter(m => m.role === "user").pop()?.content?.trim().toLowerCase() || "";
-  const capabilityPrefixes = ["vieš", "môžeš", "dokážeš", "umieš", "dá sa", "čo vieš", "čo môžeš", "môžem ťa", "can you", "do you"];
-  const greetings = ["ahoj", "čau", "dobrý deň", "dobré ráno", "dobré", "hello", "hi ", "hey"];
-  
-  if (
-    capabilityPrefixes.some(p => lastUserMsg.startsWith(p)) ||
-    greetings.some(g => lastUserMsg.startsWith(g)) ||
-    (lastUserMsg.endsWith("?") && lastUserMsg.split(" ").length <= 6)
-  ) {
-    return { intent: "INFO_ONLY", extracted_data: { entities: [], action_type: "question" } };
-  }
+  const prompt = `Si Gatekeeper AI agenta pre CRM. Tvojou úlohou je zaradiť správu do INFO_ONLY alebo ACTION.
 
-  const prompt = `Si Gatekeeper AI agenta pre CRM. Zaraď správu: INFO_ONLY alebo ACTION.
+KĽÚČOVÉ PRAVIDLO:
+Pozri sa, ČI SPRÁVA OBSAHUJE KONKRÉTNU ÚLOHU S CIEĽOM.
+- Ak ÁNO (má konkrétny cieľ, osobu, objekt) → ACTION
+- Ak NIE (pýta sa všeobecne, bez konkrétneho cieľa) → INFO_ONLY
 
-INFO_ONLY = otázky, pozdravy, konverzácia, otázky o schopnostiach agenta
-ACTION = priamy príkaz vykonať operáciu (vytvor, uprav, nájdi, zmaž, pošli...)
+INFO_ONLY = všeobecné otázky o schopnostiach agenta, pozdravy, small talk
+ACTION = žiadosť vykonať konkrétnu operáciu (aj ak je formulovaná ako otázka!)
 
-PRÍKLADY ACTION:
-"Vyhľadaj mi info o firme XY" → ACTION
-"Vytvor poznámku o Martinovi" → ACTION
-"Nájdi kontakt Petra Nováka" → ACTION
-"Pošli email Martinovi" → ACTION
+PRÍKLADY - SPRÁVNA KLASIFIKÁCIA:
+
+INFO_ONLY (všeobecné otázky bez konkrétneho cieľa):
+✅ "Vieš vyhľadávať na webe?" → pýta sa všeobecne, žiadny konkrétny cieľ
+✅ "Čo všetko dokážeš?" → všeobecná otázka o schopnostiach
+✅ "Môžeš pracovať s emailami?" → všeobecná otázka
+✅ "Ahoj, ako sa máš?" → pozdrav
+✅ "Čo je CRM?" → všeobecná otázka
+
+ACTION (konkrétna úloha, aj ak je otázka):
+✅ "Môžeš mi poslať email Martinovi?" → konkrétna akcia (email + osoba)
+✅ "Vieš mi nájsť kontakt Petra Nováka?" → konkrétna akcia (nájsť + meno)
+✅ "Môžeš mi č vytvoriť poznámku o dnešnom stretnutí?" → konkrétna akcia
+✅ "Vyhľadaj mi firmu XY na webe" → priamy príkaz
+✅ "Vytvor poznámku o Martinovi" → priamy príkaz
 
 Odpovedaj LEN JSON: { "intent": "INFO_ONLY" alebo "ACTION", "extracted_data": { "entities": [], "action_type": "" } }`;
   const start = Date.now();
