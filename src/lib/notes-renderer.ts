@@ -22,18 +22,18 @@ export function renderNoteToHtml(blocks: NoteBlock[]): string {
 
       switch (block.type) {
         case "h1":
-          return `<h1 class="text-6xl font-black tracking-tighter mb-8 italic text-indigo-600 uppercase transition-all">${processedContent}</h1>`;
+          return `<h1 class="!text-7xl !font-black !tracking-tighter !mb-12 !mt-4 !italic !text-indigo-600 !uppercase !leading-none">${processedContent}</h1>`;
         case "h2":
-          return `<h2 class="text-4xl font-black tracking-tight mt-12 mb-6 border-l-8 border-indigo-500 pl-6 uppercase italic text-foreground/80">${processedContent}</h2>`;
+          return `<h2 class="!text-4xl !font-black !tracking-tight !mt-16 !mb-8 !border-l-8 !border-indigo-500 !pl-8 !uppercase !italic !text-foreground/80">${processedContent}</h2>`;
         case "callout":
-          return `<div class="p-6 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-500/20 rounded-3xl my-6"><p class="m-0 font-medium text-indigo-900 dark:text-indigo-100 italic">${processedContent}</p></div>`;
+          return `<blockquote class="!p-10 !bg-indigo-50 dark:!bg-indigo-950/30 !border-l-[12px] !border-indigo-500 !rounded-r-[2rem] !my-12"><p class="!m-0 !font-bold !text-indigo-900 dark:!text-indigo-100 !italic !text-2xl !leading-relaxed">${processedContent}</p></blockquote>`;
         case "p":
-          return `<p class="mb-5 leading-loose text-foreground/90" ${style}>${processedContent}</p>`;
+          return `<p class="!mb-8 !leading-[2.2] !text-xl !text-foreground/90 font-medium" ${style}>${processedContent}</p>`;
         case "ul":
           const items = (block.items || [])
-            .map((item) => `<li class="ml-6 mb-2 list-disc marker:text-indigo-500">${processContent(item)}</li>`)
+            .map((item) => `<li class="!ml-8 !mb-4 !list-disc !marker:text-indigo-500 !text-xl !leading-relaxed">${processContent(item)}</li>`)
             .join("");
-          return `<ul class="mb-6 space-y-2">${items}</ul>`;
+          return `<ul class="!mb-12 !space-y-4 !py-2">${items}</ul>`;
         default:
           return "";
       }
@@ -56,12 +56,13 @@ function processContent(content: string): string {
     return `<a data-mention-component="" data-contact-id="${id}" data-type="project" data-label="${name}" class="mention-tag mention-tag-project" contenteditable="false">📁 ${name}</a>`;
   });
 
-  // Rich inline formatting
-  processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong class="font-black text-indigo-600">$1</strong>');
-  processed = processed.replace(/\*(.*?)\*/g, '<em class="italic text-muted-foreground">$1</em>');
+  // Rich inline formatting with !important colors
+  processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong class="!font-black !text-indigo-600">$1</strong>');
+  processed = processed.replace(/\*(.*?)\*/g, '<em class="!italic !text-muted-foreground/60">$1</em>');
   
-  // Color placeholders if AI sends them (e.g. [color:#ff0000]text[/color])
-  processed = processed.replace(/\[color:(.*?)\](.*?)\[\/color\]/g, '<span style="color: $1">$2</span>');
+  // Custom color tags with robust regex
+  processed = processed.replace(/\[color:\s*(#[a-fA-F0-0]{3,6})\s*\](.*?)\[\/color\]/gi, '<span style="color: $1 !important; font-weight: 800;">$2</span>');
+  processed = processed.replace(/\[color:\s*([a-zA-Z]+)\s*\](.*?)\[\/color\]/gi, '<span style="color: $1 !important; font-weight: 800;">$2</span>');
 
   return processed;
 }
