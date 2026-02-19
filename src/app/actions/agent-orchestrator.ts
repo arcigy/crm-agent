@@ -32,10 +32,7 @@ export async function runOrchestratorLoop(
     });
 
     // 1. Plan next steps
-    lastPlan = await orchestrateParams(messages[messages.length - 1].content, missionHistory.map((h, i) => ({
-        role: "assistant",
-        content: `Iteration ${i + 1} results: ${JSON.stringify(h.steps)}`
-    })));
+    lastPlan = await orchestrateParams(messages, missionHistory);
 
     if (!lastPlan.steps || lastPlan.steps.length === 0) {
       break;
@@ -90,8 +87,8 @@ export async function runOrchestratorLoop(
 }
 
 export async function orchestrateParams(
-  lastUserMessage: string | null,
-  conversationHistory: any[]
+  messages: ChatMessage[],
+  missionHistory: MissionHistoryItem[]
 ) {
   const start = Date.now();
   try {
@@ -122,6 +119,7 @@ RULES:
 5. COMPLETION: When done, return steps: [].
 6. RICH NOTES: For db_create_note, generate 300+ word professional notes in Slovak.
 7. SLOVAK ARGS: All text arguments (title, content, comment, subject, body) must be in Slovak.
+8. NO REDUNDANCY: Never repeat a successful action (e.g., creating a contact/note/task) if it is already in HISTORY. If the goal is reached, return steps: [].
 
 OUTPUT FORMAT (STRICT JSON):
 {
@@ -133,18 +131,26 @@ OUTPUT FORMAT (STRICT JSON):
 }
 `;
 
+    const historyContext = [
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+        ...missionHistory.map((h, i) => ({
+            role: "assistant",
+            content: `KROK ${i + 1} VÝSLEDKY: ${JSON.stringify(h.steps)}`
+        }))
+    ];
+
     const response = await generateText({
       model: google("gemini-2.0-flash"),
       system: systemPrompt,
-      temperature: 0.7, // Add a bit of creativity to planning and content generation
-      prompt: `HISTORY:\n${JSON.stringify(conversationHistory.slice(-5))}\n\nUSER INPUT:\n${lastUserMessage}`,
+      temperature: 0.1, // Near-deterministic planning
+      prompt: `KONTEXT KONVERZÁCIE A DOTERAJŠIE VÝSLEDKY:\n${JSON.stringify(historyContext.slice(-10))}\n\nDOSIAHNI CIEĽ Z POSLEDNEJ SPRÁVY UŽÍVATEĽA.`,
     });
 
     trackAICall(
         "orchestrator",
         "gemini",
         "gemini-2.0-flash",
-        systemPrompt + (lastUserMessage || ""),
+        systemPrompt + (messages[messages.length - 1].content || ""),
         response.text,
         Date.now() - start,
         (response.usage as any).inputTokens,
