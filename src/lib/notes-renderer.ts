@@ -4,7 +4,7 @@
  */
 
 export interface NoteBlock {
-  type: "h1" | "h2" | "p" | "ul" | "callout";
+  type: "h1" | "h2" | "h3" | "p" | "ul" | "callout" | "hr";
   content?: string;
   items?: string[];
   color?: string; // e.g. "#6366f1"
@@ -17,7 +17,6 @@ export function renderNoteToHtml(blocks: NoteBlock[]): string {
   return blocks
     .map((block) => {
       const style = block.color ? `style="color: ${block.color}"` : "";
-      const highlightStyle = block.highlight ? `style="background-color: ${block.highlight}; padding: 0.1rem 0.3rem; border-radius: 0.3rem;"` : "";
       const processedContent = processContent(block.content || "");
 
       switch (block.type) {
@@ -25,6 +24,10 @@ export function renderNoteToHtml(blocks: NoteBlock[]): string {
           return `<h1 class="!text-7xl !font-black !tracking-tighter !mb-16 !mt-8 !italic !text-indigo-600 !uppercase !leading-[0.85]">${processedContent}</h1>`;
         case "h2":
           return `<h2 class="!text-5xl !font-black !tracking-tight !mt-32 !mb-12 !border-l-[16px] !border-indigo-600 !pl-12 !uppercase !italic !text-foreground/90 !leading-[1.1]">${processedContent}</h2>`;
+        case "h3":
+          return `<h3 class="!text-3xl !font-black !tracking-tight !mt-16 !mb-8 !text-indigo-500/80 !uppercase !leading-[1.2]">${processedContent}</h3>`;
+        case "hr":
+          return `<hr class="!my-24 !border-t-4 !border-dashed !border-indigo-200 dark:!border-indigo-800" />`;
         case "callout":
           return `<blockquote class="!p-14 !bg-indigo-50/50 dark:!bg-indigo-950/40 !border-l-[20px] !border-indigo-600 !rounded-r-[4rem] !my-20 !shadow-sm"><p class="!m-0 !font-bold !text-indigo-950 dark:!text-indigo-50 !italic !text-3xl !leading-[1.6] !tracking-tight">${processedContent}</p></blockquote>`;
         case "p":

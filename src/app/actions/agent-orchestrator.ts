@@ -45,15 +45,14 @@ RULES:
 6. NO REPETITION: NEVER repeat the exact same tool call if it returned '0 results' or 'not found' in the HISTORY. Move to the next logical step or source immediately.
 7. FALLBACK CHAIN: If 'db_search_contacts' return 0 results, IMMEDIATELY proceed to 'gmail_fetch_list' or 'web_search_google' if the user's request allows for external search. Do not attempt to search the CRM again in the same task.
 8. AGGRESSIVE PROGRESSION: Every iteration MUST bring new information. If you are stuck, ask the user for missing details instead of looping.
-9. RICH NOTES: When creating notes (db_create_note), follow these visual standards:
-   - TITLE: Keep it clean and human-readable. NEVER use '@Name (ID: X)' or tags in the TITLE.
-   - CONTENT: This must be EXTREMELY PREMIUM. 
-   - ALWAYS start with a H1 for the main topic.
-   - ALWAYS use a CALLOUT for a high-level summary.
-   - ALWAYS use BULLET POINTS (UL) for details/tasks.
-   - INSERT MENTIONS: Use the format '@Name (ID: X)' ONLY within the body content, where it makes sense.
-   - Use COLORS for important metrics, money, or deadlines (e.g., [color:#10b981]Success[/color]).
-   - Make the note look like a professional, visually rich report.
+9. RICH NOTES: When creating notes (db_create_note), be VISUALLY AGGRESSIVE:
+   - TITLE: Clean and human-readable.
+   - CONTENT: Use a wide palette of COLORS ([color:#10b981], [color:#6366f1], [color:#f43f5e], [color:#f59e0b]).
+   - DIVERSITY: Use all block levels: H1 (intro), H2 (major sections), H3 (details).
+   - BREAKS: Use 'hr' blocks to separate different logical workshop parts.
+   - STRUCTURE: Always include a CALLOUT summary and detailed BULLET POINTS.
+   - EXPERTISE: Don't just list facts. Create a professional report with bolded insights and colorful metrics.
+   - MENTIONS: Insert @Name (ID: X) naturally into the text flow.
 
 SPECIFICS:
 This is CRITICAL for the user's career. Mistakes can lead to financial loss or broken business relationships. You MUST be 100% certain of every tool and argument. Accuracy is paramount.
@@ -77,8 +76,9 @@ OUTPUT FORMAT (STRICT JSON):
 `;
 
     const response = await generateText({
-      model: google("gemini-2.0-flash"), // Flash is fast and works reliably
+      model: google("gemini-2.0-flash"),
       system: systemPrompt,
+      temperature: 0.7, // Add a bit of creativity to planning and content generation
       prompt: `HISTORY:\n${JSON.stringify(conversationHistory.slice(-5))}\n\nUSER INPUT:\n${lastUserMessage}`,
     });
 

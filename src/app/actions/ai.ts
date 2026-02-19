@@ -164,7 +164,9 @@ export async function enhanceNoteContent(
   }
 
   const prompt = `
-Si **master dizajnéra CRM poznámok** pre firmu ${context.business_company_name}. Tvojou úlohou je transformovať surový text na vizuálne úchvatný a sémanticky bohatý JSON objekt.
+Si **master dizajnéra CRM poznámok** pre firmu ${context.business_company_name}. Tvojou úlohou je transformovať surový text na vizuálne dychberúci, pestrý a sémanticky bohatý JSON objekt. 
+
+NEBUĎ KONZERVATÍVNY. Buď vizuálne odvážny, používaj veľa farieb, rôzne úrovne nadpisov a jasnú štruktúru.
 
 ## PRAVIDLÁ PRE MENTIONS (KRITICKÉ)
 Ak v texte nájdeš meno a ID (napr. "Ján Novák (ID: 15)"), musíš použiť tento presný placeholder:
@@ -175,25 +177,31 @@ Ak v texte nájdeš meno a ID (napr. "Ján Novák (ID: 15)"), musíš použiť t
 Vráť pole objektov (blocks) v tomto formáte:
 [
   { "type": "h1", "content": "VEĽKÝ NADPIS" },
-  { "type": "callout", "content": "Dôležité upozornenie alebo zhrnutie callu." },
-  { "type": "p", "content": "Text s [color:#6366f1]farebným zvýraznením[/color] dôležitého slova." },
-  { "type": "ul", "items": ["Bod 1 s **bold** textom", "Bod 2 s [[contact:123|Petrom]]"] }
+  { "type": "callout", "content": "Dôležité upozornenie." },
+  { "type": "hr" },
+  { "type": "h2", "content": "SEKCIA" },
+  { "type": "h3", "content": "PODSEKCIA" },
+  { "type": "p", "content": "Text s [color:#6366f1]farebným zvýraznením[/color]." },
+  { "type": "ul", "items": ["Bod 1", "Bod 2"] }
 ]
 
-## VIZUÁLNE INŠTRUKCIE
-1. **H1:** Používaj na začiatku pre VLOGOS (budú zobrazené EXTRÉMNE VEĽKÝM písmom).
-2. **H2:** Používaj na oddelenie logických sekcií (veľké, s indigo čiarou na boku).
-3. **Callout:** Používaj na kľúčové závery, varovania alebo zhrnutia stretnutí.
-4. **Písma:** V rámci "content" môžeš používať Markdown syntax (**bold**, *italic*). Všetko musí pôsobiť masívne a dôležité.
-5. **Farby:** Môžeš použiť syntax [color:#kód]text[/color] na zvýraznenie špecifických častí v texte (používaj farby ako #6366f1, #10b981, #f43f5e).
-6. **Odrážky:** VŽDY používaj "ul" bloky pre zoznamy úloh alebo bodov. Musia byť jasne viditeľné.
+## VIZUÁLNE INŠTRUKCIE (BUĎ KREATÍVNY)
+1. **H1:** EXTRÉMNE VEĽKÝ nadpis na úvod.
+2. **H2 & h3:** Používaj na hierarchické členenie. H2 je masívny s indigo čiarou, H3 je stredný a elegantný.
+3. **HR:** Používaj "hr" bloky na vizuálne oddelenie veľkých celkov.
+4. **Callout:** Používaj pre kľúčové vhľady. Musia pôsobiť ako "top-level" informácia.
+5. **Farby (KRITICKÉ):** POW! Používaj syntax [color:#kód]text[/color] na zvýraznenie DÔLEŽITÝCH slov, čísel, peňazí a termínov. Používaj rôzne farby (#6366f1 - indigo, #10b981 - emerald, #f43f5e - rose, #f59e0b - amber).
+6. **Odrážky:** "ul" bloky robia text prehľadným. Používaj ich bohato.
+7. **Písmo:** Používaj **bold** a *italic* vo vnútri "content".
+
+Tvoj výstup musí vyzerať ako prémiový digitálny report, ktorý predáva tvoju expertízu.
 
 ## VSTUP:
 """
 ${rawContent}
 """
 
-Odpovedaj LEN čistým JSON poľom. Buď kreatívny a urob tú poznámku vizuálne bohatú!
+Odpovedaj LEN čistým JSON poľom. Maximálna kreativita a vizuálna rozmanitosť!
 `;
 
   try {
@@ -201,7 +209,7 @@ Odpovedaj LEN čistým JSON poľom. Buď kreatívny a urob tú poznámku vizuál
       model: "gemini-2.0-flash",
       generationConfig: {
         responseMimeType: "application/json",
-        temperature: 0,
+        temperature: 1, // High temperature for maximum creativity
       },
     });
 
