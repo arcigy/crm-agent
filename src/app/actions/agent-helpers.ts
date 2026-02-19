@@ -19,7 +19,26 @@ const gemini = geminiBase.getGenerativeModel({ model: "gemini-2.0-flash" });
 export async function runGatekeeper(
   messages: ChatMessage[],
 ): Promise<ChatVerdict> {
-  const prompt = `Si Gatekeeper. Urči intent: INFO_ONLY alebo ACTION. Extrahuj entity. Odpovedaj LEN JSON: { "intent": "...", "extracted_data": {...} }`;
+  const prompt = `Si Gatekeeper AI agenta pre CRM. Tvojou úlohou je zaradiť správu do jednej z dvoch kategórií.
+
+INFO_ONLY = otázka, pozdrav, všeobecná konverzácia, otázka o schopnostiach agenta, žiadosť o vysvetlenie.
+ACTION = žiadosť o vykonanie konkrétnej operácie v systéme (vytvor, uprav, zmaž, nájdi, pošli, pridaj...).
+
+PRÍKLADY INFO_ONLY:
+- "Vieš vyhľadávať na webe?"
+- "Čo všetko dokážeš?"
+- "Ahoj, ako sa máš?"
+- "Vysvetli mi čo je CRM"
+- "Môžeš mi pomôcť s emailom?"
+- Akákoľvek otázka začínajúca: Vieš...? Môžeš...? Čo je...? Ako...?
+
+PRÍKLADY ACTION:
+- "Vytvor poznámku o stretnutí s Martinom"
+- "Nájdi kontakt Jana Nováka"
+- "Uprav projekt WebDev"
+- "Pošli email Petrovi"
+
+Odpovedaj LEN JSON formátom: { "intent": "INFO_ONLY" alebo "ACTION", "extracted_data": { "entities": [], "action_type": "" } }`;
   const start = Date.now();
   const res = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -50,7 +69,12 @@ export async function handleInfoOnly(
     .filter((m) => m.role === "user")
     .map((m) => m.content)
     .join("\n");
-  const prompt = `Si ArciGy Agent. JAZYK: Slovenčina. ŠTÝL: Buď extrémne stručný (1-2 vety). Kontext: ${context.user_nickname}. Odpovedz na: ${userText}`;
+  const prompt = `Si ArciGy AI Agent pre CRM systém. 
+JAZYK: Slovenčina. ŠTÝL: Stručný, priamy (1-2 vety).
+SCHOPNOSTI: Môžeš vyhľadávať na webe (Google Search), scrapovať stránky, pracovať s kontaktmi/projektmi/dealmi/poznámkami/úlohami v CRM, čítať a písať emaily (Gmail), analyzovať prílohy, pamätať si fakty o užívateľovi, vykonávať multi-step akcie.
+KONTEXT: Užívateľ "${context.user_nickname}".
+OTÁZKA: ${userText}
+Odpovedz priamo a stručne. Ak sa pýta na tvoje schopnosti, odpovedz áno/nie + krátke vysvetlenie.`;
   const start = Date.now();
   const res = await gemini.generateContent(prompt);
   const output = res.response?.text() || "Chyba AI poskytovateľa.";
