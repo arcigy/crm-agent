@@ -85,6 +85,21 @@ export async function executeDbProjectTool(
       }));
       return { success: true, message: "Projekt archivovaný." };
 
+    case "db_search_projects":
+      const sPrRes = (await directus.request(
+        readItems("projects", {
+          filter: {
+            _and: [
+              { user_email: { _eq: userEmail } },
+              { deleted_at: { _null: true } },
+              { name: { _icontains: args.query as string } },
+            ],
+          },
+          limit: 10,
+        }),
+      )) as Record<string, unknown>[];
+      return { success: true, data: sPrRes, message: `Nájdených ${sPrRes.length} projektov pre "${args.query}".` };
+
     case "verify_project_exists":
       const [vProj] = (await directus.request(
         readItems("projects", {

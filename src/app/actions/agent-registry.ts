@@ -392,6 +392,20 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
+      name: "db_search_projects",
+      description: "Searches for projects by name in the CRM.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search query string (project name)" },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "db_fetch_projects",
       description: "Retrieves a list of projects.",
       parameters: {

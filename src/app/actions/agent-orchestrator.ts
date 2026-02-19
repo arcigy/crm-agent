@@ -37,9 +37,9 @@ AVAILABLE TOOLS:
 ${JSON.stringify(toolsDocs.map(t => ({name: t.name, desc: t.description, params: t.parameters})), null, 2)}
 
 RULES:
-1. TRIPLE-CHECK ID VALIDITY: Never guess IDs. If an ID (contact_id, project_id, etc.) is not present in the HISTORY, your first step MUST be a search tool (e.g., 'db_search_contacts'). Use IDs from the 'data' field of previous tool results.
+1. TRIPLE-CHECK ID VALIDITY: Never guess IDs. If multiple entities (contact, project, etc.) are needed and their IDs aren't in history, plan SEARCHES FOR ALL OF THEM in the first iteration. Use 'db_search_contacts' and 'db_search_projects' accordingly.
 2. CRM-FIRST POLICY: Before looking for info externally (Gmail/Web), always check the internal CRM database first using 'db_search_contacts'.
-3. SEQUENTIAL DEPENDENCIES: Do not schedule actions requiring data you don't have yet. Plan the search, wait for the result, and THEN plan the dependent action in the NEXT iteration.
+3. SEQUENTIAL DEPENDENCIES: Only block an action if the CURRENT STEP strictly requires an ID you don't have. However, always prioritize gathering ALL necessary IDs in the first step to minimize iterations.
 4. ATOMICITY: Each step must be a single tool call with precise arguments as defined in specs.
 5. COMPLETION CRITERIA: When the user's objective is fully met, your 'steps' array MUST be empty []. Do not stop until every part of the request is verified as successful.
 6. NO REPETITION: NEVER repeat the exact same tool call if it returned '0 results' or 'not found' in the HISTORY. Move to the next logical step or source immediately.
