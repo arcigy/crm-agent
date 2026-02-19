@@ -28,18 +28,18 @@ import { ThemeToggle } from "./ThemeToggle";
 import { useUser } from "@clerk/nextjs";
 
 const navigation = [
-  { name: "NĂˇstenka", href: "/dashboard", icon: LayoutDashboard },
-  { name: "DoruÄŤenĂˇ poĹˇta", href: "/dashboard/leads", icon: Mail },
+  { name: "Nástenka", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Doručená pošta", href: "/dashboard/leads", icon: Mail },
   { name: "Kontakty", href: "/dashboard/contacts", icon: Users },
   { name: "Obchody", href: "/dashboard/deals", icon: Briefcase },
   { name: "Projekty", href: "/dashboard/projects", icon: FolderKanban },
-  { name: "KalendĂˇr", href: "/dashboard/calendar", icon: Calendar },
-  { name: "Ăšlohy", href: "/dashboard/todo", icon: CheckSquare },
-  { name: "PoznĂˇmky", href: "/dashboard/notes", icon: FileText },
-  { name: "SĂşbory", href: "/dashboard/files", icon: HardDrive },
-  { name: "FakturĂˇcia", href: "/dashboard/invoicing", icon: Receipt },
+  { name: "Kalendár", href: "/dashboard/calendar", icon: Calendar },
+  { name: "Úlohy", href: "/dashboard/todo", icon: CheckSquare },
+  { name: "Poznámky", href: "/dashboard/notes", icon: FileText },
+  { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
+  { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
   { name: "AI Kontext", href: "/dashboard/settings/ai", icon: BrainCircuit },
-  { name: "PamĂ¤ĹĄ AI", href: "/dashboard/settings/memory", icon: History },
+  { name: "Pamäť AI", href: "/dashboard/settings/memory", icon: History },
   {
     name: "Cold Outreach",
     href: "/dashboard/outreach",

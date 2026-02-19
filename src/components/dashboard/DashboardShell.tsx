@@ -39,12 +39,12 @@ interface MenuGroup {
 
 const menuGroups: MenuGroup[] = [
   {
-    title: "DennĂ˝ prehÄľad",
+    title: "Denný prehľad",
     items: [
-      { name: "NĂˇstenka", href: "/dashboard", icon: LayoutDashboard },
-      { name: "KalendĂˇr", href: "/dashboard/calendar", icon: Calendar },
-      { name: "Ăšlohy", href: "/dashboard/todo", icon: CheckSquare },
-      { name: "DoruÄŤenĂˇ poĹˇta", href: "/dashboard/leads", icon: Mail },
+      { name: "Nástenka", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Kalendár", href: "/dashboard/calendar", icon: Calendar },
+      { name: "Úlohy", href: "/dashboard/todo", icon: CheckSquare },
+      { name: "Doručená pošta", href: "/dashboard/leads", icon: Mail },
     ]
   },
   {
@@ -52,15 +52,15 @@ const menuGroups: MenuGroup[] = [
     items: [
       { name: "Kontakty", href: "/dashboard/contacts", icon: Users },
       { name: "Obchody", href: "/dashboard/deals", icon: Briefcase },
-      { name: "FakturĂˇcia", href: "/dashboard/invoicing", icon: Receipt },
+      { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
     ]
   },
   {
     title: "Produkcia",
     items: [
       { name: "Projekty", href: "/dashboard/projects", icon: FolderKanban },
-      { name: "PoznĂˇmky", href: "/dashboard/notes", icon: FileText },
-      { name: "SĂşbory", href: "/dashboard/files", icon: HardDrive },
+      { name: "Poznámky", href: "/dashboard/notes", icon: FileText },
+      { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
     ]
   },
   {
