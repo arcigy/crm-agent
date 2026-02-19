@@ -77,7 +77,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   const badgeStyle = "bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50 backdrop-blur-sm";
 
   return (
-    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-5 md:p-8 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full w-full transition-all duration-300 overflow-hidden relative group">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-5 md:p-8 rounded-none md:rounded-[2.5rem] border-y md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full w-full transition-all duration-300 overflow-hidden relative group">
       {/* 1. Subtle Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 

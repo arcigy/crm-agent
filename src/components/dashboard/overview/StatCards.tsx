@@ -18,10 +18,10 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
       
       <div className="relative z-10 flex flex-col items-center w-full">
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm
-          ${label === "Hotové Úlohy" 
-            ? 'bg-green-500 text-white shadow-green-500/20' 
-            : `${color} bg-opacity-10 ${color.replace('bg-', 'text-')}`
-          }
+          ${label === "Hotové Úlohy" ? 'bg-green-500 text-white shadow-green-500/20' : ''}
+          ${label === "Kontakty" ? 'bg-blue-500/10 text-blue-500' : ''}
+          ${label === "Projekty" ? 'bg-indigo-500/10 text-indigo-500' : ''}
+          ${label === "Hodnota" ? 'bg-emerald-500/10 text-emerald-500' : ''}
         `}>
           <Icon 
             className="w-6 h-6" 

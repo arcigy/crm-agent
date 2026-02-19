@@ -225,7 +225,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
           ${isMenuOpen ? "md:pl-64" : "md:pl-16 pl-0"}
         `}
       >
-        <div className="p-5 md:p-4 pt-16 md:pt-4 transition-all pb-20">
+        <div className="p-0 md:p-4 pt-16 md:pt-4 transition-all pb-20">
           <div className="max-w-full mx-auto w-full">
              {children}
           </div>
