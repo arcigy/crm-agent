@@ -77,7 +77,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   const badgeStyle = "bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50 backdrop-blur-sm";
 
   return (
-    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-5 md:p-8 rounded-none md:rounded-[2.5rem] border-y md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full w-full transition-all duration-300 overflow-hidden relative group">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl px-5 py-5 md:p-8 rounded-none md:rounded-[2.5rem] border-b md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full w-full transition-all duration-300 overflow-hidden relative group">
       {/* 1. Subtle Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
@@ -91,7 +91,10 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-emerald-500/20 transition-all duration-300" />
       
       <div className="flex items-center justify-between mb-6 flex-shrink-0 relative z-10">
-        <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">
+        <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+            <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
+          </div>
           {title}
         </h3>
         <span className={`text-[10px] font-black uppercase italic px-3 py-1.5 ${badgeStyle} rounded-xl tracking-tight`}>
