@@ -61,7 +61,7 @@ function processContent(content: string): string {
   processed = processed.replace(/\*(.*?)\*/g, '<em class="!italic !text-muted-foreground/60">$1</em>');
   
   // Custom color tags with robust regex
-  processed = processed.replace(/\[color:\s*(#[a-fA-F0-0]{3,6})\s*\](.*?)\[\/color\]/gi, '<span style="color: $1 !important; font-weight: 800;">$2</span>');
+  processed = processed.replace(/\[color:\s*(#[a-fA-F0-9]{3,6})\s*\](.*?)\[\/color\]/gi, '<span style="color: $1 !important; font-weight: 800;">$2</span>');
   processed = processed.replace(/\[color:\s*([a-zA-Z]+)\s*\](.*?)\[\/color\]/gi, '<span style="color: $1 !important; font-weight: 800;">$2</span>');
 
   return processed;
