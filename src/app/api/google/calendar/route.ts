@@ -5,8 +5,9 @@ import { readItems } from '@directus/sdk';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
+        const { searchParams } = new URL(req.url);
         const user = await currentUser();
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -22,18 +23,28 @@ export async function GET() {
         if (token) {
             const calendar = await getCalendarClient(token);
 
+            // Handle dynamic time range if provided
+            const paramMin = searchParams.get('timeMin');
+            const paramMax = searchParams.get('timeMax');
+
             const now = new Date();
-            const timeMax = new Date();
-            timeMax.setMonth(now.getMonth() + 3);
+            const defaultMin = new Date();
+            defaultMin.setMonth(now.getMonth() - 1); // Go back 1 month by default
+            
+            const defaultMax = new Date();
+            defaultMax.setMonth(now.getMonth() + 12); // Go forward 12 months by default to be safe
+
+            const timeMin = paramMin || defaultMin.toISOString();
+            const timeMax = paramMax || defaultMax.toISOString();
 
             try {
                 const listRes = await calendar.events.list({
                     calendarId: 'primary',
-                    timeMin: now.toISOString(),
-                    timeMax: timeMax.toISOString(),
+                    timeMin: timeMin,
+                    timeMax: timeMax,
                     singleEvents: true,
                     orderBy: 'startTime',
-                    maxResults: 250
+                    maxResults: 500
                 });
 
                 googleEvents = (listRes.data.items || []).map((e: any) => ({

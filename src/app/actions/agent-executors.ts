@@ -119,6 +119,8 @@ export async function executeAtomicTool(
     if (name === "sys_execute_plan") {
         const steps = (safeArgs.steps as Array<{ tool_name?: string; tool?: string; arguments?: Record<string, unknown>; args?: Record<string, unknown> }>) || [];
         const results = [];
+        let finalAction: string | undefined;
+        let finalUrl: string | undefined;
         
         console.log(`[Dispatcher] Executing plan with ${steps.length} steps...`);
 
@@ -131,6 +133,11 @@ export async function executeAtomicTool(
 
                 console.log(`[Dispatcher] Running ${toolName}...`);
                 const result = (await executeAtomicTool(toolName, toolArgs as any, user)) as any;
+                
+                // Propagate special actions like redirecting to a specific URL
+                if (result.action) finalAction = result.action;
+                if (result.url) finalUrl = result.url;
+
                 results.push({
                     tool: toolName,
                     status: result.success ? "success" : "error",
@@ -152,6 +159,8 @@ export async function executeAtomicTool(
         return {
             success: true,
             data: results,
+            action: finalAction,
+            url: finalUrl,
             message: `Plán bol vykonaný (${results.filter(r => r.status === 'success').length}/${steps.length} úspešných krokov).`
         };
     }
