@@ -1,6 +1,7 @@
 "use server";
 
-import OpenAI from "openai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { generateText } from "ai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createStreamableValue } from "@ai-sdk/rsc";
 import { trackAICall, endCostSession } from "@/lib/ai-cost-tracker";
@@ -12,7 +13,7 @@ import {
   MissionHistoryItem,
 } from "./agent-types";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 const geminiBase = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 const gemini = geminiBase.getGenerativeModel({ model: "gemini-2.0-flash" });
 
@@ -47,23 +48,34 @@ ACTION (konkrétna úloha, aj ak je otázka):
 
 Odpovedaj LEN JSON: { "intent": "INFO_ONLY" alebo "ACTION", "extracted_data": { "entities": [], "action_type": "" } }`;
   const start = Date.now();
-  const res = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ role: "system", content: prompt }, ...messages],
-    response_format: { type: "json_object" },
+  const historyText = messages
+    .map(m => `${m.role.toUpperCase()}: ${m.content}`)
+    .join("\n");
+  const res = await generateText({
+    model: google("gemini-2.0-flash"),
+    system: prompt,
+    prompt: historyText,
+    temperature: 0,
   });
-  const output = res.choices[0].message.content || "{}";
+  const rawOutput = res.text.trim();
+  const firstBrace = rawOutput.indexOf("{");
+  const lastBrace = rawOutput.lastIndexOf("}");
+  const output = firstBrace !== -1 ? rawOutput.substring(firstBrace, lastBrace + 1) : '{"intent":"ACTION","extracted_data":{}}';
   trackAICall(
     "gatekeeper",
-    "openai",
-    "gpt-4o-mini",
+    "gemini",
+    "gemini-2.0-flash",
     prompt,
     output,
     Date.now() - start,
-    res.usage?.prompt_tokens,
-    res.usage?.completion_tokens,
+    (res.usage as any)?.inputTokens,
+    (res.usage as any)?.outputTokens,
   );
-  return JSON.parse(output) as ChatVerdict;
+  try {
+    return JSON.parse(output) as ChatVerdict;
+  } catch {
+    return { intent: "ACTION", extracted_data: {} } as ChatVerdict;
+  }
 }
 
 export async function handleInfoOnly(
