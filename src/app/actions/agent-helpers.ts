@@ -31,23 +31,19 @@ KĽÚČOVÁ OTÁZKA: Existuje v správe konkrétny cieľ (meno, firma, email, pr
 - ÁNO → ACTION
 - NIE → INFO_ONLY
 
-INFO_ONLY PRÍKLADY (žiadny konkrétny cieľ):
+INFO_ONLY PRÍKLADY (žiadny konkrétny cieľ alebo nemožná akcia):
 1. "Vieš vyhľadávať na webe?" → INFO_ONLY
 2. "Čo všetko dokážeš?" → INFO_ONLY
-3. "Môžeš pracovať s emailami?" → INFO_ONLY
-4. "Ahoj, ako sa máš?" → INFO_ONLY
-5. "Čo je CRM systém?" → INFO_ONLY
-6. "Vieš hľadať informácie?" → INFO_ONLY
-7. "Dokážeš posielať emaily?" → INFO_ONLY
+3. "Ahoj, ako sa máš?" → INFO_ONLY
+4. "Urob mi kávu" → INFO_ONLY (nemôžem fyzicky robiť kávu)
+5. "Zabehni do obchodu" → INFO_ONLY (nemožné)
+6. "Povedz mi vtip" → INFO_ONLY (pohovory/pokec)
 
-ACTION PRÍKLADY (konkrétny cieľ = vždy ACTION aj ako otázka!):
+ACTION PRÍKLADY (vždy ak je tam operácia s CRM dátami alebo informáciami):
 1. "Môžeš mi poslať email Martinovi?" → ACTION (cieľ: Martin)
-2. "Vieš mi nájsť kontakt Petra Nováka?" → ACTION (cieľ: Peter Novák)
-3. "Môžeš vytvoriť poznámku o stretnutí s ArciGy?" → ACTION (cieľ: ArciGy)
-4. "Vyhľadaj mi firmu Telekom na webe" → ACTION (cieľ: Telekom)
-5. "Vytvor úlohu: zavolať klientovi" → ACTION (konkrétna úloha)
-6. "Môžeš mi skontrolovať emaily od Jána?" → ACTION (cieľ: Ján)
-7. "Nájdi mi projekty Martina Mrkvu" → ACTION (cieľ: Martin Mrkva)
+2. "Vytvor mi úlohu zavolať Petrovi" → ACTION (cieľ: Peter)
+3. "Nájdi firmu ESET" → ACTION (cieľ: ESET)
+4. "Vytvor poznámku o kave" → ACTION (cieľ: poznámka o káve - digitálne)
 
 Odpovedaj LEN JSON bez markdown: { "intent": "INFO_ONLY", "extracted_data": { "entities": [], "action_type": "" } }`;
   const start = Date.now();
