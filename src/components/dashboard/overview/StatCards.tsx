@@ -12,37 +12,37 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
   return (
-    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-2.5 py-4 rounded-xl md:rounded-[2rem] border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:py-2 md:border-black/[0.08] md:dark:border-white/[0.08] transition-all duration-300 group overflow-hidden relative hover:-translate-y-1 shadow-sm active:scale-95 flex flex-col items-center justify-center text-center`}>
+    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-2.5 py-4 rounded-xl md:rounded-[2rem] border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:py-5 md:border-black/[0.08] md:dark:border-white/[0.08] transition-all duration-300 group overflow-hidden relative hover:-translate-y-1 shadow-sm active:scale-95 flex flex-col items-center justify-center text-center`}>
       {/* Soft Radial Glow - Only on Mobile */}
       <div className="absolute -top-12 -left-12 w-24 h-24 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none md:hidden" />
       
       <div className="relative z-10 flex flex-col items-center w-full">
-        <div className={`w-8 h-8 rounded-2xl md:rounded-lg flex items-center justify-center mb-2 md:mb-1 transition-transform duration-300 group-hover:scale-110 shadow-lg
+        <div className={`w-8 h-8 md:w-12 md:h-12 rounded-2xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-3 transition-transform duration-300 group-hover:scale-110 shadow-lg
           ${label === "Hotové Úlohy" ? 'bg-green-500 shadow-green-500/30' : ''}
           ${label === "Kontakty" ? 'bg-blue-500 shadow-blue-500/30' : ''}
           ${label === "Projekty" ? 'bg-indigo-500 shadow-indigo-500/30' : ''}
           ${label === "Hodnota" ? 'bg-emerald-500 shadow-emerald-500/30' : ''}
         `}>
           <Icon 
-            className="w-4 h-4 text-white" 
-            strokeWidth={3}
+            className="w-4 h-4 md:w-6 md:h-6 text-white" 
+            strokeWidth={label === "Hotové Úlohy" ? 3.5 : 2.5}
           />
         </div>
 
-        <span className="text-[8px] font-black text-zinc-500 md:text-zinc-400 dark:text-zinc-500 uppercase tracking-widest leading-none mb-1 px-1 truncate w-full italic md:not-italic">
+        <span className="text-[8px] md:text-[9px] font-black text-zinc-500 md:text-zinc-400 dark:text-zinc-500 uppercase tracking-widest leading-none mb-1 md:mb-1.5 px-1 truncate w-full italic md:not-italic">
           {label}
         </span>
-        <h3 className="text-sm md:text-base font-black text-foreground tracking-tighter leading-none mb-1">
+        <h3 className="text-sm md:text-xl font-black text-foreground tracking-tighter leading-none mb-1 md:mb-2">
           {value}
         </h3>
         
         {trend ? (
-          <div className="text-[7px] md:text-[8px] font-black md:font-bold uppercase text-emerald-500 flex items-center gap-0.5 bg-emerald-500/10 px-1.5 py-0.5 md:px-1 md:bg-emerald-500/10 rounded-full scale-90 origin-center italic md:not-italic border border-emerald-500/20 md:border-none">
-            <TrendingUp className="w-2 h-2" />
+          <div className="text-[7px] md:text-[9px] font-black md:font-bold uppercase text-emerald-500 flex items-center gap-0.5 bg-emerald-500/10 px-1.5 py-0.5 md:px-1.5 md:py-0.5 md:bg-emerald-500/10 rounded-full scale-90 origin-center italic md:not-italic border border-emerald-500/20 md:border-none">
+            <TrendingUp className="w-2 h-2 md:w-2.5 md:h-2.5" />
             {trend.split(' ')[0]}
           </div>
         ) : (
-          <div className="h-2" />
+          <div className="h-2 md:h-4" />
         )}
       </div>
     </div>
@@ -51,7 +51,7 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
 
 export function DashboardStats({ stats }: { stats: any }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-3 pt-2 relative z-30 md:max-w-5xl mx-auto w-full">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-3 md:mb-8 pt-2 relative z-30 w-full">
       <StatCard
         label="Kontakty"
         value={stats.contactsCount || 0}
