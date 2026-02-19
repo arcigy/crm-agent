@@ -19,26 +19,31 @@ const gemini = geminiBase.getGenerativeModel({ model: "gemini-2.0-flash" });
 export async function runGatekeeper(
   messages: ChatMessage[],
 ): Promise<ChatVerdict> {
-  const prompt = `Si Gatekeeper AI agenta pre CRM. Tvojou úlohou je zaradiť správu do jednej z dvoch kategórií.
+  // DETERMINISTIC PRE-CHECK: Capability questions are ALWAYS INFO_ONLY
+  const lastUserMsg = messages.filter(m => m.role === "user").pop()?.content?.trim().toLowerCase() || "";
+  const capabilityPrefixes = ["vieš", "môžeš", "dokážeš", "umieš", "dá sa", "čo vieš", "čo môžeš", "môžem ťa", "can you", "do you"];
+  const greetings = ["ahoj", "čau", "dobrý deň", "dobré ráno", "dobré", "hello", "hi ", "hey"];
+  
+  if (
+    capabilityPrefixes.some(p => lastUserMsg.startsWith(p)) ||
+    greetings.some(g => lastUserMsg.startsWith(g)) ||
+    (lastUserMsg.endsWith("?") && lastUserMsg.split(" ").length <= 6)
+  ) {
+    return { intent: "INFO_ONLY", extracted_data: { entities: [], action_type: "question" } };
+  }
 
-INFO_ONLY = otázka, pozdrav, všeobecná konverzácia, otázka o schopnostiach agenta, žiadosť o vysvetlenie.
-ACTION = žiadosť o vykonanie konkrétnej operácie v systéme (vytvor, uprav, zmaž, nájdi, pošli, pridaj...).
+  const prompt = `Si Gatekeeper AI agenta pre CRM. Zaraď správu: INFO_ONLY alebo ACTION.
 
-PRÍKLADY INFO_ONLY:
-- "Vieš vyhľadávať na webe?"
-- "Čo všetko dokážeš?"
-- "Ahoj, ako sa máš?"
-- "Vysvetli mi čo je CRM"
-- "Môžeš mi pomôcť s emailom?"
-- Akákoľvek otázka začínajúca: Vieš...? Môžeš...? Čo je...? Ako...?
+INFO_ONLY = otázky, pozdravy, konverzácia, otázky o schopnostiach agenta
+ACTION = priamy príkaz vykonať operáciu (vytvor, uprav, nájdi, zmaž, pošli...)
 
 PRÍKLADY ACTION:
-- "Vytvor poznámku o stretnutí s Martinom"
-- "Nájdi kontakt Jana Nováka"
-- "Uprav projekt WebDev"
-- "Pošli email Petrovi"
+"Vyhľadaj mi info o firme XY" → ACTION
+"Vytvor poznámku o Martinovi" → ACTION
+"Nájdi kontakt Petra Nováka" → ACTION
+"Pošli email Martinovi" → ACTION
 
-Odpovedaj LEN JSON formátom: { "intent": "INFO_ONLY" alebo "ACTION", "extracted_data": { "entities": [], "action_type": "" } }`;
+Odpovedaj LEN JSON: { "intent": "INFO_ONLY" alebo "ACTION", "extracted_data": { "entities": [], "action_type": "" } }`;
   const start = Date.now();
   const res = await openai.chat.completions.create({
     model: "gpt-4o-mini",
