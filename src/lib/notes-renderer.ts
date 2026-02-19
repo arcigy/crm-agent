@@ -22,18 +22,18 @@ export function renderNoteToHtml(blocks: NoteBlock[]): string {
 
       switch (block.type) {
         case "h1":
-          return `<h1 class="!text-7xl !font-black !tracking-tighter !mb-12 !mt-4 !italic !text-indigo-600 !uppercase !leading-[0.9]">${processedContent}</h1>`;
+          return `<h1 class="!text-7xl !font-black !tracking-tighter !mb-16 !mt-8 !italic !text-indigo-600 !uppercase !leading-[0.85]">${processedContent}</h1>`;
         case "h2":
-          return `<h2 class="!text-5xl !font-black !tracking-tight !mt-20 !mb-10 !border-l-[12px] !border-indigo-600 !pl-10 !uppercase !italic !text-foreground/90 !leading-tight">${processedContent}</h2>`;
+          return `<h2 class="!text-5xl !font-black !tracking-tight !mt-32 !mb-12 !border-l-[16px] !border-indigo-600 !pl-12 !uppercase !italic !text-foreground/90 !leading-[1.1]">${processedContent}</h2>`;
         case "callout":
-          return `<blockquote class="!p-12 !bg-indigo-50 dark:!bg-indigo-950/40 !border-l-[16px] !border-indigo-600 !rounded-r-[3rem] !my-16"><p class="!m-0 !font-bold !text-indigo-950 dark:!text-indigo-50 !italic !text-2xl !leading-relaxed !tracking-tight">${processedContent}</p></blockquote>`;
+          return `<blockquote class="!p-14 !bg-indigo-50/50 dark:!bg-indigo-950/40 !border-l-[20px] !border-indigo-600 !rounded-r-[4rem] !my-20 !shadow-sm"><p class="!m-0 !font-bold !text-indigo-950 dark:!text-indigo-50 !italic !text-3xl !leading-[1.6] !tracking-tight">${processedContent}</p></blockquote>`;
         case "p":
-          return `<p class="!mb-10 !leading-[2.4] !text-2xl !text-foreground/90 font-medium tracking-tight" ${style}>${processedContent}</p>`;
+          return `<p class="!mb-12 !leading-[2.6] !text-2xl !text-foreground/80 font-medium tracking-tight" ${style}>${processedContent}</p>`;
         case "ul":
           const items = (block.items || [])
-            .map((item) => `<li class="!mb-6 !text-2xl !leading-relaxed !pl-2">${processContent(item)}</li>`)
+            .map((item) => `<li class="!mb-8 !text-2xl !leading-[1.8] !pl-4">${processContent(item)}</li>`)
             .join("");
-          return `<ul class="!list-disc !marker:text-indigo-600 !ml-12 !mb-16 !space-y-6 !py-4">${items}</ul>`;
+          return `<ul class="!list-disc !marker:text-indigo-600 !ml-16 !mb-20 !space-y-8 !py-6">${items}</ul>`;
         default:
           return "";
       }
