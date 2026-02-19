@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { 
@@ -39,12 +39,12 @@ interface MenuGroup {
 
 const menuGroups: MenuGroup[] = [
   {
-    title: "Denný prehľad",
+    title: "DennĂ˝ prehÄľad",
     items: [
-      { name: "Nástenka", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Kalendár", href: "/dashboard/calendar", icon: Calendar },
-      { name: "Úlohy", href: "/dashboard/todo", icon: CheckSquare },
-      { name: "Doručená pošta", href: "/dashboard/leads", icon: Mail },
+      { name: "NĂˇstenka", href: "/dashboard", icon: LayoutDashboard },
+      { name: "KalendĂˇr", href: "/dashboard/calendar", icon: Calendar },
+      { name: "Ăšlohy", href: "/dashboard/todo", icon: CheckSquare },
+      { name: "DoruÄŤenĂˇ poĹˇta", href: "/dashboard/leads", icon: Mail },
     ]
   },
   {
@@ -52,15 +52,15 @@ const menuGroups: MenuGroup[] = [
     items: [
       { name: "Kontakty", href: "/dashboard/contacts", icon: Users },
       { name: "Obchody", href: "/dashboard/deals", icon: Briefcase },
-      { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
+      { name: "FakturĂˇcia", href: "/dashboard/invoicing", icon: Receipt },
     ]
   },
   {
     title: "Produkcia",
     items: [
       { name: "Projekty", href: "/dashboard/projects", icon: FolderKanban },
-      { name: "Poznámky", href: "/dashboard/notes", icon: FileText },
-      { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
+      { name: "PoznĂˇmky", href: "/dashboard/notes", icon: FileText },
+      { name: "SĂşbory", href: "/dashboard/files", icon: HardDrive },
     ]
   },
   {
