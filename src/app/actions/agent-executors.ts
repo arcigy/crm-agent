@@ -94,6 +94,7 @@ export async function executeAtomicTool(
       name.startsWith("db_create_project") ||
       name.startsWith("db_update_project") ||
       name.startsWith("db_delete_project") ||
+      name.startsWith("db_search_projects") ||
       name.startsWith("verify_project_exists")
     ) {
       return await executeDbProjectTool(name, safeArgs, userEmail, userId);

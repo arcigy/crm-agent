@@ -83,29 +83,59 @@ export async function executeDbContactTool(
       };
 
     case "db_search_contacts":
+      const query = (args.query as string || "").trim();
+      const queryParts = query.split(/\s+/);
+      
+      const filter: any = {
+        _and: [
+          { user_email: { _eq: userEmail } },
+          { status: { _neq: "archived" } },
+        ]
+      };
+
+      if (queryParts.length > 1) {
+        // Multi-word search (e.g. "Martin Mrkva")
+        filter._and.push({
+          _or: [
+            {
+              _and: [
+                { first_name: { _icontains: queryParts[0] } },
+                { last_name: { _icontains: queryParts.slice(1).join(" ") } }
+              ]
+            },
+            {
+              _and: [
+                { last_name: { _icontains: queryParts[0] } },
+                { first_name: { _icontains: queryParts.slice(1).join(" ") } }
+              ]
+            },
+            { first_name: { _icontains: query } },
+            { last_name: { _icontains: query } },
+            { company: { _icontains: query } }
+          ]
+        });
+      } else {
+        // Single word search
+        filter._and.push({
+          _or: [
+            { first_name: { _icontains: query } },
+            { last_name: { _icontains: query } },
+            { email: { _icontains: query } },
+            { company: { _icontains: query } },
+          ]
+        });
+      }
+
       const searchRes = (await directus.request(
         readItems("contacts", {
-          filter: {
-            _and: [
-              { user_email: { _eq: userEmail } },
-              { status: { _neq: "archived" } },
-              {
-                _or: [
-                  { first_name: { _icontains: args.query } },
-                  { last_name: { _icontains: args.query } },
-                  { email: { _icontains: args.query } },
-                  { company: { _icontains: args.query as string } },
-                ],
-              },
-            ] as Record<string, unknown>[],
-          },
+          filter,
           limit: 20,
         }),
       )) as Record<string, unknown>[];
       return {
         success: true,
         data: searchRes,
-        message: `Bolo nájdených ${searchRes.length} kontaktov pre dopyt "${args.query}".`,
+        message: `Bolo nájdených ${searchRes.length} kontaktov pre dopyt "${query}".`,
       };
 
     case "db_get_all_contacts":
