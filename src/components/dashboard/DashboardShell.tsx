@@ -222,7 +222,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
       <main 
         className={`
           flex-1 min-w-0 h-full overflow-y-auto md:overflow-hidden bg-transparent relative z-10 transition-all duration-300 ease-out
-          ${isMenuOpen ? "md:pl-64" : "pl-16"}
+          ${isMenuOpen ? "md:pl-64" : "md:pl-16 pl-0"}
         `}
       >
         <div className="p-5 md:p-4 pt-16 md:pt-4 transition-all pb-20">

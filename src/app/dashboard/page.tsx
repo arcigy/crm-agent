@@ -65,11 +65,11 @@ export default async function DashboardPage() {
       </div>
 
       {/* Main Operations Grid */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-6 pb-4">
-        <div className="min-h-[400px] lg:min-h-0"><TodoListWidget tasks={tasks} mode="today" /></div>
-        <div className="min-h-[400px] lg:min-h-0"><ChartsRow deals={deals} projects={projects} /></div>
-        <div className="min-h-[400px] lg:min-h-0"><AnalyticsSection contacts={contacts} deals={deals} projects={projects} /></div>
-        <div className="min-h-[400px] lg:min-h-0"><CalendarWidget events={calendarEvents} /></div>
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-6 pb-4 max-w-5xl mx-auto w-full">
+        <div className="min-h-[350px] lg:min-h-0"><TodoListWidget tasks={tasks} mode="today" /></div>
+        <div className="min-h-[350px] lg:min-h-0"><ChartsRow deals={deals} projects={projects} /></div>
+        <div className="min-h-[350px] lg:min-h-0"><AnalyticsSection contacts={contacts} deals={deals} projects={projects} /></div>
+        <div className="min-h-[350px] lg:min-h-0"><CalendarWidget events={calendarEvents} /></div>
       </div>
 
       <div className="hidden">

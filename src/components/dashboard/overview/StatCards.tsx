@@ -12,48 +12,37 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
   return (
-    <div className="bg-white/50 dark:bg-white/5 backdrop-blur-3xl px-3 py-5 md:px-5 md:py-6 rounded-[2.5rem] border border-black/5 dark:border-white/10 transition-all duration-300 group overflow-hidden relative hover:bg-white/80 dark:hover:bg-white/10 hover:-translate-y-1 shadow-xl shadow-black/5 dark:shadow-none">
-      {/* 1. Subtle Grid Pattern */}
-      <div 
-        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
-        style={{ 
-          backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
-          backgroundSize: '16px 16px'
-        }} 
-      />
-
+    <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-xl px-4 py-5 rounded-[2rem] border border-black/[0.08] dark:border-white/[0.08] transition-all duration-300 group overflow-hidden relative hover:-translate-y-1 shadow-sm active:scale-95 flex flex-col items-center justify-center text-center">
       {/* 2. Soft Radial Glows */}
-      <div className="absolute -top-12 -left-12 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-indigo-500/20 transition-all duration-700" />
+      <div className="absolute -top-12 -left-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none" />
       
-      <div className="flex flex-col items-center justify-center text-center relative z-10 w-full pt-1">
-        <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center transition-all duration-300 group-hover:scale-110 mb-3 border border-white/10 shadow-lg
+      <div className="relative z-10 flex flex-col items-center w-full">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm
           ${label === "Hotové Úlohy" 
-            ? 'bg-green-500 text-white shadow-green-500/40 border-green-400/50' 
-            : label === "Kontakty" ? 'bg-blue-500/10 text-blue-500'
-            : label === "Projekty" ? 'bg-indigo-500/10 text-indigo-500'
-            : 'bg-emerald-500/10 text-emerald-500'
+            ? 'bg-green-500 text-white shadow-green-500/20' 
+            : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400'
           }
         `}>
           <Icon 
-            className="w-7 h-7" 
-            strokeWidth={label === "Hotové Úlohy" ? 3.5 : 2.5}
+            className="w-6 h-6" 
+            strokeWidth={label === "Hotové Úlohy" ? 3.5 : 2}
           />
         </div>
 
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic mb-1 opacity-60">
+        <span className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest leading-none mb-1.5 px-2 truncate w-full">
           {label}
-        </p>
-        <h3 className="text-2xl font-black text-foreground italic tracking-tighter leading-none mb-2">
+        </span>
+        <h3 className="text-xl font-black text-foreground tracking-tighter leading-none mb-2">
           {value}
         </h3>
         
         {trend ? (
-          <p className="text-[10px] font-black italic text-emerald-500 mt-1 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded-lg w-fit">
-            <TrendingUp className="w-3 h-3" />
-            {trend}
-          </p>
+          <div className="text-[9px] font-bold text-emerald-500 flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
+            <TrendingUp className="w-2.5 h-2.5" />
+            {trend.split(' ')[0]}
+          </div>
         ) : (
-          <div className="h-[21px] mt-1" />
+          <div className="h-[18px]" />
         )}
       </div>
     </div>
@@ -62,7 +51,7 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
 
 export function DashboardStats({ stats }: { stats: any }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8 pt-2 transition-all duration-300 ease-in-out relative z-30">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8 pt-2 relative z-30 max-w-5xl mx-auto">
       <StatCard
         label="Kontakty"
         value={stats.contactsCount || 0}
