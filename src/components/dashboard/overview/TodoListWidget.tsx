@@ -15,6 +15,7 @@ interface TodoListWidgetProps {
 
 export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   const [localTasks, setLocalTasks] = useState(tasks);
+  const [isExpanded, setIsExpanded] = useState(false);
   // Removed animatingIds for rapid toggling support
 
   useEffect(() => {
@@ -77,30 +78,37 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   const badgeStyle = "bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50 backdrop-blur-sm";
 
   return (
-    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl px-5 py-5 md:p-8 rounded-none md:rounded-[2.5rem] border-b md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full w-full transition-all duration-300 overflow-hidden relative group">
-      {/* 1. Subtle Grid Pattern */}
-      <div 
-        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
-        style={{ 
-          backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
-          backgroundSize: '24px 24px'
-        }} 
-      />
-
+    <div className={`bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl px-5 md:p-8 rounded-none md:rounded-[2.5rem] border-b md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-3 md:py-8'}`}>
       {/* 2. Soft Radial Glows */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-emerald-500/20 transition-all duration-300" />
       
-      <div className="flex items-center justify-between mb-6 flex-shrink-0 relative z-10">
-        <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+      {/* Header / Trigger */}
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center justify-between w-full md:cursor-default relative z-20"
+      >
+        <div className="flex items-center gap-3">
           <div className="w-8 h-8 md:w-10 md:h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
             <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
           </div>
-          {title}
-        </h3>
-        <span className={`text-[10px] font-black uppercase italic px-3 py-1.5 ${badgeStyle} rounded-xl tracking-tight`}>
-          {filteredTasks.filter(t => !t.completed).length} ÚLOH
-        </span>
-      </div>
+          <div className="flex flex-col items-start text-left">
+            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">{title}</h3>
+            {!isExpanded && (
+              <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-50">Dnešný zoznam úloh a priorít</span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className={`text-[9px] font-black uppercase italic px-2 py-1 bg-white/50 dark:bg-zinc-800/50 rounded-lg border border-black/5 dark:border-white/5 md:flex hidden`}>
+            {filteredTasks.filter(t => !t.completed).length} ÚLOH
+          </span>
+          <div className={`w-5 h-5 flex items-center justify-center transition-all duration-300 md:hidden ${isExpanded ? 'rotate-180' : ''}`}>
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+      </button>
+
+      <div className={`flex-1 flex flex-col transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
 
       <div className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-hide relative z-10">
         {filteredTasks.length > 0 ? (
@@ -194,7 +202,8 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
           </div>
         )}
       </div>
-      
+    </div>
+
       <a href="/dashboard/todo" className="mt-4 text-center text-[10px] font-black text-zinc-400 hover:text-emerald-600 uppercase italic transition-colors relative z-10">
         Pozrieť všetky úlohy
       </a>

@@ -20,7 +20,9 @@ interface FloatingAgentChatProps {
 export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentChatProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = React.useState(false);
+  const [isVisible, setIsVisible] = React.useState(true);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   
   const {
     messages,
@@ -31,6 +33,33 @@ export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentCh
     toggleLog,
     handleSend,
   } = useAgentChat();
+
+  // Handle visibility based on scroll
+  React.useEffect(() => {
+    const handleScroll = () => {
+      // Hide (make transparent) when scrolling starts
+      setIsVisible(false);
+      
+      // Clear existing timeout
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      
+      // Set timeout to show again after 30 seconds of no scrolling
+      timeoutRef.current = setTimeout(() => {
+        setIsVisible(true);
+      }, 30000);
+    };
+
+    // We listen on the main scrolling element. 
+    // In our PWA, the scrolling happens in DashboardShell's main tag or window.
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Also listen in capture phase for nested scrollables if needed, 
+    // but usually window scroll is enough for the dashboard.
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   React.useEffect(() => {
     if (scrollRef.current) {
@@ -49,7 +78,7 @@ export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentCh
   if (pathname === "/dashboard/agent") return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-[2000] flex flex-col items-end gap-3">
+    <div className={`fixed bottom-6 right-6 z-[2000] flex flex-col items-end gap-3 transition-all duration-700 ${isVisible || isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
       {/* Chat Window */}
       {isOpen && (
         <div className="w-[95vw] md:w-[420px] h-[650px] max-h-[85vh] bg-card/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-500 ease-out transition-all">
