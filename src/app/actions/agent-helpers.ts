@@ -50,7 +50,7 @@ export async function handleInfoOnly(
     .filter((m) => m.role === "user")
     .map((m) => m.content)
     .join("\n");
-  const prompt = `Si ArciGy Agent. JAZYK: Odpovedaj výhradne v priateľskej slovenčine. Kontext: ${context.user_nickname}. Otázka: ${userText}`;
+  const prompt = `Si ArciGy Agent. JAZYK: Slovenčina. ŠTÝL: Buď extrémne stručný (1-2 vety). Kontext: ${context.user_nickname}. Odpovedz na: ${userText}`;
   const start = Date.now();
   const res = await gemini.generateContent(prompt);
   const output = res.response?.text() || "Chyba AI poskytovateľa.";
@@ -82,11 +82,16 @@ export async function runFinalReporter(
   attempts: number,
   verdict: ChatVerdict,
   superState: ReturnType<typeof createStreamableValue>,
+  lastPlan?: any,
 ) {
-  const prompt = `JAZYK: Zhrň misiu a výsledky krokov výhradne v slovenčine pre používateľa. Výsledky: ${JSON.stringify(results)}`;
+  const orchestratorMessage = lastPlan?.message ? `Orchestrátor odkázal: ${lastPlan.message}` : "";
+  const prompt = `JAZYK: Slovenčina. ŠTÝL: Extrémne stručný report (max 2 vety). 
+    ${orchestratorMessage ? `POVINNOSŤ: Odpovedz na základe tohto odkazu od orchestrátora: "${orchestratorMessage}".` : "Povedz presne čo si spravil a čo je výsledok. Žiadna omáčka."}
+    Výsledky akcií: ${JSON.stringify(results)}`;
   const start = Date.now();
   const res = await gemini.generateContent(prompt);
-  const output = res.response?.text() || "Generovanie zhrnutia zlyhalo.";
+  let output = res.response?.text() || "Misia dokončená.";
+
   trackAICall(
     "reporter",
     "gemini",

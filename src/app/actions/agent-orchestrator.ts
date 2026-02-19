@@ -4,8 +4,105 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { ALL_ATOMS } from "./agent-registry";
 import { trackAICall } from "@/lib/ai-cost-tracker";
+import { validateActionPlan } from "./agent-preparer";
+import { executeAtomicTool } from "./agent-executors";
+import { AgentStep, ChatMessage, UserResource, MissionHistoryItem } from "./agent-types";
+import { createStreamableValue } from "@ai-sdk/rsc";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+
+export async function runOrchestratorLoop(
+  messages: ChatMessage[],
+  user: UserResource,
+  superState: ReturnType<typeof createStreamableValue>
+) {
+  let attempts = 0;
+  const maxAttempts = 5;
+  const finalResults: AgentStep[] = [];
+  const missionHistory: MissionHistoryItem[] = [];
+
+  let lastPlan: any = null;
+
+  while (attempts < maxAttempts) {
+    attempts++;
+    superState.update({
+      status: "thinking" as const,
+      attempt: attempts,
+      toolResults: finalResults,
+    });
+
+    // 1. Plan next steps
+    lastPlan = await orchestrateParams(messages[messages.length - 1].content, missionHistory.map((h, i) => ({
+        role: "assistant",
+        content: `Iteration ${i + 1} results: ${JSON.stringify(h.steps)}`
+    })));
+
+    // Handle direct message (question/clarification) from Orchestrator
+    if (lastPlan.message && (!lastPlan.steps || lastPlan.steps.length === 0)) {
+        superState.done({
+            content: lastPlan.message,
+            status: "done",
+            toolResults: finalResults,
+            thoughts: {
+                intent: lastPlan.intent || "Otázka na užívateľa",
+                extractedData: null,
+                plan: ["Čakám na odpoveď..."]
+            }
+        });
+        return { finalResults, missionHistory, attempts, lastPlan };
+    }
+
+    if (!lastPlan.steps || lastPlan.steps.length === 0) {
+      break; 
+    }
+
+    // 2. Validate and Heal
+    const preparer = await validateActionPlan(lastPlan.intent, lastPlan.steps, messages);
+    
+    if (!preparer.valid && preparer.questions && preparer.questions.length > 0) {
+        // STOP and ask the user
+        superState.done({
+            content: preparer.questions[0],
+            status: "done",
+            toolResults: finalResults,
+            thoughts: {
+                intent: "Potrebujem doplňujúce informácie",
+                extractedData: null,
+                plan: ["Čakám na užívateľa..."]
+            }
+        });
+        return { finalResults, missionHistory, attempts };
+    }
+
+    // 3. Execute
+    const iterationSteps: AgentStep[] = [];
+    for (const step of preparer.validated_steps) {
+      superState.update({
+        status: "executing" as const,
+        message: `Vykonávam ${step.tool}...`,
+      });
+
+      const result = await executeAtomicTool(step.tool, step.args, user);
+      const agentStep: AgentStep = {
+        tool: step.tool,
+        status: result.success ? "done" : "error",
+        result: result,
+      };
+      
+      iterationSteps.push(agentStep);
+      finalResults.push(agentStep);
+    }
+
+    missionHistory.push({
+      steps: iterationSteps,
+      verification: {
+        success: iterationSteps.every(s => s.status === "done")
+      }
+    });
+  }
+
+  return { finalResults, missionHistory, attempts, lastPlan };
+}
 
 export async function orchestrateParams(
   lastUserMessage: string | null,
@@ -21,54 +118,30 @@ export async function orchestrateParams(
 
     const systemPrompt = `
 ROLE:
-You are the Supreme AI Orchestrator for a high-stakes Business CRM. You are precision-oriented, logical, and highly cautious. Your purpose is to act as the brain, decomposing user requests into flawless sequences of atomic tool executions.
+You are the Supreme AI Orchestrator. You are precise, proactive, and concise.
 
 TASK:
-1. Analyze the USER INPUT and the provided CONVERSATION HISTORY.
-2. Determine the most efficient and safest path to fulfill the request.
-3. Break down the path into discrete "steps" using the AVAILABLE TOOLS.
-4. Output a strictly formatted JSON plan.
-
-INPUTS:
-1. USER INPUT: The latest message or command from the user.
-2. CONVERSATION HISTORY: A summary of the recent 5 messages and tool execution results. You MUST extract IDs and data from here to avoid redundant work.
-
-AVAILABLE TOOLS:
-${JSON.stringify(toolsDocs.map(t => ({name: t.name, desc: t.description, params: t.parameters})), null, 2)}
+1. Analyze input and history.
+2. Plan steps to satisfy the request.
+3. If input is ambiguous (multiple IDs), use the "message" field to ASK for clarification and stop.
 
 RULES:
-1. TRIPLE-CHECK ID VALIDITY: Never guess IDs. If multiple entities (contact, project, etc.) are needed and their IDs aren't in history, plan SEARCHES FOR ALL OF THEM in the first iteration. Use 'db_search_contacts' and 'db_search_projects' accordingly.
-2. CRM-FIRST POLICY: Before looking for info externally (Gmail/Web), always check the internal CRM database first using 'db_search_contacts'.
-3. SEQUENTIAL DEPENDENCIES: Only block an action if the CURRENT STEP strictly requires an ID you don't have. However, always prioritize gathering ALL necessary IDs in the first step to minimize iterations.
-4. ATOMICITY: Each step must be a single tool call with precise arguments as defined in specs.
-5. COMPLETION CRITERIA: When the user's objective is fully met, your 'steps' array MUST be empty []. Do not stop until every part of the request is verified as successful.
-6. NO REPETITION: NEVER repeat the exact same tool call if it returned '0 results' or 'not found' in the HISTORY. Move to the next logical step or source immediately.
-7. FALLBACK CHAIN: If 'db_search_contacts' return 0 results, IMMEDIATELY proceed to 'gmail_fetch_list' or 'web_search_google' if the user's request allows for external search. Do not attempt to search the CRM again in the same task.
-8. AGGRESSIVE PROGRESSION: Every iteration MUST bring new information. If you are stuck, ask the user for missing details instead of looping.
-10. AMBIGUITY HANDLING: If a search tool (db_search_contacts, db_search_projects) returns multiple results and you cannot determine the correct one with 100% certainty from history, you MUST STOP and ASK the user for clarification. Never guess an ID.
-9. RICH NOTES: When creating notes (db_create_note), you are a **High-Level Business Strategist**:
-   - OUTPUT LANGUAGE: All user-facing data (Title, Content/Body, Task titles, Email subjects) MUST be in **Slovak** by default. However, your internal "thought" and planning may remain in English for maximum reasoning quality.
-   - AUTO-EXPAND: If the user request is sparse (e.g., 'Note about workshop'), you MUST NOT just copy the text. Instead, generate a comprehensive, professional narrative (300+ words) in Slovak with creative details, strategic goals, and business logic relevant to the entities involved.
-   - STRUCTURE: Think in sections: Executive Summary, Strategic Goals, Risk Analysis, Timeline, Financials. Generate this full content internally before passing it to the tool.
-   - BRANDING: Use the available company names/industries from history to make the note feel hyper-relevant.
-   - MENTIONS: Always use @Name (ID: X) in your generated text so the final note is interactive.
-   - THE MISSION: Every note you create must look like a standalone professional report that adds value to the CRM.
+1. TRIPLE-CHECK ID VALIDITY: Never guess. SEARCH if IDs are missing.
+8. AGGRESSIVE PROGRESSION: Every iteration must bring new info.
+10. AMBIGUITY HANDLING: If multiple entities (e.g. two Martins) match, set "steps": [] and ASK in the "message" field.
+11. BREVITY & PUNCHINESS: Be extremely brief in your "message". No technical jargon. Max 2 sentences in Slovak.
+12. NO TOOL ABUSE: Steps are for DB/External tools only. Translations/Logic happen in your brain.
+13. SLOVAK OUTPUT: All 'message' and tool 'args' (titles, content, bodies) MUST be in Slovak.
+9. RICH NOTES: When creating notes (db_create_note), you are a Business Strategist:
+   - AUTO-EXPAND: If input is sparse, generate a premium report (300+ words) in Slovak.
+   - STRUCTURE: Summary, Goals, Risks, Timeline.
+   - VALUE: Every note must look expensive and professional.
 
-SPECIFICS:
-This is CRITICAL for the user's career. Mistakes can lead to financial loss or broken business relationships. You MUST be 100% certain of every tool and argument. Accuracy is paramount.
-
-CONTEXT:
-You are the master of the ArciGy CRM ecosystem. You have access to Google Workspace, Directus CRM, and Web Search. 
-
-NOTES:
-- You ONLY generate JSON PLANS. Do not include conversational text.
-- Triple-check everything before outputting the steps. 
-- Use ONLY the keys "tool" and "args" in the steps array.
-
-OUTPUT FORMAT (STRICT JSON):
+OUTPUT FORMAT:
 {
   "intent": "action_summary",
-  "thought": "Internal reasoning (triple-checked analysis)",
+  "thought": "Internal reasoning in English",
+  "message": "Short message/question to user in Slovak",
   "steps": [
     { "tool": "tool_name", "args": { "key": "value" } }
   ]
