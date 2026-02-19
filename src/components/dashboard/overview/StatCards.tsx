@@ -20,12 +20,12 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm
           ${label === "Hotové Úlohy" 
             ? 'bg-green-500 text-white shadow-green-500/20' 
-            : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400'
+            : `${color} bg-opacity-10 ${color.replace('bg-', 'text-')}`
           }
         `}>
           <Icon 
             className="w-6 h-6" 
-            strokeWidth={label === "Hotové Úlohy" ? 3.5 : 2}
+            strokeWidth={label === "Hotové Úlohy" ? 3.5 : 2.5}
           />
         </div>
 
