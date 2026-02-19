@@ -72,12 +72,20 @@ export async function executeCalendarTool(
         },
       });
 
+      // Point to internal CRM calendar view for the event's day
+      const eventDate = (args.start_time as string).split('T')[0];
+      const internalUrl = `/dashboard/calendar?date=${eventDate}`;
+
       return {
         success: true,
         action: "open_url",
-        url: newEvent.data.htmlLink,
-        data: { eventLink: newEvent.data.htmlLink },
-        message: "Udalosť bola úspešne pridaná do kalendára. Otváram detail v Google kalendári...",
+        url: internalUrl,
+        data: { 
+            eventLink: internalUrl,
+            googleLink: newEvent.data.htmlLink,
+            eventId: newEvent.data.id
+        },
+        message: "Udalosť bola úspešne pridaná do kalendára. Otváram detail v CRM...",
       };
 
     default:

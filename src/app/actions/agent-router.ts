@@ -2,6 +2,7 @@
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
+import { trackAICall } from "@/lib/ai-cost-tracker";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -9,6 +10,7 @@ export async function routeIntent(
   lastUserMessage: string,
   history: any[]
 ) {
+  const start = Date.now();
   try {
     const systemPrompt = `
       Si Router (Triedič) v CRM systéme.
@@ -30,6 +32,17 @@ export async function routeIntent(
       system: systemPrompt,
       prompt: `HISTORY:\n${JSON.stringify(history.slice(-2))}\n\nMESSAGE:\n${lastUserMessage}`,
     });
+
+    trackAICall(
+        "conversational",
+        "gemini",
+        "gemini-2.0-flash",
+        systemPrompt + lastUserMessage,
+        response.text,
+        Date.now() - start,
+        (response.usage as any).promptTokens || (response.usage as any).inputTokens,
+        (response.usage as any).completionTokens || (response.usage as any).outputTokens
+    );
 
     try {
         const cleanText = response.text.replace(/```json/g, "").replace(/```/g, "").trim();

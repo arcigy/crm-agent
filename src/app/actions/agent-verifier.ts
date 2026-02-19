@@ -3,12 +3,15 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 
+import { trackAICall } from "@/lib/ai-cost-tracker";
+
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export async function verifyExecutionResults(
   originalIntent: string,
   results: any[]
 ) {
+  const start = Date.now();
   try {
     const successCount = results.filter((r) => r.status === "success").length;
     const failCount = results.filter((r) => r.status !== "success").length;
@@ -37,6 +40,17 @@ export async function verifyExecutionResults(
         2
       )}`,
     });
+
+    trackAICall(
+        "verifier",
+        "gemini",
+        "gemini-2.0-flash",
+        systemPrompt + originalIntent,
+        response.text,
+        Date.now() - start,
+        (response.usage as any).promptTokens || (response.usage as any).inputTokens,
+        (response.usage as any).completionTokens || (response.usage as any).outputTokens
+    );
 
     return {
       success: failCount === 0,

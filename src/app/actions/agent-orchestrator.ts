@@ -3,6 +3,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { ALL_ATOMS } from "./agent-registry";
+import { trackAICall } from "@/lib/ai-cost-tracker";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -10,6 +11,7 @@ export async function orchestrateParams(
   lastUserMessage: string | null,
   conversationHistory: any[]
 ) {
+  const start = Date.now();
   try {
     const toolsDocs = ALL_ATOMS.map((t) => ({
       name: t.function.name,
@@ -70,6 +72,17 @@ OUTPUT FORMAT (STRICT JSON):
       system: systemPrompt,
       prompt: `HISTORY:\n${JSON.stringify(conversationHistory.slice(-5))}\n\nUSER INPUT:\n${lastUserMessage}`,
     });
+
+    trackAICall(
+        "orchestrator",
+        "gemini",
+        "gemini-2.0-flash",
+        systemPrompt + (lastUserMessage || ""),
+        response.text,
+        Date.now() - start,
+        (response.usage as any).inputTokens,
+        (response.usage as any).outputTokens
+    );
 
     try {
         let rawText = response.text.trim();

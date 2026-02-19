@@ -3,6 +3,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { ALL_ATOMS } from "./agent-registry";
+import { trackAICall } from "@/lib/ai-cost-tracker";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -11,6 +12,7 @@ export async function validateActionPlan(
   steps: any[],
   conversationHistory: any[]
 ) {
+  const start = Date.now();
   try {
     const toolsContext = ALL_ATOMS.map((t) => ({
       name: t.function.name,
@@ -69,6 +71,17 @@ Accuracy is key, but flexibility is your superpower. Your goal is to make the sy
       system: systemPrompt,
       prompt: prompt,
     });
+
+    trackAICall(
+        "orchestrator", // Using orchestrator as phase for now
+        "gemini",
+        "gemini-2.0-flash",
+        systemPrompt + prompt,
+        response.text,
+        Date.now() - start,
+        (response.usage as any).promptTokens || (response.usage as any).inputTokens,
+        (response.usage as any).completionTokens || (response.usage as any).outputTokens
+    );
 
     try {
         const cleanText = response.text.replace(/```json/g, "").replace(/```/g, "").trim();

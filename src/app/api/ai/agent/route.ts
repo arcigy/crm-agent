@@ -13,6 +13,7 @@ import { orchestrateParams } from '@/app/actions/agent-orchestrator';
 import { validateActionPlan } from '@/app/actions/agent-preparer';
 import { verifyExecutionResults } from '@/app/actions/agent-verifier';
 import { executeAtomicTool } from '@/app/actions/agent-executors';
+import { startCostSession, endCostSession } from '@/lib/ai-cost-tracker';
 
 export async function POST(req: Request) {
     const { messages, debug = false } = await req.json();
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
     }
 
     const userEmail = user.emailAddresses[0].emailAddress;
+    startCostSession(userEmail);
     const lastUserMsg = messages[messages.length - 1].content;
 
     // Use a TransformStream to send logs as they happen
@@ -50,7 +52,7 @@ export async function POST(req: Request) {
     };
 
     // Keep the actual processing in the background but wait for it before ending the stream
-    const pipelinePromise = (async () => {
+    (async () => {
         try {
             // 1. ROUTER: Decide Intent
             await log("ROUTER", "Analyzing intent...");
@@ -130,32 +132,28 @@ export async function POST(req: Request) {
             await log("VERIFIER", "Analyzing results...");
             const finalIntent = lastUserMsg.length > 50 ? "complex_task" : "simple_task"; 
             
-            // Usage from streamText for final response
-            let totalInputTokens = 0;
-            let totalOutputTokens = 0;
-
             const verification = await verifyExecutionResults(finalIntent, finalResults);
             await log("VERIFIER", "Analysis", verification.analysis);
             
             const finalResponseText = verification.analysis;
-            const result = streamText({
+
+            // Final Report Generation & Streaming
+            const reportResult = streamText({
                 model: google('gemini-2.0-flash'),
                 prompt: `System: Send this exact message to user: "${finalResponseText}"`,
-                onFinish: async (usage) => {
-                    await log("COST", "Final usage", usage);
-                }
             });
 
-            for await (const delta of result.textStream) {
+            for await (const delta of reportResult.textStream) {
                 await writer.write(encoder.encode(delta));
             }
 
-            // Estimate total cost (very rough simplified calculation for the demo)
-            // Prices per 1k tokens in USD cents: Flash (Input 0.01, Output 0.04), Pro (Input 0.125, Output 0.5)
-            // Simplified: constant for now since it's hard to pipe all usage back from actions without changing every signature
-            // Instead, let's add a "COST" log with a dummy but plausible calculation based on stage count
-            const dummyCost = (iterations * 0.12) + (finalResults.length * 0.05) + 0.15;
-            await log("COST", `Celková cena dopytu: ${dummyCost.toFixed(3)} centov`);
+            // --- FINAL COST CALCULATION ---
+            const sessionSummary = endCostSession();
+            if (sessionSummary) {
+                // Return cost in cents (USD * 100)
+                const costInCents = sessionSummary.totalCost * 100;
+                await log("COST", `Celková cena dopytu: ${costInCents.toFixed(3)} centov`);
+            }
 
         } catch (error: any) {
             await log("ERROR", "Global Pipeline Error", error.message);
