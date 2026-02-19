@@ -109,7 +109,7 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
   }, []);
 
   return (
-    <div className="flex h-screen w-full bg-[#fdfdfd] dark:bg-[#070708] overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-[#fdfdfd] dark:bg-[#070708] overflow-hidden">
       {!completed && onboardingScene}
 
       {/* Sidebar Toggle Button */}
@@ -221,11 +221,11 @@ export function DashboardShell({ children, completed, onboardingScene }: { child
 
       <main 
         className={`
-          flex-1 min-w-0 h-full overflow-hidden bg-transparent relative z-10 transition-all duration-300 ease-out
+          flex-1 min-w-0 h-full overflow-y-auto md:overflow-hidden bg-transparent relative z-10 transition-all duration-300 ease-out
           ${isMenuOpen ? "md:pl-64" : "pl-16"}
         `}
       >
-        <div className="p-2 md:p-4 pt-16 md:pt-4 transition-all pb-20">
+        <div className="p-5 md:p-4 pt-16 md:pt-4 transition-all pb-20">
           <div className="max-w-full mx-auto w-full">
              {children}
           </div>
