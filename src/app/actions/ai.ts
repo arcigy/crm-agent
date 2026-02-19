@@ -206,7 +206,7 @@ Odpovedaj LEN čistým JSON poľom.
 ## EDITORSKÁ INŠTRUKCIA
 Ak je vstupný text krátky alebo jednoduchý, tvojou povinnosťou je ho **ROZŠÍRIŤ**. Domysli si detaily, pridaj profesionálnu vatu, strategické vhľady a vytvor komplexný report na základe kontextu. Nikdy nevráť jednoduchú poznámku – vždy vráť dychberúci, viacsekčný dokument s HR čiarami, farbami a bohatou štruktúrou.
 
-JAZYK: Celý výstup (nadpisy, texty, zhrnutia) musí byť v **slovencine**. Iba ak užívateľ výslovne žiada iný jazyk, môžeš ho použiť.
+JAZYK (VÝSTUP PRE UŽÍVATEĽA): Všetky vygenerované texty v JSON objekte (nadpisy, obsah, odrážky) musia byť v **slovenčine**. Toto je kritické pre profesionálnu prezentáciu v CRM.
 `;
 
   try {

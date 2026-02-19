@@ -19,7 +19,7 @@ const gemini = geminiBase.getGenerativeModel({ model: "gemini-2.0-flash" });
 export async function runGatekeeper(
   messages: ChatMessage[],
 ): Promise<ChatVerdict> {
-  const prompt = `Si Gatekeeper. Urči intent: INFO_ONLY alebo ACTION. Extrahuj entity. Všetky tvoje interné úvahy a extrakcia musia brať do úvahy slovenčinu. Odpovedaj LEN JSON: { "intent": "...", "extracted_data": {...} }`;
+  const prompt = `Si Gatekeeper. Urči intent: INFO_ONLY alebo ACTION. Extrahuj entity. Odpovedaj LEN JSON: { "intent": "...", "extracted_data": {...} }`;
   const start = Date.now();
   const res = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -50,7 +50,7 @@ export async function handleInfoOnly(
     .filter((m) => m.role === "user")
     .map((m) => m.content)
     .join("\n");
-  const prompt = `Si ArciGy Agent. JAZYK: Odpovedaj výhradne v priateľskej slovenčine (pokiaľ user vyslovene nepíše iným jazykom). Kontext: ${context.user_nickname}. Otázka: ${userText}`;
+  const prompt = `Si ArciGy Agent. JAZYK: Odpovedaj výhradne v priateľskej slovenčine. Kontext: ${context.user_nickname}. Otázka: ${userText}`;
   const start = Date.now();
   const res = await gemini.generateContent(prompt);
   const output = res.response?.text() || "Chyba AI poskytovateľa.";
@@ -83,7 +83,7 @@ export async function runFinalReporter(
   verdict: ChatVerdict,
   superState: ReturnType<typeof createStreamableValue>,
 ) {
-  const prompt = `JAZYK: Zhrň misiu a výsledky krokov výhradne v slovenčine. Musí to znieť profesionálne a prehľadne. Výsledky: ${JSON.stringify(results)}`;
+  const prompt = `JAZYK: Zhrň misiu a výsledky krokov výhradne v slovenčine pre používateľa. Výsledky: ${JSON.stringify(results)}`;
   const start = Date.now();
   const res = await gemini.generateContent(prompt);
   const output = res.response?.text() || "Generovanie zhrnutia zlyhalo.";
