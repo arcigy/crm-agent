@@ -20,33 +20,35 @@ const gemini = geminiBase.getGenerativeModel({ model: "gemini-2.0-flash" });
 export async function runGatekeeper(
   messages: ChatMessage[],
 ): Promise<ChatVerdict> {
-  const prompt = `Si Gatekeeper AI agenta pre CRM. Tvojou úlohou je zaradiť správu do INFO_ONLY alebo ACTION.
+  const prompt = `Si klasifikátor správ pre AI agenta. Zaraď poslednú správu do INFO_ONLY alebo ACTION.
 
-KĽÚČOVÉ PRAVIDLO:
-Pozri sa, ČI SPRÁVA OBSAHUJE KONKRÉTNU ÚLOHU S CIEĽOM.
-- Ak ÁNO (má konkrétny cieľ, osobu, objekt) → ACTION
-- Ak NIE (pýta sa všeobecne, bez konkrétneho cieľa) → INFO_ONLY
+DEFINÍCIE:
+INFO_ONLY = správa pýtajúca sa VŠEOBECNE (bez konkrétneho cieľa, osoby, firmy alebo objektu)
+ACTION = správa požadujúca KONKRÉTNU OPERÁCIU (aj keď je formulovaná zdvorilo ako otázka)
 
-INFO_ONLY = všeobecné otázky o schopnostiach agenta, pozdravy, small talk
-ACTION = žiadosť vykonať konkrétnu operáciu (aj ak je formulovaná ako otázka!)
+KĽÚČOVÁ OTÁZKA: Existuje v správe konkrétny cieľ (meno, firma, email, projekt, úloha)?
+- ÁNO → ACTION
+- NIE → INFO_ONLY
 
-PRÍKLADY - SPRÁVNA KLASIFIKÁCIA:
+INFO_ONLY PRÍKLADY (žiadny konkrétny cieľ):
+1. "Vieš vyhľadávať na webe?" → INFO_ONLY
+2. "Čo všetko dokážeš?" → INFO_ONLY
+3. "Môžeš pracovať s emailami?" → INFO_ONLY
+4. "Ahoj, ako sa máš?" → INFO_ONLY
+5. "Čo je CRM systém?" → INFO_ONLY
+6. "Vieš hľadať informácie?" → INFO_ONLY
+7. "Dokážeš posielať emaily?" → INFO_ONLY
 
-INFO_ONLY (všeobecné otázky bez konkrétneho cieľa):
-✅ "Vieš vyhľadávať na webe?" → pýta sa všeobecne, žiadny konkrétny cieľ
-✅ "Čo všetko dokážeš?" → všeobecná otázka o schopnostiach
-✅ "Môžeš pracovať s emailami?" → všeobecná otázka
-✅ "Ahoj, ako sa máš?" → pozdrav
-✅ "Čo je CRM?" → všeobecná otázka
+ACTION PRÍKLADY (konkrétny cieľ = vždy ACTION aj ako otázka!):
+1. "Môžeš mi poslať email Martinovi?" → ACTION (cieľ: Martin)
+2. "Vieš mi nájsť kontakt Petra Nováka?" → ACTION (cieľ: Peter Novák)
+3. "Môžeš vytvoriť poznámku o stretnutí s ArciGy?" → ACTION (cieľ: ArciGy)
+4. "Vyhľadaj mi firmu Telekom na webe" → ACTION (cieľ: Telekom)
+5. "Vytvor úlohu: zavolať klientovi" → ACTION (konkrétna úloha)
+6. "Môžeš mi skontrolovať emaily od Jána?" → ACTION (cieľ: Ján)
+7. "Nájdi mi projekty Martina Mrkvu" → ACTION (cieľ: Martin Mrkva)
 
-ACTION (konkrétna úloha, aj ak je otázka):
-✅ "Môžeš mi poslať email Martinovi?" → konkrétna akcia (email + osoba)
-✅ "Vieš mi nájsť kontakt Petra Nováka?" → konkrétna akcia (nájsť + meno)
-✅ "Môžeš mi č vytvoriť poznámku o dnešnom stretnutí?" → konkrétna akcia
-✅ "Vyhľadaj mi firmu XY na webe" → priamy príkaz
-✅ "Vytvor poznámku o Martinovi" → priamy príkaz
-
-Odpovedaj LEN JSON: { "intent": "INFO_ONLY" alebo "ACTION", "extracted_data": { "entities": [], "action_type": "" } }`;
+Odpovedaj LEN JSON bez markdown: { "intent": "INFO_ONLY", "extracted_data": { "entities": [], "action_type": "" } }`;
   const start = Date.now();
   const historyText = messages
     .map(m => `${m.role.toUpperCase()}: ${m.content}`)
