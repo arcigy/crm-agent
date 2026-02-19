@@ -32,7 +32,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full overflow-hidden relative group transition-all duration-300">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-5 md:p-8 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full overflow-hidden relative group transition-all duration-300">
       {/* 1. Subtle Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 

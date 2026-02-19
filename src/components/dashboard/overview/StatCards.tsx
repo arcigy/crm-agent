@@ -12,7 +12,7 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
   return (
-    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl px-5 py-4 rounded-[2rem] border border-indigo-500/10 dark:border-indigo-500/5 transition-all duration-500 group overflow-hidden relative hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 hover:-translate-y-1">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl px-3 py-3 md:px-5 md:py-4 rounded-[2rem] border border-indigo-500/10 dark:border-indigo-500/5 transition-all duration-300 group overflow-hidden relative hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 hover:-translate-y-1">
       {/* 1. Subtle Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
@@ -69,7 +69,7 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
 
 export function DashboardStats({ stats }: { stats: any }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pt-2 transition-all duration-500 ease-in-out relative z-30">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8 pt-2 transition-all duration-300 ease-in-out relative z-30">
       <StatCard
         label="Kontakty"
         value={stats.contactsCount || 0}
