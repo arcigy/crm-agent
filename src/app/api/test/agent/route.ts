@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       const finalState = mockState.getFinalState();
       stageLog("VERIFIER", "Analysis", finalState?.content || "No response");
       const cost = endCostSession();
-      stageLog("COST", `Celková cena dopytu: ${cost?.totalCostCents?.toFixed(3) || "0.000"} centov`);
+      stageLog("COST", `Celková cena dopytu: ${(cost?.totalCost ? cost.totalCost * 100 : 0).toFixed(3)} centov`);
       return NextResponse.json({ logs: debugLogs, verdict: "INFO_ONLY", response: finalState?.content });
     }
 
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
     stageLog("VERIFIER", "Analysis", finalResponse?.content || "No response");
 
     const cost = endCostSession();
-    stageLog("COST", `Celková cena dopytu: ${cost?.totalCostCents?.toFixed(3) || "0.000"} centov`);
+    stageLog("COST", `Celková cena dopytu: ${(cost?.totalCost ? cost.totalCost * 100 : 0).toFixed(3)} centov`);
 
     return NextResponse.json({
       logs: debugLogs,
@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
       toolResults: finalResults,
     });
   } catch (error: any) {
+    console.error("TEST ENDPOINT ERROR:", error);
     endCostSession();
     stageLog("ERROR", error.message, { stack: error.stack });
     return NextResponse.json({ logs: debugLogs, error: error.message }, { status: 500 });

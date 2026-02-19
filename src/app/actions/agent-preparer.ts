@@ -4,6 +4,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { ALL_ATOMS } from "./agent-registry";
 import { trackAICall } from "@/lib/ai-cost-tracker";
+import { withRetry } from "@/lib/ai-retry";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -60,11 +61,11 @@ OUTPUT FORMAT (STRICT JSON):
       ${JSON.stringify(conversationHistory.slice(-3), null, 2)}
     `;
 
-    const response = await generateText({
+    const response = await withRetry(() => generateText({
       model: google("gemini-2.0-flash"), // Efficient model for argument validation
       system: systemPrompt,
       prompt: prompt,
-    });
+    }));
 
     trackAICall(
         "orchestrator", // Using orchestrator as phase for now

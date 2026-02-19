@@ -8,6 +8,7 @@ import { validateActionPlan } from "./agent-preparer";
 import { executeAtomicTool } from "./agent-executors";
 import { AgentStep, ChatMessage, UserResource, MissionHistoryItem } from "./agent-types";
 import { createStreamableValue } from "@ai-sdk/rsc";
+import { withRetry } from "@/lib/ai-retry";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -139,12 +140,12 @@ OUTPUT FORMAT (STRICT JSON):
         }))
     ];
 
-    const response = await generateText({
+    const response = await withRetry(() => generateText({
       model: google("gemini-2.0-flash"),
       system: systemPrompt,
       temperature: 0.1, // Near-deterministic planning
       prompt: `KONTEXT KONVERZÁCIE A DOTERAJŠIE VÝSLEDKY:\n${JSON.stringify(historyContext.slice(-10))}\n\nDOSIAHNI CIEĽ Z POSLEDNEJ SPRÁVY UŽÍVATEĽA.`,
-    });
+    }));
 
     trackAICall(
         "orchestrator",
@@ -158,18 +159,23 @@ OUTPUT FORMAT (STRICT JSON):
     );
 
     try {
-        let rawText = response.text.trim();
-        
-        // Find first '{' and last '}'
-        const firstBrace = rawText.indexOf('{');
-        const lastBrace = rawText.lastIndexOf('}');
-        let jsonText = (firstBrace !== -1 && lastBrace !== -1) 
-            ? rawText.substring(firstBrace, lastBrace + 1)
-            : rawText;
+        const rawText = response.text || "";
+        // Clean up markdown blocks and common junk
+        let jsonText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+        const firstBrace = jsonText.indexOf('{');
+        const lastBrace = jsonText.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+            jsonText = jsonText.substring(firstBrace, lastBrace + 1);
+        }
 
-        // Quote bare ??? tokens - handle both comma and closing brace
-        jsonText = jsonText
-            .replace(/:\s*\?\?\?\s*([,}])/g, ': "???"$1');
+        // Remove control characters (new lines in strings, etc.)
+        jsonText = jsonText.replace(/[\x00-\x1F\x7F-\x9F]/g, (match: string) => {
+            if (match === '\n' || match === '\r' || match === '\t') return match;
+            return " ";
+        });
+
+        // Quote bare ??? tokens
+        jsonText = jsonText.replace(/:\s*\?\?\?\s*([,}])/g, ': "???"$1');
             
         try {
             const parsed = JSON.parse(jsonText);

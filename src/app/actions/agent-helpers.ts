@@ -12,6 +12,7 @@ import {
   AgentStep,
   MissionHistoryItem,
 } from "./agent-types";
+import { withRetry } from "@/lib/ai-retry";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 const geminiBase = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -53,12 +54,12 @@ Odpovedaj LEN JSON bez markdown: { "intent": "INFO_ONLY", "extracted_data": { "e
   const historyText = messages
     .map(m => `${m.role.toUpperCase()}: ${m.content}`)
     .join("\n");
-  const res = await generateText({
+  const res = await withRetry(() => generateText({
     model: google("gemini-2.0-flash"),
     system: prompt,
     prompt: historyText,
     temperature: 0,
-  });
+  }));
   const rawOutput = res.text.trim();
   const firstBrace = rawOutput.indexOf("{");
   const lastBrace = rawOutput.lastIndexOf("}");
@@ -97,7 +98,7 @@ KONTEXT: Užívateľ "${context.user_nickname}".
 OTÁZKA: ${userText}
 Odpovedz priamo a stručne. Ak sa pýta na tvoje schopnosti, odpovedz áno/nie + krátke vysvetlenie.`;
   const start = Date.now();
-  const res = await gemini.generateContent(prompt);
+  const res = await withRetry(() => gemini.generateContent(prompt));
   const output = res.response?.text() || "Chyba AI poskytovateľa.";
   trackAICall(
     "conversational",
@@ -134,7 +135,7 @@ export async function runFinalReporter(
     ${orchestratorMessage ? `POVINNOSŤ: Odpovedz na základe tohto odkazu od orchestrátora: "${orchestratorMessage}".` : "Povedz presne čo si spravil a čo je výsledok. Žiadna omáčka."}
     Výsledky akcií: ${JSON.stringify(results)}`;
   const start = Date.now();
-  const res = await gemini.generateContent(prompt);
+  const res = await withRetry(() => gemini.generateContent(prompt));
   let output = res.response?.text() || "Misia dokončená.";
 
   trackAICall(
