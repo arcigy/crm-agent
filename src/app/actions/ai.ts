@@ -201,7 +201,10 @@ Tvoj výstup musí vyzerať ako prémiový digitálny report, ktorý predáva tv
 ${rawContent}
 """
 
-Odpovedaj LEN čistým JSON poľom. Maximálna kreativita a vizuálna rozmanitosť!
+Odpovedaj LEN čistým JSON poľom. 
+
+## EDITORSKÁ INŠTRUKCIA
+Ak je vstupný text krátky alebo jednoduchý, tvojou povinnosťou je ho **ROZŠÍRIŤ**. Domysli si detaily, pridaj profesionálnu vatu, strategické vhľady a vytvor komplexný report na základe kontextu. Nikdy nevráť jednoduchú poznámku – vždy vráť dychberúci, viacsekčný dokument s HR čiarami, farbami a bohatou štruktúrou.
 `;
 
   try {
