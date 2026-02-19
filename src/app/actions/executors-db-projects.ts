@@ -22,7 +22,12 @@ export async function executeDbProjectTool(
         readItems("projects", {
           filter: {
             _and: [
-              { user_email: { _eq: userEmail } },
+              {
+                _or: [
+                  { user_email: { _eq: userEmail } },
+                  { user_email: { _null: true } },
+                ]
+              },
               { deleted_at: { _null: true } },
             ],
           },
@@ -90,7 +95,12 @@ export async function executeDbProjectTool(
         readItems("projects", {
           filter: {
             _and: [
-              { user_email: { _eq: userEmail } },
+              {
+                _or: [
+                  { user_email: { _eq: userEmail } },
+                  { user_email: { _null: true } },
+                ]
+              },
               { deleted_at: { _null: true } },
               { name: { _icontains: args.query as string } },
             ],

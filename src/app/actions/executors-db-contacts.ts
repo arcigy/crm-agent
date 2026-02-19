@@ -88,7 +88,12 @@ export async function executeDbContactTool(
       
       const filter: any = {
         _and: [
-          { user_email: { _eq: userEmail } },
+          {
+            _or: [
+              { user_email: { _eq: userEmail } },
+              { user_email: { _null: true } },
+            ],
+          },
           { status: { _neq: "archived" } },
         ]
       };
