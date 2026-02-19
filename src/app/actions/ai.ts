@@ -181,11 +181,12 @@ Vráť pole objektov (blocks) v tomto formáte:
 ]
 
 ## VIZUÁLNE INŠTRUKCIE
-1. **H1:** Používaj na začiatku pre VÝRAZNÝ nadpis (bude zobrazený veľmi veľkým písmom).
-2. **Callout:** Používaj na kľúčové závery, varovania alebo zhrnutia stretnutí.
-3. **Písma:** V rámci "content" môžeš používať Markdown syntax (**bold**, *italic*). Tučný text (bold) bude automaticky indigo farbou.
-4. **Farby:** Môžeš použiť syntax [color:#kód]text[/color] na zvýraznenie špecifických častí v texte (používaj farby ako #6366f1, #10b981, #f43f5e).
-5. **Odrážky:** Vždy používaj "ul" bloky pre zoznamy úloh alebo bodov.
+1. **H1:** Používaj na začiatku pre VLOGOS (budú zobrazené EXTRÉMNE VEĽKÝM písmom).
+2. **H2:** Používaj na oddelenie logických sekcií (veľké, s indigo čiarou na boku).
+3. **Callout:** Používaj na kľúčové závery, varovania alebo zhrnutia stretnutí.
+4. **Písma:** V rámci "content" môžeš používať Markdown syntax (**bold**, *italic*). Všetko musí pôsobiť masívne a dôležité.
+5. **Farby:** Môžeš použiť syntax [color:#kód]text[/color] na zvýraznenie špecifických častí v texte (používaj farby ako #6366f1, #10b981, #f43f5e).
+6. **Odrážky:** VŽDY používaj "ul" bloky pre zoznamy úloh alebo bodov. Musia byť jasne viditeľné.
 
 ## VSTUP:
 """
