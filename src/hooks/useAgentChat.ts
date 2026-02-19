@@ -9,12 +9,14 @@ import {
   saveAgentChat,
 } from "@/app/actions/agent";
 import type { AgentChat as AgentChatType } from "@/app/actions/agent-types";
+import { useRouter } from "next/navigation";
 import {
   Message,
   CostInfo,
 } from "@/components/dashboard/agent/AgentChatMessage";
 
 export function useAgentChat() {
+  const router = useRouter();
   const [chatId, setChatId] = React.useState<string>("");
   const [chatList, setChatList] = React.useState<AgentChatType[]>([]);
   const [messages, setMessages] = React.useState<Message[]>([
@@ -124,6 +126,27 @@ export function useAgentChat() {
       saveAgentChat(effectiveChatId, finalTitle, finalMessages)
         .then(() => fetchChats())
         .catch((err) => console.error("Persistence Error:", err));
+
+      // 🚨 AUTOMATIC REDIRECTS: If any tool result has an 'action' field, handle it
+      const lastAssistantMsg = finalMessages[finalMessages.length - 1];
+      if (lastAssistantMsg?.toolResults) {
+        const redirectTool = lastAssistantMsg.toolResults.find(
+          (step) => (step.result as any)?.action === "open_url" && (step.result as any)?.url,
+        );
+
+        if (redirectTool) {
+          const result = redirectTool.result as any;
+          toast.success(result.message || "Presmerovávam...", {
+            icon: "🚀",
+            duration: 3000,
+          });
+          
+          // Give user a second to read the message
+          setTimeout(() => {
+            router.push(result.url);
+          }, 1500);
+        }
+      }
     } catch (err) {
       toast.error(
         "Chyba spojenia: " + (err instanceof Error ? err.message : String(err)),
