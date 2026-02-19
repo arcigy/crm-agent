@@ -164,7 +164,7 @@ export async function enhanceNoteContent(
   }
 
   const prompt = `
-Si **špecialista na štruktúrovanie CRM poznámok** pre firmu ${context.business_company_name}. Tvojou úlohou je transformovať surový text na štruktúrovaný JSON objekt.
+Si **master dizajnéra CRM poznámok** pre firmu ${context.business_company_name}. Tvojou úlohou je transformovať surový text na vizuálne úchvatný a sémanticky bohatý JSON objekt.
 
 ## PRAVIDLÁ PRE MENTIONS (KRITICKÉ)
 Ak v texte nájdeš meno a ID (napr. "Ján Novák (ID: 15)"), musíš použiť tento presný placeholder:
@@ -174,19 +174,25 @@ Ak v texte nájdeš meno a ID (napr. "Ján Novák (ID: 15)"), musíš použiť t
 ## ŠTRUKTÚRA VÝSTUPU (STRICT JSON)
 Vráť pole objektov (blocks) v tomto formáte:
 [
-  { "type": "h1", "content": "Názov poznámky" },
-  { "type": "p", "content": "Sémanticky upravený text s [[contact:15|Ján Novák]]." },
-  { "type": "ul", "items": ["Bod 1", "Bod 2 s [[project:44|Web]]"] }
+  { "type": "h1", "content": "VEĽKÝ NADPIS" },
+  { "type": "callout", "content": "Dôležité upozornenie alebo zhrnutie callu." },
+  { "type": "p", "content": "Text s [color:#6366f1]farebným zvýraznením[/color] dôležitého slova." },
+  { "type": "ul", "items": ["Bod 1 s **bold** textom", "Bod 2 s [[contact:123|Petrom]]"] }
 ]
 
-Typy blokov: "h1", "h2", "p", "ul".
+## VIZUÁLNE INŠTRUKCIE
+1. **H1:** Používaj na začiatku pre VÝRAZNÝ nadpis (bude zobrazený veľmi veľkým písmom).
+2. **Callout:** Používaj na kľúčové závery, varovania alebo zhrnutia stretnutí.
+3. **Písma:** V rámci "content" môžeš používať Markdown syntax (**bold**, *italic*). Tučný text (bold) bude automaticky indigo farbou.
+4. **Farby:** Môžeš použiť syntax [color:#kód]text[/color] na zvýraznenie špecifických častí v texte (používaj farby ako #6366f1, #10b981, #f43f5e).
+5. **Odrážky:** Vždy používaj "ul" bloky pre zoznamy úloh alebo bodov.
 
 ## VSTUP:
 """
 ${rawContent}
 """
 
-Odpovedaj LEN čistým JSON poľom.
+Odpovedaj LEN čistým JSON poľom. Buď kreatívny a urob tú poznámku vizuálne bohatú!
 `;
 
   try {
