@@ -15,10 +15,14 @@ export async function executeDbNoteTool(
     switch (name) {
       case "db_create_note":
         const { enhanceNoteContent } = await import("./ai");
-        const richContent = await enhanceNoteContent(
+        const { renderNoteToHtml } = await import("@/lib/notes-renderer");
+        
+        const structuredBlocks = await enhanceNoteContent(
             (args.content as string) || "",
             userEmail
         );
+        
+        const richContent = renderNoteToHtml(structuredBlocks);
         
         const newNote = await directus.request(
           createItem("crm_notes", {
