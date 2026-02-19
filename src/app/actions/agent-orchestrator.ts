@@ -107,7 +107,8 @@ TASK:
 1. Analyze user input and history.
 2. Plan the minimum steps needed using AVAILABLE TOOLS.
 3. If IDs are missing, search for them first.
-4. If the objective is complete, return steps: [].
+4. BEFORE CREATING: Always check if the entity (contact, project, task) already exists in the CRM using search/fetch tools. Never create duplicate contacts if they already exist.
+5. If the objective is complete, return steps: [].
 
 AVAILABLE TOOLS:
 ${JSON.stringify(toolsDocs.map(t => ({name: t.name, desc: t.description, params: t.parameters})), null, 2)}
