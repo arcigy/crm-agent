@@ -56,7 +56,7 @@ export default async function DashboardPage() {
   const activeTools = new Set(tools.map((t) => t.id));
 
   return (
-    <div className="h-auto md:h-[calc(100vh-40px)] flex flex-col max-w-full mx-auto overflow-y-auto md:overflow-hidden gap-6 p-4 md:p-0">
+    <div className="h-auto md:h-[calc(100vh-40px)] flex flex-col max-w-full mx-auto overflow-y-auto md:overflow-hidden gap-6 p-0">
       <PaymentSuccessToast />
 
       {/* Primary Stats */}

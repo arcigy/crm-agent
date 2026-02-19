@@ -49,8 +49,8 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
       
       <div className="space-y-3.5 flex-1 overflow-auto thin-scrollbar pr-2 relative z-10">
         {pipelineStages.map((stage, i) => (
-          <div key={i} className="bg-white/60 dark:bg-zinc-900/40 p-2.5 px-4 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
-            <div className="flex justify-between text-[10px] font-black mb-1 transition-all">
+          <div key={i} className="bg-white/60 dark:bg-zinc-900/40 py-1.5 px-4 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
+            <div className="flex justify-between text-[9px] font-black mb-1 transition-all">
               <span className="uppercase tracking-[0.2em] text-muted-foreground opacity-60 font-black italic">{stage.label}</span>
               <span className="text-foreground font-black italic">{stage.count}</span>
             </div>
