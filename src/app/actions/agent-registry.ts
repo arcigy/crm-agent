@@ -261,6 +261,69 @@ export const INBOX_ATOMS: ToolDefinition[] = [
   },
 ];
 
+export const NOTES_ATOMS: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "db_create_note",
+      description: "Creates a new note in the CRM.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Title of the note" },
+          content: { type: "string", description: "Body of the note (Markdown/HTML)" },
+          contact_id: { type: "number", description: "Optional link to contact" },
+          project_id: { type: "number", description: "Optional link to project" },
+        },
+        required: ["title", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_fetch_notes",
+      description: "Lists your recent CRM notes.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", default: 10 },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_update_note",
+      description: "Updates an existing note.",
+      parameters: {
+        type: "object",
+        properties: {
+          note_id: { type: "number" },
+          title: { type: "string" },
+          content: { type: "string" },
+        },
+        required: ["note_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_delete_note",
+      description: "Removes a note from the CRM.",
+      parameters: {
+        type: "object",
+        properties: {
+          note_id: { type: "number" },
+        },
+        required: ["note_id"],
+      },
+    },
+  },
+];
+
 export const DEAL_ATOMS: ToolDefinition[] = [
   {
     type: "function",
@@ -846,6 +909,7 @@ export const ALL_ATOMS = [
   ...WEB_ATOMS,
   ...TASKS_ATOMS,
   ...LEADS_ATOMS,
+  ...NOTES_ATOMS,
   ...CALENDAR_ATOMS,
   ...AI_ATOMS,
   ...DISPATCHER_ATOM,

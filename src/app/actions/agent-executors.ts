@@ -13,6 +13,7 @@ import { executeDbTaskTool } from "./executors-tasks";
 import { executeDbLeadTool } from "./executors-leads";
 import { executeCalendarTool } from "./executors-calendar";
 import { executeAiTool } from "./executors-ai";
+import { executeDbNoteTool } from "./executors-notes";
 
 /**
  * Normalizes arguments by mapping common aliases and fuzzy naming conventions
@@ -188,6 +189,11 @@ export async function executeAtomicTool(
     // Lead Tools
     if (name.startsWith("db_") && (name.includes("lead"))) {
         return await executeDbLeadTool(name, safeArgs, userEmail);
+    }
+
+    // Note Tools
+    if (name.startsWith("db_") && (name.includes("note"))) {
+        return await executeDbNoteTool(name, safeArgs, userEmail);
     }
 
     // Calendar Tools
