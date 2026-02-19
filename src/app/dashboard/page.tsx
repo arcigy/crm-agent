@@ -23,19 +23,20 @@ export default async function DashboardPage() {
     projectsRes,
     dealsRes,
     tasksRes,
-    calendarRes
   ] = await Promise.all([
     getContacts(),
     getProjects(),
     getDeals(),
     getTasks(),
-    getCalendarEvents()
   ]);
 
   const contacts = (contactsRes.success ? contactsRes.data : []) as any[];
   const projects = (projectsRes.data || []) as any[];
   const deals = (dealsRes.data || []) as any[];
   const tasks = (tasksRes.success ? tasksRes.data : []) as any[];
+
+  // Fetch calendar events using the already fetched data to speed up page load
+  const calendarRes = await getCalendarEvents(undefined, undefined, projects, contacts, tasks);
   const calendarEvents = (calendarRes.success ? calendarRes.events : []) as any[];
 
   // Statistics calculation logic preserved

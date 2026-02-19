@@ -10,7 +10,13 @@ import { Project } from "@/types/project";
 import { ContactItem } from "@/types/contact";
 import { Task } from "@/app/actions/tasks";
 
-export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
+export async function getCalendarEvents(
+  timeMin?: string, 
+  timeMax?: string,
+  prefetchedProjects?: Project[],
+  prefetchedContacts?: ContactItem[],
+  prefetchedTasks?: Task[]
+) {
   try {
     const token = await getAccessToken();
     const authEmails = await getAuthorizedEmails();
@@ -33,8 +39,8 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
       }
     }
 
-    const [projectData, contactsData, tasksData] = await Promise.all([
-      directus.request(
+    // Use prefetched data if available, otherwise fetch
+    const projectData = prefetchedProjects || (await directus.request(
         readItems("projects", {
           filter: {
             _and: [
@@ -45,22 +51,23 @@ export async function getCalendarEvents(timeMin?: string, timeMax?: string) {
           fields: ["*", { contact_id: ["id", "first_name", "last_name"] }] as string[],
           limit: 500,
         }),
-      ) as Promise<Project[]>,
-      directus.request(
+      ) as Project[]);
+
+    const contactsData = prefetchedContacts || (await directus.request(
         readItems("contacts", {
           filter: { user_email: { _in: authEmails } },
           limit: 500,
         }),
-      ) as Promise<ContactItem[]>,
-      authEmails.length > 0
+      ) as ContactItem[]);
+
+    const tasksData = prefetchedTasks || (authEmails.length > 0
         ? (directus.request(
             readItems("crm_tasks", {
               filter: { user_email: { _in: authEmails } },
               limit: 500,
             }),
           ) as Promise<Task[]>)
-        : Promise.resolve([] as Task[]),
-    ]);
+        : Promise.resolve([] as Task[])) as any;
 
     const mergedEvents: CalendarEvent[] = [...googleEvents];
 
