@@ -35,21 +35,26 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className={`bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-5 md:p-8 rounded-none md:rounded-[2.5rem] border-y md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full' : 'h-auto md:h-full'}`}>
+    <div className={`bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl px-5 md:p-8 rounded-none md:rounded-[2.5rem] border-y md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-3 md:py-8'}`}>
       {/* 2. Soft Radial Glows */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-zinc-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-zinc-500/20 transition-all duration-300" />
       
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full md:cursor-default"
+        className="flex items-center justify-between w-full md:cursor-default relative z-20"
       >
-        <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-zinc-500/10 flex items-center justify-center md:hidden">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-zinc-500/10 flex items-center justify-center">
             <BarChart3 className="w-4 h-4 text-zinc-500" />
           </div>
-          Pipeline Projektov
-        </h3>
-        <ChevronDown className={`w-5 h-5 transition-transform duration-300 md:hidden ${isExpanded ? 'rotate-180' : ''}`} />
+          <div className="flex flex-col items-start">
+            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter">Pipeline Projektov</h3>
+            {!isExpanded && (
+              <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-50">Zobraziť stavy zákaziek</span>
+            )}
+          </div>
+        </div>
+        <ChevronDown className={`w-5 h-5 transition-all duration-300 md:hidden ${isExpanded ? 'rotate-180 text-foreground' : 'text-zinc-400'}`} />
       </button>
       
       <div className={`space-y-3.5 flex-1 overflow-auto thin-scrollbar pr-2 relative z-10 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>

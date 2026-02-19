@@ -32,22 +32,27 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
     .slice(0, 8); // Top 8 for quick access
 
   return (
-    <div className={`bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-5 md:p-8 rounded-none md:rounded-[2.5rem] border-y md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full' : 'h-auto md:h-full'}`}>
+    <div className={`bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl px-5 md:p-8 rounded-none md:rounded-[2.5rem] border-y md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-3 md:py-8'}`}>
       {/* 2. Soft Radial Glows */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-blue-500/20 transition-all duration-700" />
       <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
       
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full md:cursor-default"
+        className="flex items-center justify-between w-full md:cursor-default relative z-20"
       >
-        <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-none md:hidden">
-            <Briefcase className="w-5 h-5 text-blue-500" />
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-none">
+            <Briefcase className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
           </div>
-          Rýchla voľba
-        </h3>
-        <ChevronDown className={`w-5 h-5 transition-transform duration-300 md:hidden ${isExpanded ? 'rotate-180' : ''}`} />
+          <div className="flex flex-col items-start text-left">
+            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter">Rýchla voľba</h3>
+            {!isExpanded && (
+              <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-50">Kontakty k zákazkám</span>
+            )}
+          </div>
+        </div>
+        <ChevronDown className={`w-5 h-5 transition-all duration-300 md:hidden ${isExpanded ? 'rotate-180 text-foreground' : 'text-zinc-400'}`} />
       </button>
 
       <div className={`flex-1 space-y-2.5 overflow-y-auto pr-2 scrollbar-hide relative z-10 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
