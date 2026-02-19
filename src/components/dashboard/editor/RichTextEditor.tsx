@@ -44,6 +44,8 @@ export default function RichTextEditor({
       StarterKit.configure({
         bold: { HTMLAttributes: { class: "font-bold" } },
         italic: { HTMLAttributes: { class: "italic" } },
+        // link and underline are not in StarterKit by default, 
+        // but let's make sure we don't have conflicts.
       }),
       Link.configure({
         openOnClick: true,

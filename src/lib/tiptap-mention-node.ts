@@ -13,12 +13,24 @@ export const MentionNode = Node.create({
     return {
       id: {
         default: null,
+        parseHTML: (element) => element.getAttribute("data-contact-id"),
+        renderHTML: (attributes) => ({
+          "data-contact-id": attributes.id,
+        }),
       },
       label: {
         default: null,
+        parseHTML: (element) => element.getAttribute("data-label") || element.innerText?.replace(/^[👤📁]\s/, ""),
+        renderHTML: (attributes) => ({
+          "data-label": attributes.label,
+        }),
       },
       type: {
         default: "contact",
+        parseHTML: (element) => element.getAttribute("data-type") || "contact",
+        renderHTML: (attributes) => ({
+          "data-type": attributes.type,
+        }),
       },
     };
   },
@@ -41,7 +53,7 @@ export const MentionNode = Node.create({
       mergeAttributes(HTMLAttributes, {
         href: "#",
         "data-mention-component": "",
-        "data-contact-id": HTMLAttributes.id,
+        "data-contact-id": HTMLAttributes.id || "",
         "data-type": type,
         class: `mention-tag ${typeClass}`,
         contenteditable: "false",
@@ -49,7 +61,7 @@ export const MentionNode = Node.create({
       }),
 
       type === "contact" ? "👤 " : "📁 ",
-      HTMLAttributes.label,
+      HTMLAttributes.label || "Záznam",
     ];
   },
 });

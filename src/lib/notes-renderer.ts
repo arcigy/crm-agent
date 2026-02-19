@@ -40,12 +40,12 @@ export function renderNoteToHtml(blocks: NoteBlock[]): string {
 function processContent(content: string): string {
   // Replace Contact Mentions
   let processed = content.replace(/\[\[contact:(\d+)\|(.*?)\]\]/g, (_, id, name) => {
-    return `<a data-mention-component="" data-contact-id="${id}" data-type="contact" class="mention-tag mention-tag-contact" contenteditable="false">👤 ${name}</a>`;
+    return `<a data-mention-component="" data-contact-id="${id}" data-type="contact" data-label="${name}" class="mention-tag mention-tag-contact" contenteditable="false">👤 ${name}</a>`;
   });
 
   // Replace Project Mentions
   processed = processed.replace(/\[\[project:(\d+)\|(.*?)\]\]/g, (_, id, name) => {
-    return `<a data-mention-component="" data-contact-id="${id}" data-type="project" class="mention-tag mention-tag-project" contenteditable="false">📁 ${name}</a>`;
+    return `<a data-mention-component="" data-contact-id="${id}" data-type="project" data-label="${name}" class="mention-tag mention-tag-project" contenteditable="false">📁 ${name}</a>`;
   });
 
   // Basic styling
