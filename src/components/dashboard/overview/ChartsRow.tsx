@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { ChevronDown, BarChart3 } from "lucide-react";
 
 export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   // Simple visualization of deals value over last 7 entries (Preserved but hidden)
   const chartData = useMemo(() => {
     const last7 = [...deals].slice(0, 7).reverse();
@@ -32,22 +35,24 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-5 md:p-8 rounded-none md:rounded-[2.5rem] border-y md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full overflow-hidden relative group transition-all duration-300">
-      {/* 1. Subtle Grid Pattern */}
-      <div 
-        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
-        style={{ 
-          backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
-          backgroundSize: '24px 24px'
-        }} 
-      />
-
+    <div className={`bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-5 md:p-8 rounded-none md:rounded-[2.5rem] border-y md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full' : 'h-auto md:h-full'}`}>
       {/* 2. Soft Radial Glows */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-zinc-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-zinc-500/20 transition-all duration-300" />
       
-      <h3 className="text-xl font-black uppercase italic tracking-tighter mb-6 flex-shrink-0 relative z-10">Pipeline Projektov</h3>
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center justify-between w-full md:cursor-default"
+      >
+        <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-zinc-500/10 flex items-center justify-center md:hidden">
+            <BarChart3 className="w-4 h-4 text-zinc-500" />
+          </div>
+          Pipeline Projektov
+        </h3>
+        <ChevronDown className={`w-5 h-5 transition-transform duration-300 md:hidden ${isExpanded ? 'rotate-180' : ''}`} />
+      </button>
       
-      <div className="space-y-3.5 flex-1 overflow-auto thin-scrollbar pr-2 relative z-10">
+      <div className={`space-y-3.5 flex-1 overflow-auto thin-scrollbar pr-2 relative z-10 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
         {pipelineStages.map((stage, i) => (
           <div key={i} className="bg-white/60 dark:bg-zinc-900/40 py-1.5 px-4 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
             <div className="flex justify-between text-[9px] font-black mb-1 transition-all">
