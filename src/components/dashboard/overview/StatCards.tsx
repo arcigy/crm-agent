@@ -18,13 +18,15 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
       
       <div className="relative z-10 flex flex-col items-center w-full">
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm
-          ${label === "Hotové Úlohy" ? 'bg-green-500 text-white shadow-green-500/20' : ''}
-          ${label === "Kontakty" ? 'bg-blue-500/10 text-blue-500' : ''}
-          ${label === "Projekty" ? 'bg-indigo-500/10 text-indigo-500' : ''}
-          ${label === "Hodnota" ? 'bg-emerald-500/10 text-emerald-500' : ''}
+          ${label === "Hotové Úlohy" ? 'bg-green-500 text-white shadow-green-500/20' : 'bg-zinc-100 dark:bg-white/5'}
         `}>
           <Icon 
-            className="w-6 h-6" 
+            className={`w-6 h-6 
+              ${label === "Hotové Úlohy" ? 'text-white' : ''}
+              ${label === "Kontakty" ? 'text-blue-500' : ''}
+              ${label === "Projekty" ? 'text-indigo-500' : ''}
+              ${label === "Hodnota" ? 'text-emerald-500' : ''}
+            `} 
             strokeWidth={label === "Hotové Úlohy" ? 3.5 : 2.5}
           />
         </div>
@@ -51,7 +53,7 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
 
 export function DashboardStats({ stats }: { stats: any }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8 pt-2 relative z-30 max-w-5xl mx-auto">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8 pt-2 relative z-30 md:max-w-5xl mx-auto w-full">
       <StatCard
         label="Kontakty"
         value={stats.contactsCount || 0}

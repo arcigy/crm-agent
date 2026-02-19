@@ -54,7 +54,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
               <span className="uppercase tracking-[0.2em] text-muted-foreground opacity-60 font-black italic">{stage.label}</span>
               <span className="text-foreground font-black italic">{stage.count}</span>
             </div>
-            <div className="h-1.5 bg-muted/60 dark:bg-zinc-800/60 rounded-full overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/5">
+            <div className="h-1 bg-muted/60 dark:bg-zinc-800/60 rounded-full overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/5">
               <div 
                 className={`h-full ${stage.color} transition-all duration-500 ease-out shadow-[0_0_10px_rgba(0,0,0,0.2)]`}
                 style={{ width: `${stage.percentage}%` }}
