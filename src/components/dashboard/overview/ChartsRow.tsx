@@ -32,7 +32,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-5 md:p-8 rounded-[2.5rem] border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full overflow-hidden relative group transition-all duration-300">
+    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl p-5 md:p-8 rounded-none md:rounded-[2.5rem] border-y md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col h-full overflow-hidden relative group transition-all duration-300">
       {/* 1. Subtle Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
@@ -49,12 +49,12 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
       
       <div className="space-y-3.5 flex-1 overflow-auto thin-scrollbar pr-2 relative z-10">
         {pipelineStages.map((stage, i) => (
-          <div key={i} className="bg-white/60 dark:bg-zinc-900/40 p-3.5 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-md">
-            <div className="flex justify-between text-[11px] font-black mb-1.5 transition-all">
+          <div key={i} className="bg-white/60 dark:bg-zinc-900/40 p-2.5 px-4 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
+            <div className="flex justify-between text-[10px] font-black mb-1 transition-all">
               <span className="uppercase tracking-[0.2em] text-muted-foreground opacity-60 font-black italic">{stage.label}</span>
               <span className="text-foreground font-black italic">{stage.count}</span>
             </div>
-            <div className="h-2.5 bg-muted/60 dark:bg-zinc-800/60 rounded-full overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/5">
+            <div className="h-1.5 bg-muted/60 dark:bg-zinc-800/60 rounded-full overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/5">
               <div 
                 className={`h-full ${stage.color} transition-all duration-500 ease-out shadow-[0_0_10px_rgba(0,0,0,0.2)]`}
                 style={{ width: `${stage.percentage}%` }}
