@@ -153,10 +153,10 @@ export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentCh
       {!isOpen && (
           <button
               onClick={() => setIsOpen(true)}
-              className="w-16 h-16 rounded-[1.8rem] shadow-[0_15px_40px_rgba(79,70,229,0.3)] flex items-center justify-center transition-all duration-500 active:scale-90 relative bg-indigo-600 border border-indigo-400/30 hover:bg-indigo-500 hover:scale-110 shadow-indigo-600/40"
+              className="w-12 h-12 rounded-[1.2rem] shadow-[0_10px_30px_rgba(79,70,229,0.3)] flex items-center justify-center transition-all duration-500 active:scale-90 relative bg-indigo-600 border border-indigo-400/30 hover:bg-indigo-500 hover:scale-110 shadow-indigo-600/40"
           >
               <div className="absolute inset-0 bg-white/10 rounded-[inherit] opacity-0 hover:opacity-100 transition-opacity" />
-              <Bot className="w-9 h-9 text-white" />
+              <Bot className="w-6 h-6 text-white" />
           </button>
       )}
     </div>

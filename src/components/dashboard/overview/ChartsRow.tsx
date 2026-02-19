@@ -35,7 +35,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className={`bg-indigo-50/30 dark:bg-indigo-950/10 backdrop-blur-2xl px-5 md:p-8 rounded-none md:rounded-[2.5rem] border-b md:border border-indigo-500/10 dark:border-indigo-500/5 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-3 md:py-8'}`}>
+    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-5 md:p-8 rounded-none md:rounded-[2.5rem] border-b md:border border-indigo-500/20 dark:border-indigo-500/20 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-8'}`}>
       {/* 2. Soft Radial Glows */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-zinc-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-zinc-500/20 transition-all duration-300" />
       
@@ -44,54 +44,56 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
         className="flex items-center justify-between w-full md:cursor-default relative z-20"
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-zinc-500/10 flex items-center justify-center">
-            <BarChart3 className="w-4 h-4 text-zinc-500" />
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-2xl bg-zinc-500/20 flex items-center justify-center border border-zinc-500/30">
+            <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-zinc-500" />
           </div>
-          <div className="flex flex-col items-start">
-            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter">Pipeline Projektov</h3>
-            {!isExpanded && (
-              <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-50">Zobraziť stavy zákaziek</span>
-            )}
+          <div className="flex flex-col items-start text-left">
+            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Pipeline Projektov</h3>
+            <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Stavy aktívnych projektov</span>
           </div>
         </div>
-        <ChevronDown className={`w-5 h-5 transition-all duration-300 md:hidden ${isExpanded ? 'rotate-180 text-foreground' : 'text-zinc-400'}`} />
+        <div className={`w-5 h-5 flex items-center justify-center transition-all duration-300 md:hidden ${isExpanded ? 'rotate-180' : ''}`}>
+           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
       </button>
       
-      <div className={`space-y-3.5 flex-1 overflow-auto thin-scrollbar pr-2 relative z-10 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
-        {pipelineStages.map((stage, i) => (
-          <div key={i} className="bg-white/60 dark:bg-zinc-900/40 py-1.5 px-4 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
-            <div className="flex justify-between text-[9px] font-black mb-1 transition-all">
-              <span className="uppercase tracking-[0.2em] text-muted-foreground opacity-60 font-black italic">{stage.label}</span>
-              <span className="text-foreground font-black italic">{stage.count}</span>
-            </div>
-            <div className="h-1 bg-muted/60 dark:bg-zinc-800/60 rounded-full overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/5">
-              <div 
-                className={`h-full ${stage.color} transition-all duration-500 ease-out shadow-[0_0_10px_rgba(0,0,0,0.2)]`}
-                style={{ width: `${stage.percentage}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* VISUALLY REMOVED ITEMS (Preserved functionality) */}
-      <div className="hidden">
-        <div className="flex-1 flex items-end justify-between gap-4 mt-4">
-          {chartData.map((d, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center group/chart relative">
-              <div 
-                className="w-full bg-gradient-to-t from-zinc-900 to-zinc-500 rounded-2xl transition-all duration-500 group-hover/chart:from-zinc-800 group-hover/chart:to-zinc-400 group-hover/chart:scale-105 shadow-lg shadow-black/10"
-                style={{ height: `${d.height}%` }}
-              >
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover/chart:opacity-100 transition-opacity whitespace-nowrap z-20">
-                  {d.value} €
-                </div>
+      <div className={`flex-1 flex flex-col transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
+        <div className="space-y-3.5 overflow-auto thin-scrollbar pr-2 relative z-10">
+          {pipelineStages.map((stage, i) => (
+            <div key={i} className="bg-white/60 dark:bg-zinc-900/40 py-1.5 px-4 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
+              <div className="flex justify-between text-[9px] font-black mb-1 transition-all">
+                <span className="uppercase tracking-[0.2em] text-muted-foreground opacity-60 font-black italic">{stage.label}</span>
+                <span className="text-foreground font-black italic">{stage.count}</span>
               </div>
-              <span className="text-[10px] font-bold text-muted-foreground mt-4 truncate w-full text-center">
-                {d.name}
-              </span>
+              <div className="h-1 bg-muted/60 dark:bg-zinc-800/60 rounded-full overflow-hidden shadow-inner ring-1 ring-black/5 dark:ring-white/5">
+                <div 
+                  className={`h-full ${stage.color} transition-all duration-500 ease-out shadow-[0_0_10px_rgba(0,0,0,0.2)]`}
+                  style={{ width: `${stage.percentage}%` }}
+                />
+              </div>
             </div>
           ))}
+        </div>
+
+        {/* VISUALLY REMOVED ITEMS (Preserved functionality) */}
+        <div className="hidden">
+          <div className="flex-1 flex items-end justify-between gap-4 mt-4">
+            {chartData.map((d, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center group/chart relative">
+                <div 
+                  className="w-full bg-gradient-to-t from-zinc-900 to-zinc-500 rounded-2xl transition-all duration-500 group-hover/chart:from-zinc-800 group-hover/chart:to-zinc-400 group-hover/chart:scale-105 shadow-lg shadow-black/10"
+                  style={{ height: `${d.height}%` }}
+                >
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover/chart:opacity-100 transition-opacity whitespace-nowrap z-20">
+                    {d.value} €
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-muted-foreground mt-4 truncate w-full text-center">
+                  {d.name}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
