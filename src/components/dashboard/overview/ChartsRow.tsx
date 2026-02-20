@@ -57,8 +57,8 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
         </div>
       </button>
       
-      <div className={`flex-1 flex flex-col transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
-        <div className="space-y-3.5 overflow-auto thin-scrollbar pr-2 relative z-10">
+      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
+        <div className="space-y-3.5 overflow-y-auto thin-scrollbar pr-2 relative z-10 flex-1 min-h-0">
           {pipelineStages.map((stage, i) => (
             <div key={i} className="bg-white/60 dark:bg-zinc-900/40 py-1.5 px-4 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
               <div className="flex justify-between text-[9px] font-black mb-1 transition-all">

@@ -98,14 +98,14 @@ export function CalendarWidget({ events }: { events: any[] }) {
         </div>
       </button>
 
-      <div className={`flex-1 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
+      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
         <div className="md:hidden flex items-center justify-between mb-6 bg-white/30 dark:bg-zinc-800/20 p-2 rounded-2xl border border-black/5">
           <button onClick={() => changeWeek(-1)} className="p-2 text-foreground"><ChevronLeft className="w-4 h-4" /></button>
           <span className="text-[10px] font-black uppercase text-foreground">{currentWeekNumber}. Týždeň</span>
           <button onClick={() => changeWeek(1)} className="p-2 text-foreground"><ChevronRight className="w-4 h-4" /></button>
         </div>
 
-        <div className="grid grid-cols-7 gap-1.5 mb-6">
+        <div className="grid grid-cols-7 gap-1.5 mb-6 flex-shrink-0">
           {weekDays.map((day, i) => {
             const isSelected = isSameDay(day, selectedDate);
             const isToday = isSameDay(day, new Date());
@@ -118,7 +118,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
           })}
         </div>
 
-        <div className="space-y-2 overflow-y-auto thin-scrollbar pr-2 min-h-0 max-h-[300px]">
+        <div className="space-y-2 overflow-y-auto thin-scrollbar pr-2 flex-1 min-h-0">
           {dailyEvents.length > 0 ? dailyEvents.map((event, i) => (
             <div key={i} className="group flex items-stretch gap-4 p-3 bg-white/60 dark:bg-zinc-900/40 rounded-[1.2rem] border border-white/40 dark:border-white/5 hover:bg-white hover:border-indigo-100 transition-all shadow-sm">
               <div className="flex flex-col items-center justify-center w-14 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100/50 dark:border-indigo-800/30 flex-shrink-0 group-hover:bg-indigo-50 transition-colors">

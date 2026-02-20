@@ -109,8 +109,8 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
         </div>
       </button>
 
-      <div className={`flex-1 flex flex-col transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
-        <div className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-hide relative z-10">
+      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
+        <div className="flex-1 space-y-2 overflow-y-auto thin-scrollbar pr-2 relative z-10">
           {filteredTasks.length > 0 ? (
             filteredTasks.map((task) => {
               const isDone = task.completed;

@@ -55,8 +55,8 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
         </div>
       </button>
 
-      <div className={`flex-1 flex flex-col transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
-        <div className="flex-1 space-y-2.5 overflow-y-auto pr-2 scrollbar-hide relative z-10">
+      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
+        <div className="flex-1 space-y-2.5 overflow-y-auto pr-2 thin-scrollbar relative z-10 min-h-0">
           {focusData.length > 0 ? (
             focusData.map((item, i) => (
               <div 
