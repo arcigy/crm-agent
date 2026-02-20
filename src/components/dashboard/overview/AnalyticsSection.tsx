@@ -32,7 +32,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
     .slice(0, 8); // Top 8 for quick access
 
   return (
-    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-5 md:p-6 rounded-none md:rounded-[2rem] border-b md:border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:border-black/[0.08] md:dark:border-white/[0.08] flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-6'}`}>
+    <div className={`bg-[#f8faff] dark:bg-zinc-950/40 backdrop-blur-2xl px-4 md:p-6 rounded-[2rem] m-3 md:m-0 border border-black/5 md:border-black/[0.08] dark:border-white/[0.05] md:dark:border-white/[0.08] md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-6'}`}>
       {/* 2. Soft Radial Glows - Only on Mobile */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-blue-500/20 transition-all duration-700 md:hidden" />
       <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none md:hidden" />
@@ -58,7 +58,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
             focusData.map((item, i) => (
               <div 
                 key={i} 
-                className="bg-white/60 dark:bg-zinc-900/40 p-3.5 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md flex items-center justify-between group/item hover:border-blue-500/40 transition-all hover:translate-x-1 shadow-none"
+                className="bg-white dark:bg-zinc-900 p-3.5 rounded-2xl border border-black/5 dark:border-white/5 md:bg-white/60 md:dark:bg-zinc-900/40 md:border-black/5 md:dark:border-white/5 backdrop-blur-md flex items-center justify-between group/item hover:border-blue-500/40 transition-all hover:translate-x-1 md:hover:translate-x-1 shadow-sm md:shadow-none active:scale-[0.98] md:active:scale-100"
               >
                 <div className="flex flex-col min-w-0">
                   <span className="text-[10px] font-black text-blue-500 uppercase italic tracking-[0.2em] mb-1">

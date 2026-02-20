@@ -12,7 +12,7 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
   return (
-    <div className={`bg-white dark:bg-zinc-900/60 backdrop-blur-xl px-4 py-4 rounded-[1.5rem] border border-black/[0.08] dark:border-white/[0.08] transition-all duration-300 group overflow-hidden relative hover:-translate-y-1 shadow-sm active:scale-95 flex flex-col items-center justify-center text-center`}>
+    <div className={`bg-white dark:bg-zinc-900 px-4 py-4 rounded-2xl md:rounded-[1.5rem] border border-black/5 md:border-black/[0.08] dark:border-white/5 md:dark:border-white/[0.08] md:bg-white/60 md:dark:bg-zinc-900/60 md:backdrop-blur-xl transition-all duration-300 group overflow-hidden relative md:hover:-translate-y-1 shadow-sm md:shadow-none active:scale-95 md:active:scale-100 flex flex-col items-center justify-center text-center`}>
       {/* Soft Radial Glow */}
       <div className="absolute -top-12 -left-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none" />
       
@@ -51,7 +51,7 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
 
 export function DashboardStats({ stats }: { stats: any }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-3 md:mb-8 pt-2 relative z-30 w-full">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-6 mb-3 md:mb-8 pt-2 px-3 md:px-0 relative z-30 w-full">
       <StatCard
         label="Kontakty"
         value={stats.contactsCount || 0}

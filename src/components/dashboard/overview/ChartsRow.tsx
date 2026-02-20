@@ -35,7 +35,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-5 md:p-6 rounded-none md:rounded-[2rem] border-b md:border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:border-black/[0.08] md:dark:border-white/[0.08] flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-6'}`}>
+    <div className={`bg-[#f8faff] dark:bg-zinc-950/40 backdrop-blur-2xl px-4 md:p-6 rounded-[2rem] m-3 md:m-0 border border-black/5 md:border-black/[0.08] dark:border-white/[0.05] md:dark:border-white/[0.08] md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-6'}`}>
       {/* 2. Soft Radial Glows - Only on Mobile */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-zinc-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-zinc-500/20 transition-all duration-300 md:hidden" />
       
@@ -60,7 +60,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
       <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 flex' : 'hidden md:flex md:mt-6 opacity-0 md:opacity-100'}`}>
         <div className="space-y-2.5 overflow-y-auto thin-scrollbar pr-2 relative z-10 flex-1 min-h-0">
           {pipelineStages.map((stage, i) => (
-            <div key={i} className="bg-white/60 dark:bg-zinc-900/40 py-1 px-3.5 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
+            <div key={i} className="bg-white dark:bg-zinc-900 py-2 px-3.5 rounded-xl border border-black/5 dark:border-white/5 md:bg-white/60 md:dark:bg-zinc-900/40 md:border-black/5 md:dark:border-white/5 backdrop-blur-md shadow-sm md:shadow-none active:scale-[0.98] transition-all">
               <div className="flex justify-between text-[9px] font-black mb-1 transition-all">
                 <span className="uppercase tracking-[0.2em] text-muted-foreground opacity-60 font-black italic">{stage.label}</span>
                 <span className="text-foreground font-black italic">{stage.count}</span>

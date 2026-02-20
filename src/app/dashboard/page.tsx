@@ -56,16 +56,16 @@ export default async function DashboardPage() {
   const activeTools = new Set(tools.map((t) => t.id));
 
   return (
-    <div className="h-auto md:h-[calc(100vh-40px)] flex flex-col max-w-[1700px] mx-auto overflow-y-auto md:overflow-hidden gap-1 md:gap-4 p-4 md:p-6">
+    <div className="h-auto md:h-[calc(100vh-40px)] flex flex-col max-w-[1700px] mx-auto overflow-y-auto md:overflow-hidden gap-0 md:gap-4 p-0 md:p-6">
       <PaymentSuccessToast />
 
       {/* Primary Stats */}
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 mt-2">
         <DashboardStats stats={stats} />
       </div>
 
       {/* Main Operations Grid */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-4 md:gap-4 pb-4 w-full">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-0 md:gap-4 pb-4 w-full">
         <TodoListWidget tasks={tasks} mode="today" />
         <CalendarWidget events={calendarEvents} />
         <AnalyticsSection contacts={contacts} deals={deals} projects={projects} />
