@@ -35,7 +35,11 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
     .filter(t => {
       if (!t.due_date) return mode === "today";
       const taskDate = new Date(t.due_date);
-      if (mode === "today") return isToday(taskDate);
+      if (mode === "today") {
+        const today = isToday(taskDate);
+        const overdue = taskDate < new Date() && !t.completed;
+        return today || overdue;
+      }
       const nextWeek = isThisWeek(taskDate, { weekStartsOn: 1 });
       return nextWeek && !isToday(taskDate);
     })
