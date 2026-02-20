@@ -35,7 +35,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-5 md:p-8 rounded-none md:rounded-[2.5rem] border-b md:border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:border-black/[0.08] md:dark:border-white/[0.08] flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-8'}`}>
+    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-5 md:p-6 rounded-none md:rounded-[2rem] border-b md:border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:border-black/[0.08] md:dark:border-white/[0.08] flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-6'}`}>
       {/* 2. Soft Radial Glows - Only on Mobile */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-zinc-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-zinc-500/20 transition-all duration-300 md:hidden" />
       
@@ -43,12 +43,12 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between w-full md:cursor-default relative z-20"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 md:w-12 md:h-12 rounded-2xl md:bg-zinc-500/10 bg-zinc-500/20 flex items-center justify-center border border-zinc-500/30 md:border-zinc-500/20">
-            <BarChart3 className="w-4 h-4 md:w-6 md:h-6 text-zinc-500" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl md:bg-zinc-500/10 bg-zinc-500/20 flex items-center justify-center border border-zinc-500/30 md:border-zinc-500/20">
+            <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-zinc-500" />
           </div>
           <div className="flex flex-col items-start text-left">
-            <h3 className="text-base md:text-2xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Pipeline Projektov</h3>
+            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Pipeline Projektov</h3>
             <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Stavy aktívnych projektov</span>
           </div>
         </div>
@@ -58,9 +58,9 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
       </button>
       
       <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 flex' : 'hidden md:flex md:mt-6 opacity-0 md:opacity-100'}`}>
-        <div className="space-y-3.5 overflow-y-auto thin-scrollbar pr-2 relative z-10 flex-1 min-h-0">
+        <div className="space-y-2.5 overflow-y-auto thin-scrollbar pr-2 relative z-10 flex-1 min-h-0">
           {pipelineStages.map((stage, i) => (
-            <div key={i} className="bg-white/60 dark:bg-zinc-900/40 py-1.5 px-4 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
+            <div key={i} className="bg-white/60 dark:bg-zinc-900/40 py-1 px-3.5 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
               <div className="flex justify-between text-[9px] font-black mb-1 transition-all">
                 <span className="uppercase tracking-[0.2em] text-muted-foreground opacity-60 font-black italic">{stage.label}</span>
                 <span className="text-foreground font-black italic">{stage.count}</span>

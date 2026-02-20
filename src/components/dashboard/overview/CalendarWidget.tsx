@@ -57,7 +57,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
   };
 
   return (
-    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-5 md:p-8 rounded-none md:rounded-[2.5rem] border-b md:border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:border-black/[0.08] md:dark:border-white/[0.08] flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-8'}`}>
+    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-5 md:p-6 rounded-none md:rounded-[2rem] border-b md:border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:border-black/[0.08] md:dark:border-white/[0.08] flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-6'}`}>
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-indigo-500/20 transition-all duration-300 md:hidden" />
       
       {/* Header / Trigger */}
@@ -65,12 +65,12 @@ export function CalendarWidget({ events }: { events: any[] }) {
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between w-full md:cursor-default relative z-20"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 md:w-12 md:h-12 rounded-2xl md:bg-indigo-100 md:dark:bg-indigo-900/30 bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 md:border-indigo-500/20">
-            <CalendarIcon className="w-4 h-4 md:w-6 md:h-6 text-indigo-600 dark:text-indigo-400" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl md:bg-indigo-100 md:dark:bg-indigo-900/30 bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 md:border-indigo-500/20">
+            <CalendarIcon className="w-4 h-4 md:w-5 md:h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div className="flex flex-col items-start text-left">
-            <h3 className="text-base md:text-2xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Kalendár</h3>
+            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Kalendár</h3>
             <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Dnešné plány a udalosti</span>
           </div>
         </div>
@@ -105,33 +105,33 @@ export function CalendarWidget({ events }: { events: any[] }) {
           <button onClick={() => changeWeek(1)} className="p-2 text-foreground"><ChevronRight className="w-4 h-4" /></button>
         </div>
 
-        <div className="grid grid-cols-7 gap-1.5 mb-6 flex-shrink-0">
+        <div className="grid grid-cols-7 gap-1.5 mb-4 flex-shrink-0">
           {weekDays.map((day, i) => {
             const isSelected = isSameDay(day, selectedDate);
             const isToday = isSameDay(day, new Date());
             return (
               <button key={i} onClick={() => setSelectedDate(day)} className="flex flex-col items-center group/day">
-                <span className={`text-[9px] font-black mb-1.5 transition-colors tracking-widest ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-400 group-hover/day:text-zinc-600'}`}>{SK_DAYS[i]}</span>
-                <div className={`w-9 h-9 flex items-center justify-center rounded-2xl text-[11px] font-black transition-all duration-200 ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 scale-110' : isToday ? 'border-2 border-indigo-600/30 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/10' : 'bg-white/40 dark:bg-zinc-900/30 hover:bg-white text-zinc-600 border border-transparent hover:border-black/5'}`}>{format(day, "d")}</div>
+                <span className={`text-[8px] font-black mb-1 transition-colors tracking-widest ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-400 group-hover/day:text-zinc-600'}`}>{SK_DAYS[i]}</span>
+                <div className={`w-8 h-8 flex items-center justify-center rounded-xl text-[10px] font-black transition-all duration-200 ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 scale-105' : isToday ? 'border-2 border-indigo-600/30 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/10' : 'bg-white/40 dark:bg-zinc-900/30 hover:bg-white text-zinc-600 border border-transparent hover:border-black/5'}`}>{format(day, "d")}</div>
               </button>
             );
           })}
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto thin-scrollbar pr-2 relative">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
           {dailyEvents.length > 0 ? dailyEvents.map((event, i) => (
-            <div key={i} className="group flex items-stretch gap-4 p-3 bg-white/60 dark:bg-zinc-900/40 rounded-[1.2rem] border border-white/40 dark:border-white/5 hover:bg-white hover:border-indigo-100 transition-all shadow-sm">
-              <div className="flex flex-col items-center justify-center w-14 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100/50 dark:border-indigo-800/30 flex-shrink-0 group-hover:bg-indigo-50 transition-colors">
-                <span className="text-[12px] font-black text-indigo-900 dark:text-indigo-300 tracking-tight leading-none">{event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "Celý deň"}</span>
+            <div key={i} className="group flex items-stretch gap-3 p-2.5 bg-white/60 dark:bg-zinc-900/40 rounded-xl border border-white/40 dark:border-white/5 hover:bg-white hover:border-indigo-100 transition-all shadow-sm">
+              <div className="flex flex-col items-center justify-center w-12 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100/50 dark:border-indigo-800/30 flex-shrink-0 group-hover:bg-indigo-50 transition-colors">
+                <span className="text-[11px] font-black text-indigo-900 dark:text-indigo-300 tracking-tight leading-none">{event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "Celý"}</span>
               </div>
               <div className="flex-1 min-w-0 flex flex-col justify-center py-0.5">
-                <h4 className="text-[13px] font-bold text-zinc-800 dark:text-zinc-100 truncate leading-tight mb-1 group-hover:text-indigo-700 transition-colors">{cleanSummary(event.summary)}</h4>
-                {event.description && <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 truncate opacity-80">{cleanDescription(event.description)}</p>}
+                <h4 className="text-[12px] font-bold text-zinc-800 dark:text-zinc-100 truncate leading-tight mb-0.5 group-hover:text-indigo-700 transition-colors">{cleanSummary(event.summary)}</h4>
+                {event.description && <p className="text-[9px] font-medium text-zinc-500 dark:text-zinc-400 truncate opacity-70">{cleanDescription(event.description)}</p>}
               </div>
             </div>
           )) : (
-            <div className="flex flex-col items-center justify-center text-center opacity-40 py-8">
+            <div className="flex flex-col items-center justify-center text-center opacity-40 py-6">
                <div className="text-4xl mb-3 grayscale opacity-50">🎉</div>
                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Voľný deň</p>
                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">Žiadne plány</p>

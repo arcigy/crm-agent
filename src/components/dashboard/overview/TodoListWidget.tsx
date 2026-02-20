@@ -78,7 +78,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   const badgeStyle = "bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50 backdrop-blur-sm";
 
   return (
-    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-5 md:p-8 rounded-none md:rounded-[2.5rem] border-b md:border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:border-black/[0.08] md:dark:border-white/[0.08] flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-8'}`}>
+    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-5 md:p-6 rounded-none md:rounded-[2rem] border-b md:border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:border-black/[0.08] md:dark:border-white/[0.08] flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-6'}`}>
       {/* 2. Soft Radial Glows - Only on Mobile */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-emerald-500/20 transition-all duration-300 md:hidden" />
       
@@ -87,12 +87,12 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between w-full md:cursor-default relative z-20"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 md:w-12 md:h-12 rounded-2xl md:bg-emerald-500/10 bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 md:border-emerald-500/20">
-            <CheckCircle2 className="w-4 h-4 md:w-6 md:h-6 text-emerald-600" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl md:bg-emerald-500/10 bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 md:border-emerald-500/20">
+            <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
           </div>
           <div className="flex flex-col items-start text-left">
-            <h3 className="text-base md:text-2xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">{title}</h3>
+            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">{title}</h3>
             <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Dnešný zoznam úloh a priorít</span>
           </div>
         </div>
@@ -110,7 +110,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
       </button>
 
       <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 flex' : 'hidden md:flex md:mt-6 opacity-0 md:opacity-100'}`}>
-        <div className="flex-1 space-y-2 overflow-y-auto thin-scrollbar pr-2 relative z-10">
+        <div className="flex-1 space-y-1.5 overflow-y-auto thin-scrollbar pr-2 relative z-10">
           {filteredTasks.length > 0 ? (
             filteredTasks.map((task) => {
               const isDone = task.completed;
@@ -120,24 +120,24 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
               return (
                 <div 
                   key={task.id} 
-                  className={`flex items-center gap-4 p-3 rounded-2xl transition-all relative overflow-hidden group/item border shadow-none
+                  className={`flex items-center gap-3 p-2.5 rounded-xl transition-all relative overflow-hidden group/item border shadow-none
                     ${isDone 
-                      ? 'bg-emerald-500/10 border-emerald-500/20' 
-                      : 'bg-white/60 dark:bg-zinc-900/40 border-black/10 dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/30 cursor-pointer'}
+                      ? 'bg-emerald-500/10 border-emerald-500/10' 
+                      : 'bg-white/60 dark:bg-zinc-900/40 border-black/5 dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/20 cursor-pointer'}
                     ${isCompleting ? 'scale-[1.01] z-30' : 'z-10'}
                   `}
                 >
                   <div className="flex-shrink-0 relative z-10">
-                    <div className={`w-2 h-2 rounded-full transition-all duration-300 
+                    <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300 
                       ${isDone ? 'bg-[#16a34a]' : 'bg-zinc-300 dark:bg-zinc-700 group-hover/item:bg-[#16a34a] group-hover/item:scale-125'}
                     `} />
                   </div>
 
-                  <div className="flex-1 min-w-0 relative z-10 flex items-baseline justify-between gap-3">
+                  <div className="flex-1 min-w-0 relative z-10 flex items-baseline justify-between gap-2">
                     <div className={`transition-all duration-300 flex-1 truncate
-                      ${isDone ? 'text-emerald-700 dark:text-emerald-400 line-through decoration-emerald-500/50 decoration-2' : 'text-foreground font-black'}
+                      ${isDone ? 'text-emerald-700/70 dark:text-emerald-400/70 line-through decoration-emerald-500/30 decoration-2' : 'text-foreground font-black'}
                     `}>
-                      <SmartText text={task.title} className="text-[14px] md:text-[15px] tracking-tight leading-none truncate block" />
+                      <SmartText text={task.title} className="text-[13px] md:text-[14px] tracking-tight leading-none truncate block" />
                     </div>
                     
                     {showTime && (
