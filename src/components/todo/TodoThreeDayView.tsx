@@ -61,7 +61,10 @@ export function TodoThreeDayView({
     const dateStr = format(date, "yyyy-MM-dd");
     return tasks
       .filter((t) => {
-        if (!t.due_date) return false;
+        if (!t.due_date) {
+          // If task has no due date, show it in the "Today" column
+          return getRelativeDateLabel(date) === "Dnes";
+        }
         return t.due_date.startsWith(dateStr);
       })
       .sort((a, b) => {
