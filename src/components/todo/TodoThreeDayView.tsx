@@ -162,21 +162,8 @@ export function TodoThreeDayView({
         </button>
       </div>
 
-      {/* 3-Column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
-        {/* YESTERDAY */}
-        <DayColumn
-          title={getRelativeDateLabel(yesterday)}
-          date={yesterday}
-          tasks={yesterdayTasks}
-          onToggle={onToggle}
-          onDelete={onDelete}
-          onUpdate={onUpdate}
-          variant="side"
-          onClick={() => onDateChange(format(yesterday, "yyyy-MM-dd"))}
-        />
-
-        {/* TODAY */}
+      {/* Single Column Layout */}
+      <div className="flex-1 min-h-0">
         <DayColumn
           title={getRelativeDateLabel(current)}
           date={current}
@@ -185,18 +172,6 @@ export function TodoThreeDayView({
           onDelete={onDelete}
           onUpdate={onUpdate}
           variant="center"
-        />
-
-        {/* TOMORROW */}
-        <DayColumn
-          title={getRelativeDateLabel(tomorrow)}
-          date={tomorrow}
-          tasks={tomorrowTasks}
-          onToggle={onToggle}
-          onDelete={onDelete}
-          onUpdate={onUpdate}
-          variant="side"
-          onClick={() => onDateChange(format(tomorrow, "yyyy-MM-dd"))}
         />
       </div>
     </div>
