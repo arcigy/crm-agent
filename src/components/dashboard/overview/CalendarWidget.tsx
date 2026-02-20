@@ -70,7 +70,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
             <CalendarIcon className="w-4 h-4 md:w-6 md:h-6 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div className="flex flex-col items-start text-left">
-            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Kalendár</h3>
+            <h3 className="text-base md:text-2xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Kalendár</h3>
             <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Dnešné plány a udalosti</span>
           </div>
         </div>
@@ -98,7 +98,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
         </div>
       </button>
 
-      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
+      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 flex' : 'hidden md:flex md:mt-6 opacity-0 md:opacity-100'}`}>
         <div className="md:hidden flex items-center justify-between mb-6 bg-white/30 dark:bg-zinc-800/20 p-2 rounded-2xl border border-black/5">
           <button onClick={() => changeWeek(-1)} className="p-2 text-foreground"><ChevronLeft className="w-4 h-4" /></button>
           <span className="text-[10px] font-black uppercase text-foreground">{currentWeekNumber}. Týždeň</span>
@@ -118,7 +118,8 @@ export function CalendarWidget({ events }: { events: any[] }) {
           })}
         </div>
 
-        <div className="space-y-2 overflow-y-auto thin-scrollbar pr-2 flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto thin-scrollbar pr-2 relative">
+          <div className="space-y-2">
           {dailyEvents.length > 0 ? dailyEvents.map((event, i) => (
             <div key={i} className="group flex items-stretch gap-4 p-3 bg-white/60 dark:bg-zinc-900/40 rounded-[1.2rem] border border-white/40 dark:border-white/5 hover:bg-white hover:border-indigo-100 transition-all shadow-sm">
               <div className="flex flex-col items-center justify-center w-14 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100/50 dark:border-indigo-800/30 flex-shrink-0 group-hover:bg-indigo-50 transition-colors">
@@ -137,6 +138,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
             </div>
           )}
         </div>
+      </div>
 
         <a href="/dashboard/calendar" className="mt-4 text-center text-[10px] font-black text-indigo-400 hover:text-indigo-600 transition-colors uppercase italic tracking-widest relative z-10 flex items-center justify-center gap-2 group/link">
           Otvoriť Kalendár <ChevronRight className="w-3 h-3 group-hover/link:translate-x-1 transition-transform" />

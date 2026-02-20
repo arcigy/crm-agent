@@ -46,7 +46,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
             <Briefcase className="w-4 h-4 md:w-6 md:h-6 text-blue-500" />
           </div>
           <div className="flex flex-col items-start text-left">
-            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Rýchla voľba</h3>
+            <h3 className="text-base md:text-2xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Rýchla voľba</h3>
             <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Kontakty k zákazkám</span>
           </div>
         </div>
@@ -55,7 +55,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
         </div>
       </button>
 
-      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
+      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 flex' : 'hidden md:flex md:mt-6 opacity-0 md:opacity-100'}`}>
         <div className="flex-1 space-y-2.5 overflow-y-auto pr-2 thin-scrollbar relative z-10 min-h-0">
           {focusData.length > 0 ? (
             focusData.map((item, i) => (

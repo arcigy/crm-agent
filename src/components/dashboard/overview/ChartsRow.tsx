@@ -48,7 +48,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
             <BarChart3 className="w-4 h-4 md:w-6 md:h-6 text-zinc-500" />
           </div>
           <div className="flex flex-col items-start text-left">
-            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Pipeline Projektov</h3>
+            <h3 className="text-base md:text-2xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Pipeline Projektov</h3>
             <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Stavy aktívnych projektov</span>
           </div>
         </div>
@@ -57,7 +57,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
         </div>
       </button>
       
-      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
+      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 flex' : 'hidden md:flex md:mt-6 opacity-0 md:opacity-100'}`}>
         <div className="space-y-3.5 overflow-y-auto thin-scrollbar pr-2 relative z-10 flex-1 min-h-0">
           {pipelineStages.map((stage, i) => (
             <div key={i} className="bg-white/60 dark:bg-zinc-900/40 py-1.5 px-4 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">

@@ -92,7 +92,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
             <CheckCircle2 className="w-4 h-4 md:w-6 md:h-6 text-emerald-600" />
           </div>
           <div className="flex flex-col items-start text-left">
-            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">{title}</h3>
+            <h3 className="text-base md:text-2xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">{title}</h3>
             <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Dnešný zoznam úloh a priorít</span>
           </div>
         </div>
@@ -109,7 +109,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
         </div>
       </button>
 
-      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
+      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 flex' : 'hidden md:flex md:mt-6 opacity-0 md:opacity-100'}`}>
         <div className="flex-1 space-y-2 overflow-y-auto thin-scrollbar pr-2 relative z-10">
           {filteredTasks.length > 0 ? (
             filteredTasks.map((task) => {

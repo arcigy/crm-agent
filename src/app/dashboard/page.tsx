@@ -56,7 +56,7 @@ export default async function DashboardPage() {
   const activeTools = new Set(tools.map((t) => t.id));
 
   return (
-    <div className="h-auto md:h-[calc(100vh-40px)] flex flex-col max-w-full mx-auto overflow-y-auto md:overflow-hidden gap-1 md:gap-6 p-4 md:p-6">
+    <div className="h-auto md:h-[calc(100vh-40px)] flex flex-col max-w-[1600px] mx-auto overflow-y-auto md:overflow-hidden gap-1 md:gap-6 p-4 md:p-8">
       <PaymentSuccessToast />
 
       {/* Primary Stats */}
@@ -65,14 +65,11 @@ export default async function DashboardPage() {
       </div>
 
       {/* Main Operations Grid */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-0 md:gap-6 pb-4 w-full">
-        {/* Mobile: Tight stack for all items. Desktop: Grid-aware via contents. */}
-        <div className="lg:contents flex flex-col gap-0 overflow-hidden">
-          <div className="lg:min-h-0"><TodoListWidget tasks={tasks} mode="today" /></div>
-          <CalendarWidget events={calendarEvents} />
-          <AnalyticsSection contacts={contacts} deals={deals} projects={projects} />
-          <ChartsRow deals={deals} projects={projects} />
-        </div>
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-4 md:gap-8 pb-4 w-full">
+        <TodoListWidget tasks={tasks} mode="today" />
+        <CalendarWidget events={calendarEvents} />
+        <AnalyticsSection contacts={contacts} deals={deals} projects={projects} />
+        <ChartsRow deals={deals} projects={projects} />
       </div>
 
       <div className="hidden">

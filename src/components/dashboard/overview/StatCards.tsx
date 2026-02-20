@@ -12,37 +12,37 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
   return (
-    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-2.5 py-4 rounded-xl md:rounded-[2rem] border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:py-5 md:border-black/[0.08] md:dark:border-white/[0.08] transition-all duration-300 group overflow-hidden relative hover:-translate-y-1 shadow-sm active:scale-95 flex flex-col items-center justify-center text-center`}>
-      {/* Soft Radial Glow - Only on Mobile */}
-      <div className="absolute -top-12 -left-12 w-24 h-24 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none md:hidden" />
+    <div className={`bg-white dark:bg-zinc-900/60 backdrop-blur-xl px-4 py-6 rounded-[2.5rem] border border-black/[0.08] dark:border-white/[0.08] transition-all duration-300 group overflow-hidden relative hover:-translate-y-1 shadow-sm active:scale-95 flex flex-col items-center justify-center text-center`}>
+      {/* Soft Radial Glow */}
+      <div className="absolute -top-12 -left-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none" />
       
       <div className="relative z-10 flex flex-col items-center w-full">
-        <div className={`w-8 h-8 md:w-12 md:h-12 rounded-2xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-3 transition-transform duration-300 group-hover:scale-110 shadow-lg
-          ${label === "Hotové Úlohy" ? 'bg-green-500 shadow-green-500/30' : ''}
-          ${label === "Kontakty" ? 'bg-blue-500 shadow-blue-500/30' : ''}
-          ${label === "Projekty" ? 'bg-indigo-500 shadow-indigo-500/30' : ''}
-          ${label === "Hodnota" ? 'bg-emerald-500 shadow-emerald-500/30' : ''}
+        <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 shadow-sm
+          ${label === "Hotové Úlohy" ? 'bg-green-500 text-white shadow-green-500/20' : ''}
+          ${label === "Kontakty" ? 'bg-blue-500/10 text-blue-500' : ''}
+          ${label === "Projekty" ? 'bg-indigo-500/10 text-indigo-500' : ''}
+          ${label === "Hodnota" ? 'bg-emerald-500/10 text-emerald-500' : ''}
         `}>
           <Icon 
-            className="w-4 h-4 md:w-6 md:h-6 text-white" 
+            className="w-7 h-7" 
             strokeWidth={label === "Hotové Úlohy" ? 3.5 : 2.5}
           />
         </div>
 
-        <span className="text-[8px] md:text-[9px] font-black text-zinc-500 md:text-zinc-400 dark:text-zinc-500 uppercase tracking-widest leading-none mb-1 md:mb-1.5 px-1 truncate w-full italic md:not-italic">
+        <span className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.2em] italic mb-1 opacity-60">
           {label}
         </span>
-        <h3 className="text-sm md:text-xl font-black text-foreground tracking-tighter leading-none mb-1 md:mb-2">
+        <h3 className="text-2xl font-black text-foreground italic tracking-tighter leading-none mb-2">
           {value}
         </h3>
         
         {trend ? (
-          <div className="text-[7px] md:text-[9px] font-black md:font-bold uppercase text-emerald-500 flex items-center gap-0.5 bg-emerald-500/10 px-1.5 py-0.5 md:px-1.5 md:py-0.5 md:bg-emerald-500/10 rounded-full scale-90 origin-center italic md:not-italic border border-emerald-500/20 md:border-none">
-            <TrendingUp className="w-2 h-2 md:w-2.5 md:h-2.5" />
+          <div className="text-[10px] font-black italic text-emerald-500 mt-1 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded-lg w-fit">
+            <TrendingUp className="w-3 h-3" />
             {trend.split(' ')[0]}
           </div>
         ) : (
-          <div className="h-2 md:h-4" />
+          <div className="h-[21px] mt-1" />
         )}
       </div>
     </div>
