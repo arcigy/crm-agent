@@ -78,7 +78,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   const badgeStyle = "bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50 backdrop-blur-sm";
 
   return (
-    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-5 md:p-6 rounded-none md:rounded-[2rem] border-b md:border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:border-black/[0.08] md:dark:border-white/[0.08] flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-6'}`}>
+    <div className={`bg-[#f8faff] dark:bg-zinc-950/40 backdrop-blur-2xl px-4 md:p-6 rounded-[2rem] m-3 md:m-0 border border-black/5 md:border-black/[0.08] dark:border-white/[0.05] md:dark:border-white/[0.08] md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-6'}`}>
       {/* 2. Soft Radial Glows - Only on Mobile */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-emerald-500/20 transition-all duration-300 md:hidden" />
       
@@ -120,11 +120,12 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
               return (
                 <div 
                   key={task.id} 
-                  className={`flex items-center gap-3 p-2.5 rounded-xl transition-all relative overflow-hidden group/item border shadow-none
+                  className={`flex items-center gap-3 p-3 md:p-2.5 rounded-2xl md:rounded-xl transition-all relative overflow-hidden group/item border shadow-sm md:shadow-none
                     ${isDone 
-                      ? 'bg-emerald-500/10 border-emerald-500/10' 
-                      : 'bg-white/60 dark:bg-zinc-900/40 border-black/5 dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/20 cursor-pointer'}
+                      ? 'bg-emerald-50/50 dark:bg-emerald-500/10 border-emerald-200/50 dark:border-emerald-500/10' 
+                      : 'bg-white dark:bg-zinc-900 border-black/5 dark:border-white/5 md:bg-white/60 md:dark:bg-zinc-900/40 md:border-black/5 md:dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/20 cursor-pointer'}
                     ${isCompleting ? 'scale-[1.01] z-30' : 'z-10'}
+                    active:scale-[0.98] md:active:scale-100
                   `}
                 >
                   <div className="flex-shrink-0 relative z-10">
@@ -135,9 +136,9 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
 
                   <div className="flex-1 min-w-0 relative z-10 flex items-baseline justify-between gap-2">
                     <div className={`transition-all duration-300 flex-1 truncate
-                      ${isDone ? 'text-emerald-700/70 dark:text-emerald-400/70 line-through decoration-emerald-500/30 decoration-2' : 'text-foreground font-black'}
+                      ${isDone ? 'text-emerald-700/60 dark:text-emerald-400/60 line-through decoration-emerald-500/30 decoration-2' : 'text-zinc-800 dark:text-zinc-100 md:text-foreground font-black'}
                     `}>
-                      <SmartText text={task.title} className="text-[13px] md:text-[14px] tracking-tight leading-none truncate block" />
+                      <SmartText text={task.title} className="text-[14px] md:text-[14px] tracking-tight leading-none truncate block font-bold md:font-black" />
                     </div>
                     
                     {showTime && (
