@@ -99,42 +99,52 @@ export function CalendarWidget({ events }: { events: any[] }) {
       </button>
 
       <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 flex' : 'hidden md:flex md:mt-6 opacity-0 md:opacity-100'}`}>
-        <div className="md:hidden flex items-center justify-between mb-6 bg-white/30 dark:bg-zinc-800/20 p-2 rounded-2xl border border-black/5">
-          <button onClick={() => changeWeek(-1)} className="p-2 text-foreground"><ChevronLeft className="w-4 h-4" /></button>
-          <span className="text-[10px] font-black uppercase text-foreground">{currentWeekNumber}. Týždeň</span>
-          <button onClick={() => changeWeek(1)} className="p-2 text-foreground"><ChevronRight className="w-4 h-4" /></button>
+        <div className="md:hidden flex items-center justify-between mb-4 px-1">
+          <div className="flex flex-col">
+            <span className="text-xl font-black text-indigo-950 dark:text-white leading-none tracking-tight">
+              {format(selectedDate, "d. MMMM", { locale: sk })}
+            </span>
+            <span className="text-[10px] font-bold uppercase text-zinc-400 tracking-[0.2em] mt-1 italic">
+               {currentWeekNumber}. Týždeň
+            </span>
+          </div>
+          <div className="flex gap-1">
+            <button onClick={() => changeWeek(-1)} className="p-2.5 bg-white dark:bg-zinc-800 rounded-xl border border-black/5 shadow-sm active:scale-90 transition-all"><ChevronLeft className="w-4 h-4 text-zinc-600" /></button>
+            <button onClick={() => changeWeek(1)} className="p-2.5 bg-white dark:bg-zinc-800 rounded-xl border border-black/5 shadow-sm active:scale-90 transition-all"><ChevronRight className="w-4 h-4 text-zinc-600" /></button>
+          </div>
         </div>
-
-        <div className="grid grid-cols-7 gap-1 md:gap-1.5 mb-5 flex-shrink-0 bg-white/50 dark:bg-zinc-900/30 p-1.5 rounded-2xl border border-black/5 dark:border-white/5">
+        <div className="grid grid-cols-7 gap-1 md:gap-1.5 mb-6 flex-shrink-0 md:bg-white/50 md:dark:bg-zinc-900/30 md:p-1.5 md:rounded-2xl md:border md:border-black/5 md:dark:border-white/5">
           {weekDays.map((day, i) => {
             const isSelected = isSameDay(day, selectedDate);
             const isToday = isSameDay(day, new Date());
             return (
-              <button key={i} onClick={() => setSelectedDate(day)} className="flex flex-col items-center group/day">
-                <span className={`text-[7px] md:text-[8px] font-black mb-1 transition-colors tracking-widest ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-400 group-hover/day:text-zinc-600'}`}>{SK_DAYS[i]}</span>
-                <div className={`w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-lg md:rounded-xl text-[10px] font-black transition-all duration-200 ${isSelected ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 md:scale-105' : isToday ? 'border border-indigo-500/40 md:border-2 md:border-indigo-600/30 text-indigo-600 bg-white md:bg-indigo-50 dark:bg-zinc-800 md:dark:bg-indigo-900/10' : 'hover:bg-white dark:hover:bg-zinc-800 text-zinc-500 md:text-zinc-600 border border-transparent hover:border-black/5'}`}>{format(day, "d")}</div>
+              <button key={i} onClick={() => setSelectedDate(day)} className="flex flex-col items-center group/day pt-1 pb-2">
+                <span className={`text-[8px] md:text-[8px] font-black mb-1.5 transition-colors tracking-widest uppercase ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-400'}`}>{SK_DAYS[i]}</span>
+                <div className={`w-9 h-9 md:w-8 md:h-8 flex items-center justify-center rounded-xl text-sm md:text-[10px] font-black transition-all duration-300 ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105' : isToday ? 'text-indigo-600 font-bold border border-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-zinc-600 hover:bg-black/5'}`}>{format(day, "d")}</div>
               </button>
             );
           })}
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto thin-scrollbar pr-1 md:pr-2 relative">
-          <div className="space-y-4 md:space-y-1.5 pt-2">
+          <div className="space-y-5 md:space-y-1.5 pt-1">
           {dailyEvents.length > 0 ? dailyEvents.map((event, i) => (
-            <div key={i} className="group relative pl-6 md:pl-0">
-              {/* Timeline dot and line - Mobile only */}
-              <div className="absolute left-1.5 top-0 bottom-0 w-px bg-zinc-200 dark:bg-zinc-800 md:hidden">
-                <div className="absolute top-2 -left-[3px] w-2 h-2 rounded-full bg-indigo-500 ring-4 ring-[#f8faff] dark:ring-zinc-950 shadow-sm" />
+            <div key={i} className="flex gap-4 md:gap-3 group items-start md:items-stretch">
+              {/* Time Column - iOS Style */}
+              <div className="flex flex-col items-end md:items-center justify-start pt-1.5 min-w-[45px] md:w-12 flex-shrink-0">
+                <span className="text-sm md:text-[11px] font-black text-indigo-950 dark:text-zinc-100 md:text-indigo-900 md:dark:text-indigo-300 leading-none mb-0.5">
+                  {event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "00:00"}
+                </span>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter md:hidden opacity-60">
+                  {event.end?.dateTime ? format(new Date(event.end.dateTime), "HH:mm") : ""}
+                </span>
               </div>
 
-              <div className="flex items-center md:items-stretch gap-3 p-3 md:p-2.5 bg-white dark:bg-zinc-900 rounded-2xl md:rounded-xl border border-black/5 md:border-white/40 dark:border-white/5 md:hover:bg-white md:hover:border-indigo-100 transition-all shadow-sm active:scale-[0.98] border-l-[4px] border-l-indigo-500 md:border-l">
-                <div className="flex flex-col items-start md:items-center justify-center min-w-[38px] md:w-12 bg-transparent md:bg-indigo-50/50 md:dark:bg-indigo-900/20 md:rounded-lg md:border md:border-indigo-100/50 md:dark:border-indigo-800/30 flex-shrink-0">
-                  <span className="text-[10px] md:text-[11px] font-black text-indigo-600 dark:text-indigo-400 md:text-indigo-900 md:dark:text-indigo-300 tracking-tight leading-none">{event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "Dnes"}</span>
-                </div>
-                <div className="h-4 w-[1px] bg-zinc-200 dark:bg-zinc-800 flex-shrink-0 md:hidden" />
-                <div className="flex-1 min-w-0 py-0.5">
-                  <h4 className="text-[13px] md:text-[12px] font-black md:font-bold text-zinc-800 dark:text-zinc-100 truncate leading-tight mb-0.5 group-hover:text-indigo-700 transition-colors">{cleanSummary(event.summary)}</h4>
-                  {event.description && <p className="text-[9px] font-medium text-zinc-500 dark:text-zinc-400 truncate opacity-60 md:opacity-70 leading-none lowercase italic">{cleanDescription(event.description)}</p>}
+              {/* Event Card */}
+              <div className="flex-1 bg-white dark:bg-zinc-900 md:bg-white dark:md:bg-zinc-900/40 p-4 md:p-2.5 rounded-[1.25rem] md:rounded-xl border border-black/[0.1] md:border-white/40 dark:border-white/[0.03] shadow-sm active:scale-[0.97] transition-all flex border-l-[6px] border-l-indigo-600 md:border-l">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-[14px] md:text-[12px] font-black text-zinc-900 dark:text-zinc-100 truncate leading-tight mb-1">{cleanSummary(event.summary)}</h4>
+                  {event.description && <p className="text-[11px] md:text-[9px] font-medium text-zinc-500 dark:text-zinc-400 line-clamp-1 opacity-80 italic lowercase">{cleanDescription(event.description)}</p>}
                 </div>
               </div>
             </div>
