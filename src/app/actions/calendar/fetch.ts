@@ -61,13 +61,13 @@ export async function getCalendarEvents(
       ) as ContactItem[]);
 
     const tasksData = prefetchedTasks || (authEmails.length > 0
-        ? (directus.request(
+        ? (await directus.request(
             readItems("crm_tasks", {
               filter: { user_email: { _in: authEmails } },
               limit: 500,
             }),
-          ) as Promise<Task[]>)
-        : Promise.resolve([] as Task[])) as any;
+          ) as Task[])
+        : []);
 
     const mergedEvents: CalendarEvent[] = [...googleEvents];
 
