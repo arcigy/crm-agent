@@ -17,14 +17,14 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // === PROVIDER INSTANCES ===
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || "missing-openai-key",
 });
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.ANTHROPIC_API_KEY || "missing-anthropic-key",
 });
 
-const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "missing-gemini-key");
 
 // === MODEL CONFIGURATION ===
 
