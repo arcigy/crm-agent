@@ -23,7 +23,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [isConnected, setIsConnected] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedTab, setSelectedTab] = React.useState<
-    "all" | "unread" | "leads" | "sms" | "calls"
+    "all" | "unread" | "leads" | "sms" | "calls" | "starred" | "snoozed" | "sent" | "drafts" | "shopping" | "more"
   >("all");
   const [selectedEmail, setSelectedEmail] = React.useState<GmailMessage | null>(
     null,
@@ -434,7 +434,10 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       (msg.snippet || "").toLowerCase().includes(lowerSearch);
 
     if (selectedTab === "unread") return matchesSearch && !msg.isRead;
-    if (selectedTab === "all" || selectedTab === "leads") return matchesSearch;
+    // For now, these tabs are placeholders, so we show all messages
+    if (["all", "leads", "starred", "snoozed", "sent", "drafts", "shopping", "more"].includes(selectedTab)) {
+      return matchesSearch;
+    }
     return false;
   });
 

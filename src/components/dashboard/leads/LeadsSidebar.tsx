@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 interface LeadsSidebarProps {
-  selectedTab: "all" | "unread" | "leads" | "sms" | "calls";
+  selectedTab: "all" | "unread" | "leads" | "sms" | "calls" | "starred" | "snoozed" | "sent" | "drafts" | "shopping" | "more";
   onTabChange: (tab: any) => void;
   unreadCount?: number;
 }
