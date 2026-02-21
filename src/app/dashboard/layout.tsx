@@ -11,11 +11,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // In development, we skip the blocking check to make page transitions instant
-  const completed = process.env.NODE_ENV === "development" ? true : false;
-  
-  // Real check would happen in a non-blocking way or we can keep it simple for now
-  // since the user is in local dev mode.
+  const { completed } = await checkOnboardingStatus();
 
   return (
     <ContactPreviewProvider>
