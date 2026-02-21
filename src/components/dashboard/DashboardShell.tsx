@@ -210,12 +210,19 @@ export function DashboardShell({
         </div>
       </aside>
 
-      {/* ── Neon Background Blobs – Dark mode only ── */}
-      <div className="pointer-events-none fixed inset-0 z-0 hidden dark:block overflow-hidden">
-        <div className="absolute top-8 left-8 w-24 h-24 bg-indigo-500/40 rounded-full blur-[50px]" />
-        <div className="absolute top-8 right-8 w-20 h-20 bg-violet-500/35 rounded-full blur-[45px]" />
-        <div className="absolute bottom-8 right-8 w-24 h-24 bg-cyan-500/30 rounded-full blur-[50px]" />
-        <div className="absolute bottom-8 left-8 w-20 h-20 bg-purple-500/35 rounded-full blur-[45px]" />
+      {/* ── Background Elements ── */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Subtle Grid Pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
+            backgroundSize: '32px 32px'
+          }}
+        />
+        {/* Soft Radial Glows */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-[120px]" />
       </div>
 
       {/* Main Content Area */}
