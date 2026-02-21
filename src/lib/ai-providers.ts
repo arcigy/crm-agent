@@ -2,10 +2,10 @@
  * Multi-Provider AI Abstraction Layer
  *
  * Konfigurácia modelov:
- * - Gatekeeper: GPT-5 Nano (najlacnejší)
- * - Orchestrator: Claude 3.7 Sonnet (najlepší tool-use)
- * - Verifier: Gemini 2.0 Flash (rýchly, lacný)
- * - Final Report: Gemini 2.5 Flash (kvalitný text)
+ * - Gatekeeper: GPT-4o-mini (rýchla extrakcia)
+ * - Orchestrator: Claude 3.5 Sonnet (najlepší tool-use)
+ * - Verifier: Gemini 1.5 Flash (rýchly, overenie)
+ * - Final Report: Gemini 1.5 Flash (stručný report)
  */
 
 import OpenAI from "openai";
@@ -27,11 +27,11 @@ const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 // === MODEL CONFIGURATION ===
 
 export const AI_MODELS = {
-  GATEKEEPER: "gpt-4o-mini", // GPT-5 Nano nie je ešte v SDK, fallback
-  ORCHESTRATOR: "claude-3-5-sonnet-20241022", // Claude 3.7 Sonnet
-  VERIFIER: "gemini-1.5-flash", // Gemini 1.5 Flash
-  FINAL_REPORT: "gemini-1.5-flash", // Gemini 1.5 Flash
-  EMAIL_CLASSIFIER: "claude-3-5-sonnet-20241022", // Using Claude for more accurate email classification
+  GATEKEEPER: "gpt-4o-mini", // Stable fallback for extraction
+  ORCHESTRATOR: "claude-3-5-sonnet-20241022", // Best-in-class tool use
+  VERIFIER: "gemini-1.5-flash", // Fast and reliable
+  FINAL_REPORT: "gemini-1.5-flash", // Cost-effective reporting
+  EMAIL_CLASSIFIER: "claude-3-5-sonnet-20241022", // High precision for emails
 } as const;
 
 // === UNIFIED RESPONSE TYPE ===
@@ -98,7 +98,7 @@ export async function callOrchestrator(
   return { plan: [], readable_plan: [] };
 }
 
-// === VERIFIER (Gemini 2.0 Flash) ===
+// === VERIFIER (Gemini 1.5 Flash) ===
 
 export async function callVerifier(
   toolResults: Record<string, unknown>[],
@@ -124,7 +124,7 @@ Odpovedaj LEN v JSON formáte:
   return { success: false, analysis: "Nemožno analyzovať" };
 }
 
-// === FINAL REPORT (Gemini 2.5 Flash) ===
+// === FINAL REPORT (Gemini 1.5 Flash) ===
 
 export async function callFinalReport(
   messages: { role: string; content: string }[],

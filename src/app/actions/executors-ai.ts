@@ -30,7 +30,7 @@ export async function executeAiTool(name: string, args: Record<string, unknown>,
         `;
 
         const response = await generateText({
-          model: google("gemini-2.5-flash"),
+          model: google("gemini-1.5-flash"),
           system: systemPrompt,
           prompt: `CONTEXT:\n${JSON.stringify(context, null, 2)}\n\nINSTRUCTION:\n${instruction}`,
         });
