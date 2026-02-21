@@ -2,6 +2,7 @@
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
+import { AI_MODELS } from "@/lib/ai-providers";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -30,7 +31,7 @@ export async function executeAiTool(name: string, args: Record<string, unknown>,
         `;
 
         const response = await generateText({
-          model: google("gemini-1.5-flash"),
+          model: google(AI_MODELS.REPORT),
           system: systemPrompt,
           prompt: `CONTEXT:\n${JSON.stringify(context, null, 2)}\n\nINSTRUCTION:\n${instruction}`,
         });

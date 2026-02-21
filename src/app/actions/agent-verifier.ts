@@ -2,8 +2,8 @@
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
-
 import { trackAICall } from "@/lib/ai-cost-tracker";
+import { AI_MODELS } from "@/lib/ai-providers";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -32,7 +32,7 @@ export async function verifyExecutionResults(
     `;
 
     const response = await generateText({
-      model: google("gemini-1.5-flash"),
+      model: google(AI_MODELS.VERIFIER),
       system: systemPrompt,
       prompt: `INTENT: ${originalIntent}\n\nRESULTS:\n${JSON.stringify(
         results,
@@ -44,7 +44,7 @@ export async function verifyExecutionResults(
     trackAICall(
         "verifier",
         "gemini",
-        "gemini-1.5-flash",
+        AI_MODELS.VERIFIER,
         systemPrompt + originalIntent,
         response.text,
         Date.now() - start,

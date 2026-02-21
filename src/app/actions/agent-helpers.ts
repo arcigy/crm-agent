@@ -13,10 +13,11 @@ import {
   MissionHistoryItem,
 } from "./agent-types";
 import { withRetry } from "@/lib/ai-retry";
+import { AI_MODELS } from "@/lib/ai-providers";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 const geminiBase = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const gemini = geminiBase.getGenerativeModel({ model: "gemini-1.5-flash" });
+const gemini = geminiBase.getGenerativeModel({ model: AI_MODELS.REPORT });
 
 export async function runGatekeeper(
   messages: ChatMessage[],
@@ -51,7 +52,7 @@ Odpovedaj LEN JSON bez markdown: { "intent": "INFO_ONLY", "extracted_data": { "e
     .map(m => `${m.role.toUpperCase()}: ${m.content}`)
     .join("\n");
   const res = await withRetry(() => generateText({
-    model: google("gemini-1.5-flash"),
+    model: google(AI_MODELS.GATEKEEPER),
     system: prompt,
     prompt: historyText,
     temperature: 0,
@@ -63,7 +64,7 @@ Odpovedaj LEN JSON bez markdown: { "intent": "INFO_ONLY", "extracted_data": { "e
   trackAICall(
     "gatekeeper",
     "gemini",
-    "gemini-1.5-flash",
+    AI_MODELS.GATEKEEPER,
     prompt,
     output,
     Date.now() - start,
@@ -99,7 +100,7 @@ Odpovedz priamo a stručne. Ak sa pýta na tvoje schopnosti, odpovedz áno/nie +
   trackAICall(
     "conversational",
     "gemini",
-    "gemini-1.5-flash",
+    AI_MODELS.REPORT,
     prompt,
     output,
     Date.now() - start,
@@ -138,7 +139,7 @@ export async function runFinalReporter(
   trackAICall(
     "reporter",
     "gemini",
-    "gemini-1.5-flash",
+    AI_MODELS.REPORT,
     prompt,
     output,
     Date.now() - start,

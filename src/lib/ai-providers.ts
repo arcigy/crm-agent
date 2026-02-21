@@ -27,11 +27,13 @@ const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 // === MODEL CONFIGURATION ===
 
 export const AI_MODELS = {
-  GATEKEEPER: "gpt-4o-mini", // Stable fallback for extraction
-  ORCHESTRATOR: "claude-3-5-sonnet-20241022", // Best-in-class tool use
-  VERIFIER: "gemini-1.5-flash", // Fast and reliable
-  FINAL_REPORT: "gemini-1.5-flash", // Cost-effective reporting
-  EMAIL_CLASSIFIER: "claude-3-5-sonnet-20241022", // High precision for emails
+  GATEKEEPER: process.env.AI_MODEL_GATEKEEPER || "gpt-4o-mini",
+  ORCHESTRATOR: process.env.AI_MODEL_ORCHESTRATOR || "claude-3-5-sonnet-20241022",
+  VERIFIER: process.env.AI_MODEL_VERIFIER || "gemini-1.5-flash",
+  REPORT: process.env.AI_MODEL_REPORT || "gemini-1.5-flash",
+  EMAIL_CLASSIFIER: process.env.AI_MODEL_CLASSIFIER || "claude-3-5-sonnet-20241022",
+  ROUTER: process.env.AI_MODEL_ROUTER || "gemini-1.5-flash",
+  PREPARER: process.env.AI_MODEL_PREPARER || "gemini-1.5-flash",
 } as const;
 
 // === UNIFIED RESPONSE TYPE ===
@@ -130,7 +132,7 @@ export async function callFinalReport(
   messages: { role: string; content: string }[],
   toolResults: Record<string, unknown>[],
 ): Promise<string> {
-  const model = gemini.getGenerativeModel({ model: AI_MODELS.FINAL_REPORT });
+  const model = gemini.getGenerativeModel({ model: AI_MODELS.REPORT });
 
   const userMessages = messages
     .filter((m) => m.role === "user")

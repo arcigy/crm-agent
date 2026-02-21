@@ -14,6 +14,7 @@ import { validateActionPlan } from '@/app/actions/agent-preparer';
 import { verifyExecutionResults } from '@/app/actions/agent-verifier';
 import { executeAtomicTool } from '@/app/actions/agent-executors';
 import { startCostSession, endCostSession } from '@/lib/ai-cost-tracker';
+import { AI_MODELS } from '@/lib/ai-providers';
 
 export async function POST(req: Request) {
     const { messages, debug = false } = await req.json();
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
 
             if (routing.type === 'CONVERSATION') {
                 await log("ROUTER", "Route: Simple Conversation");
-                const result = streamText({ model: google('gemini-1.5-flash'), system: `Helpful CRM assistant for ${userEmail}.`, messages });
+                const result = streamText({ model: google(AI_MODELS.ROUTER), system: `Helpful CRM assistant for ${userEmail}.`, messages });
                 for await (const delta of result.textStream) await writer.write(encoder.encode(delta));
                 return;
             }
@@ -99,7 +100,7 @@ export async function POST(req: Request) {
             const verification = await verifyExecutionResults("task", finalResults);
             await log("VERIFIER", "Analysis", verification.analysis);
             
-            const reportResult = streamText({ model: google('gemini-1.5-flash'), prompt: `System: Send this exact message to user: "${verification.analysis}"` });
+            const reportResult = streamText({ model: google(AI_MODELS.REPORT), prompt: `System: Send this exact message to user: "${verification.analysis}"` });
             for await (const delta of reportResult.textStream) await writer.write(encoder.encode(delta));
 
             const sessionSummary = endCostSession();

@@ -2,6 +2,7 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getIsolatedAIContext } from "@/lib/ai-context";
+import { AI_MODELS } from "@/lib/ai-providers";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -135,7 +136,7 @@ Vráť čistý JSON. Odpovedaj v slovenčine.
 
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: AI_MODELS.REPORT,
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0,
@@ -211,7 +212,7 @@ JAZYK (VÝSTUP PRE UŽÍVATEĽA): Všetky vygenerované texty v JSON objekte (na
 
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: AI_MODELS.REPORT,
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 1, // High temperature for maximum creativity

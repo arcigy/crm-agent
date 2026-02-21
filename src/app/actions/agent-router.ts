@@ -3,6 +3,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { trackAICall } from "@/lib/ai-cost-tracker";
+import { AI_MODELS } from "@/lib/ai-providers";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -28,7 +29,7 @@ export async function routeIntent(
     `;
 
     const response = await generateText({
-      model: google("gemini-1.5-flash"), 
+      model: google(AI_MODELS.ROUTER), 
       system: systemPrompt,
       prompt: `HISTORY:\n${JSON.stringify(history?.slice?.(-2) || [])}\n\nMESSAGE:\n${lastUserMessage}`,
     });
@@ -36,7 +37,7 @@ export async function routeIntent(
     trackAICall(
         "conversational",
         "gemini",
-        "gemini-1.5-flash",
+        AI_MODELS.ROUTER,
         systemPrompt + lastUserMessage,
         response.text,
         Date.now() - start,

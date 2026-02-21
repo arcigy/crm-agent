@@ -9,6 +9,7 @@ import { executeAtomicTool } from "./agent-executors";
 import { AgentStep, ChatMessage, UserResource, MissionHistoryItem } from "./agent-types";
 import { createStreamableValue } from "@ai-sdk/rsc";
 import { withRetry } from "@/lib/ai-retry";
+import { AI_MODELS } from "@/lib/ai-providers";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -144,7 +145,7 @@ OUTPUT FORMAT (STRICT JSON):
     console.log("[ORCHESTRATOR] History Context sent to AI:", JSON.stringify(historyContext, null, 2));
 
     const response = await withRetry(() => generateText({
-      model: google("gemini-1.5-flash"),
+      model: google(AI_MODELS.ORCHESTRATOR),
       system: systemPrompt,
       temperature: 0.1, // Near-deterministic planning
       prompt: `KONTEXT KONVERZÁCIE A DOTERAJŠIE VÝSLEDKY:\n${JSON.stringify(historyContext.slice(-10))}\n\nDOSIAHNI CIEĽ Z POSLEDNEJ SPRÁVY UŽÍVATEĽA.`,
@@ -153,7 +154,7 @@ OUTPUT FORMAT (STRICT JSON):
     trackAICall(
         "orchestrator",
         "gemini",
-        "gemini-1.5-flash",
+        AI_MODELS.ORCHESTRATOR,
         systemPrompt + (messages[messages.length - 1].content || ""),
         response.text,
         Date.now() - start,
