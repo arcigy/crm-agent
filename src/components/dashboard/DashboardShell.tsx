@@ -124,17 +124,19 @@ export function DashboardShell({
         </div>
       )}
 
-      {/* Persistent Hamburger Button (Trigger) */}
+      {/* ── Fixed Top Bar (hamburger + page identity) ── */}
       {!isMenuOpen && (
-        <button
-          onClick={() => setIsMenuOpen(true)}
-          className="fixed top-6 left-6 z-[2500] w-12 h-12 rounded-2xl shadow-xl flex items-center justify-center transition-all active:scale-95 bg-white/90 dark:bg-zinc-900/90 border border-white/10 text-zinc-600 dark:text-zinc-400 group overflow-hidden animate-in fade-in duration-300"
-        >
-          <Menu size={20} />
-        </button>
+        <div className="fixed top-0 left-0 right-0 z-[2500] h-14 flex items-center px-4 pointer-events-none">
+          <button
+            onClick={() => setIsMenuOpen(true)}
+            className="pointer-events-auto w-10 h-10 rounded-2xl shadow-lg flex items-center justify-center transition-all active:scale-95 bg-white/90 dark:bg-zinc-900/90 border border-black/10 dark:border-white/10 text-zinc-600 dark:text-zinc-400 animate-in fade-in duration-300"
+          >
+            <Menu size={18} />
+          </button>
+        </div>
       )}
 
-      {/* Backdrop / Overlay - No blur as requested */}
+      {/* Backdrop / Overlay */}
       {isMenuOpen && (
         <div 
           className="fixed inset-0 bg-black/40 z-[1900] transition-opacity duration-300 animate-in fade-in" 
@@ -212,7 +214,9 @@ export function DashboardShell({
       <main 
         className={`flex-1 min-w-0 h-full overflow-hidden bg-transparent relative z-10 flex flex-col transition-all duration-300 ${isNavigating ? "opacity-30 blur-[2px] pointer-events-none" : "opacity-100 blur-0"}`}
       >
-          <div className="flex-1 overflow-y-auto px-2 md:px-6 py-4 md:py-6 mt-16 md:mt-0 scrollbar-hide">
+          {/* Spacer so content never goes under the fixed top bar */}
+          <div className="h-14 flex-shrink-0" />
+          <div className="flex-1 min-h-0 overflow-y-auto px-2 md:px-6 pb-4 md:pb-6 scrollbar-hide">
              <div className="w-full h-full">
                 {!completed && onboardingScene ? onboardingScene : children}
              </div>
