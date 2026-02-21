@@ -83,9 +83,9 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-emerald-500/20 transition-all duration-300 md:hidden" />
       
       {/* Header / Trigger */}
-      <button 
+      <div 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full md:cursor-default relative z-20"
+        className="flex items-center justify-between w-full md:cursor-default relative z-20 cursor-pointer md:cursor-auto"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 md:w-10 md:h-10 rounded-2xl md:bg-emerald-500/10 bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 md:border-emerald-500/20">
@@ -107,7 +107,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
           </div>
         </div>
-      </button>
+      </div>
 
       <div className={`flex-1 flex flex-col transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
         <div className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-hide relative z-10">

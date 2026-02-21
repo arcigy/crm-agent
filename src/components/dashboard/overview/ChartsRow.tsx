@@ -39,9 +39,9 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
       {/* 2. Soft Radial Glows - Only on Mobile */}
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-zinc-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-zinc-500/20 transition-all duration-300 md:hidden" />
       
-      <button 
+      <div 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full md:cursor-default relative z-20"
+        className="flex items-center justify-between w-full md:cursor-default relative z-20 cursor-pointer md:cursor-auto"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 md:w-10 md:h-10 rounded-2xl md:bg-zinc-500/10 bg-zinc-500/20 flex items-center justify-center border border-zinc-500/30 md:border-zinc-500/20">
@@ -55,7 +55,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
         <div className={`w-5 h-5 flex items-center justify-center transition-all duration-300 md:hidden ${isExpanded ? 'rotate-180' : ''}`}>
            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </div>
-      </button>
+      </div>
       
       <div className={`flex-1 flex flex-col transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
         <div className="space-y-3.5 overflow-auto thin-scrollbar pr-2 relative z-10">

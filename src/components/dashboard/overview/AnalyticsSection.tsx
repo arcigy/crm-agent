@@ -37,9 +37,9 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-blue-500/20 transition-all duration-700 md:hidden" />
       <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none md:hidden" />
       
-      <button 
+      <div 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full md:cursor-default relative z-20"
+        className="flex items-center justify-between w-full md:cursor-default relative z-20 cursor-pointer md:cursor-auto"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 md:w-10 md:h-10 rounded-2xl md:bg-blue-500/10 bg-blue-500/20 flex items-center justify-center border border-blue-500/30 md:border-blue-500/20 shadow-none">
@@ -53,7 +53,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
         <div className={`w-5 h-5 flex items-center justify-center transition-all duration-300 md:hidden ${isExpanded ? 'rotate-180' : ''}`}>
            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </div>
-      </button>
+      </div>
 
       <div className={`flex-1 flex flex-col transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
         <div className="flex-1 space-y-2.5 overflow-y-auto pr-2 scrollbar-hide relative z-10">

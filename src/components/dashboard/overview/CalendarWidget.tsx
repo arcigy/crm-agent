@@ -61,9 +61,12 @@ export function CalendarWidget({ events }: { events: any[] }) {
       <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-indigo-500/20 transition-all duration-300 md:hidden" />
       
       {/* Header / Trigger */}
-      <button 
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full md:cursor-default relative z-20"
+      {/* Header / Trigger */}
+      <div 
+        onClick={() => {
+          if (window.innerWidth < 768) setIsExpanded(!isExpanded);
+        }}
+        className="flex items-center justify-between w-full md:cursor-default relative z-20 cursor-pointer md:cursor-auto"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 md:w-10 md:h-10 rounded-2xl md:bg-indigo-100 md:dark:bg-indigo-900/30 bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 md:border-indigo-500/20">
@@ -96,7 +99,7 @@ export function CalendarWidget({ events }: { events: any[] }) {
           <span className="text-[10px] font-black uppercase italic px-2 text-zinc-500 min-w-[70px] text-center tracking-tight">{currentWeekNumber}. Týždeň</span>
           <button onClick={(e) => { e.stopPropagation(); changeWeek(1); }} className="p-1.5 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-all active:scale-95 text-zinc-600 dark:text-zinc-400"><ChevronRight className="w-3.5 h-3.5" /></button>
         </div>
-      </button>
+      </div>
 
       <div className={`flex-1 transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
         <div className="md:hidden flex items-center justify-between mb-6 bg-white/30 dark:bg-zinc-800/20 p-2 rounded-2xl border border-black/5">

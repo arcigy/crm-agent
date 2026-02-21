@@ -46,3 +46,6 @@ next-env.d.ts
 # Local Dev Bypass Tool
 /src/lib/dev-mode/local-bypass.ts
 /scripts/local/
+
+# clerk configuration (can include secrets)
+/.clerk/
