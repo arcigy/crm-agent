@@ -21,7 +21,31 @@ const gemini = geminiBase.getGenerativeModel({ model: "gemini-2.0-flash" });
 export async function runGatekeeper(
   messages: ChatMessage[],
 ): Promise<ChatVerdict> {
-  const prompt = `Si klasifikátor správ pre AI agenta. Zaraď poslednú správu do INFO_ONLY alebo ACTION.\r\n\r\nDEFINÍCIE:\r\nINFO_ONLY = správa pýtajúca sa VŠEOBECNE (bez konkrétneho cieľa, osoby, firmy alebo objektu)\r\nACTION = správa požadujúca KONKRÉTNU OPERÁCIU (aj keď je formulovaná zdvorilo ako otázka)\r\n\r\nKĽÚČOVÁ OTÁZKA: Existuje v správe konkrétny cieľ (meno, firma, email, projekt, úloha)?\r\n- ÁNO → ACTION\r\n- NIE → INFO_ONLY\r\n\r\nINFO_ONLY PRÍKLADY (žiadny konkrétny cieľ alebo nemožná akcia):\r\n1. "Vieš vyhľadávať na webe?" → INFO_ONLY\r\n2. "Čo všetko dokážeš?" → INFO_ONLY\r\n3. "Ahoj, ako sa máš?": INFO_ONLY\r\n4. "Urob mi kávu" → INFO_ONLY (nemôžem fyzicky robiť kávu)\r\n5. "Zabehni do obchodu" → INFO_ONLY (nemožné)\r\n6. "Povedz mi vtip" → INFO_ONLY (pohovory/pokec)\r\n\r\nACTION PRÍKLADY (vždy ak je tam operácia s CRM dátami alebo informáciami):\r\n1. "Môžeš mi poslať email Martinovi?": ACTION, extracted_data: { "action_type": "send_email", "entities": { "contact_name": "Martin" } }\r\n2. "Vytvor mi úlohu zavolať Petrovi": ACTION, extracted_data: { "action_type": "create_task", "entities": { "contact_name": "Peter", "task_description": "zavolať" } }\r\n3. "Nájdi firmu ESET": ACTION, extracted_data: { "action_type": "search_company", "entities": { "company_name": "ESET" } }\r\n4. "Vytvor poznámku o kave": ACTION, extracted_data: { "action_type": "create_note", "entities": { "note_topic": "káva" } }\r\n5. "Vytvor mi kontakt Marek Stehlík, +421951741852, stehlik@gmail.comn poznamka: veľmi milý človek": ACTION, extracted_data: { "action_type": "create_contact", "entities": { "first_name": "Marek", "last_name": "Stehlík", "phone": "+421951741852", "email": "stehlik@gmail.com", "comments": "veľmi milý človek" } }\r\n\r\nOdpovedaj LEN JSON bez markdown. Pre ACTION intent, MUSÍŠ vyplniť "extracted_data" s "action_type" a relevantnými "entities" (napr. "first_name", "email", "phone", "comments" pre kontakt).`;
+  const prompt = `Si klasifikátor správ pre AI agenta. Zaraď poslednú správu do INFO_ONLY alebo ACTION.
+
+DEFINÍCIE:
+INFO_ONLY = správa pýtajúca sa VŠEOBECNE (bez konkrétneho cieľa, osoby, firmy alebo objektu)
+ACTION = správa požadujúca KONKRÉTNU OPERÁCIU (aj keď je formulovaná zdvorilo ako otázka)
+
+KĽÚČOVÁ OTÁZKA: Existuje v správe konkrétny cieľ (meno, firma, email, projekt, úloha)?
+- ÁNO → ACTION
+- NIE → INFO_ONLY
+
+INFO_ONLY PRÍKLADY (žiadny konkrétny cieľ alebo nemožná akcia):
+1. "Vieš vyhľadávať na webe?" → INFO_ONLY
+2. "Čo všetko dokážeš?" → INFO_ONLY
+3. "Ahoj, ako sa máš?" → INFO_ONLY
+4. "Urob mi kávu" → INFO_ONLY (nemôžem fyzicky robiť kávu)
+5. "Zabehni do obchodu" → INFO_ONLY (nemožné)
+6. "Povedz mi vtip" → INFO_ONLY (pohovory/pokec)
+
+ACTION PRÍKLADY (vždy ak je tam operácia s CRM dátami alebo informáciami):
+1. "Môžeš mi poslať email Martinovi?" → ACTION (cieľ: Martin)
+2. "Vytvor mi úlohu zavolať Petrovi" → ACTION (cieľ: Peter)
+3. "Nájdi firmu ESET" → ACTION (cieľ: ESET)
+4. "Vytvor poznámku o kave" → ACTION (cieľ: poznámka o káve - digitálne)
+
+Odpovedaj LEN JSON bez markdown: { "intent": "INFO_ONLY", "extracted_data": { "entities": [], "action_type": "" } }`;
   const start = Date.now();
   const historyText = messages
     .map(m => `${m.role.toUpperCase()}: ${m.content}`)
@@ -63,7 +87,12 @@ export async function handleInfoOnly(
     .filter((m) => m.role === "user")
     .map((m) => m.content)
     .join("\n");
-  const prompt = `Si ArciGy AI Agent pre CRM systém. \r\n JAZYK: Slovenčina. ŠTÝL: Stručný, priamy (1-2 vety).\r\n SCHOPNOSTI: Môžeš vyhľadávať na webe (Google Search), scrapovať stránky, pracovať s kontaktmi/projektmi/dealmi/poznámkami/úlohami v CRM, čítať a písať emaily (Gmail), analyzovať prílohy, pamätať si fakty o užívateľovi, vykonávať multi-step akcie.\r\n KONTEXT: Užívateľ "${context.user_nickname}".\r\n OTÁZKA: ${userText}\r\n Odpovedaj priamo a stručne. Ak sa pýta na tvoje schopnosti, odpovedaj áno/nie + krátke vysvetlenie.`;
+  const prompt = `Si ArciGy AI Agent pre CRM systém. 
+JAZYK: Slovenčina. ŠTÝL: Stručný, priamy (1-2 vety).
+SCHOPNOSTI: Môžeš vyhľadávať na webe (Google Search), scrapovať stránky, pracovať s kontaktmi/projektmi/dealmi/poznámkami/úlohami v CRM, čítať a písať emaily (Gmail), analyzovať prílohy, pamätať si fakty o užívateľovi, vykonávať multi-step akcie.
+KONTEXT: Užívateľ "${context.user_nickname}".
+OTÁZKA: ${userText}
+Odpovedz priamo a stručne. Ak sa pýta na tvoje schopnosti, odpovedz áno/nie + krátke vysvetlenie.`;
   const start = Date.now();
   const res = await withRetry(() => gemini.generateContent(prompt));
   const output = res.response?.text() || "Chyba AI poskytovateľa.";
@@ -98,7 +127,10 @@ export async function runFinalReporter(
   lastPlan?: any,
 ) {
   const orchestratorMessage = lastPlan?.message ? `Orchestrátor odkázal: ${lastPlan.message}` : "";
-  const prompt = `JAZYK: Slovenčina. ŠTÝL: Extrémne stručný report (max 2 vety). \r\n     ${orchestratorMessage ? `POVINNOSŤ: Odpovedz na základe tohto odkazu od orchestrátora: "${orchestratorMessage}".` : "Povedz presne čo si spravil a čo je výsledok."}\r\n     DÔLEŽITÉ: Ak sú výsledky prázdne ([]), jednoducho povedz užívateľovi, že si nenašiel nič nové alebo misia nevyžadovala ďalšie akcie. NEVYMÝŠĽAJ SI.\r\n     Výsledky akcií: ${JSON.stringify(results)}`;
+  const prompt = `JAZYK: Slovenčina. ŠTÝL: Extrémne stručný report (max 2 vety). 
+    ${orchestratorMessage ? `POVINNOSŤ: Odpovedz na základe tohto odkazu od orchestrátora: "${orchestratorMessage}".` : "Povedz presne čo si spravil a čo je výsledok."}
+    DÔLEŽITÉ: Ak sú výsledky prázdne ([]), jednoducho povedz užívateľovi, že si nenašiel nič nové alebo misia nevyžadovala ďalšie akcie. NEVYMÝŠĽAJ SI.
+    Výsledky akcií: ${JSON.stringify(results)}`;
   const start = Date.now();
   const res = await withRetry(() => gemini.generateContent(prompt));
   let output = res.response?.text() || "Misia dokončená.";

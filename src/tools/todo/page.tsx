@@ -4,11 +4,10 @@ import React from "react";
 import { useTasks } from "@/hooks/useTasks";
 import { TodoSmartInput } from "@/components/todo/TodoSmartInput";
 import { TodoThreeDayView } from "@/components/todo/TodoThreeDayView";
-import { format } from "date-fns";
 
 export default function TodoTool() {
   const [selectedDate, setSelectedDate] = React.useState(
-    format(new Date(), "yyyy-MM-dd"),
+    new Date().toISOString().split("T")[0],
   );
   // Load ALL tasks so we can filter them client-side for yesterday/today/tomorrow
   const { tasks, add, toggle, remove, update } = useTasks();

@@ -61,19 +61,8 @@ export function TodoThreeDayView({
     const dateStr = format(date, "yyyy-MM-dd");
     return tasks
       .filter((t) => {
-        const isSelectedToday = getRelativeDateLabel(date) === "Dnes";
-        if (!t.due_date) return isSelectedToday;
-
-        const taskDateStr = t.due_date.split("T")[0];
-        const todayStr = format(new Date(), "yyyy-MM-dd");
-
-        // Show if it's the exact day
-        if (taskDateStr === dateStr) return true;
-
-        // In 'Today' view, also show past tasks that aren't done
-        if (isSelectedToday && !t.completed && taskDateStr < todayStr) return true;
-
-        return false;
+        if (!t.due_date) return false;
+        return t.due_date.startsWith(dateStr);
       })
       .sort((a, b) => {
         // Sort by time if available, otherwise push to bottom ("00:00" is start, so we use "99:99" for end)
@@ -170,8 +159,21 @@ export function TodoThreeDayView({
         </button>
       </div>
 
-      {/* Single Column Layout */}
-      <div className="flex-1 min-h-0">
+      {/* 3-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+        {/* YESTERDAY */}
+        <DayColumn
+          title={getRelativeDateLabel(yesterday)}
+          date={yesterday}
+          tasks={yesterdayTasks}
+          onToggle={onToggle}
+          onDelete={onDelete}
+          onUpdate={onUpdate}
+          variant="side"
+          onClick={() => onDateChange(format(yesterday, "yyyy-MM-dd"))}
+        />
+
+        {/* TODAY */}
         <DayColumn
           title={getRelativeDateLabel(current)}
           date={current}
@@ -180,6 +182,18 @@ export function TodoThreeDayView({
           onDelete={onDelete}
           onUpdate={onUpdate}
           variant="center"
+        />
+
+        {/* TOMORROW */}
+        <DayColumn
+          title={getRelativeDateLabel(tomorrow)}
+          date={tomorrow}
+          tasks={tomorrowTasks}
+          onToggle={onToggle}
+          onDelete={onDelete}
+          onUpdate={onUpdate}
+          variant="side"
+          onClick={() => onDateChange(format(tomorrow, "yyyy-MM-dd"))}
         />
       </div>
     </div>

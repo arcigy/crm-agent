@@ -135,7 +135,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     editorProps: {
       attributes: {
         class:
-          "outline-none min-h-[7rem] px-8 pt-8 md:pt-18 pb-22 text-lg font-medium text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold",
+          "outline-none min-h-[7rem] px-8 pt-18 pb-22 text-lg font-medium text-zinc-900 dark:text-white prose prose-lg max-w-none dark:prose-invert [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0 [&_strong]:font-bold",
       },
       handleKeyDown: (view, event) => {
         // First try autocomplete keyboard navigation
@@ -341,8 +341,8 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
       }`}
     >
       <div className="relative group bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-sm border border-zinc-200 dark:border-zinc-800 transition-all duration-300 focus-within:border-blue-500 focus-within:shadow-blue-500/10 focus-within:ring-4 focus-within:ring-blue-500/5">
-        {/* Formatting & Relation Toolbar - Hidden on Mobile */}
-        <div className="absolute top-4 left-8 right-8 hidden md:flex items-center justify-between z-50">
+        {/* Formatting & Relation Toolbar */}
+        <div className="absolute top-4 left-8 right-8 flex items-center justify-between z-50">
           <div className="flex items-center gap-2">
             <ToolbarBtn
               onClick={() => editor.chain().focus().toggleBold().run()}

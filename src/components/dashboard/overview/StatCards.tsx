@@ -12,37 +12,37 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
   return (
-    <div className={`bg-white dark:bg-zinc-900 px-4 py-4 rounded-2xl md:rounded-[1.5rem] border border-black/5 md:border-black/[0.08] dark:border-white/5 md:dark:border-white/[0.08] md:bg-white/60 md:dark:bg-zinc-900/60 md:backdrop-blur-xl transition-all duration-300 group overflow-hidden relative md:hover:-translate-y-1 shadow-sm md:shadow-none active:scale-95 md:active:scale-100 flex flex-col items-center justify-center text-center`}>
-      {/* Soft Radial Glow */}
-      <div className="absolute -top-12 -left-12 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none" />
+    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-2.5 py-4 rounded-xl md:rounded-[2rem] border border-indigo-500/20 dark:border-indigo-500/20 md:bg-white md:dark:bg-zinc-900/60 md:backdrop-blur-xl md:py-2 md:border-black/[0.08] md:dark:border-white/[0.08] transition-all duration-300 group overflow-hidden relative hover:-translate-y-1 shadow-sm active:scale-95 flex flex-col items-center justify-center text-center`}>
+      {/* Soft Radial Glow - Only on Mobile */}
+      <div className="absolute -top-12 -left-12 w-24 h-24 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none md:hidden" />
       
       <div className="relative z-10 flex flex-col items-center w-full">
-        <div className={`w-10 h-10 rounded-[1rem] flex items-center justify-center mb-2 transition-transform duration-300 group-hover:scale-110 shadow-sm
-          ${label === "Hotové Úlohy" ? 'bg-green-500 text-white shadow-green-500/20' : ''}
-          ${label === "Kontakty" ? 'bg-blue-500/10 text-blue-500' : ''}
-          ${label === "Projekty" ? 'bg-indigo-500/10 text-indigo-500' : ''}
-          ${label === "Hodnota" ? 'bg-emerald-500/10 text-emerald-500' : ''}
+        <div className={`w-8 h-8 rounded-2xl md:rounded-lg flex items-center justify-center mb-2 md:mb-1 transition-transform duration-300 group-hover:scale-110 shadow-lg
+          ${label === "Hotové Úlohy" ? 'bg-green-500 shadow-green-500/30' : ''}
+          ${label === "Kontakty" ? 'bg-blue-500 shadow-blue-500/30' : ''}
+          ${label === "Projekty" ? 'bg-indigo-500 shadow-indigo-500/30' : ''}
+          ${label === "Hodnota" ? 'bg-emerald-500 shadow-emerald-500/30' : ''}
         `}>
           <Icon 
-            className="w-5 h-5" 
-            strokeWidth={label === "Hotové Úlohy" ? 3.5 : 2.5}
+            className="w-4 h-4 text-white" 
+            strokeWidth={3}
           />
         </div>
 
-        <span className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.15em] italic mb-0.5 opacity-60">
+        <span className="text-[8px] font-black text-zinc-500 md:text-zinc-400 dark:text-zinc-500 uppercase tracking-widest leading-none mb-1 px-1 truncate w-full italic md:not-italic">
           {label}
         </span>
-        <h3 className="text-xl font-black text-foreground italic tracking-tighter leading-none mb-1">
+        <h3 className="text-sm md:text-base font-black text-foreground tracking-tighter leading-none mb-1">
           {value}
         </h3>
         
         {trend ? (
-          <div className="text-[9px] font-black italic text-emerald-500 mt-0.5 flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded-lg w-fit">
-            <TrendingUp className="w-2.5 h-2.5" />
+          <div className="text-[7px] md:text-[8px] font-black md:font-bold uppercase text-emerald-500 flex items-center gap-0.5 bg-emerald-500/10 px-1.5 py-0.5 md:px-1 md:bg-emerald-500/10 rounded-full scale-90 origin-center italic md:not-italic border border-emerald-500/20 md:border-none">
+            <TrendingUp className="w-2 h-2" />
             {trend.split(' ')[0]}
           </div>
         ) : (
-          <div className="h-[15px] mt-0.5" />
+          <div className="h-2" />
         )}
       </div>
     </div>
@@ -51,7 +51,7 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
 
 export function DashboardStats({ stats }: { stats: any }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-6 mb-3 md:mb-8 pt-2 px-3 md:px-0 relative z-30 w-full">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-3 pt-2 relative z-30 md:max-w-5xl mx-auto w-full">
       <StatCard
         label="Kontakty"
         value={stats.contactsCount || 0}

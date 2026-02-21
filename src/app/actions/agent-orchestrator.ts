@@ -100,7 +100,39 @@ export async function orchestrateParams(
       parameters: t.function.parameters,
     }));
 
-    const systemPrompt = `ROLE:\r\nYou are the Supreme AI Orchestrator for a Business CRM. You plan steps using available tools. Be efficient and logical.\r\n\r\nTASK:\r\n1. Analyze user input and history.\r\n2. Plan the minimum steps needed using AVAILABLE TOOLS.\r\n3. If IDs are missing, search for them first.\r\n4. BEFORE CREATING: Always check if the entity (contact, project, task) already exists in the CRM using search/fetch tools. Never create duplicate contacts if they already exist.\r\n5. If the objective is complete, return steps: [].\r\n\r\nAVAILABLE TOOLS:\r\n${JSON.stringify(toolsDocs.map(t => ({name: t.name, desc: t.description, params: t.parameters})), null, 2)}\r\n\r\nRULES:\r\n1. ID VALIDITY: Never guess IDs. Use db_search_contacts, db_fetch_notes, db_search_projects to find them.\r\n2. CRM-FIRST: Check internal DB before Gmail or Web.\r\n3. ATOMICITY: One tool = one step.\r\n4. NO REPETITION: If a tool returned 0 results in history, don\'t repeat it.\r\n5. COMPLETION: When done, return steps: [].\r\n6. RICH NOTES: For db_create_note, generate 300+ word professional notes in Slovak.\r\n7. SLOVAK ARGS: All text arguments (title, content, comment, subject, body) must be in Slovak.\r\n8. NO REDUNDANCY: Never repeat a successful action (e.g., creating a contact/note/task) if it is already in HISTORY. If the goal is reached, return steps: [].\r\n9. PARAMETER MAPPING: When "extracted_data" is available in history, use its entities to populate the "args" for tool calls. For example, if "extracted_data.entities.first_name" exists, use it for "db_create_contact.args.first_name".\r\n\r\nOUTPUT FORMAT (STRICT JSON):\r\n{\r\n  "intent": "short_description",\r\n  "thought": "reasoning in English",\r\n  "steps": [\r\n    { "tool": "tool_name", "args": { "key": "value" } }\r\n  ]\r\n}\r\n`;
+    const systemPrompt = `
+ROLE:
+You are the Supreme AI Orchestrator for a Business CRM. You plan steps using available tools. Be efficient and logical.
+
+TASK:
+1. Analyze user input and history.
+2. Plan the minimum steps needed using AVAILABLE TOOLS.
+3. If IDs are missing, search for them first.
+4. BEFORE CREATING: Always check if the entity (contact, project, task) already exists in the CRM using search/fetch tools. Never create duplicate contacts if they already exist.
+5. If the objective is complete, return steps: [].
+
+AVAILABLE TOOLS:
+${JSON.stringify(toolsDocs.map(t => ({name: t.name, desc: t.description, params: t.parameters})), null, 2)}
+
+RULES:
+1. ID VALIDITY: Never guess IDs. Use db_search_contacts, db_fetch_notes, db_search_projects to find them.
+2. CRM-FIRST: Check internal DB before Gmail or Web.
+3. ATOMICITY: One tool = one step.
+4. NO REPETITION: If a tool returned 0 results in history, don't repeat it.
+5. COMPLETION: When done, return steps: [].
+6. RICH NOTES: For db_create_note, generate 300+ word professional notes in Slovak.
+7. SLOVAK ARGS: All text arguments (title, content, comment, subject, body) must be in Slovak.
+8. NO REDUNDANCY: Never repeat a successful action (e.g., creating a contact/note/task) if it is already in HISTORY. If the goal is reached, return steps: [].
+
+OUTPUT FORMAT (STRICT JSON):
+{
+  "intent": "short_description",
+  "thought": "reasoning in English",
+  "steps": [
+    { "tool": "tool_name", "args": { "key": "value" } }
+  ]
+}
+`;
 
     const historyContext = [
         ...messages.map(m => ({ role: m.role, content: m.content })),
@@ -112,7 +144,7 @@ export async function orchestrateParams(
     console.log("[ORCHESTRATOR] History Context sent to AI:", JSON.stringify(historyContext, null, 2));
 
     const response = await withRetry(() => generateText({
-      model: google("gemini-3.1-pro-preview-customtools"),
+      model: google("gemini-2.0-flash"),
       system: systemPrompt,
       temperature: 0.1, // Near-deterministic planning
       prompt: `KONTEXT KONVERZÁCIE A DOTERAJŠIE VÝSLEDKY:\n${JSON.stringify(historyContext.slice(-10))}\n\nDOSIAHNI CIEĽ Z POSLEDNEJ SPRÁVY UŽÍVATEĽA.`,
@@ -121,7 +153,7 @@ export async function orchestrateParams(
     trackAICall(
         "orchestrator",
         "gemini",
-        "gemini-3.1-pro-preview-customtools",
+        "gemini-2.0-flash",
         systemPrompt + (messages[messages.length - 1].content || ""),
         response.text,
         Date.now() - start,
@@ -133,8 +165,8 @@ export async function orchestrateParams(
         const rawText = response.text || "";
         
         // 1. Extreme Extraction: Find the outermost { }
-        const startIdx = rawText.indexOf("{");
-        const endIdx = rawText.lastIndexOf("}");
+        const startIdx = rawText.indexOf('{');
+        const endIdx = rawText.lastIndexOf('}');
         if (startIdx === -1 || endIdx === -1) {
              throw new Error("No JSON object found in AI response");
         }
@@ -142,16 +174,16 @@ export async function orchestrateParams(
 
         // 2. Targeted Escape: Only escape control characters that are INSIDE double quotes.
         // We look for " ... " and replace any literal newlines/tabs inside them.
-        // Using [^] or [\\s\\S] instead of /s flag for compatibility.
-        clean = clean.replace(/"((?:[^"\\\\]|\\.)*)"/g, (match, p1) => {
-            return "\"" + p1.replace(/\n/g, "\\n")
+        // Using [^] or [\s\S] instead of /s flag for compatibility.
+        clean = clean.replace(/"((?:[^"\\]|\\.)*)"/g, (match, p1) => {
+            return '"' + p1.replace(/\n/g, "\\n")
                            .replace(/\r/g, "\\r")
                            .replace(/\t/g, "\\t")
-                           .replace(/[\x00-\x1F\x7F-\x9F]/g, " ") + "\"";
+                           .replace(/[\x00-\x1F\x7F-\x9F]/g, " ") + '"';
         });
 
         // 3. Fix unquoted "???" (LLM placeholder)
-        clean = clean.replace(/:\s*\?\?\?\s*([,}])/g, ": \"???\"$1");
+        clean = clean.replace(/:\s*\?\?\?\s*([,}])/g, ': "???"$1');
 
         try {
             const parsed = JSON.parse(clean);
