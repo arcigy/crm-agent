@@ -83,14 +83,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
   }, []);
 
   return (
-    <div className="flex h-[calc(100vh-80px)] gap-0 bg-transparent rounded-[2.5rem] overflow-hidden relative border border-black/5 dark:border-white/[0.05] shadow-2xl mx-4 mb-4">
-      {/* Background Image / Glow for CRM Indigo Vibe */}
-      <div className="absolute inset-0 z-0 opacity-40 dark:opacity-20 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-violet-500/5 dark:from-indigo-500/10" />
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px]" />
-      </div>
-
+    <div className="flex h-full bg-white dark:bg-black overflow-hidden relative border-t border-black/5 dark:border-white/5">
       {/* Contact Extraction Modal */}
       {isContactModalOpen && contactModalData && (
         <ContactExtractionModal
@@ -131,7 +124,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
       )}
 
       {/* Sidebar for Navigation */}
-      <div className="relative z-10 border-r border-[#f1f1f1] dark:border-white/5 bg-white dark:bg-zinc-950 w-[260px] flex-shrink-0">
+      <div className="relative z-10 border-r border-[#f1f1f1] dark:border-white/5 bg-white dark:bg-zinc-950 w-[240px] flex-shrink-0">
         <LeadsSidebar 
           selectedTab={selectedTab} 
           onTabChange={setSelectedTab} 
@@ -140,14 +133,14 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
       </div>
 
       {/* Main Content Area: Switch between List and Detail */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10 bg-[#f6f8fc] dark:bg-black">
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10 bg-[#f6f8fc] dark:bg-black min-w-0">
         {selectedEmail ? (
           <EmailDetailView
             email={selectedEmail}
             onClose={() => setSelectedEmail(null)}
           />
         ) : (
-          <>
+          <div className="flex-1 flex flex-col h-full overflow-hidden">
             <LeadsHeader
               isConnected={isConnected}
               loading={loading}
@@ -159,7 +152,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             />
 
             {/* Message List */}
-            <div className="flex-1 overflow-y-auto thin-scrollbar relative z-10">
+            <div className="flex-1 overflow-y-auto thin-scrollbar bg-white dark:bg-transparent">
               {loading && allItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-4">
                   <div className="w-10 h-10 border-[3px] border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin"></div>
@@ -180,31 +173,29 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
                   </p>
                 </div>
               ) : (
-                <div className="bg-white dark:bg-transparent rounded-t-[2rem] shadow-sm mt-0 overflow-hidden border-t border-black/5 dark:border-white/5">
-                  <div className="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
-                    {allItems.map((item) => (
-                      <LeadsListItem
-                        key={(item as any).id}
-                        item={item}
-                        isActionOpen={activeActionId === (item as any).id}
-                        isGeneratingDraft={isGeneratingDraft}
-                        customCommandMode={customCommandMode}
-                        customPrompt={customPrompt}
-                        setCustomPrompt={setCustomPrompt}
-                        setCustomCommandMode={setCustomCommandMode}
-                        onOpenEmail={handleOpenEmail}
-                        onToggleAction={handleToggleAction}
-                        onManualAnalyze={handleManualAnalyze}
-                        onSaveContact={handleSaveContact}
-                        onDraftReply={handleDraftReply}
-                        onExecuteCustomCommand={handleExecuteCustomCommand}
-                      />
-                    ))}
-                  </div>
+                <div className="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
+                  {allItems.map((item) => (
+                    <LeadsListItem
+                      key={(item as any).id}
+                      item={item}
+                      isActionOpen={activeActionId === (item as any).id}
+                      isGeneratingDraft={isGeneratingDraft}
+                      customCommandMode={customCommandMode}
+                      customPrompt={customPrompt}
+                      setCustomPrompt={setCustomPrompt}
+                      setCustomCommandMode={setCustomCommandMode}
+                      onOpenEmail={handleOpenEmail}
+                      onToggleAction={handleToggleAction}
+                      onManualAnalyze={handleManualAnalyze}
+                      onSaveContact={handleSaveContact}
+                      onDraftReply={handleDraftReply}
+                      onExecuteCustomCommand={handleExecuteCustomCommand}
+                    />
+                  ))}
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

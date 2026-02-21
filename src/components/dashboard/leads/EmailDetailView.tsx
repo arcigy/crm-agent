@@ -69,7 +69,7 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
   const classification = email.classification;
 
   return (
-    <div className="flex flex-col h-full bg-[#f6f8fc] dark:bg-black text-[#1f1f1f] font-sans overflow-hidden">
+    <div className="flex flex-col h-full bg-[#f6f8fc] dark:bg-black text-[#1f1f1f] font-sans overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
       {/* ── Top Toolbar (Gmail Style) ── */}
       <div className="h-14 px-4 flex items-center justify-between flex-shrink-0 bg-transparent dark:bg-zinc-950/50">
         <div className="flex items-center gap-1">
@@ -151,10 +151,14 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
           </div>
           <div className="flex items-center gap-4 text-[#5e5e5e]">
             <div className="text-[12px] font-medium flex items-center gap-1">
-              {email.date ? format(new Date(email.date), "eee d. M. H:mm", { locale: sk }) : ""}
-              <span className="opacity-60 ml-1">
-                {email.date ? `(${formatDistanceToNow(new Date(email.date), { addSuffix: true, locale: sk })})` : ""}
-              </span>
+              {email.date && !isNaN(new Date(email.date).getTime()) ? (
+                <>
+                  {format(new Date(email.date), "eee d. M. H:mm", { locale: sk })}
+                  <span className="opacity-60 ml-1">
+                    ({formatDistanceToNow(new Date(email.date), { addSuffix: true, locale: sk })})
+                  </span>
+                </>
+              ) : ""}
             </div>
             <div className="flex items-center gap-2">
               <button className="p-1 hover:bg-black/5 rounded-full"><Star className="w-5 h-5" /></button>
