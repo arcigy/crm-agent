@@ -126,19 +126,17 @@ export function DashboardShell({
           ${isMenuOpen ? "w-80 translate-x-0 shadow-[20px_0_60px_rgba(0,0,0,0.2)]" : "w-80 -translate-x-full"}
         `}
       >
-        <div className="flex flex-col h-full overflow-hidden">
-          {/* Header - Closing Button on Right */}
-          <div className="p-6 flex items-center justify-end">
-             <button 
-                onClick={() => setIsMenuOpen(false)}
-                className="w-10 h-10 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 flex items-center justify-center transition-colors text-zinc-400"
-             >
-                <X size={20} />
-             </button>
-          </div>
+        <div className="flex flex-col h-full overflow-hidden relative">
+          {/* Closing Button - Absolutely positioned to save space */}
+          <button 
+            onClick={() => setIsMenuOpen(false)}
+            className="absolute top-4 right-4 z-[2100] w-10 h-10 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 flex items-center justify-center transition-colors text-zinc-400"
+          >
+            <X size={20} />
+          </button>
 
           {/* Nav */}
-          <nav className="flex-1 px-4 py-2 space-y-6 overflow-y-auto scrollbar-hide">
+          <nav className="flex-1 px-4 pt-10 pb-2 space-y-6 overflow-y-auto scrollbar-hide">
             {menuGroups.map((group) => (
               <div key={group.title} className="space-y-2">
                 {isMenuOpen && (
