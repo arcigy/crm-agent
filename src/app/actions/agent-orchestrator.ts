@@ -34,6 +34,7 @@ export async function runOrchestratorLoop(
 
     // 1. Plan next steps
     lastPlan = await orchestrateParams(messages, missionHistory);
+    console.log(`[ORCHESTRATOR] Plan for attempt ${attempts}:`, JSON.stringify(lastPlan, null, 2));
 
     if (!lastPlan.steps || lastPlan.steps.length === 0) {
       break;
@@ -140,9 +141,10 @@ OUTPUT FORMAT (STRICT JSON):
             content: `KROK ${i + 1} VÝSLEDKY: ${JSON.stringify(h.steps)}`
         }))
     ];
+    console.log("[ORCHESTRATOR] History Context sent to AI:", JSON.stringify(historyContext, null, 2));
 
     const response = await withRetry(() => generateText({
-      model: google("gemini-2.0-flash"),
+      model: google("gemini-3.1-pro-preview-customtools"),
       system: systemPrompt,
       temperature: 0.1, // Near-deterministic planning
       prompt: `KONTEXT KONVERZÁCIE A DOTERAJŠIE VÝSLEDKY:\n${JSON.stringify(historyContext.slice(-10))}\n\nDOSIAHNI CIEĽ Z POSLEDNEJ SPRÁVY UŽÍVATEĽA.`,
@@ -161,25 +163,26 @@ OUTPUT FORMAT (STRICT JSON):
 
     try {
         const rawText = response.text || "";
-        // 1. Basic markdown cleanup
-        let clean = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
-        const startIdx = clean.indexOf('{');
-        const endIdx = clean.lastIndexOf('}');
-        if (startIdx !== -1 && endIdx !== -1) {
-            clean = clean.substring(startIdx, endIdx + 1);
+        
+        // 1. Extreme Extraction: Find the outermost { }
+        const startIdx = rawText.indexOf('{');
+        const endIdx = rawText.lastIndexOf('}');
+        if (startIdx === -1 || endIdx === -1) {
+             throw new Error("No JSON object found in AI response");
         }
+        let clean = rawText.substring(startIdx, endIdx + 1);
 
-        // 2. Handle literal newlines inside JSON strings (The most common cause of "Bad control character")
-        // This is tricky with regex, but we'll try to escape literal \n \r \t that are not already escaped
-        // or just replace all non-printable chars except those needed for structure.
-        clean = clean.replace(/[\x00-\x1F\x7F-\x9F]/g, (match: string) => {
-            if (match === '\n') return "\\n";
-            if (match === '\r') return "\\r";
-            if (match === '\t') return "\\t";
-            return " ";
+        // 2. Targeted Escape: Only escape control characters that are INSIDE double quotes.
+        // We look for " ... " and replace any literal newlines/tabs inside them.
+        // Using [^] or [\s\S] instead of /s flag for compatibility.
+        clean = clean.replace(/"((?:[^"\\]|\\.)*)"/g, (match, p1) => {
+            return '"' + p1.replace(/\n/g, "\\n")
+                           .replace(/\r/g, "\\r")
+                           .replace(/\t/g, "\\t")
+                           .replace(/[\x00-\x1F\x7F-\x9F]/g, " ") + '"';
         });
 
-        // 3. Fix unquoted "???" which LLM loves to use for "fill in later"
+        // 3. Fix unquoted "???" (LLM placeholder)
         clean = clean.replace(/:\s*\?\?\?\s*([,}])/g, ': "???"$1');
 
         try {

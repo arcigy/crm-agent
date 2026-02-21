@@ -128,7 +128,8 @@ export async function runFinalReporter(
 ) {
   const orchestratorMessage = lastPlan?.message ? `Orchestrátor odkázal: ${lastPlan.message}` : "";
   const prompt = `JAZYK: Slovenčina. ŠTÝL: Extrémne stručný report (max 2 vety). 
-    ${orchestratorMessage ? `POVINNOSŤ: Odpovedz na základe tohto odkazu od orchestrátora: "${orchestratorMessage}".` : "Povedz presne čo si spravil a čo je výsledok. Žiadna omáčka."}
+    ${orchestratorMessage ? `POVINNOSŤ: Odpovedz na základe tohto odkazu od orchestrátora: "${orchestratorMessage}".` : "Povedz presne čo si spravil a čo je výsledok."}
+    DÔLEŽITÉ: Ak sú výsledky prázdne ([]), jednoducho povedz užívateľovi, že si nenašiel nič nové alebo misia nevyžadovala ďalšie akcie. NEVYMÝŠĽAJ SI.
     Výsledky akcií: ${JSON.stringify(results)}`;
   const start = Date.now();
   const res = await withRetry(() => gemini.generateContent(prompt));
