@@ -60,7 +60,7 @@ const menuGroups: MenuSection[] = [
   },
 ];
 
-export default function DashboardShell({ 
+export function DashboardShell({ 
   children, 
   completed, 
   onboardingScene 
