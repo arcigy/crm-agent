@@ -91,7 +91,8 @@ export async function runOrchestratorLoop(
 
 export async function orchestrateParams(
   messages: ChatMessage[],
-  missionHistory: MissionHistoryItem[]
+  missionHistory: MissionHistoryItem[],
+  translatedIntent?: string
 ) {
   const start = Date.now();
   try {
@@ -106,12 +107,12 @@ ROLE:
 You are the Supreme Strategic Planner for a Business CRM. Your sole responsibility is to map the user's high-level intent into a sequence of structural actions (steps). 
 
 CORE PRINCIPLE: PARAMETER AGNOSTICISM
-You are a STRUCTURAL ARCHITECT. Your job is to decide *which* tools must be called to fulfill the intent, not to verify the data.
+You are a STRUCTURAL ARCHITECT. Your job is to decide *which* tools must be called to fulfill the intent, not to verify the data completeness.
 1. You do NOT care if the user provided all required parameters for a tool yet.
 2. You do NOT care if the parameters are currently empty or invalid.
-3. If the user's intent clearly maps to a tool's capability (e.g., "vytvor", "posli", "uprav", "najdi"), you MUST include that tool in the 'steps' array.
+3. If the user's intent clearly maps to a tool's capability (e.g., "vytvor kontakt", "pridaj poznamku", "posli email"), you MUST include that tool in the 'steps' array.
 4. For any missing parameters, use an empty string "" or null.
-5. Do NOT try to be a gatekeeper. If the intent is there, the tool must be in the plan. A secondary "Preparer" layer will handle data gathering from the user.
+5. Do NOT try to be a gatekeeper or ask questions. If the intent is there, the tool must be in the plan. A secondary "Preparer" layer will handle data gathering from the user.
 
 TASK LOGIC:
 1. Analyze user intent from messages and history.
@@ -149,7 +150,7 @@ OUTPUT FORMAT (STRICT JSON):
       model: google(AI_MODELS.ORCHESTRATOR),
       system: systemPrompt,
       temperature: 0.1, // Near-deterministic planning
-      prompt: `KONTEXT KONVERZÁCIE A DOTERAJŠIE VÝSLEDKY:\n${JSON.stringify(historyContext.slice(-10))}\n\nDOSIAHNI CIEĽ Z POSLEDNEJ SPRÁVY UŽÍVATEĽA.`,
+      prompt: `KONVERZÁCIA (Context): \n${JSON.stringify(historyContext.slice(-10))}\n\nSTRATEGICKÉ ZADANIE (English Intent): ${translatedIntent || "Analyse last message."}\n\nDOSIAHNI CIEĽ.`,
     }));
 
     trackAICall(

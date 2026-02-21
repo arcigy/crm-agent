@@ -50,7 +50,11 @@ export async function POST(req: Request) {
 
             if (routing.type === 'CONVERSATION') {
                 await log("ROUTER", "Route: Simple Conversation");
-                const result = streamText({ model: google(AI_MODELS.ROUTER), system: `Helpful CRM assistant for ${userEmail}.`, messages });
+                const result = streamText({ 
+                    model: google(AI_MODELS.ROUTER), 
+                    system: `Si pomocník v CRM pre ${userEmail}. Odpovedaj v slovenčine.`, 
+                    messages 
+                });
                 for await (const delta of result.textStream) await writer.write(encoder.encode(delta));
                 return;
             }
@@ -64,7 +68,7 @@ export async function POST(req: Request) {
                 await log("LOOP", `Iteration ${iter}/5`);
                 await log("ORCHESTRATOR", "Planning...");
                 
-                const taskPlan = await orchestrateParams(messages, missionHistory);
+                const taskPlan = await orchestrateParams(messages, missionHistory, routing.translated_intent);
                 await log("ORCHESTRATOR", "Plan", taskPlan.steps);
 
                 if (!taskPlan.steps?.length) {

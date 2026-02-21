@@ -24,7 +24,8 @@ export async function routeIntent(
       Výstup (JSON):
       {
         "type": "TASK" | "CONVERSATION",
-        "reason": "Vysvetlenie"
+        "reason": "Detailed reasoning in English",
+        "translated_intent": "If TASK, translate the user's request into a precise English instruction for the next AI agent. If CONVERSATION, keep empty."
       }
     `;
 
