@@ -205,7 +205,7 @@ ${rawContent}
 Odpovedaj LEN čistým JSON poľom. 
 
 ## EDITORSKÁ INŠTRUKCIA
-Ak je vstupný text krátky alebo jednoduchý, tvojou povinnosťou je ho **ROZŠÍRIŤ**. Domysli si detaily, pridaj profesionálnu vatu, strategické vhľady a vytvor komplexný report na základe kontextu. Nikdy nevráť jednoduchú poznámku – vždy vráť dychberúci, viacsekčný dokument s HR čiarami, farbami a bohatou štruktúrou.
+Rešpektuj dĺžku a štruktúru pôvodného vstupu. Ak je vstup krátky, vráť krátku, ale vizuálne pekne naformátovanú poznámku (použi farby a aspoň jeden nadpis). Nerozširuj text o zbytočné "profesionálne vaty" a strategické vhľady, pokiaľ to nie je vyslovene potrebné pre kontext. Cieľom je prehľadnosť a estetika, nie dĺžka.
 
 JAZYK (VÝSTUP PRE UŽÍVATEĽA): Všetky vygenerované texty v JSON objekte (nadpisy, obsah, odrážky) musia byť v **slovenčine**. Toto je kritické pre profesionálnu prezentáciu v CRM.
 `;
