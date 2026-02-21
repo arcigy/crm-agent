@@ -15,7 +15,10 @@ import {
   Receipt,
   Settings,
   X,
-  ChevronRight
+  ChevronRight,
+  Zap,
+  MapPin,
+  Bot
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -57,6 +60,14 @@ const menuGroups: MenuSection[] = [
       { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
     ],
   },
+  {
+    title: "Vlastné",
+    items: [
+      { name: "Cold Outreach", href: "/dashboard/outreach", icon: Zap },
+      { name: "Maps Scraper", href: "/dashboard/outreach/google-maps", icon: MapPin },
+      { name: "Agent AI", href: "/dashboard/agent", icon: Bot },
+    ],
+  },
 ];
 
 export function DashboardShell({ 
@@ -68,10 +79,15 @@ export function DashboardShell({
   completed?: boolean,
   onboardingScene?: React.ReactNode
 }) {
-  const [isMenuOpen, setIsMenuOpen] = React.useState(true);
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const pathname = usePathname();
   const { user } = useCurrentCRMUser();
   const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+
+  // Auto-close on navigation
+  React.useEffect(() => {
+    setIsMenuOpen(false);
+  }, [pathname]);
 
   const isItemAllowed = (item: NavigationItem) => {
     if (!item.allowedEmails) return true;
@@ -86,37 +102,36 @@ export function DashboardShell({
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* Persistent Hamburger Button (Mobile) */}
+      {/* Persistent Animated Hamburger Button */}
       <button
         onClick={() => setIsMenuOpen(!isMenuOpen)}
-        className="fixed top-6 left-6 z-[2100] w-12 h-12 rounded-2xl shadow-2xl flex items-center justify-center transition-all active:scale-95 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-white/10 text-zinc-600 dark:text-zinc-400 md:hidden"
+        className="fixed top-6 left-6 z-[2500] w-12 h-12 rounded-2xl shadow-xl flex items-center justify-center transition-all active:scale-95 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-white/10 text-zinc-600 dark:text-zinc-400 group overflow-hidden"
       >
-        {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        <div className="relative w-6 h-6 flex flex-col justify-center items-center gap-1.5">
+          <span className={`w-6 h-0.5 bg-current rounded-full transition-all duration-300 ${isMenuOpen ? 'rotate-45 translate-y-2 translate-x-0' : ''}`} />
+          <span className={`w-6 h-0.5 bg-current rounded-full transition-all duration-300 ${isMenuOpen ? 'opacity-0 -translate-x-full' : ''}`} />
+          <span className={`w-6 h-0.5 bg-current rounded-full transition-all duration-300 ${isMenuOpen ? '-rotate-45 -translate-y-2 translate-x-0' : ''}`} />
+        </div>
       </button>
 
-      {/* Sidebar */}
+      {/* Backdrop / Overlay */}
+      {isMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-md z-[1900] transition-all duration-500 animate-in fade-in" 
+          onClick={() => setIsMenuOpen(false)}
+        />
+      )}
+
       <aside
         className={`
-          fixed md:relative inset-y-0 left-0 z-[2000] bg-white/70 dark:bg-zinc-900/70 backdrop-blur-2xl border-r border-white/10 flex flex-col transition-all duration-300 ease-out
-          ${isMenuOpen ? "w-64 translate-x-0" : "w-0 -translate-x-full md:w-20 md:translate-x-0"}
+          fixed inset-y-0 left-0 z-[2000] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border-r border-white/10 flex flex-col transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)
+          ${isMenuOpen ? "w-80 translate-x-0 shadow-[20px_0_60px_rgba(0,0,0,0.2)]" : "w-80 -translate-x-full"}
         `}
       >
-        <div className={`flex flex-col h-full ${!isMenuOpen && "md:items-center"}`}>
-          {/* Header */}
-          <div className="p-6 flex items-center justify-between">
-            {isMenuOpen ? (
-              <span className="text-xl font-black italic tracking-tighter text-indigo-600">ARCIGY.</span>
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                <span className="text-white font-black text-xs">A</span>
-              </div>
-            )}
-            <button 
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors hidden md:block"
-            >
-                <ChevronRight size={18} className={`text-zinc-400 transition-transform ${isMenuOpen ? "rotate-180" : ""}`} />
-            </button>
+        <div className="flex flex-col h-full">
+          {/* Header (Clean version - no logo, no chevron) */}
+          <div className="p-8 flex items-center justify-between">
+             <span className="text-xs font-black uppercase tracking-[0.4em] text-zinc-400 opacity-40 italic">Menu</span>
           </div>
 
           {/* Nav */}
@@ -135,22 +150,15 @@ export function DashboardShell({
                       <Link
                         key={item.href}
                         href={item.href}
-                        onClick={() => window.innerWidth < 768 && setIsMenuOpen(false)}
                         className={`
-                          flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all relative group
+                          flex items-center gap-4 px-5 py-4 rounded-[1.5rem] text-sm font-bold transition-all relative group
                           ${isActive 
-                            ? "bg-indigo-600 text-white shadow-xl shadow-indigo-600/20" 
-                            : "text-zinc-500 dark:text-zinc-400 hover:bg-white/5 hover:text-indigo-600 dark:hover:text-indigo-400"}
-                          ${!isMenuOpen && "justify-center px-0 w-12 mx-auto"}
+                            ? "bg-indigo-600 text-white shadow-2xl shadow-indigo-600/30 scale-[1.02]" 
+                            : "text-zinc-500 dark:text-zinc-400 hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 hover:translate-x-1"}
                         `}
                       >
-                        <item.icon size={isActive ? 20 : 18} />
-                        {isMenuOpen && <span>{item.name}</span>}
-                        {!isMenuOpen && (
-                          <div className="absolute left-14 px-2 py-1 bg-zinc-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-                            {item.name}
-                          </div>
-                        )}
+                        <item.icon size={20} className={isActive ? "animate-pulse" : ""} />
+                        <span>{item.name}</span>
                       </Link>
                     );
                   })}
@@ -159,17 +167,16 @@ export function DashboardShell({
             ))}
           </nav>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-white/5 space-y-2">
+          <div className="p-6 border-t border-white/5 space-y-3">
             <ThemeToggle />
             <Link
               href="/dashboard/settings"
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-zinc-500 hover:bg-white/5 transition-all ${!isMenuOpen && "justify-center px-0 w-12 mx-auto"}`}
+              className={`flex items-center gap-4 px-5 py-4 rounded-[1.5rem] text-sm font-bold text-zinc-500 hover:bg-indigo-500/10 hover:text-indigo-600 transition-all hover:translate-x-1`}
             >
-              <Settings size={18} />
-              {isMenuOpen && <span>Nastavenia</span>}
+              <Settings size={20} />
+              <span>Nastavenia</span>
             </Link>
-            <LogoutButton className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-all ${!isMenuOpen && "justify-center px-0 w-12 mx-auto"}`} />
+            <LogoutButton className={`flex items-center gap-4 px-5 py-4 rounded-[1.5rem] text-sm font-bold text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-all hover:translate-x-1`} />
           </div>
         </div>
       </aside>
