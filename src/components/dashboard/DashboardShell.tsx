@@ -212,8 +212,8 @@ export function DashboardShell({
       <main 
         className={`flex-1 min-w-0 h-full overflow-hidden bg-transparent relative z-10 flex flex-col transition-all duration-300 ${isNavigating ? "opacity-30 blur-[2px] pointer-events-none" : "opacity-100 blur-0"}`}
       >
-          <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 mt-16 md:mt-0 scrollbar-hide">
-             <div className="max-w-7xl mx-auto h-full">
+          <div className="flex-1 overflow-y-auto px-2 md:px-6 py-4 md:py-6 mt-16 md:mt-0 scrollbar-hide">
+             <div className="w-full h-full">
                 {!completed && onboardingScene ? onboardingScene : children}
              </div>
           </div>

@@ -65,7 +65,7 @@ export default function OutreachLeadsPage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50/30">
+    <div className="flex h-full overflow-hidden bg-gray-50/30">
       <LeadsSidebar 
         lists={lists} 
         activeListName={activeListName} 
@@ -74,7 +74,7 @@ export default function OutreachLeadsPage() {
         handleEditList={() => {}}
       />
 
-      <main className="flex-1 overflow-y-auto w-full relative p-8 space-y-6">
+      <main className="flex-1 overflow-y-auto w-full relative p-2 md:p-4 space-y-6">
         <LeadsHeader 
           activeListName={activeListName}
           lists={lists}

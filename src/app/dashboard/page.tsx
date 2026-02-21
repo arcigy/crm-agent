@@ -79,7 +79,7 @@ async function AnalyticsAndChartsSection() {
 
 export default function DashboardPage() {
   return (
-    <div className="h-auto md:h-[calc(100vh-40px)] flex flex-col max-w-full mx-auto overflow-y-auto md:overflow-hidden gap-1 md:gap-4 p-0">
+    <div className="h-full flex flex-col max-w-full mx-auto overflow-y-auto md:overflow-hidden gap-1 md:gap-4 p-0">
       <PaymentSuccessToast />
 
       <div className="flex-shrink-0">
@@ -88,7 +88,7 @@ export default function DashboardPage() {
         </Suspense>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-0 md:gap-6 pb-8 md:max-w-5xl md:mx-auto w-full">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-0 md:gap-6 pb-8 w-full">
         <div className="lg:contents flex flex-col gap-0 overflow-hidden">
              <Suspense fallback={<div className="h-64 bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-[2.5rem]" />}>
                 <div className="lg:min-h-0"><TasksSection /></div>

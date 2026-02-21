@@ -72,8 +72,8 @@ async function ProjectsContent() {
 
 export default function ProjectsPage() {
   return (
-    <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col transition-colors duration-300 overflow-hidden">
-      <div className="flex items-center justify-between px-8 mb-4 flex-shrink-0">
+    <div className="space-y-6 h-full flex flex-col transition-colors duration-300 overflow-hidden">
+      <div className="flex items-center justify-between px-2 mb-4 flex-shrink-0">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
@@ -87,7 +87,7 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-8 pb-4">
+      <div className="flex-1 overflow-hidden px-2 pb-4">
         <Suspense fallback={<DashboardLoading />}>
           <ProjectsContent />
         </Suspense>

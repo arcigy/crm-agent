@@ -21,7 +21,7 @@ export default function NotesTool() {
   } = useNotes();
 
   return (
-    <div className="max-w-[1600px] mx-auto w-full h-[calc(100vh-140px)] flex flex-col space-y-6 p-4 animate-in fade-in duration-700 overflow-hidden">
+    <div className="w-full mx-auto h-full flex flex-col space-y-4 p-2 md:p-4 animate-in fade-in duration-700 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -22,3 +22,5 @@ export interface CalendarEvent {
     };
   };
 }
+
+export type CalendarView = "month" | "week" | "day" | "4days" | "year";

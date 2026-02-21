@@ -68,7 +68,7 @@ const settingsCategories = [
 
 export default function SettingsHub() {
   return (
-    <div className="min-h-[calc(100vh-8rem)] flex flex-col justify-between py-4 animate-in fade-in duration-500 relative">
+    <div className="h-full flex flex-col justify-between py-4 animate-in fade-in duration-500 relative">
       <div className="max-w-7xl w-full mx-auto space-y-8 flex-1 flex flex-col justify-center">
         {/* Header - Balanced */}
         <div className="flex flex-col items-center text-center gap-3">

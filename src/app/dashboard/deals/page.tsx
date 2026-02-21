@@ -81,7 +81,7 @@ async function DealsContent() {
 
 export default function DealsPage() {
   return (
-    <div className="space-y-6 h-[calc(100vh-120px)] flex flex-col p-8 transition-colors duration-500 overflow-hidden">
+    <div className="space-y-6 h-full flex flex-col p-2 transition-colors duration-500 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex flex-col gap-2">

@@ -51,7 +51,7 @@ function StatCard({ label, value, icon: Icon, trend, color }: StatCardProps) {
 
 export function DashboardStats({ stats }: { stats: any }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-3 pt-2 relative z-30 md:max-w-5xl mx-auto w-full">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-3 pt-2 relative z-30 w-full">
       <StatCard
         label="Kontakty"
         value={stats.contactsCount || 0}

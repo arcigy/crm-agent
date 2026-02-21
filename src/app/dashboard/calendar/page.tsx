@@ -126,7 +126,7 @@ function CalendarContent() {
   }
 
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col bg-white dark:bg-[#09090b] overflow-hidden shadow-2xl rounded-[3rem] border border-border dark:border-white/10 transition-colors duration-500">
+    <div className="h-full flex flex-col bg-white dark:bg-[#09090b] overflow-hidden shadow-2xl rounded-[3rem] border border-border dark:border-white/10 transition-colors duration-500">
       <CalendarHeader
         currentDate={currentDate}
         view={view}
