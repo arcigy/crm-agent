@@ -10,6 +10,16 @@ export async function getUserEmail(retries = 3): Promise<string | null> {
   const userId = session.userId;
   
   if (!userId) {
+    // BYPASS HACK for Localhost (removable later)
+    const isLocalhost = typeof window !== 'undefined' 
+      ? window.location.hostname === 'localhost' 
+      : process.env.NODE_ENV === 'development';
+      
+    if (isLocalhost || process.env.NEXT_PUBLIC_BYPASS_AUTH === "true") {
+      console.log("[Auth] Clerk skipped: Using local dev handle (arcigyback@gmail.com)");
+      return "arcigyback@gmail.com";
+    }
+
     console.warn("[Auth] No session found, user is definitely not logged in.");
     return null;
   }

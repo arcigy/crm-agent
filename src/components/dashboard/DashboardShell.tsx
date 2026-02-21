@@ -21,7 +21,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
 import { LogoutButton } from "./LogoutButton";
-import { useUser } from "@clerk/nextjs";
+import { useCurrentCRMUser } from "@/hooks/useCurrentCRMUser";
 import { FloatingAgentChat } from "./FloatingAgentChat";
 
 interface NavigationItem {
@@ -70,7 +70,7 @@ export function DashboardShell({
 }) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(true);
   const pathname = usePathname();
-  const { user } = useUser();
+  const { user } = useCurrentCRMUser();
   const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
 
   const isItemAllowed = (item: NavigationItem) => {
