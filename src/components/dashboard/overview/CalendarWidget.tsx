@@ -11,6 +11,16 @@ const SK_DAYS = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
 export function CalendarWidget({ events }: { events: any[] }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isExpanded, setIsExpanded] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useState(() => {
+    // This runs once on mount
+    if (typeof window !== 'undefined') {
+        setMounted(true);
+    }
+  });
+
+  if (!mounted) return null;
   
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));

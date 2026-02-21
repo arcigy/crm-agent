@@ -16,6 +16,13 @@ interface TodoListWidgetProps {
 export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   const [localTasks, setLocalTasks] = useState(tasks);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
   // Removed animatingIds for rapid toggling support
 
   useEffect(() => {
