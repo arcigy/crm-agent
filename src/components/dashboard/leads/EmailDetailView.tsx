@@ -69,14 +69,14 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
   const classification = email.classification;
 
   return (
-    <div className="flex flex-col h-full bg-[#f8f7ff] dark:bg-black text-[#1f1f1f] font-sans overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+    <div className="flex flex-col h-full bg-white dark:bg-black text-[#1f1f1f] font-sans overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300 relative">
       {/* ── Top Toolbar (Gmail Style) ── */}
-      <div className="h-14 px-4 flex items-center justify-between flex-shrink-0 bg-transparent">
+      <div className="h-14 px-4 flex items-center justify-between flex-shrink-0 bg-white dark:bg-zinc-950 border-b border-black/[0.03] dark:border-white/[0.03]">
         <div className="flex items-center gap-1">
           <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Späť">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="h-5 w-[1px] bg-[#f1f1f1] mx-1" />
+          <div className="h-5 w-[1px] bg-black/[0.05] mx-1" />
           <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Archivovať">
             <Archive className="w-5 h-5" />
           </button>
@@ -86,7 +86,7 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
           <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Odstrániť">
             <Trash2 className="w-5 h-5" />
           </button>
-          <div className="h-5 w-[1px] bg-[#f1f1f1] mx-1" />
+          <div className="h-5 w-[1px] bg-black/[0.05] mx-1" />
           <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Označiť ako neprečítané">
             <Mail className="w-5 h-5" />
           </button>
@@ -112,8 +112,8 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-12 relative scroll-smooth thin-scrollbar">
-        <div className="bg-white/95 dark:bg-zinc-900/60 min-h-full rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(100,_0,_255,_0.05)] border-none px-12 py-10 transition-all">
+      <div className="flex-1 overflow-y-auto thin-scrollbar">
+        <div className="max-w-[1200px] mx-auto px-12 py-10">
           {/* ── Subject Area ── */}
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-4">
@@ -157,8 +157,10 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
               <div className="text-[12px] font-bold flex items-center gap-1">
                 {email.date && !isNaN(new Date(email.date).getTime()) ? (
                   <>
-                    <span className="text-violet-600/80">{format(new Date(email.date), "eee d. M. H:mm", { locale: sk })}</span>
-                    <span className="opacity-40 font-normal ml-1">
+                    <span className="text-violet-600/80 uppercase tracking-tighter">
+                      {format(new Date(email.date), "eee d. M. H:mm", { locale: sk })}
+                    </span>
+                    <span className="opacity-40 font-normal ml-1 text-[11px]">
                       ({formatDistanceToNow(new Date(email.date), { addSuffix: true, locale: sk })})
                     </span>
                   </>
@@ -172,7 +174,7 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
             </div>
           </div>
 
-          {/* ── Email Body Content Area (Moved Up) ── */}
+          {/* ── Email Body Content Area ── */}
           <div className="text-[16px] leading-[1.8] text-[#111111] dark:text-zinc-100 whitespace-pre-wrap mb-10 border-b border-black/[0.03] pb-10">
             {email.bodyHtml ? (
               <iframe
@@ -209,7 +211,7 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
             )}
           </div>
 
-          {/* ── AI Insights Panel (Now below the body) ── */}
+          {/* ── AI Insights Panel ── */}
           {classification && (
             <div className="mb-10 p-6 bg-[#f8f6ff] border border-violet-100 rounded-[2rem] flex gap-5 shadow-sm">
               <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center flex-shrink-0 text-violet-600 shadow-inner">
@@ -252,69 +254,66 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
             </div>
           )}
 
-        {/* ── Attachments Section (Gmail Style) ── */}
-        {email.attachments && email.attachments.length > 0 && (
-          <div className="border-t border-[#f1f1f1] pt-6 mb-12">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-1.5 text-[14px] font-bold text-[#1f1f1f]">
-                {email.attachments.length === 1 ? "Jedna príloha" : `${email.attachments.length} prílohy`}
-                <span className="text-[#5e5e5e] font-normal mx-1">•</span>
-                <span className="text-[#5e5e5e] font-normal flex items-center gap-1 text-[13px]">
-                   Skontrolované Gmailom <CheckCircle2 className="w-3 h-3 text-green-600" />
-                </span>
-              </div>
-              <button className="text-[13px] font-medium text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded transition-all flex items-center gap-1.5">
-                 <Download className="w-4 h-4" /> Stiahnuť všetko
-              </button>
-            </div>
-
-            <div className="flex flex-wrap gap-4">
-              {email.attachments.map((att) => (
-                <div key={att.id} className="w-[180px] group border border-[#dfdfdf] rounded-lg overflow-hidden hover:shadow-md transition-all cursor-pointer">
-                  <div className="h-[120px] bg-zinc-50 flex items-center justify-center relative bg-center bg-cover" style={{ backgroundImage: att.mimeType?.startsWith("image/") ? `url(/api/google/gmail/${email.id}/attachment/${att.id})` : "none" }}>
-                    {!att.mimeType?.startsWith("image/") && (
-                       <div className="flex flex-col items-center gap-1">
-                          <Paperclip className="w-8 h-8 text-zinc-300" />
-                          <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">{att.filename?.split(".").pop()}</span>
-                       </div>
-                    )}
-                    {/* Hover Actions */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-4">
-                       <button onClick={() => handleDownload(att)} className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-all"><Download className="w-5 h-5" /></button>
-                       <button className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-all"><ExternalLink className="w-5 h-5" /></button>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-white border-t border-[#f1f1f1] flex items-center gap-2">
-                    <div className="w-6 h-6 rounded bg-red-100 flex items-center justify-center flex-shrink-0">
-                       <span className="text-[8px] font-black text-red-600 uppercase">{att.filename?.split(".").pop()}</span>
-                    </div>
-                    <div className="min-w-0">
-                       <p className="text-[12px] font-bold text-[#1f1f1f] truncate">{att.filename}</p>
-                       <p className="text-[10px] text-[#5e5e5e]">{(att.size / 1024).toFixed(0)} KB</p>
-                    </div>
-                  </div>
+          {/* ── Attachments Section ── */}
+          {email.attachments && email.attachments.length > 0 && (
+            <div className="border-t border-[#f1f1f1] pt-6 mb-12">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-1.5 text-[14px] font-bold text-[#1f1f1f]">
+                  {email.attachments.length === 1 ? "Jedna príloha" : `${email.attachments.length} prílohy`}
+                  <span className="text-[#5e5e5e] font-normal mx-1">•</span>
+                  <span className="text-[#5e5e5e] font-normal flex items-center gap-1 text-[13px]">
+                     Skontrolované Gmailom <CheckCircle2 className="w-3 h-3 text-green-600" />
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+                <button className="text-[13px] font-medium text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded transition-all flex items-center gap-1.5">
+                   <Download className="w-4 h-4" /> Stiahnuť všetko
+                </button>
+              </div>
 
-        {/* ── Footer Actions (Gmail Style) ── */}
-        <div className="flex items-center gap-2 pt-4">
-          <button className="flex items-center gap-2.5 px-6 py-2 border border-[#dfdfdf] rounded-full text-[14px] font-bold text-[#444746] hover:bg-black/5 transition-all">
-            <Reply className="w-4 h-4" /> Odpovedať
-          </button>
-          <button className="flex items-center gap-2.5 px-6 py-2 border border-[#dfdfdf] rounded-full text-[14px] font-bold text-[#444746] hover:bg-black/5 transition-all">
-            <Forward className="w-4 h-4" /> Preposlať
-          </button>
-          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]">
-            <Smile className="w-5 h-5" />
-          </button>
+              <div className="flex flex-wrap gap-4">
+                {email.attachments.map((att) => (
+                  <div key={att.id} className="w-[180px] group border border-[#dfdfdf] rounded-lg overflow-hidden hover:shadow-md transition-all cursor-pointer">
+                    <div className="h-[120px] bg-zinc-50 flex items-center justify-center relative bg-center bg-cover" style={{ backgroundImage: att.mimeType?.startsWith("image/") ? `url(/api/google/gmail/${email.id}/attachment/${att.id})` : "none" }}>
+                      {!att.mimeType?.startsWith("image/") && (
+                         <div className="flex flex-col items-center gap-1">
+                            <Paperclip className="w-8 h-8 text-zinc-300" />
+                            <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">{att.filename?.split(".").pop()}</span>
+                         </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-4">
+                         <button onClick={() => handleDownload(att)} className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-all"><Download className="w-5 h-5" /></button>
+                         <button className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-all"><ExternalLink className="w-5 h-5" /></button>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-white border-t border-[#f1f1f1] flex items-center gap-2">
+                      <div className="w-6 h-6 rounded bg-red-100 flex items-center justify-center flex-shrink-0">
+                         <span className="text-[8px] font-black text-red-600 uppercase">{att.filename?.split(".").pop()}</span>
+                      </div>
+                      <div className="min-w-0">
+                         <p className="text-[12px] font-bold text-[#1f1f1f] truncate">{att.filename}</p>
+                         <p className="text-[10px] text-[#5e5e5e]">{(att.size / 1024).toFixed(0)} KB</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Footer Actions ── */}
+          <div className="flex items-center gap-2 pt-4">
+            <button className="flex items-center gap-2.5 px-6 py-2 border border-[#dfdfdf] rounded-full text-[14px] font-bold text-[#444746] hover:bg-black/5 transition-all">
+              <Reply className="w-4 h-4" /> Odpovedať
+            </button>
+            <button className="flex items-center gap-2.5 px-6 py-2 border border-[#dfdfdf] rounded-full text-[14px] font-bold text-[#444746] hover:bg-black/5 transition-all">
+              <Forward className="w-4 h-4" /> Preposlať
+            </button>
+            <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]">
+              <Smile className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
-      </div>
-      {/* ── Bottom Fade Gradient ── */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#f8f7ff] via-[#f8f7ff]/90 to-transparent pointer-events-none z-20" />
     </div>
   );
 }
