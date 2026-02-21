@@ -106,7 +106,7 @@ export function DashboardShell({
   };
 
   return (
-    <div className="flex h-[100dvh] w-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
+    <div className="flex h-[100dvh] w-full bg-slate-50 dark:bg-black overflow-hidden relative">
       <style jsx global>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -129,7 +129,7 @@ export function DashboardShell({
         <div className="fixed top-0 left-0 right-0 z-[2500] h-14 flex items-center px-4 pointer-events-none">
           <button
             onClick={() => setIsMenuOpen(true)}
-            className="pointer-events-auto w-10 h-10 rounded-2xl shadow-lg flex items-center justify-center transition-all active:scale-95 bg-white/90 dark:bg-zinc-900/90 border border-black/10 dark:border-white/10 text-zinc-600 dark:text-zinc-400 animate-in fade-in duration-300"
+            className="pointer-events-auto w-10 h-10 rounded-2xl shadow-lg flex items-center justify-center transition-all active:scale-95 bg-white/90 dark:bg-black border border-black/10 dark:border-white/10 text-zinc-600 dark:text-zinc-400 animate-in fade-in duration-300"
           >
             <Menu size={18} />
           </button>
@@ -146,7 +146,7 @@ export function DashboardShell({
 
       <aside
         className={`
-          fixed inset-y-0 left-0 z-[2000] bg-white/95 dark:bg-zinc-900/95 border-r border-white/10 flex flex-col transition-transform duration-200 ease-out will-change-transform
+          fixed inset-y-0 left-0 z-[2000] bg-white/95 dark:bg-zinc-950 border-r border-white/10 flex flex-col transition-transform duration-200 ease-out will-change-transform
           ${isMenuOpen ? "w-80 translate-x-0 shadow-[20px_0_60px_rgba(0,0,0,0.2)]" : "w-80 -translate-x-full"}
         `}
       >
