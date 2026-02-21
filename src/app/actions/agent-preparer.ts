@@ -86,12 +86,12 @@ OUTPUT FORMAT (STRICT JSON):
             clean = clean.substring(startIdx, endIdx + 1);
         }
 
-        // Handle control characters/newlines
-        clean = clean.replace(/[\x00-\x1F\x7F-\x9F]/g, (match: string) => {
-            if (match === '\n') return "\\n";
-            if (match === '\r') return "\\r";
-            if (match === '\t') return "\\t";
-            return " ";
+        // Targeted Escape: Only escape control characters that are INSIDE double quotes.
+        clean = clean.replace(/"((?:[^"\\]|\\.)*)"/g, (match, p1) => {
+            return '"' + p1.replace(/\n/g, "\\n")
+                           .replace(/\r/g, "\\r")
+                           .replace(/\t/g, "\\t")
+                           .replace(/[\x00-\x1F\x7F-\x9F]/g, " ") + '"';
         });
 
         const parsed = JSON.parse(clean);
