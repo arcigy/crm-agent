@@ -63,12 +63,12 @@ export async function getProject(id: string | number): Promise<{
       try {
         const contact = (await directus.request(
           readItems("contacts", {
-            filter: {
-              _and: [
-                { id: { _eq: p.contact_id as string | number } },
-                { user_email: { _eq: email } },
-              ],
-            },
+              filter: {
+                _and: [
+                  { id: { _eq: p.contact_id as string | number } },
+                  { user_email: { _in: authEmails } },
+                ],
+              },
             fields: ["first_name", "last_name"] as string[],
             limit: 1,
           }),

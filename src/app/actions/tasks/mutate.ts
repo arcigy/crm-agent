@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import directus, { getDirectusErrorMessage } from "@/lib/directus";
 import { createItem, updateItem, deleteItem, readItem } from "@directus/sdk";
-import { getUserEmail } from "@/lib/auth";
+import { getUserEmail, isTeamMember } from "@/lib/auth";
 import { Task } from "./fetch";
 
 export async function createTask(title: string, dueDate?: string) {
@@ -46,7 +46,13 @@ export async function toggleTaskStatus(id: string, completed: boolean) {
     if (!email) return { success: false as const, error: "Unauthorized" };
 
     const current = (await directus.request(readItem("crm_tasks", id))) as Record<string, unknown>;
-    if ((current.user_email as string).toLowerCase() !== email.toLowerCase()) {
+    const taskOwner = (current.user_email as string).toLowerCase();
+
+    // Allow if it's the owner OR if both are team members (Branislav/Andrej)
+    const isOwner = taskOwner === email.toLowerCase();
+    const bothTeam = isTeamMember(email) && isTeamMember(taskOwner);
+
+    if (!isOwner && !bothTeam) {
       throw new Error("Access denied");
     }
 
@@ -73,7 +79,13 @@ export async function removeTask(id: string) {
     if (!email) return { success: false as const, error: "Unauthorized" };
 
     const current = (await directus.request(readItem("crm_tasks", id))) as Record<string, unknown>;
-    if ((current.user_email as string).toLowerCase() !== email.toLowerCase()) {
+    const taskOwner = (current.user_email as string).toLowerCase();
+
+    // Allow if it's the owner OR if both are team members
+    const isOwner = taskOwner === email.toLowerCase();
+    const bothTeam = isTeamMember(email) && isTeamMember(taskOwner);
+
+    if (!isOwner && !bothTeam) {
       throw new Error("Access denied");
     }
 
@@ -95,7 +107,13 @@ export async function updateTask(id: string, data: Partial<Task>) {
     if (!email) return { success: false as const, error: "Unauthorized" };
 
     const current = (await directus.request(readItem("crm_tasks", id))) as Record<string, unknown>;
-    if ((current.user_email as string).toLowerCase() !== email.toLowerCase()) {
+    const taskOwner = (current.user_email as string).toLowerCase();
+
+    // Allow if it's the owner OR if both are team members
+    const isOwner = taskOwner === email.toLowerCase();
+    const bothTeam = isTeamMember(email) && isTeamMember(taskOwner);
+
+    if (!isOwner && !bothTeam) {
       throw new Error("Access denied");
     }
 

@@ -2,7 +2,7 @@
 
 import directus from "@/lib/directus";
 import { createItems, readItems, updateItem, deleteItem, deleteItems } from "@directus/sdk";
-import { getUserEmail } from "@/lib/auth";
+import { getUserEmail, getAuthorizedEmails } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 export async function getOutreachLeads() {
@@ -10,12 +10,8 @@ export async function getOutreachLeads() {
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
 
-        const filter: any = { user_email: { _eq: userEmail } };
-        
-        // ADMIN FALLBACK: Allow admin to see Branislav's leads too
-        if (userEmail === 'arcigyback@gmail.com') {
-            filter.user_email = { _in: ['arcigyback@gmail.com', 'branislav@arcigy.group'] };
-        }
+        const authorizedEmails = await getAuthorizedEmails();
+        const filter = { user_email: { _in: authorizedEmails } };
 
         const leads = await directus.request(
             readItems("outreach_leads", {
@@ -84,12 +80,8 @@ export async function getOutreachCampaigns() {
         const userEmail = await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
 
-        const filter: any = { user_email: { _eq: userEmail } };
-        
-        // ADMIN FALLBACK: Allow admin to see Branislav's campaigns too
-        if (userEmail === 'arcigyback@gmail.com') {
-            filter.user_email = { _in: ['arcigyback@gmail.com', 'branislav@arcigy.group'] };
-        }
+        const authorizedEmails = await getAuthorizedEmails();
+        const filter = { user_email: { _in: authorizedEmails } };
 
         // SMARTLEAD SYNC: Optional, only if directus is empty or user wants "actual"
         // Let's at least try to get them to see if there are new ones

@@ -4,8 +4,7 @@ import directus from '@/lib/directus';
 import { readItems, createItem, updateItem, deleteItem } from '@directus/sdk';
 import { encrypt, decrypt } from '@/lib/encryption';
 import { revalidatePath } from 'next/cache';
-import { currentUser } from '@clerk/nextjs/server';
-import { headers } from 'next/headers';
+import { getUserEmail, getAuthorizedEmails } from "@/lib/auth";
 
 const COLLECTION = 'google_maps_keys';
 const APP_PATH = '/dashboard/outreach/google-maps';
@@ -25,30 +24,19 @@ export interface ApiKey {
 
 export async function getApiKeys(): Promise<ApiKey[]> {
     try {
-        const user = await currentUser();
-        let email = user?.emailAddresses[0]?.emailAddress;
-
-        // DEV BYPASS: If on localhost, allow dev email fallback
-        const headerList = await headers();
-        const host = headerList.get('host');
-        const isLocal = host?.includes('localhost') || host?.includes('127.0.0.1');
-
-        if (!email && isLocal) {
-            email = 'dev@arcigy.sk';
-            console.log("DEV MODE (getApiKeys): Using fallback email dev@arcigy.sk");
-        }
-
+        const email = await getUserEmail();
         if (!email) {
-            console.log("No user email found in Clerk");
+            console.log("No authorized email found");
             return [];
         }
 
-        console.log(`Fetching keys for: ${email}`);
+        const authorizedEmails = await getAuthorizedEmails();
+        console.log(`Fetching keys for authorized team: ${authorizedEmails.join(', ')}`);
 
         const items = await directus.request(readItems(COLLECTION, {
             fields: ['*'],
             filter: {
-                owner_email: { _eq: email }
+                owner_email: { _in: authorizedEmails }
             }
         }));
 
@@ -85,19 +73,7 @@ export async function getApiKeys(): Promise<ApiKey[]> {
 
 export async function saveApiKey(keyData: Partial<ApiKey>) {
     try {
-        const user = await currentUser();
-        let email = user?.emailAddresses[0]?.emailAddress;
-        
-        // DEV BYPASS: If on localhost, allow dev email fallback
-        const headerList = await headers();
-        const host = headerList.get('host');
-        const isLocal = host?.includes('localhost') || host?.includes('127.0.0.1');
-
-        if (!email && isLocal) {
-            email = 'dev@arcigy.sk';
-            console.log("DEV MODE (saveApiKey): Saving as dev@arcigy.sk");
-        }
-
+        const email = await getUserEmail();
         if (!email) throw new Error("Musíte byť prihlásený.");
         if (!keyData.key) throw new Error("Kľúč je povinný.");
 
