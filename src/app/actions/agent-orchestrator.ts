@@ -110,7 +110,8 @@ TASK:
 2. Plan the minimum steps needed using AVAILABLE TOOLS.
 3. If IDs are missing, search for them first.
 4. BEFORE CREATING: Always check if the entity (contact, project, task) already exists in the CRM using search/fetch tools. Never create duplicate contacts if they already exist.
-5. If the objective is complete, return steps: [].
+5. MISSING DATA: If the user wants to create something (contact, note, task) but provides no details (name, content, etc.), DO NOT return steps: []. Instead, include the creation tool in the plan with empty strings for missing arguments. The following Prep stage will ask use for details.
+6. If the objective is complete (e.g. user just said "thanks"), return steps: [].
 
 AVAILABLE TOOLS:
 ${JSON.stringify(toolsDocs.map(t => ({name: t.name, desc: t.description, params: t.parameters})), null, 2)}
@@ -124,6 +125,12 @@ RULES:
 6. CONCISE NOTES: For db_create_note, keep content professional but strictly follow user instructions. Don't invent unnecessary details.
 7. SLOVAK ARGS: All text arguments (title, content, comment, subject, body) must be in Slovak.
 8. NO REDUNDANCY: Never repeat a successful action (e.g., creating a contact/note/task) if it is already in HISTORY. If the goal is reached, return steps: [].
+
+9. FORCED PLANNING: If the user says "vytvor kontakt" (create contact) or similar, but provides no data, you MUST still plan the db_create_contact tool with empty strings. DO NOT return steps: [].
+
+EXAMPLES:
+- User: "Vytvor kontakt" -> Plan: steps: [{ "tool": "db_create_contact", "args": { "first_name": "" } }]
+- User: "Pridaj poznámku" -> Plan: steps: [{ "tool": "db_create_note", "args": { "title": "", "content": "" } }]
 
 OUTPUT FORMAT (STRICT JSON):
 {

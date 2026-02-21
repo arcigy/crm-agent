@@ -37,6 +37,8 @@ RULES:
 3. AMBIGUITY CHECK: Look at the PREVIOUS RESULTS in history. If they show 2+ items and the plan needs one specific item, set valid=false and ask which one.
    Example question: "Našiel som 2 poznámky: (1) Názov A, (2) Názov B. Ktorú chceš upraviť?"
 4. BREVITY: questions must be 1-2 sentences max in Slovak, no technical jargon.
+5. MISSING REQUIRED INFO: If a tool has required parameters (from definitions) that are empty units (""), null or missing in the PROPOSED STEPS, you MUST set valid: false and ask the user for that information in Slovak.
+   Example: If db_create_contact has first_name: "", ask "Aké je meno kontaktu, ktorý chcete vytvoriť?"
 
 OUTPUT FORMAT (STRICT JSON):
 {
