@@ -8,9 +8,13 @@ import { useUser } from "@clerk/nextjs";
 export function GoogleConnectButton({
   className = "",
   showManageOptions = false,
+  label = "Prepojiť Google",
+  isScopeFix = false,
 }: {
   className?: string;
   showManageOptions?: boolean;
+  label?: string;
+  isScopeFix?: boolean;
 }) {
   const { user, isLoaded } = useUser();
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +47,7 @@ export function GoogleConnectButton({
 
   if (!isLoaded) return <Loader2 className="w-4 h-4 animate-spin" />;
 
-  if (isConnected) {
+  if (isConnected && !isScopeFix) {
     if (!showManageOptions) {
         return null; // Keep it hidden in header/sidebar if already connected
     }
@@ -105,7 +109,7 @@ export function GoogleConnectButton({
       ) : (
         <Cloud className="w-4 h-4 text-orange-500" />
       )}
-      <span>Prepojiť Google účet (Výber mailu)</span>
+      <span>{label}</span>
     </button>
   );
 }

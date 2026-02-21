@@ -6,9 +6,11 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, Exter
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 
+import { GoogleConnectButton } from "@/components/dashboard/GoogleConnectButton";
+
 const SK_DAYS = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
 
-export function CalendarWidget({ events }: { events: any[] }) {
+export function CalendarWidget({ events, scopeError }: { events: any[], scopeError?: boolean }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isExpanded, setIsExpanded] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -132,7 +134,15 @@ export function CalendarWidget({ events }: { events: any[] }) {
         </div>
 
         <div className="space-y-2 overflow-y-auto thin-scrollbar pr-2 min-h-0 max-h-[300px]">
-          {dailyEvents.length > 0 ? dailyEvents.map((event, i) => (
+          {scopeError ? (
+            <div className="flex flex-col items-center justify-center text-center p-6 bg-amber-500/5 rounded-3xl border border-amber-500/20">
+               <div className="text-2xl mb-2">⚠️</div>
+               <p className="text-[11px] font-black uppercase text-amber-700 dark:text-amber-400 mb-4 tracking-tight leading-tight">
+                 Chýbajú povolenia pre kalendár
+               </p>
+               <GoogleConnectButton label="Opraviť prepojenie" isScopeFix={true} />
+            </div>
+          ) : dailyEvents.length > 0 ? dailyEvents.map((event, i) => (
             <div key={i} className="group flex items-stretch gap-4 p-3 bg-white/60 dark:bg-zinc-900/40 rounded-[1.2rem] border border-white/40 dark:border-white/5 hover:bg-white hover:border-indigo-100 transition-all shadow-sm">
               <div className="flex flex-col items-center justify-center w-14 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100/50 dark:border-indigo-800/30 flex-shrink-0 group-hover:bg-indigo-50 transition-colors">
                 <span className="text-[12px] font-black text-indigo-900 dark:text-indigo-300 tracking-tight leading-none">{event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "Celý deň"}</span>

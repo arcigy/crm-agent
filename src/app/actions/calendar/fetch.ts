@@ -22,6 +22,7 @@ export async function getCalendarEvents(
     const authEmails = await getAuthorizedEmails();
 
     let googleEvents: CalendarEvent[] = [];
+    let scopeError = false;
 
     if (token) {
       const calendar = await getCalendarClient(token);
@@ -34,8 +35,11 @@ export async function getCalendarEvents(
           orderBy: "startTime",
         });
         googleEvents = (response.data.items || []) as CalendarEvent[];
-      } catch (err) {
-        console.error("Failed to fetch Google Calendar events:", err);
+      } catch (err: any) {
+        console.error("Failed to fetch Google Calendar events:", err.message);
+        if (err.message?.toLowerCase().includes("insufficient authentication scopes")) {
+            scopeError = true;
+        }
       }
     }
 
@@ -153,6 +157,7 @@ export async function getCalendarEvents(
       success: true,
       events: mergedEvents,
       isConnected: !!token,
+      scopeError: scopeError,
     };
   } catch (error) {
     console.error("Calendar Fetch Error:", error);

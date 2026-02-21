@@ -55,7 +55,8 @@ async function CalendarSection() {
     // but it can fetch them internally if not provided.
     const res = await getCalendarEvents();
     const events = (res.success ? res.events : []) as any[];
-    return <CalendarWidget events={events} />;
+    const scopeError = res.success ? (res as any).scopeError : false;
+    return <CalendarWidget events={events} scopeError={scopeError} />;
 }
 
 async function AnalyticsAndChartsSection() {
