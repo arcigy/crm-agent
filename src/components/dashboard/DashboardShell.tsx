@@ -210,6 +210,20 @@ export function DashboardShell({
         </div>
       </aside>
 
+      {/* ── Neon Background Blobs – Dark mode only ── */}
+      <div className="pointer-events-none fixed inset-0 z-0 hidden dark:block overflow-hidden">
+        {/* Top-left indigo */}
+        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '6s' }} />
+        {/* Top-right violet */}
+        <div className="absolute -top-20 right-0 w-[400px] h-[400px] bg-violet-500/15 rounded-full blur-[100px] animate-pulse" style={{ animationDuration: '9s', animationDelay: '2s' }} />
+        {/* Bottom-right teal */}
+        <div className="absolute bottom-0 -right-20 w-[450px] h-[450px] bg-cyan-500/15 rounded-full blur-[130px] animate-pulse" style={{ animationDuration: '8s', animationDelay: '1s' }} />
+        {/* Bottom-left purple */}
+        <div className="absolute -bottom-40 left-1/4 w-[400px] h-[400px] bg-purple-600/15 rounded-full blur-[100px] animate-pulse" style={{ animationDuration: '10s', animationDelay: '3s' }} />
+        {/* Center faint blue */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-blue-500/8 rounded-full blur-[150px]" />
+      </div>
+
       {/* Main Content Area */}
       <main 
         className={`flex-1 min-w-0 h-full overflow-hidden bg-transparent relative z-10 flex flex-col transition-all duration-300 ${isNavigating ? "opacity-30 blur-[2px] pointer-events-none" : "opacity-100 blur-0"}`}
