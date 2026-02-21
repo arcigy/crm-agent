@@ -15,7 +15,13 @@ export async function GET(req: Request) {
         const { getValidToken, getCalendarClient } = await import("@/lib/google");
         const token = await getValidToken(user.id, userEmail);
 
-        if (!token) return NextResponse.json({ isConnected: false, error: 'Google account not linked or token expired' });
+        if (!token) {
+            return NextResponse.json({ 
+                isConnected: false, 
+                error: 'Google account not linked or token expired',
+                needsReauth: true
+            });
+        }
 
         let googleEvents: any[] = [];
         let isConnected = !!token;

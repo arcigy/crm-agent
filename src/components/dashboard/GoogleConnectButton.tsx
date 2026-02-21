@@ -77,8 +77,8 @@ export function GoogleConnectButton({
         </div>
         
         <div className="bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/30 rounded-xl p-4 space-y-3">
-          <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
-            Ak CRM nenačítava emaily alebo kalendár, pravdepodobne ste pri prvom prihlásení neudelili všetky potrebné povolenia.
+          <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed font-bold">
+            ⚠️ POZOR: Pri prihlasovaní MUSÍTE zaškrtnúť VŠETKY políčka (Gmail, Kalendár, Drive). Ak ste to neurobili, CRM nebude mať prístup k mailom.
           </p>
           
           <button

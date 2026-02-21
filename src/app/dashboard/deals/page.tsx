@@ -1,14 +1,15 @@
+import { Suspense } from "react";
 import { DealsTable } from "@/components/dashboard/DealsTable";
 import { getDeals } from "@/app/actions/deals";
 import { getProjects } from "@/app/actions/projects";
 import { getContacts } from "@/app/actions/contacts";
 import { Plus } from "lucide-react";
-
+import DashboardLoading from "@/app/dashboard/loading";
 import { Lead } from "@/types/contact";
 
 export const dynamic = "force-dynamic";
 
-export default async function DealsPage() {
+async function DealsContent() {
   const [dealsRes, projectsRes, contactsRes] = await Promise.all([
     getDeals(),
     getProjects(),
@@ -20,25 +21,7 @@ export default async function DealsPage() {
   const contacts = (contactsRes.data as Lead[]) || [];
 
   return (
-    <div className="space-y-6 h-[calc(100vh-120px)] flex flex-col p-8 transition-colors duration-500 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between shrink-0">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
-              Financie
-            </h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button className="flex items-center gap-2 px-6 py-3 bg-muted border border-border rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground/70 hover:bg-card transition-all active:scale-95">
-            <Plus className="w-4 h-4" /> Vytvoriť Obchod
-          </button>
-        </div>
-      </div>
-
-      {/* Quick Stats Banner */}
+    <>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 shrink-0">
         {[
           { label: "Otvorené obchody", value: projects.length, color: "blue" },
@@ -89,10 +72,36 @@ export default async function DealsPage() {
         ))}
       </div>
 
-      {/* Main Table */}
       <div className="flex-1 overflow-hidden scrollbar-hide">
         <DealsTable deals={deals} projects={projects} contacts={contacts} />
       </div>
+    </>
+  );
+}
+
+export default function DealsPage() {
+  return (
+    <div className="space-y-6 h-[calc(100vh-120px)] flex flex-col p-8 transition-colors duration-500 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between shrink-0">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
+              Financie
+            </h1>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button className="flex items-center gap-2 px-6 py-3 bg-muted border border-border rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground/70 hover:bg-card transition-all active:scale-95">
+            <Plus className="w-4 h-4" /> Vytvoriť Obchod
+          </button>
+        </div>
+      </div>
+
+      <Suspense fallback={<DashboardLoading />}>
+        <DealsContent />
+      </Suspense>
     </div>
   );
 }

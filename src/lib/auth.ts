@@ -1,10 +1,11 @@
 import { currentUser, auth, clerkClient } from "@clerk/nextjs/server";
+import { cache } from "react";
 import { shouldBypassAuth, DEV_ADMIN_EMAIL } from "./dev-mode/auth-bypass";
 
 /**
- * Gets the current user's email with high reliability.
+ * Gets the current user's email with high reliability. Cached per request.
  */
-export async function getUserEmail(retries = 3): Promise<string | null> {
+export const getUserEmail = cache(async function getUserEmail(retries = 3): Promise<string | null> {
   const session = await auth();
   const userId = session.userId;
   
@@ -54,19 +55,22 @@ export async function getUserEmail(retries = 3): Promise<string | null> {
   
   console.error(`[Auth] Failed to authorize user ${userId} after ${retries + 1} attempts`);
   return null;
-}
+});
 
 /**
  * Returns a list of emails that the current user is authorized to see data for.
  * Implements "Arcigy Team" logic: Branislav and Andrej see each other's data.
+ * Cached per request.
  */
-export async function getAuthorizedEmails(): Promise<string[]> {
+export const getAuthorizedEmails = cache(async function getAuthorizedEmails(): Promise<string[]> {
     const email = await getUserEmail();
     if (!email) return [];
 
     const TEAM_MEMBERS = [
         "branislav@arcigy.group",
-        "andrej@arcigy.group"
+        "andrej@arcigy.group",
+        "branislav@acg.group",
+        "andrej@acg.group"
     ];
 
     if (TEAM_MEMBERS.includes(email.toLowerCase())) {
@@ -74,7 +78,7 @@ export async function getAuthorizedEmails(): Promise<string[]> {
     }
 
     return [email];
-}
+});
 
 /**
  * Checks if a given email belongs to the Arcigy team.
@@ -83,7 +87,9 @@ export function isTeamMember(email: string | null | undefined): boolean {
     if (!email) return false;
     const TEAM_MEMBERS = [
         "branislav@arcigy.group",
-        "andrej@arcigy.group"
+        "andrej@arcigy.group",
+        "branislav@acg.group",
+        "andrej@acg.group"
     ];
     return TEAM_MEMBERS.includes(email.toLowerCase());
 }

@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import { ContactsTable } from "@/components/dashboard/ContactsTable";
 import { getContacts, createContact } from "@/app/actions/contacts";
+import DashboardLoading from "@/app/dashboard/loading";
 
 export const dynamic = "force-dynamic";
 
-export default async function ContactsPage() {
+async function ContactsContent() {
   const res = await getContacts();
   const contacts = res.success ? (res.data as any[]) : [];
 
@@ -13,6 +15,14 @@ export default async function ContactsPage() {
   }
 
   return (
+    <div className="flex-1 overflow-hidden">
+      <ContactsTable data={contacts} onCreate={handleCreate} />
+    </div>
+  );
+}
+
+export default function ContactsPage() {
+  return (
     <div className="space-y-6 h-[calc(100vh-40px)] flex flex-col">
       {/* Header - Clean "Nástenka" style */}
       <div className="flex items-center justify-between px-2">
@@ -21,10 +31,9 @@ export default async function ContactsPage() {
         </h1>
       </div>
 
-      {/* Main Table */}
-      <div className="flex-1 overflow-hidden">
-        <ContactsTable data={contacts} onCreate={handleCreate} />
-      </div>
+      <Suspense fallback={<DashboardLoading />}>
+        <ContactsContent />
+      </Suspense>
     </div>
   );
 }
