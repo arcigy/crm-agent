@@ -32,7 +32,7 @@ export async function verifyExecutionResults(
     `;
 
     const response = await generateText({
-      model: google("gemini-2.0-flash-lite-lite"),
+      model: google("gemini-1.5-flash"),
       system: systemPrompt,
       prompt: `INTENT: ${originalIntent}\n\nRESULTS:\n${JSON.stringify(
         results,
@@ -44,7 +44,7 @@ export async function verifyExecutionResults(
     trackAICall(
         "verifier",
         "gemini",
-        "gemini-2.0-flash-lite-lite",
+        "gemini-1.5-flash",
         systemPrompt + originalIntent,
         response.text,
         Date.now() - start,

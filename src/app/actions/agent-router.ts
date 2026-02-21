@@ -28,7 +28,7 @@ export async function routeIntent(
     `;
 
     const response = await generateText({
-      model: google("gemini-2.0-flash-lite-lite-lite"), 
+      model: google("gemini-1.5-flash"), 
       system: systemPrompt,
       prompt: `HISTORY:\n${JSON.stringify(history?.slice?.(-2) || [])}\n\nMESSAGE:\n${lastUserMessage}`,
     });
@@ -36,7 +36,7 @@ export async function routeIntent(
     trackAICall(
         "conversational",
         "gemini",
-        "gemini-2.0-flash-lite-lite-lite",
+        "gemini-1.5-flash",
         systemPrompt + lastUserMessage,
         response.text,
         Date.now() - start,

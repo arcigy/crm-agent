@@ -62,7 +62,7 @@ OUTPUT FORMAT (STRICT JSON):
     `;
 
     const response = await withRetry(() => generateText({
-      model: google("gemini-2.0-flash-lite-lite"), // Efficient model for argument validation
+      model: google("gemini-1.5-flash"), // Efficient model for argument validation
       system: systemPrompt,
       prompt: prompt,
     }));
@@ -70,7 +70,7 @@ OUTPUT FORMAT (STRICT JSON):
     trackAICall(
         "orchestrator", // Using orchestrator as phase for now
         "gemini",
-        "gemini-2.0-flash-lite-lite",
+        "gemini-1.5-flash",
         systemPrompt + prompt,
         response.text,
         Date.now() - start,
