@@ -144,7 +144,7 @@ OUTPUT FORMAT (STRICT JSON):
     console.log("[ORCHESTRATOR] History Context sent to AI:", JSON.stringify(historyContext, null, 2));
 
     const response = await withRetry(() => generateText({
-      model: google("gemini-2.0-flash"),
+      model: google("gemini-2.0-flash-lite-lite"),
       system: systemPrompt,
       temperature: 0.1, // Near-deterministic planning
       prompt: `KONTEXT KONVERZÁCIE A DOTERAJŠIE VÝSLEDKY:\n${JSON.stringify(historyContext.slice(-10))}\n\nDOSIAHNI CIEĽ Z POSLEDNEJ SPRÁVY UŽÍVATEĽA.`,
@@ -153,7 +153,7 @@ OUTPUT FORMAT (STRICT JSON):
     trackAICall(
         "orchestrator",
         "gemini",
-        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite-lite",
         systemPrompt + (messages[messages.length - 1].content || ""),
         response.text,
         Date.now() - start,

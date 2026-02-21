@@ -29,9 +29,9 @@ const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 export const AI_MODELS = {
   GATEKEEPER: "gpt-4o-mini", // GPT-5 Nano nie je ešte v SDK, fallback
   ORCHESTRATOR: "claude-3-5-sonnet-20241022", // Claude 3.7 Sonnet
-  VERIFIER: "gemini-2.0-flash", // Gemini 2.0 Flash
-  FINAL_REPORT: "gemini-2.0-flash", // Gemini 2.5 Flash
-  EMAIL_CLASSIFIER: "gemini-2.0-flash", // Claude pre emaily
+  VERIFIER: "gemini-2.0-flash-lite-lite", // Gemini 2.0 Flash
+  FINAL_REPORT: "gemini-2.0-flash-lite-lite", // Gemini 2.5 Flash
+  EMAIL_CLASSIFIER: "gemini-2.0-flash-lite-lite", // Claude pre emaily
 } as const;
 
 // === UNIFIED RESPONSE TYPE ===

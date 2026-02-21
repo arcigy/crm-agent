@@ -1,4 +1,4 @@
-Ôªø"use client";
+"use client";
 
 import * as React from "react";
 import { useState } from "react";
@@ -28,18 +28,18 @@ import { ThemeToggle } from "./ThemeToggle";
 import { useUser } from "@clerk/nextjs";
 
 const navigation = [
-  { name: "N√°stenka", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Doruƒçen√° po≈°ta", href: "/dashboard/leads", icon: Mail },
+  { name: "N·stenka", href: "/dashboard", icon: LayoutDashboard },
+  { name: "DoruËen· poöta", href: "/dashboard/leads", icon: Mail },
   { name: "Kontakty", href: "/dashboard/contacts", icon: Users },
   { name: "Obchody", href: "/dashboard/deals", icon: Briefcase },
   { name: "Projekty", href: "/dashboard/projects", icon: FolderKanban },
-  { name: "Kalend√°r", href: "/dashboard/calendar", icon: Calendar },
-  { name: "√ölohy", href: "/dashboard/todo", icon: CheckSquare },
-  { name: "Pozn√°mky", href: "/dashboard/notes", icon: FileText },
-  { name: "S√∫bory", href: "/dashboard/files", icon: HardDrive },
-  { name: "Faktur√°cia", href: "/dashboard/invoicing", icon: Receipt },
+  { name: "Kalend·r", href: "/dashboard/calendar", icon: Calendar },
+  { name: "⁄lohy", href: "/dashboard/todo", icon: CheckSquare },
+  { name: "Pozn·mky", href: "/dashboard/notes", icon: FileText },
+  { name: "S˙bory", href: "/dashboard/files", icon: HardDrive },
+  { name: "Faktur·cia", href: "/dashboard/invoicing", icon: Receipt },
   { name: "AI Kontext", href: "/dashboard/settings/ai", icon: BrainCircuit },
-  { name: "Pam√§≈• AI", href: "/dashboard/settings/memory", icon: History },
+  { name: "Pam‰ù AI", href: "/dashboard/settings/memory", icon: History },
   {
     name: "Cold Outreach",
     href: "/dashboard/outreach",

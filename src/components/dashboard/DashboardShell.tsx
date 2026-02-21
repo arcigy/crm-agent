@@ -1,4 +1,4 @@
-Ôªø"use client";
+"use client";
 
 import * as React from "react";
 import { 
@@ -39,12 +39,12 @@ interface MenuGroup {
 
 const menuGroups: MenuGroup[] = [
   {
-    title: "Denn√Ω prehƒæad",
+    title: "Denn˝ prehæad",
     items: [
-      { name: "N√°stenka", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Kalend√°r", href: "/dashboard/calendar", icon: Calendar },
-      { name: "√ölohy", href: "/dashboard/todo", icon: CheckSquare },
-      { name: "Doruƒçen√° po≈°ta", href: "/dashboard/leads", icon: Mail },
+      { name: "N·stenka", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Kalend·r", href: "/dashboard/calendar", icon: Calendar },
+      { name: "⁄lohy", href: "/dashboard/todo", icon: CheckSquare },
+      { name: "DoruËen· poöta", href: "/dashboard/leads", icon: Mail },
     ]
   },
   {
@@ -52,15 +52,15 @@ const menuGroups: MenuGroup[] = [
     items: [
       { name: "Kontakty", href: "/dashboard/contacts", icon: Users },
       { name: "Obchody", href: "/dashboard/deals", icon: Briefcase },
-      { name: "Faktur√°cia", href: "/dashboard/invoicing", icon: Receipt },
+      { name: "Faktur·cia", href: "/dashboard/invoicing", icon: Receipt },
     ]
   },
   {
     title: "Produkcia",
     items: [
       { name: "Projekty", href: "/dashboard/projects", icon: FolderKanban },
-      { name: "Pozn√°mky", href: "/dashboard/notes", icon: FileText },
-      { name: "S√∫bory", href: "/dashboard/files", icon: HardDrive },
+      { name: "Pozn·mky", href: "/dashboard/notes", icon: FileText },
+      { name: "S˙bory", href: "/dashboard/files", icon: HardDrive },
     ]
   },
   {

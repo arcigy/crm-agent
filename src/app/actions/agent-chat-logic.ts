@@ -30,8 +30,8 @@ export async function chatWithAgent(messages: ChatMessage[]) {
     providers: {
       gatekeeper: "OpenAI GPT-4o-mini",
       orchestrator: "Anthropic Claude 3.7 Sonnet",
-      verifier: "Google Gemini 2.0 Flash",
-      reporter: "Google Gemini 2.0 Flash",
+      verifier: "Google Gemini 2.0 Flash-Lite-Lite",
+      reporter: "Google Gemini 2.0 Flash-Lite-Lite",
     },
     costTracking: null as any, // Typed as SessionCost in usage
   });
@@ -72,8 +72,8 @@ export async function chatWithAgent(messages: ChatMessage[]) {
         providers: {
           gatekeeper: "OpenAI GPT-4o-mini",
           orchestrator: "Anthropic Claude 3.7 Sonnet",
-          verifier: "Google Gemini 2.0 Flash",
-          reporter: "Google Gemini 2.0 Flash",
+          verifier: "Google Gemini 2.0 Flash-Lite-Lite",
+          reporter: "Google Gemini 2.0 Flash-Lite-Lite",
         },
         costTracking: null,
       });

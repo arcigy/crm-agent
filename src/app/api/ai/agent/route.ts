@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
             if (routing.type === 'CONVERSATION') {
                 await log("ROUTER", "Route: Simple Conversation");
-                const result = streamText({ model: google('gemini-2.0-flash'), system: `Helpful CRM assistant for ${userEmail}.`, messages });
+                const result = streamText({ model: google('gemini-2.0-flash-lite-lite'), system: `Helpful CRM assistant for ${userEmail}.`, messages });
                 for await (const delta of result.textStream) await writer.write(encoder.encode(delta));
                 return;
             }
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
             const verification = await verifyExecutionResults("task", finalResults);
             await log("VERIFIER", "Analysis", verification.analysis);
             
-            const reportResult = streamText({ model: google('gemini-2.0-flash'), prompt: `System: Send this exact message to user: "${verification.analysis}"` });
+            const reportResult = streamText({ model: google('gemini-2.0-flash-lite-lite'), prompt: `System: Send this exact message to user: "${verification.analysis}"` });
             for await (const delta of reportResult.textStream) await writer.write(encoder.encode(delta));
 
             const sessionSummary = endCostSession();

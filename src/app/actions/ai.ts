@@ -135,7 +135,7 @@ Vráť čistý JSON. Odpovedaj v slovenčine.
 
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.0-flash-lite-lite",
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0,
@@ -211,7 +211,7 @@ JAZYK (VÝSTUP PRE UŽÍVATEĽA): Všetky vygenerované texty v JSON objekte (na
 
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.0-flash-lite-lite",
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 1, // High temperature for maximum creativity

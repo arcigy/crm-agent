@@ -26,7 +26,7 @@ export const AI_PRICING = {
   "claude-opus-4.5": { input: 5.0, output: 25.0 },
 
   // Google Gemini
-  "gemini-2.0-flash": { input: 0.1, output: 0.4 },
+  "gemini-2.0-flash-lite-lite": { input: 0.1, output: 0.4 },
   "gemini-2.5-flash": { input: 0.3, output: 2.5 },
   "gemini-3-flash": { input: 0.5, output: 3.0 },
   "gemini-3-pro": { input: 2.0, output: 12.0 },
