@@ -151,8 +151,9 @@ export function DashboardShell({
                       <Link
                         key={item.href}
                         href={item.href}
+                        onClick={() => setIsMenuOpen(false)}
                         className={`
-                          flex items-center gap-4 px-5 py-4 rounded-[1.5rem] text-sm font-bold transition-all relative group
+                          flex items-center gap-4 px-5 py-4 rounded-[1.5rem] text-sm font-bold transition-all relative group active:scale-95
                           ${isActive 
                             ? "bg-indigo-600 text-white shadow-2xl shadow-indigo-600/30 scale-[1.02]" 
                             : "text-zinc-500 dark:text-zinc-400 hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 hover:translate-x-1"}
@@ -172,6 +173,7 @@ export function DashboardShell({
             <ThemeToggle />
             <Link
               href="/dashboard/settings"
+              onClick={() => setIsMenuOpen(false)}
               className={`flex items-center gap-4 px-5 py-3 rounded-2xl text-sm font-bold text-zinc-500 hover:bg-indigo-500/10 hover:text-indigo-600 transition-all`}
             >
               <Settings size={18} />
