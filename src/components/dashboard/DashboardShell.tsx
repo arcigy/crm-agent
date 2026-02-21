@@ -188,7 +188,7 @@ export function DashboardShell({
       <main 
         className={`
           flex-1 min-w-0 h-full overflow-y-auto md:overflow-hidden bg-transparent relative z-10 transition-all duration-300 ease-out
-          ${isMenuOpen ? "md:max-w-[calc(100%-16rem)]" : "md:max-w-[calc(100%-4rem)]"}
+          ${isMenuOpen ? "md:ml-64" : "md:ml-16 ml-0"}
         `}
       >
         <div className="p-0 md:p-6 transition-all h-full">

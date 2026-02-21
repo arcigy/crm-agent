@@ -170,10 +170,10 @@ export function TodoThreeDayView({
         </button>
       </div>
 
-      {/* Responsive Grid Layout - Tighter gap for better cohesion */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4 flex-1 min-h-0 items-center max-w-7xl mx-auto w-full">
+      {/* Responsive Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
         {/* YESTERDAY - hidden on mobile */}
-        <div className="hidden lg:flex h-[90%] items-center justify-center">
+        <div className="hidden lg:flex h-full">
           <DayColumn
             title={getRelativeDateLabel(yesterday)}
             date={yesterday}
@@ -186,21 +186,19 @@ export function TodoThreeDayView({
           />
         </div>
 
-        {/* TODAY - always visible, slightly larger and key focus */}
-        <div className="h-full flex items-center justify-center">
-          <DayColumn
-            title={getRelativeDateLabel(current)}
-            date={current}
-            tasks={todayTasks}
-            onToggle={onToggle}
-            onDelete={onDelete}
-            onUpdate={onUpdate}
-            variant="center"
-          />
-        </div>
+        {/* TODAY - always visible */}
+        <DayColumn
+          title={getRelativeDateLabel(current)}
+          date={current}
+          tasks={todayTasks}
+          onToggle={onToggle}
+          onDelete={onDelete}
+          onUpdate={onUpdate}
+          variant="center"
+        />
 
         {/* TOMORROW - hidden on mobile */}
-        <div className="hidden lg:flex h-[90%] items-center justify-center">
+        <div className="hidden lg:flex h-full">
           <DayColumn
             title={getRelativeDateLabel(tomorrow)}
             date={tomorrow}
@@ -244,11 +242,11 @@ function DayColumn({
     <div
       onClick={onClick}
       className={`
-        flex flex-col h-full w-full rounded-[2.5rem] overflow-hidden transition-all duration-500 border
+        flex flex-col h-full rounded-[2.5rem] overflow-hidden transition-all duration-300 border
         ${
           isCenter
-            ? "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] scale-[1.05] z-10"
-            : "bg-zinc-50/80 dark:bg-zinc-950/40 border-zinc-100 dark:border-zinc-800/50 hover:bg-white dark:hover:bg-zinc-900 hover:scale-[0.98] cursor-pointer scale-[0.95] opacity-80"
+            ? "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm z-10"
+            : "bg-zinc-50 dark:bg-zinc-950/50 border-zinc-100 dark:border-zinc-800/50 hover:bg-white dark:hover:bg-zinc-900 hover:scale-[1.02] cursor-pointer"
         }
       `}
     >
