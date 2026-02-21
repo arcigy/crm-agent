@@ -102,40 +102,43 @@ export function DashboardShell({
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* Persistent Animated Hamburger Button */}
-      <button
-        onClick={() => setIsMenuOpen(!isMenuOpen)}
-        className="fixed top-6 left-6 z-[2500] w-12 h-12 rounded-2xl shadow-xl flex items-center justify-center transition-all active:scale-95 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-white/10 text-zinc-600 dark:text-zinc-400 group overflow-hidden"
-      >
-        <div className="relative w-6 h-6 flex flex-col justify-center items-center gap-1.5">
-          <span className={`w-6 h-0.5 bg-current rounded-full transition-all duration-300 ${isMenuOpen ? 'rotate-45 translate-y-2 translate-x-0' : ''}`} />
-          <span className={`w-6 h-0.5 bg-current rounded-full transition-all duration-300 ${isMenuOpen ? 'opacity-0 -translate-x-full' : ''}`} />
-          <span className={`w-6 h-0.5 bg-current rounded-full transition-all duration-300 ${isMenuOpen ? '-rotate-45 -translate-y-2 translate-x-0' : ''}`} />
-        </div>
-      </button>
+      {/* Persistent Hamburger Button (Trigger) - Only visible when menu is closed */}
+      {!isMenuOpen && (
+        <button
+          onClick={() => setIsMenuOpen(true)}
+          className="fixed top-6 left-6 z-[2500] w-12 h-12 rounded-2xl shadow-xl flex items-center justify-center transition-all active:scale-95 bg-white/90 dark:bg-zinc-900/90 border border-white/10 text-zinc-600 dark:text-zinc-400 group overflow-hidden animate-in fade-in duration-300"
+        >
+          <Menu size={20} />
+        </button>
+      )}
 
-      {/* Backdrop / Overlay */}
+      {/* Backdrop / Overlay - No blur as requested */}
       {isMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/40 backdrop-blur-md z-[1900] transition-all duration-500 animate-in fade-in" 
+          className="fixed inset-0 bg-black/40 z-[1900] transition-opacity duration-300 animate-in fade-in" 
           onClick={() => setIsMenuOpen(false)}
         />
       )}
 
       <aside
         className={`
-          fixed inset-y-0 left-0 z-[2000] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border-r border-white/10 flex flex-col transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)
+          fixed inset-y-0 left-0 z-[2000] bg-white/95 dark:bg-zinc-900/95 border-r border-white/10 flex flex-col transition-transform duration-300 ease-out will-change-transform
           ${isMenuOpen ? "w-80 translate-x-0 shadow-[20px_0_60px_rgba(0,0,0,0.2)]" : "w-80 -translate-x-full"}
         `}
       >
-        <div className="flex flex-col h-full">
-          {/* Header (Clean version - no logo, no chevron) */}
-          <div className="p-8 flex items-center justify-between">
-             <span className="text-xs font-black uppercase tracking-[0.4em] text-zinc-400 opacity-40 italic">Menu</span>
+        <div className="flex flex-col h-full overflow-hidden">
+          {/* Header - Closing Button on Right */}
+          <div className="p-6 flex items-center justify-end">
+             <button 
+                onClick={() => setIsMenuOpen(false)}
+                className="w-10 h-10 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 flex items-center justify-center transition-colors text-zinc-400"
+             >
+                <X size={20} />
+             </button>
           </div>
 
           {/* Nav */}
-          <nav className="flex-1 px-4 py-4 space-y-8 overflow-y-auto scrollbar-hide">
+          <nav className="flex-1 px-4 py-2 space-y-6 overflow-y-auto scrollbar-hide">
             {menuGroups.map((group) => (
               <div key={group.title} className="space-y-2">
                 {isMenuOpen && (
@@ -167,16 +170,16 @@ export function DashboardShell({
             ))}
           </nav>
 
-          <div className="p-6 border-t border-white/5 space-y-3">
+          <div className="p-4 border-t border-white/5 space-y-1">
             <ThemeToggle />
             <Link
               href="/dashboard/settings"
-              className={`flex items-center gap-4 px-5 py-4 rounded-[1.5rem] text-sm font-bold text-zinc-500 hover:bg-indigo-500/10 hover:text-indigo-600 transition-all hover:translate-x-1`}
+              className={`flex items-center gap-4 px-5 py-3 rounded-2xl text-sm font-bold text-zinc-500 hover:bg-indigo-500/10 hover:text-indigo-600 transition-all`}
             >
-              <Settings size={20} />
+              <Settings size={18} />
               <span>Nastavenia</span>
             </Link>
-            <LogoutButton className={`flex items-center gap-4 px-5 py-4 rounded-[1.5rem] text-sm font-bold text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-all hover:translate-x-1`} />
+            <LogoutButton className={`flex items-center gap-4 px-5 py-3 rounded-2xl text-sm font-bold text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-all`} />
           </div>
         </div>
       </aside>
