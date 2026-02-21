@@ -60,7 +60,15 @@ const menuGroups: MenuSection[] = [
   },
 ];
 
-export default function DashboardShell({ children }: { children: React.ReactNode }) {
+export default function DashboardShell({ 
+  children, 
+  completed, 
+  onboardingScene 
+}: { 
+  children: React.ReactNode,
+  completed?: boolean,
+  onboardingScene?: React.ReactNode
+}) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const pathname = usePathname();
   const { user } = useUser();
@@ -185,7 +193,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       >
         <div className="p-0 md:p-6 transition-all h-full">
           <div className="max-w-full mx-auto h-full flex flex-col">
-            {children}
+            {!completed && onboardingScene ? onboardingScene : children}
           </div>
         </div>
       </main>
