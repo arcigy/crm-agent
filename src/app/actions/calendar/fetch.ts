@@ -36,9 +36,12 @@ export async function getCalendarEvents(
         });
         googleEvents = (response.data.items || []) as CalendarEvent[];
       } catch (err: any) {
-        console.error("Failed to fetch Google Calendar events:", err.message);
-        if (err.message?.toLowerCase().includes("insufficient authentication scopes")) {
+        const msg = err.message?.toLowerCase() || "";
+        if (msg.includes("insufficient authentication scopes")) {
+            console.warn("⚠️ [Calendar] Prístup zamietnutý: Chýbajú oprávnenia (scopes). Používateľ musí znovu prepojiť účet.");
             scopeError = true;
+        } else {
+            console.error("Failed to fetch Google Calendar events:", err.message);
         }
       }
     }
