@@ -212,16 +212,10 @@ export function DashboardShell({
 
       {/* ── Neon Background Blobs – Dark mode only ── */}
       <div className="pointer-events-none fixed inset-0 z-0 hidden dark:block overflow-hidden">
-        {/* Top-left indigo */}
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '6s' }} />
-        {/* Top-right violet */}
-        <div className="absolute -top-20 right-0 w-[400px] h-[400px] bg-violet-500/15 rounded-full blur-[100px] animate-pulse" style={{ animationDuration: '9s', animationDelay: '2s' }} />
-        {/* Bottom-right teal */}
-        <div className="absolute bottom-0 -right-20 w-[450px] h-[450px] bg-cyan-500/15 rounded-full blur-[130px] animate-pulse" style={{ animationDuration: '8s', animationDelay: '1s' }} />
-        {/* Bottom-left purple */}
-        <div className="absolute -bottom-40 left-1/4 w-[400px] h-[400px] bg-purple-600/15 rounded-full blur-[100px] animate-pulse" style={{ animationDuration: '10s', animationDelay: '3s' }} />
-        {/* Center faint blue */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-blue-500/8 rounded-full blur-[150px]" />
+        <div className="absolute top-8 left-8 w-24 h-24 bg-indigo-500/40 rounded-full blur-[50px]" />
+        <div className="absolute top-8 right-8 w-20 h-20 bg-violet-500/35 rounded-full blur-[45px]" />
+        <div className="absolute bottom-8 right-8 w-24 h-24 bg-cyan-500/30 rounded-full blur-[50px]" />
+        <div className="absolute bottom-8 left-8 w-20 h-20 bg-purple-500/35 rounded-full blur-[45px]" />
       </div>
 
       {/* Main Content Area */}
