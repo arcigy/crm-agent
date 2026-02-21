@@ -12,58 +12,69 @@ const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 export async function validateActionPlan(
   intent: string,
   steps: any[],
-  conversationHistory: any[]
+  conversationHistory: any[],
+  missionHistory: any[] = []
 ) {
   const start = Date.now();
   try {
-    const toolsContext = ALL_ATOMS.map((t) => ({
-      name: t.function.name,
-      parameters: t.function.parameters,
-    }));
+    // Compact tool documentation to save prompt space
+    const toolsContext = ALL_ATOMS.map((t) => {
+      const p = t.function.parameters?.properties || {};
+      const required = t.function.parameters?.required || [];
+      const paramsSummary = Object.keys(p).map(k => {
+        const isReq = required.includes(k) ? "*" : "";
+        return `${isReq}${k}`;
+      }).join(",");
+      return `${t.function.name}(${paramsSummary})`;
+    }).join(" | ");
 
     const systemPrompt = `
 ROLE:
 You are the Action Preparer (Safety Net) for a CRM agent. Your job: validate and heal the plan, and detect user-facing ambiguity.
 
 TASK:
-1. NORMALIZE: Fix camelCase to snake_case. Map aliases (id → contact_id, etc.).
-2. HEAL: If a required ID is missing but exists in history, inject it.
-3. DETECT AMBIGUITY: If the previous step results contain MULTIPLE items (e.g. 2 notes, 3 contacts) and the NEXT STEPS require picking one specific item (e.g. db_update_note, db_delete_contact), the user must choose. Set valid=false and write a short, direct question in Slovak listing the options.
-4. VALIDATE: Only block if a required arg is truly missing and cannot be healed.
+1. HEAL: If a required ID (e.g., contact_id) is missing in PROPOSED STEPS, but you see it in the PREVIOUS ITERATION RESULTS (mission history), INJECT IT into the arguments.
+2. DETECT AMBIGUITY: If the mission history contains MULTIPLE items and the NEXT STEPS require picking one, set valid: false and ask the user to choose.
+3. VALIDATE: Only block (valid:false) if a required argument is truly missing and cannot be found in the history.
+4. TRUST THE SEARCH: Never block search tools (web_search_google, db_search_contacts, etc.) if they have a query.
 
 RULES:
-1. Search steps (db_fetch_notes, db_search_contacts) are ALWAYS valid — never block them.
-2. HEALING IS BETTER THAN ASKING: Fix if possible. Ask only as last resort.
-3. AMBIGUITY CHECK: Look at the PREVIOUS RESULTS in history. If they show 2+ items and the plan needs one specific item, set valid=false and ask which one.
-4. GENERIC VALIDATION: For ANY tool in the PROPOSED STEPS, check its required parameters against the PROVIDED ARGS. If a required parameter is missing, null, or an empty string (""), you MUST set valid: false and ask the user for that specific information in Slovak.
-5. BREVITY: Questions must be 1-2 sentences max in Slovak, focusing only on the missing/ambiguous data.
+- Be concise. One witty Slovak sentence if valid:false.
+- If the agent just fetched a list to perform an action on them, the IDs are valid. DO NOT ask the user "which ones" if the agent is already targeting them by ID.
 
 OUTPUT FORMAT (STRICT JSON):
 {
   "valid": boolean,
-  "questions": string[], // Short Slovak question if valid=false
-  "validated_steps": [
-    { "tool": "tool_name", "args": { "key": "value" } }
-  ]
+  "questions": string[], 
+  "validated_steps": [ { "tool": "tool_name", "args": { "key": "value" } } ]
 }
 `;
 
+    // Compress mission history for the prompt
+    const compressedHistory = missionHistory.slice(-3).map(h => {
+        return h.steps.map((s: any) => {
+            let res = s.result as any;
+            if (res && res.success && Array.isArray(res.data)) {
+                res = { success: true, data: res.data.slice(0, 5).map((item: any) => {
+                    const { date_created, date_updated, deleted_at, user_email, ...essential } = item;
+                    return essential;
+                })};
+            }
+            return { tool: s.tool, status: s.status, result: res };
+        });
+    });
+
     const prompt = `
-      TOOLS DEFINITIONS:
-      ${JSON.stringify(toolsContext, null, 2)}
-      
-      INTENT:
-      ${intent}
-      
-      PROPOSED STEPS:
-      ${JSON.stringify(steps, null, 2)}
-      
-      PREVIOUS ITERATION RESULTS (check for multiple items that require user choice):
-      ${JSON.stringify(conversationHistory.slice(-3), null, 2)}
+      INTENT: ${intent}
+      PROPOSED STEPS: ${JSON.stringify(steps)}
+      CHAT HISTORY: ${JSON.stringify(conversationHistory.slice(-3))}
+      MISSION HISTORY (Last results): ${JSON.stringify(compressedHistory)}
     `;
 
+    console.log(`[PREPARER] Prompt length: ${systemPrompt.length + prompt.length} chars`);
+
     const response = await withRetry(() => generateText({
-      model: google(AI_MODELS.PREPARER), // Efficient model for argument validation
+      model: google(AI_MODELS.PREPARER), 
       system: systemPrompt,
       prompt: prompt,
     }));

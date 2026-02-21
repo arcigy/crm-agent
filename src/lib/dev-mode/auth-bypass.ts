@@ -8,8 +8,13 @@ export function isLocalhost() {
 }
 
 export function shouldBypassAuth() {
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const isLiveKey = publishableKey?.startsWith('pk_live_');
   const forceBypass = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
-  return isLocalhost() || forceBypass;
+  
+  // Only bypass on localhost IF we are using a LIVE KEY (which crashes)
+  // or if explicitly forced via env var.
+  return (isLocalhost() && isLiveKey) || forceBypass;
 }
 
 export function getDevUser() {

@@ -7,15 +7,27 @@ import { shouldBypassAuth, getDevUser } from "@/lib/dev-mode/auth-bypass";
  * Custom hook to get the current user with local dev bypass.
  */
 export function useCurrentCRMUser() {
-  const { user, isLoaded, isSignedIn } = useUser();
+  const isBypass = shouldBypassAuth();
   
-  if (shouldBypassAuth() && !isSignedIn) {
+  let clerkData: any = { user: null, isLoaded: false, isSignedIn: false, signOut: () => {} };
+  
+  try {
+    const data = useUser();
+    // Wrap signOut if it exists
+    const { signOut } = (window as any).Clerk || {};
+    clerkData = { ...data, signOut: signOut || (() => {}) };
+  } catch (e) {
+    if (!isBypass) console.error("Clerk useUser failed", e);
+  }
+
+  if (isBypass && !clerkData.isSignedIn) {
     return {
       user: getDevUser(),
       isLoaded: true,
-      isSignedIn: true
+      isSignedIn: true,
+      signOut: () => { window.location.href = "/"; }
     };
   }
 
-  return { user, isLoaded, isSignedIn };
+  return clerkData;
 }

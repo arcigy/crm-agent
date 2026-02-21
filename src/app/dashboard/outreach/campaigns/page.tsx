@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Save, Plus, ArrowLeft, Send, Clock, Mail, ChevronRight, Loader2, User, RefreshCw, LayoutList } from "lucide-react";
+import { Save, Plus, ArrowLeft, Send, Clock, Mail, ChevronRight, Loader2, User, RefreshCw, LayoutList, Zap, Users, MessageCircle, BarChart3, MapPin } from "lucide-react";
 import { getOutreachCampaigns, saveOutreachCampaign } from "@/app/actions/outreach";
 import { getColdLeadLists, getPreviewLead } from "@/app/actions/cold-leads";
 import { toast } from "sonner";
 import Link from "next/link";
 
-import { useUser } from "@clerk/nextjs";
+import { useCurrentCRMUser } from "@/hooks/useCurrentCRMUser";
 
 export default function OutreachCampaignsPage() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -17,7 +17,7 @@ export default function OutreachCampaignsPage() {
   const [sampleLead, setSampleLead] = useState<any>(null);
   const [lists, setLists] = useState<any[]>([]);
   const [selectedList, setSelectedList] = useState<string>("");
-  const { user } = useUser();
+  const { user } = useCurrentCRMUser();
 
   const [formData, setFormData] = useState({
     id: null,
@@ -84,7 +84,7 @@ export default function OutreachCampaignsPage() {
         getColdLeadLists()
     ]);
 
-    if (campRes.success) setCampaigns(campRes.data);
+    if (campRes.success) setCampaigns(campRes.data || []);
     
     let currentListName = selectedList;
     if (listRes.success && listRes.data) {

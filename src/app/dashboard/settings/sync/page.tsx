@@ -3,11 +3,11 @@
 import * as React from 'react';
 import { Smartphone, Check, Copy, Apple, ArrowRight, Cloud } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { useUser } from '@clerk/nextjs'; // Use Clerk
+import { useCurrentCRMUser } from '@/hooks/useCurrentCRMUser'; // Use Safe Hook
 import { GoogleConnectButton } from "@/components/dashboard/GoogleConnectButton";
 
 export default function MobileSyncPage() {
-    const { user, isLoaded } = useUser(); // Access Clerk user
+    const { user, isLoaded } = useCurrentCRMUser(); // Access Safe Hook
     const [copied, setCopied] = React.useState(false);
 
     const [origin, setOrigin] = React.useState('');

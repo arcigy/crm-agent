@@ -1,7 +1,6 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
-import { RedirectToSignIn } from "@clerk/nextjs";
+import { useCurrentCRMUser } from "@/hooks/useCurrentCRMUser";
 import { Zap, Users, Send, MessageCircle, BarChart3, MapPin } from "lucide-react";
 import Link from "next/link";
 import React from "react";

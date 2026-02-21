@@ -1,18 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useCurrentCRMUser } from '@/hooks/useCurrentCRMUser';
 import { toast } from 'sonner';
 
 export function GoogleConnectButton() {
     const [isLoading, setIsLoading] = useState(false);
-    const { user, isLoaded } = useUser();
+    const { user, isLoaded } = useCurrentCRMUser();
 
     const handleConnect = async () => {
         if (!isLoaded || !user) return;
         setIsLoading(true);
         try {
-            const googleAccount = user.externalAccounts.find(acc => acc.provider === 'google');
+            const googleAccount = (user.externalAccounts as any[])?.find((acc: any) => acc.provider === 'google');
             
             if (!googleAccount) {
                 // Not linked at all in Clerk, try Clerk flow first

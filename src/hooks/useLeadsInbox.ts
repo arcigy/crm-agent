@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { useUser } from "@clerk/nextjs";
+import { useCurrentCRMUser } from "@/hooks/useCurrentCRMUser";
 import { GmailMessage } from "@/types/gmail";
 import { AndroidLog } from "@/types/android";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/app/actions/agent";
 
 export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded } = useCurrentCRMUser();
   const [messages, setMessages] =
     React.useState<GmailMessage[]>(initialMessages);
   const [dbAnalyses, setDbAnalyses] = React.useState<any[]>([]);
@@ -124,10 +124,15 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     if (!isLoaded || !user) return;
     setLoading(true);
     try {
-      await user.createExternalAccount({
-        strategy: "oauth_google",
-        redirectUrl: window.location.href,
-      });
+      // We need the real clerk user object here. 
+      // If we are in bypass mode, this function shouldn't be called 
+      // because Google connection is handled differently.
+      if ((user as any).createExternalAccount) {
+        await (user as any).createExternalAccount({
+          strategy: "oauth_google",
+          redirectUrl: window.location.href,
+        });
+      }
     } catch (error) {
       console.error("Failed to connect Google via Clerk:", error);
       setLoading(false);

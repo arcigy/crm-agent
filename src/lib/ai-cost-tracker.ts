@@ -27,8 +27,11 @@ export const AI_PRICING = {
 
   // Google Gemini
   "gemini-1.5-flash": { input: 0.1, output: 0.4 },
+  "gemini-flash-latest": { input: 0.1, output: 0.4 },
+  "gemini-2.0-flash": { input: 0.1, output: 0.4 },
   "gemini-2.5-flash": { input: 0.3, output: 1.2 },
   "gemini-3.1-pro-preview-customtools": { input: 1.25, output: 5.0 },
+  "gemini-3-flash-preview": { input: 0.5, output: 3.0 },
   "gemini-3-flash": { input: 0.5, output: 3.0 },
   "gemini-3-pro": { input: 2.0, output: 12.0 },
   "gemini-1.5-pro": { input: 1.25, output: 5.0 },

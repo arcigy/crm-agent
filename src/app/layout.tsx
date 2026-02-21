@@ -4,7 +4,7 @@ import { Outfit, Playfair_Display } from "next/font/google"; // Outfit for UI, P
 
 import { Toaster } from "sonner";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
+import { SafeClerkProvider } from "@/components/SafeClerkProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans" });
@@ -32,15 +32,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider
-      signInUrl="/login"
-      signUpUrl="/register"
-      signInForceRedirectUrl="/dashboard"
-      signUpForceRedirectUrl="/dashboard"
-    >
+    <SafeClerkProvider>
       <html lang="sk" suppressHydrationWarning>
         <body
           className={`${outfit.variable} ${playfair.variable} font-sans antialiased transition-colors duration-300`}
+          suppressHydrationWarning
         >
           <ThemeProvider
             attribute="class"
@@ -53,6 +49,6 @@ export default function RootLayout({
           </ThemeProvider>
         </body>
       </html>
-    </ClerkProvider>
+    </SafeClerkProvider>
   );
 }

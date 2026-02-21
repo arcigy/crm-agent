@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Cloud, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useUser } from "@clerk/nextjs";
+import { useCurrentCRMUser } from "@/hooks/useCurrentCRMUser";
 
 export function GoogleConnectButton({
   className = "",
@@ -16,16 +16,16 @@ export function GoogleConnectButton({
   label?: string;
   isScopeFix?: boolean;
 }) {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded } = useCurrentCRMUser();
   const [isLoading, setIsLoading] = useState(false);
 
-  const googleAccount = user?.externalAccounts.find(
-    (acc) => acc.provider === "google",
+  const googleAccount = (user?.externalAccounts as any[])?.find(
+    (acc: any) => acc.provider === "google",
   );
   const isConnected = !!googleAccount;
 
   const handleConnect = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || !user) return;
     setIsLoading(true);
     try {
       // Use our custom flow which now forces 'select_account'

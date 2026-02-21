@@ -52,7 +52,7 @@ export async function POST(req: Request) {
                 await log("ROUTER", "Route: Simple Conversation");
                 const result = streamText({ 
                     model: google(AI_MODELS.ROUTER), 
-                    system: `Si pomocník v CRM pre ${userEmail}. Odpovedaj v slovenčine.`, 
+                    system: `Si pomocník v CRM pre ${userEmail}. Odpovedaj v slovenčine. Buď vtipný, ľudský a stručný.`, 
                     messages 
                 });
                 for await (const delta of result.textStream) await writer.write(encoder.encode(delta));
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
                 }
 
                 const step = taskPlan.steps[0];
-                const validation = await validateActionPlan(taskPlan.intent, [step], messages);
+                const validation = await validateActionPlan(taskPlan.intent, [step], messages, missionHistory);
                 await log("PREPARER", "Validation", { valid: validation.valid, questions: validation.questions });
 
                 if (!validation.valid) {
@@ -104,7 +104,12 @@ export async function POST(req: Request) {
             const verification = await verifyExecutionResults(lastUserMsg, finalResults);
             await log("VERIFIER", "Analysis", verification.analysis);
             
-            const reportResult = streamText({ model: google(AI_MODELS.REPORT), prompt: `System: Send this exact message to user: "${verification.analysis}"` });
+            // 5. FINAL REPORT
+            const reportResult = streamText({ 
+                model: google(AI_MODELS.REPORT), 
+                system: "Si priateľský CRM asistent. Tvojou úlohou je doručiť užívateľovi finálnu správu o výsledku jeho požiadavky. Odpovedaj v slovenčine.",
+                prompt: `Sformuluj finálnu odpoveď na základe tejto analýzy: "${verification.analysis}"` 
+            });
             for await (const delta of reportResult.textStream) await writer.write(encoder.encode(delta));
 
             const sessionSummary = endCostSession();

@@ -42,7 +42,7 @@ export async function runOrchestratorLoop(
     }
 
     // 2. Validate and Heal
-    const preparer = await validateActionPlan(lastPlan.intent, lastPlan.steps, messages);
+    const preparer = await validateActionPlan(lastPlan.intent, lastPlan.steps, messages, missionHistory);
     
     if (!preparer.valid && preparer.questions && preparer.questions.length > 0) {
         // STOP and ask the user
@@ -96,15 +96,27 @@ export async function orchestrateParams(
 ) {
   const start = Date.now();
   try {
-    const toolsDocs = ALL_ATOMS.map((t) => ({
-      name: t.function.name,
-      description: t.function.description,
-      parameters: t.function.parameters,
-    }));
+    // Compact tool documentation to save prompt space
+    const toolsDocs = ALL_ATOMS.map((t) => {
+      const p = t.function.parameters?.properties || {};
+      const required = t.function.parameters?.required || [];
+      const paramsSummary = Object.keys(p).map(k => {
+        const info = p[k];
+        const isReq = required.includes(k) ? "*" : "";
+        const type = info.type || "any";
+        const desc = info.description ? ` (${info.description})` : "";
+        return `${isReq}${k}:${type}${desc}`;
+      }).join(", ");
+      
+      return `- ${t.function.name}: ${t.function.description} [Params: ${paramsSummary}]`;
+    }).join("\n");
 
     const systemPrompt = `
 ROLE:
 You are the Supreme Strategic Planner for a Business CRM. Your sole responsibility is to map the user's high-level intent into a sequence of structural actions (steps). 
+
+AVAILABLE TOOLS:
+${toolsDocs}
 
 CORE PRINCIPLE: PARAMETER AGNOSTICISM
 You are a STRUCTURAL ARCHITECT. Your job is to decide *which* tools must be called to fulfill the intent, not to verify the data completeness.
@@ -126,11 +138,12 @@ RULES:
 3. NO REPETITION: If a tool returned 0 results in history, don't repeat it.
 4. SLOVAK ARGS: All text arguments (title, content, comment, subject, body) must be in Slovak.
 5. NO REDUNDANCY: Never repeat a successful action already present in HISTORY.
+6. STRICT PARAMS: Always use exact parameter names from the provided TOOL DEFINITIONS. Do not invent aliases like 'name' if the tool expects 'first_name'.
 
 OUTPUT FORMAT (STRICT JSON):
 {
   "intent": "short_description",
-  "thought": "structural reasoning in English",
+  "thought": "one short sentence reasoning in English",
   "steps": [
     { "tool": "tool_name", "args": { "key": "value" } }
   ]
@@ -139,19 +152,41 @@ OUTPUT FORMAT (STRICT JSON):
 
     const historyContext = [
         ...messages.map(m => ({ role: m.role, content: m.content })),
-        ...missionHistory.map((h, i) => ({
-            role: "assistant",
-            content: `KROK ${i + 1} VÝSLEDKY: ${JSON.stringify(h.steps)}`
-        }))
+        ...missionHistory.map((h, i) => {
+            // Compress results to save tokens
+            const compressedSteps = h.steps.map(s => {
+                let compressedResult = s.result as any;
+                if (compressedResult && compressedResult.success && Array.isArray(compressedResult.data)) {
+                    // Truncate large arrays to essential info only
+                    compressedResult = {
+                        ...compressedResult,
+                        data: compressedResult.data.slice(0, 10).map((item: any) => {
+                            const { date_created, date_updated, deleted_at, user_email, google_id, labels, comments, ...essential } = item;
+                            return essential;
+                        })
+                    };
+                }
+                return { tool: s.tool, result: compressedResult };
+            });
+            return {
+                role: "assistant",
+                content: `KROK ${i + 1} VÝSLEDKY: ${JSON.stringify(compressedSteps)}`
+            };
+        })
     ];
-    console.log("[ORCHESTRATOR] History Context sent to AI:", JSON.stringify(historyContext, null, 2));
 
+    console.log(`[ORCHESTRATOR] System Prompt length: ${systemPrompt.length} chars`);
+    console.log(`[ORCHESTRATOR] History Context sent to AI: ${JSON.stringify(historyContext).length} chars`);
+    console.log(`[ORCHESTRATOR] Calling AI model: ${AI_MODELS.ORCHESTRATOR}...`);
+    
+    const aiStart = Date.now();
     const response = await withRetry(() => generateText({
       model: google(AI_MODELS.ORCHESTRATOR),
       system: systemPrompt,
       temperature: 0.1, // Near-deterministic planning
       prompt: `KONVERZÁCIA (Context): \n${JSON.stringify(historyContext.slice(-10))}\n\nSTRATEGICKÉ ZADANIE (English Intent): ${translatedIntent || "Analyse last message."}\n\nDOSIAHNI CIEĽ.`,
     }));
+    console.log(`[ORCHESTRATOR] AI Call finished in ${Date.now() - aiStart}ms`);
 
     trackAICall(
         "orchestrator",
