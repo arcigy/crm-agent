@@ -54,7 +54,7 @@ const menuGroups: MenuSection[] = [
     items: [
       { name: "Projekty", href: "/dashboard/projects", icon: FolderKanban },
       { name: "Kalendár", href: "/dashboard/calendar", icon: Calendar },
-      { name: "To-Do", href: "/dashboard/todo", icon: CheckSquare },
+      { name: "Úlohy", href: "/dashboard/todo", icon: CheckSquare },
       { name: "Poznámky", href: "/dashboard/notes", icon: FileText },
       { name: "Súbory", href: "/dashboard/files", icon: HardDrive },
       { name: "Fakturácia", href: "/dashboard/invoicing", icon: Receipt },
