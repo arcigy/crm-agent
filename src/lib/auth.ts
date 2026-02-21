@@ -1,25 +1,18 @@
 import { currentUser, auth, clerkClient } from "@clerk/nextjs/server";
+import { shouldBypassAuth, DEV_ADMIN_EMAIL } from "./dev-mode/auth-bypass";
 
 /**
  * Gets the current user's email with high reliability.
- * Uses multiple strategies: standard currentUser(), session fallback,
- * and direct management API fetch as a last resort.
  */
 export async function getUserEmail(retries = 3): Promise<string | null> {
   const session = await auth();
   const userId = session.userId;
   
   if (!userId) {
-    // BYPASS HACK for Localhost (removable later)
-    const isLocalhost = typeof window !== 'undefined' 
-      ? window.location.hostname === 'localhost' 
-      : process.env.NODE_ENV === 'development';
-      
-    if (isLocalhost || process.env.NEXT_PUBLIC_BYPASS_AUTH === "true") {
-      console.log("[Auth] Clerk skipped: Using local dev handle (arcigyback@gmail.com)");
-      return "arcigyback@gmail.com";
+    if (shouldBypassAuth()) {
+      console.log(`[Auth] @LOCAL_DEV_BYPASS: Using ${DEV_ADMIN_EMAIL}`);
+      return DEV_ADMIN_EMAIL;
     }
-
     console.warn("[Auth] No session found, user is definitely not logged in.");
     return null;
   }

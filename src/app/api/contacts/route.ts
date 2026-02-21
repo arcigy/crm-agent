@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import directus from '@/lib/directus';
 import { createItem } from '@directus/sdk';
-
-import { currentUser } from '@clerk/nextjs/server';
+import { getUserEmail } from '@/lib/auth';
 
 export async function POST(req: Request) {
     try {
-        const user = await currentUser();
-        const userEmail = user?.emailAddresses[0]?.emailAddress;
+        const userEmail = await getUserEmail();
         if (!userEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await req.json();
