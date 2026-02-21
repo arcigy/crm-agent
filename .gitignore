@@ -42,3 +42,7 @@ next-env.d.ts
 
 # Explicitly ignore local env file
 .env.local
+
+# Local Dev Bypass Tool
+/src/lib/dev-mode/local-bypass.ts
+/scripts/local/

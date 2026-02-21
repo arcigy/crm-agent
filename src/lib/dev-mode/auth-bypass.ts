@@ -1,9 +1,4 @@
-/**
- * @LOCAL_DEV_BYPASS - REMOVE BEFORE PROD
- * Centralized logic for bypassing Clerk authentication on localhost.
- */
-
-export const DEV_ADMIN_EMAIL = "arcigyback@gmail.com";
+export let DEV_ADMIN_EMAIL = "branislav@arcigy.group";
 
 export function isLocalhost() {
   if (typeof window !== 'undefined') {
@@ -18,13 +13,17 @@ export function shouldBypassAuth() {
 }
 
 export function getDevUser() {
+  // Primary: Branislav for local development
   return {
-    id: "dev_user_999",
+    id: "user_39LUuptq4hAUjFIskaea5cMCbWb",
     primaryEmailAddress: {
       emailAddress: DEV_ADMIN_EMAIL
     },
-    firstName: "Dev",
-    lastName: "Admin",
-    role: "admin"
+    firstName: "Branislav",
+    lastName: "ArciGy",
+    imageUrl: "https://img.clerk.com/static/placeholder.png",
+    publicMetadata: {
+      role: "admin"
+    }
   };
 }
