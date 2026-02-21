@@ -97,7 +97,7 @@ export async function POST(req: Request) {
             }
 
             await log("VERIFIER", "Analyzing results...");
-            const verification = await verifyExecutionResults("task", finalResults);
+            const verification = await verifyExecutionResults(lastUserMsg, finalResults);
             await log("VERIFIER", "Analysis", verification.analysis);
             
             const reportResult = streamText({ model: google(AI_MODELS.REPORT), prompt: `System: Send this exact message to user: "${verification.analysis}"` });

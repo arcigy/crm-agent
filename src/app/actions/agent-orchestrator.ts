@@ -121,7 +121,7 @@ RULES:
 3. ATOMICITY: One tool = one step.
 4. NO REPETITION: If a tool returned 0 results in history, don't repeat it.
 5. COMPLETION: When done, return steps: [].
-6. RICH NOTES: For db_create_note, generate 300+ word professional notes in Slovak.
+6. CONCISE NOTES: For db_create_note, keep content professional but strictly follow user instructions. Don't invent unnecessary details.
 7. SLOVAK ARGS: All text arguments (title, content, comment, subject, body) must be in Slovak.
 8. NO REDUNDANCY: Never repeat a successful action (e.g., creating a contact/note/task) if it is already in HISTORY. If the goal is reached, return steps: [].
 
