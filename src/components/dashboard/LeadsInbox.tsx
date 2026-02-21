@@ -130,18 +130,8 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         />
       )}
 
-      {/* Overlay Email Detail View */}
-      {selectedEmail && (
-        <div className="fixed inset-0 z-[100] bg-white/95 backdrop-blur-xl flex flex-col animate-in slide-in-from-right duration-300">
-          <EmailDetailView
-            email={selectedEmail}
-            onClose={() => setSelectedEmail(null)}
-          />
-        </div>
-      )}
-
       {/* Sidebar for Navigation */}
-      <div className="relative z-10 border-r border-black/5 bg-white/10 backdrop-blur-sm">
+      <div className="relative z-10 border-r border-[#f1f1f1] dark:border-white/5 bg-white dark:bg-zinc-950 w-[260px] flex-shrink-0">
         <LeadsSidebar 
           selectedTab={selectedTab} 
           onTabChange={setSelectedTab} 
@@ -149,62 +139,73 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         />
       </div>
 
-      {/* Main Inbox View */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10 bg-white/30 dark:bg-zinc-950/90 backdrop-blur-xl">
-        <LeadsHeader
-          isConnected={isConnected}
-          loading={loading}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onRefresh={() => fetchMessages()}
-          onConnect={handleConnect}
-          totalCount={allItems.length}
-        />
+      {/* Main Content Area: Switch between List and Detail */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10 bg-[#f6f8fc] dark:bg-black">
+        {selectedEmail ? (
+          <EmailDetailView
+            email={selectedEmail}
+            onClose={() => setSelectedEmail(null)}
+          />
+        ) : (
+          <>
+            <LeadsHeader
+              isConnected={isConnected}
+              loading={loading}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onRefresh={() => fetchMessages()}
+              onConnect={handleConnect}
+              totalCount={allItems.length}
+            />
 
-        {/* Message List */}
-        <div className="flex-1 overflow-y-auto thin-scrollbar relative z-10">
-          {loading && allItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-4">
-              <div className="w-10 h-10 border-[3px] border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin"></div>
-              <p className="text-indigo-500/60 font-black uppercase tracking-[0.2em] text-[10px]">
-                Synchronizujem...
-              </p>
+            {/* Message List */}
+            <div className="flex-1 overflow-y-auto thin-scrollbar relative z-10">
+              {loading && allItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full gap-4">
+                  <div className="w-10 h-10 border-[3px] border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin"></div>
+                  <p className="text-indigo-500/60 font-black uppercase tracking-[0.2em] text-[10px]">
+                    Synchronizujem...
+                  </p>
+                </div>
+              ) : allItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center p-12">
+                  <div className="w-20 h-20 bg-indigo-500/5 rounded-[2rem] flex items-center justify-center mb-6 border border-indigo-500/10 rotate-3">
+                    <Mail className="w-8 h-8 text-indigo-500/40 -rotate-3" />
+                  </div>
+                  <h3 className="text-xl font-black text-foreground italic tracking-tight uppercase">
+                    Všetko vybavené
+                  </h3>
+                  <p className="text-muted-foreground/60 text-sm font-bold mt-2">
+                    Vaša schránka je momentálne prázdna.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-transparent rounded-t-[2rem] shadow-sm mt-0 overflow-hidden border-t border-black/5 dark:border-white/5">
+                  <div className="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
+                    {allItems.map((item) => (
+                      <LeadsListItem
+                        key={(item as any).id}
+                        item={item}
+                        isActionOpen={activeActionId === (item as any).id}
+                        isGeneratingDraft={isGeneratingDraft}
+                        customCommandMode={customCommandMode}
+                        customPrompt={customPrompt}
+                        setCustomPrompt={setCustomPrompt}
+                        setCustomCommandMode={setCustomCommandMode}
+                        onOpenEmail={handleOpenEmail}
+                        onToggleAction={handleToggleAction}
+                        onManualAnalyze={handleManualAnalyze}
+                        onSaveContact={handleSaveContact}
+                        onDraftReply={handleDraftReply}
+                        onExecuteCustomCommand={handleExecuteCustomCommand}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          ) : allItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-12">
-              <div className="w-20 h-20 bg-indigo-500/5 rounded-[2rem] flex items-center justify-center mb-6 border border-indigo-500/10 rotate-3">
-                <Mail className="w-8 h-8 text-indigo-500/40 -rotate-3" />
-              </div>
-              <h3 className="text-xl font-black text-foreground italic tracking-tight uppercase">
-                Všetko vybavené
-              </h3>
-              <p className="text-muted-foreground/60 text-sm font-bold mt-2">
-                Vaša schránka je momentálne prázdna.
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-black/5 dark:divide-white/5">
-              {allItems.map((item) => (
-                <LeadsListItem
-                  key={(item as any).id}
-                  item={item}
-                  isActionOpen={activeActionId === (item as any).id}
-                  isGeneratingDraft={isGeneratingDraft}
-                  customCommandMode={customCommandMode}
-                  customPrompt={customPrompt}
-                  setCustomPrompt={setCustomPrompt}
-                  setCustomCommandMode={setCustomCommandMode}
-                  onOpenEmail={handleOpenEmail}
-                  onToggleAction={handleToggleAction}
-                  onManualAnalyze={handleManualAnalyze}
-                  onSaveContact={handleSaveContact}
-                  onDraftReply={handleDraftReply}
-                  onExecuteCustomCommand={handleExecuteCustomCommand}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

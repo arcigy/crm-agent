@@ -62,11 +62,11 @@ export function LeadsListItem({
       <React.Fragment>
         <div
           onClick={() => onOpenEmail(msg)}
-          className={`group flex items-center px-4 py-4 border-b border-violet-500/10 dark:border-violet-500/20 transition-all cursor-pointer relative ${
+          className={`group flex items-center px-4 py-2 border-b border-[#f1f1f1] dark:border-white/5 cursor-pointer relative transition-colors ${
             !isRead 
-              ? "bg-white/40 dark:bg-black font-bold z-10 border-l-[6px] border-l-violet-600 hover:bg-violet-500/5 dark:hover:bg-violet-500/[0.05]" 
-              : "bg-white/10 dark:bg-transparent opacity-70 hover:opacity-100 hover:bg-violet-500/5 dark:hover:bg-violet-500/[0.05]"
-          }`}
+              ? "bg-white dark:bg-zinc-900 border-l-[3px] border-l-blue-600 shadow-sm z-10" 
+              : "bg-[#f2f6fc]/60 dark:bg-transparent text-[#444746] dark:text-zinc-400"
+          } hover:shadow-md hover:bg-white dark:hover:bg-zinc-900`}
         >
           {/* Controls: Checkbox and Star */}
           <div className="flex items-center gap-2 mr-6 flex-shrink-0 opacity-30 group-hover:opacity-100 transition-opacity">
@@ -85,18 +85,18 @@ export function LeadsListItem({
           </div>
 
           {/* Sender */}
-          <div className={`w-[220px] flex-shrink-0 truncate text-sm mr-4 tracking-tight ${!isRead ? "font-black text-foreground" : "font-semibold text-muted-foreground"}`}>
+          <div className={`w-[200px] flex-shrink-0 truncate text-[14px] mr-4 tracking-tight ${!isRead ? "font-bold text-[#1f1f1f] dark:text-zinc-100" : "text-[#444746] dark:text-zinc-400"}`}>
             {msg.from || "Neznámy"}
           </div>
 
           {/* Subject and Snippet */}
           <div className="flex-1 min-w-0 flex items-center gap-3">
             <div className="flex-1 truncate">
-              <span className={`text-sm ${!isRead ? "font-black text-foreground" : "font-semibold text-muted-foreground"}`}>
+              <span className={`text-[14px] ${!isRead ? "font-bold text-[#1f1f1f] dark:text-zinc-100" : "text-[#444746] dark:text-zinc-400"}`}>
                 {msg.subject}
               </span>
-              <span className="text-sm text-zinc-500/40 mx-2">—</span>
-              <span className="text-sm text-zinc-500 dark:text-zinc-500 font-medium truncate">
+              <span className="text-[14px] text-[#5f6368] mx-2">—</span>
+              <span className="text-[14px] text-[#5f6368] dark:text-zinc-500 truncate">
                 {msg.snippet}
               </span>
             </div>

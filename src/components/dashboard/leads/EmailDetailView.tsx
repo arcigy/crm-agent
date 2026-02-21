@@ -1,19 +1,32 @@
 "use client";
 
 import * as React from "react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { sk } from "date-fns/locale";
 import {
   ArrowLeft,
   Trash2,
-  AlertCircle,
+  Archive,
+  AlertOctagon,
+  Mail,
+  FolderInput,
+  Tag,
+  MoreVertical,
+  Printer,
+  ExternalLink,
+  Star,
+  Reply,
+  Forward,
+  Download,
+  Paperclip,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Smile,
+  Sparkles,
+  Zap,
   Target,
   TrendingUp,
-  Zap,
-  Sparkles,
-  Paperclip,
-  Download,
-  MessageSquare,
 } from "lucide-react";
 import { GmailMessage, GmailAttachment } from "@/types/gmail";
 
@@ -23,14 +36,7 @@ interface EmailDetailViewProps {
 }
 
 export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
-  const [viewMode, setViewMode] = React.useState<"html" | "text">("html");
   const [downloading, setDownloading] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (email) {
-      setViewMode(email.bodyHtml ? "html" : "text");
-    }
-  }, [email]);
 
   const handleDownload = async (attachment: GmailAttachment) => {
     setDownloading(attachment.id);
@@ -60,258 +66,244 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
     }
   };
 
-  const hasHtml = !!email.bodyHtml;
   const classification = email.classification;
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-black text-foreground font-medium overflow-hidden">
-      {/* Header Container - Full Width */}
-      <div className="px-8 py-6 border-b border-black/5 dark:border-white/10 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl relative z-20">
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={onClose}
-            className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-all group"
-          >
-            <div className="w-8 h-8 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-indigo-500/10 transition-colors">
-              <ArrowLeft className="w-4 h-4 group-hover:text-indigo-400" />
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-              Zavrieť detail
-            </span>
+    <div className="flex flex-col h-full bg-[#f6f8fc] dark:bg-black text-[#1f1f1f] font-sans overflow-hidden">
+      {/* ── Top Toolbar (Gmail Style) ── */}
+      <div className="h-14 px-4 flex items-center justify-between flex-shrink-0 bg-transparent dark:bg-zinc-950/50">
+        <div className="flex items-center gap-1">
+          <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Späť">
+            <ArrowLeft className="w-5 h-5" />
           </button>
-
-          <div className="flex items-center gap-4">
-            {hasHtml && (
-              <div className="flex p-1 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
-                <button
-                  onClick={() => setViewMode("html")}
-                  className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${viewMode === "html" ? "bg-indigo-600 text-white shadow-lg" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  Visual
-                </button>
-                <button
-                  onClick={() => setViewMode("text")}
-                  className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${viewMode === "text" ? "bg-indigo-600 text-white shadow-lg" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  Raw Text
-                </button>
-              </div>
-            )}
-          </div>
+          <div className="h-5 w-[1px] bg-[#f1f1f1] mx-1" />
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Archivovať">
+            <Archive className="w-5 h-5" />
+          </button>
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Nahlásiť spam">
+            <AlertOctagon className="w-5 h-5" />
+          </button>
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Odstrániť">
+            <Trash2 className="w-5 h-5" />
+          </button>
+          <div className="h-5 w-[1px] bg-[#f1f1f1] mx-1" />
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Označiť ako neprečítané">
+            <Mail className="w-5 h-5" />
+          </button>
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Presunúť do">
+            <FolderInput className="w-5 h-5" />
+          </button>
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Štítky">
+            <Tag className="w-5 h-5" />
+          </button>
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Viac">
+            <MoreVertical className="w-5 h-5" />
+          </button>
         </div>
 
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-6">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl font-black shadow-2xl shadow-indigo-600/20 rotate-3">
-              <div className="-rotate-3">{(email.from || "?")[0].toUpperCase()}</div>
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-1">Odosielateľ</p>
-              <h3 className="text-xl font-black text-foreground leading-tight tracking-tight">
-                {email.from || "Neznámy odosielateľ"}
-              </h3>
-              <p className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-1">
-                {email.date
-                  ? format(new Date(email.date), "d. MMMM yyyy 'o' HH:mm", {
-                      locale: sk,
-                    })
-                  : "Neznámy dátum"}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <button className="p-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-2xl transition-all">
-              <Trash2 className="w-5 h-5" />
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] text-[#444746] mr-4">1 z 1 333</span>
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746] opacity-50" disabled>
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]">
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
-      <div className="px-8 py-8 bg-zinc-50/50 dark:bg-zinc-900/10 border-b border-black/5 dark:border-white/5">
-        <h2 className="text-3xl font-black text-foreground italic tracking-tight leading-[1.1] max-w-4xl">
-          {email.subject || "(Bez predmetu)"}
-        </h2>
+      <div className="flex-1 overflow-y-auto px-4 pb-6">
+        <div className="bg-white dark:bg-zinc-950/40 min-h-full rounded-[1.5rem] shadow-sm border border-black/[0.03] dark:border-white/[0.03] px-12 py-8">
+          {/* ── Subject Area ── */}
+          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <h2 className="text-[22px] font-normal tracking-tight text-[#1f1f1f]">
+              {email.subject || "(Bez predmetu)"}
+            </h2>
+            <span className="px-1.5 py-0.5 bg-[#dddddd] text-[#444746] text-[11px] rounded flex items-center gap-1 font-medium">
+              Doručené <span className="opacity-60">x</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-4 text-[#444746]">
+            <button title="Vytlačiť všetko"><Printer className="w-5 h-5" /></button>
+            <button title="V novom okne"><ExternalLink className="w-5 h-5" /></button>
+          </div>
+        </div>
 
-        {/* AI Insights Bar */}
-        {classification && (
-          <div
-            className={`mt-8 p-6 rounded-[2rem] border animate-in fade-in slide-in-from-bottom-2 duration-500 ${classification.intent === "spam" ? "bg-red-500/5 border-red-500/20" : "bg-indigo-500/5 border-indigo-500/20"}`}
-          >
-            <div className="flex flex-wrap gap-2 mb-6">
-              <span
-                className={`flex items-center gap-2 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
-                  classification.intent === "spam"
-                    ? "bg-red-500 text-white border-red-600"
-                    : classification.priority === "vysoka"
-                      ? "bg-red-500/20 text-red-500 border-red-500/30"
-                      : classification.priority === "stredna"
-                        ? "bg-amber-500/20 text-amber-500 border-amber-500/30"
-                        : "bg-indigo-500/20 text-indigo-400 border-indigo-500/30"
-                }`}
-              >
-                <Sparkles className="w-3 h-3" />
-                {classification.intent === "spam"
-                  ? "Možný Spam"
-                  : `${classification.priority} Priorita`}
-              </span>
-
-              {classification.intent !== "spam" && (
-                <>
-                  <span className="flex items-center gap-2 px-3 py-1 bg-black/5 dark:bg-white/5 text-[10px] font-black uppercase tracking-widest text-indigo-400 rounded-xl border border-white/10">
-                    <Target className="w-3 h-3" /> {classification.intent}
-                  </span>
-                  {classification.service_category !== "—" && (
-                    <span className="flex items-center gap-2 px-3 py-1 bg-black/5 dark:bg-white/5 text-[10px] font-black uppercase tracking-widest text-emerald-400 rounded-xl border border-white/10">
-                      <TrendingUp className="w-3 h-3" />{" "}
-                      {classification.service_category}
-                    </span>
-                  )}
-                  {classification.estimated_budget && classification.estimated_budget !== "—" && (
-                      <span className="flex items-center gap-2 px-3 py-1 bg-violet-600 text-[10px] font-black uppercase tracking-widest text-white rounded-xl shadow-lg shadow-violet-600/20">
-                        <Zap className="w-3 h-3" /> {classification.estimated_budget}
-                      </span>
-                    )}
-                </>
-              )}
+        {/* ── Sender Information ── */}
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg font-medium uppercase shadow-sm">
+              {(email.from || "?")[0]}
             </div>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">AI Súhrn</p>
-                <p className="text-sm font-bold text-foreground leading-relaxed">
-                  {classification.summary}
-                </p>
+            <div className="text-[14px]">
+              <div className="flex items-center gap-1">
+                <span className="font-bold text-[#1f1f1f]">{email.from?.split("<")[0] || email.from}</span>
+                <span className="text-[#5e5e5e] text-[12px]">&lt;{email.from?.match(/<(.+)>/)?.[1] || email.from}&gt;</span>
               </div>
-              {classification.next_step !== "—" && (
-                <div className="space-y-2">
-                  <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Odporúčaný krok</p>
-                  <p className="text-sm font-black text-indigo-500 italic">
-                    {classification.next_step}
-                  </p>
-                </div>
-              )}
+              <div className="text-[#5e5e5e] text-[12px] flex items-center gap-1 mt-0.5">
+                komu: <span className="font-medium">mne</span>
+                <button className="hover:bg-black/5 p-0.5 rounded transition-all">
+                  <ChevronRight className="w-3 h-3 rotate-90" />
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 text-[#5e5e5e]">
+            <div className="text-[12px] font-medium flex items-center gap-1">
+              {email.date ? format(new Date(email.date), "eee d. M. H:mm", { locale: sk }) : ""}
+              <span className="opacity-60 ml-1">
+                {email.date ? `(${formatDistanceToNow(new Date(email.date), { addSuffix: true, locale: sk })})` : ""}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="p-1 hover:bg-black/5 rounded-full"><Star className="w-5 h-5" /></button>
+              <button className="p-1 hover:bg-black/5 rounded-full"><Smile className="w-5 h-5 opacity-0 group-hover:opacity-100" /></button>
+              <button className="p-1 hover:bg-black/5 rounded-full"><Reply className="w-5 h-5" /></button>
+              <button className="p-1 hover:bg-black/5 rounded-full"><MoreVertical className="w-5 h-5" /></button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── AI Insights Panel (CRM Integration) ── */}
+        {classification && (
+          <div className="mb-8 p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl flex gap-4">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0 text-indigo-600">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+               <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-indigo-600">AI Analýza dopytu</span>
+                  {classification.priority === "vysoka" && (
+                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[9px] font-black rounded uppercase tracking-wider">Vysoká priorita</span>
+                  )}
+               </div>
+               <p className="text-[14px] text-[#444746] font-medium leading-relaxed">
+                  {classification.summary}
+               </p>
+               <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-white border border-indigo-100 rounded-lg text-[12px] font-bold text-indigo-700 shadow-sm">
+                    <Target className="w-3 h-3" /> {classification.intent}
+                  </div>
+                  {classification.estimated_budget && classification.estimated_budget !== "—" && (
+                     <div className="flex items-center gap-2 px-3 py-1 bg-violet-600 text-white rounded-lg text-[12px] font-bold shadow-sm">
+                        <Zap className="w-3 h-3" /> {classification.estimated_budget}
+                     </div>
+                  )}
+                  {classification.service_category && classification.service_category !== "—" && (
+                     <div className="flex items-center gap-2 px-3 py-1 bg-white border border-emerald-100 text-emerald-700 rounded-lg text-[12px] font-bold shadow-sm">
+                        <TrendingUp className="w-3 h-3" /> {classification.service_category}
+                     </div>
+                  )}
+               </div>
+               {classification.next_step && classification.next_step !== "—" && (
+                 <div className="mt-4 p-3 bg-white/50 border border-dashed border-indigo-200 rounded-xl">
+                    <p className="text-[12px] font-black text-indigo-500 uppercase tracking-widest mb-1">Odporúčaný ďalší krok</p>
+                    <p className="text-[13px] font-bold text-indigo-700 italic">💡 {classification.next_step}</p>
+                 </div>
+               )}
             </div>
           </div>
         )}
-      </div>
 
-      {/* Content Area */}
-      <div className="flex-1 overflow-hidden relative">
-        {viewMode === "html" && email.bodyHtml ? (
-          <div className="w-full h-full bg-white relative">
+        {/* ── Email Body Content Area ── */}
+        <div className="text-[15px] leading-[1.6] text-[#1f1f1f] whitespace-pre-wrap mb-12">
+          {email.bodyHtml ? (
             <iframe
               srcDoc={`
-                                <!DOCTYPE html>
-                                <html class="${document.documentElement.classList.contains('dark') ? 'dark' : ''}">
-                                    <head>
-                                        <meta charset="utf-8">
-                                        <style>
-                                            * { box-sizing: border-box; }
-                                            body { 
-                                                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-                                                font-size: 16px; 
-                                                line-height: 1.7; 
-                                                color: #1f2937;
-                                                margin: 0;
-                                                padding: 60px;
-                                                max-width: 800px;
-                                                margin-left: auto;
-                                                margin-right: auto;
-                                                background-color: #ffffff;
-                                                word-wrap: break-word;
-                                                overflow-wrap: break-word;
-                                            }
-                                            :global(.dark) body {
-                                                background-color: #000000;
-                                                color: #e5e7eb;
-                                            }
-                                            img { 
-                                                max-width: 100% !important; 
-                                                height: auto !important; 
-                                                border-radius: 20px;
-                                                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-                                                margin: 2rem 0;
-                                            }
-                                            a { color: #6366f1; text-decoration: none; font-weight: 700; }
-                                            a:hover { text-decoration: underline; }
-                                            table { width: 100% !important; border-collapse: collapse; margin: 1.5rem 0; }
-                                            blockquote {
-                                                border-left: 4px solid #6366f1;
-                                                margin: 2rem 0;
-                                                padding: 0.5rem 1.5rem;
-                                                background-color: rgba(99, 102, 241, 0.05);
-                                                border-radius: 0 12px 12px 0;
-                                                color: #4b5563;
-                                                font-style: italic;
-                                            }
-                                        </style>
-                                    </head>
-                                    <body>${email.bodyHtml}</body>
-                                </html>
-                            `}
-              className="w-full h-full border-none"
+                <!DOCTYPE html>
+                <html>
+                  <head>
+                    <meta charset="utf-8">
+                    <style>
+                      body { 
+                        font-family: Arial, sans-serif; 
+                        font-size: 15px; 
+                        line-height: 1.6; 
+                        color: #1f1f1f;
+                        margin: 0;
+                        padding: 0;
+                      }
+                      a { color: #1a73e8; text-decoration: none; }
+                      a:hover { text-decoration: underline; }
+                      img { max-width: 100%; height: auto; border-radius: 4px; }
+                      table { width: 100% !important; border-collapse: collapse; }
+                      blockquote { border-left: 4px solid #efefef; margin: 15px 0; padding-left: 15px; color: #5e5e5e; }
+                    </style>
+                  </head>
+                  <body>${email.bodyHtml}</body>
+                </html>
+              `}
+              className="w-full h-[600px] border-none"
               title="Email Content"
               sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
             />
-          </div>
-        ) : (
-          <div className="h-full overflow-y-auto bg-zinc-50 dark:bg-zinc-950">
-            <div className="max-w-4xl mx-auto p-16 bg-white dark:bg-black min-h-full">
-              <div className="text-[15px] text-foreground leading-loose whitespace-pre-wrap select-text font-medium opacity-90 p-8 border border-black/5 dark:border-white/5 rounded-[2rem]">
-                {email.body || "(Prázdny obsah)"}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="font-sans whitespace-pre-wrap">{email.body || "(Prázdny obsah)"}</div>
+          )}
+        </div>
 
-      {/* Attachments & Actions Footer */}
-      <div className="px-8 py-8 border-t border-black/5 dark:border-white/10 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-xl relative z-20">
+        {/* ── Attachments Section (Gmail Style) ── */}
         {email.attachments && email.attachments.length > 0 && (
-          <div className="mb-8">
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-4">
-              Dostupné prílohy ({email.attachments.length})
-            </p>
-            <div className="flex flex-wrap gap-3">
+          <div className="border-t border-[#f1f1f1] pt-6 mb-12">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-1.5 text-[14px] font-bold text-[#1f1f1f]">
+                {email.attachments.length === 1 ? "Jedna príloha" : `${email.attachments.length} prílohy`}
+                <span className="text-[#5e5e5e] font-normal mx-1">•</span>
+                <span className="text-[#5e5e5e] font-normal flex items-center gap-1 text-[13px]">
+                   Skontrolované Gmailom <CheckCircle2 className="w-3 h-3 text-green-600" />
+                </span>
+              </div>
+              <button className="text-[13px] font-medium text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded transition-all flex items-center gap-1.5">
+                 <Download className="w-4 h-4" /> Stiahnuť všetko
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-4">
               {email.attachments.map((att) => (
-                <button
-                  key={att.id}
-                  onClick={() => handleDownload(att)}
-                  disabled={!!downloading}
-                  className="flex items-center gap-4 px-5 py-4 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl hover:bg-indigo-500/5 hover:border-indigo-500/20 transition-all group disabled:opacity-50"
-                >
-                  {downloading === att.id ? (
-                    <div className="w-5 h-5 border-[3px] border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <div className="w-10 h-10 bg-white dark:bg-black rounded-lg flex items-center justify-center border border-black/5 dark:border-white/10 group-hover:scale-110 transition-transform">
-                        <Paperclip className="w-4 h-4 text-muted-foreground group-hover:text-indigo-400" />
+                <div key={att.id} className="w-[180px] group border border-[#dfdfdf] rounded-lg overflow-hidden hover:shadow-md transition-all cursor-pointer">
+                  <div className="h-[120px] bg-zinc-50 flex items-center justify-center relative bg-center bg-cover" style={{ backgroundImage: att.mimeType?.startsWith("image/") ? `url(/api/google/gmail/${email.id}/attachment/${att.id})` : "none" }}>
+                    {!att.mimeType?.startsWith("image/") && (
+                       <div className="flex flex-col items-center gap-1">
+                          <Paperclip className="w-8 h-8 text-zinc-300" />
+                          <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">{att.filename?.split(".").pop()}</span>
+                       </div>
+                    )}
+                    {/* Hover Actions */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-4">
+                       <button onClick={() => handleDownload(att)} className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-all"><Download className="w-5 h-5" /></button>
+                       <button className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-all"><ExternalLink className="w-5 h-5" /></button>
                     </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-black text-foreground truncate max-w-[250px]">
-                      {att.filename}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">
-                      {(att.size / 1024).toFixed(0)} KB
-                    </p>
                   </div>
-                  <Download className="w-4 h-4 text-muted-foreground/30 group-hover:text-indigo-400 ml-4" />
-                </button>
+                  <div className="p-3 bg-white border-t border-[#f1f1f1] flex items-center gap-2">
+                    <div className="w-6 h-6 rounded bg-red-100 flex items-center justify-center flex-shrink-0">
+                       <span className="text-[8px] font-black text-red-600 uppercase">{att.filename?.split(".").pop()}</span>
+                    </div>
+                    <div className="min-w-0">
+                       <p className="text-[12px] font-bold text-[#1f1f1f] truncate">{att.filename}</p>
+                       <p className="text-[10px] text-[#5e5e5e]">{(att.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         )}
 
-        <div className="flex gap-4">
-          <button className="flex-[2] h-14 bg-indigo-600 text-white rounded-[1.25rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-600/20 hover:bg-indigo-500 active:scale-95 transition-all text-[11px] flex items-center justify-center gap-3">
-            <MessageSquare className="w-4 h-4" /> Napísať odpoveď
+        {/* ── Footer Actions (Gmail Style) ── */}
+        <div className="flex items-center gap-2 pt-4">
+          <button className="flex items-center gap-2.5 px-6 py-2 border border-[#dfdfdf] rounded-full text-[14px] font-bold text-[#444746] hover:bg-black/5 transition-all">
+            <Reply className="w-4 h-4" /> Odpovedať
           </button>
-          <button className="flex-1 h-14 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 text-foreground rounded-[1.25rem] font-black uppercase tracking-[0.2em] hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all text-[11px] flex items-center justify-center gap-3">
-            Preposlať správu
+          <button className="flex items-center gap-2.5 px-6 py-2 border border-[#dfdfdf] rounded-full text-[14px] font-bold text-[#444746] hover:bg-black/5 transition-all">
+            <Forward className="w-4 h-4" /> Preposlať
+          </button>
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]">
+            <Smile className="w-5 h-5" />
           </button>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
