@@ -21,7 +21,7 @@ import {
   Bot
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
 import { LogoutButton } from "./LogoutButton";
 import { useCurrentCRMUser } from "@/hooks/useCurrentCRMUser";
@@ -80,14 +80,24 @@ export function DashboardShell({
   onboardingScene?: React.ReactNode
 }) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isNavigating, setIsNavigating] = React.useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useCurrentCRMUser();
   const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
 
   // Auto-close on navigation
   React.useEffect(() => {
     setIsMenuOpen(false);
+    setIsNavigating(false);
   }, [pathname]);
+
+  const handleLinkClick = (href: string) => {
+    if (href !== pathname) {
+      setIsNavigating(true);
+      setIsMenuOpen(false);
+    }
+  };
 
   const isItemAllowed = (item: NavigationItem) => {
     if (!item.allowedEmails) return true;
@@ -100,9 +110,21 @@ export function DashboardShell({
       <style jsx global>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes loading-bar {
+          0% { transform: translateX(-100%); }
+          50% { transform: translateX(0); }
+          100% { transform: translateX(100%); }
+        }
       `}</style>
 
-      {/* Persistent Hamburger Button (Trigger) - Only visible when menu is closed */}
+      {/* Top Loading Bar */}
+      {isNavigating && (
+        <div className="fixed top-0 left-0 right-0 h-1 z-[3000] overflow-hidden">
+          <div className="h-full bg-indigo-600 animate-[loading-bar_1.5s_infinite_linear]" style={{ width: '40%' }} />
+        </div>
+      )}
+
+      {/* Persistent Hamburger Button (Trigger) */}
       {!isMenuOpen && (
         <button
           onClick={() => setIsMenuOpen(true)}
@@ -151,7 +173,8 @@ export function DashboardShell({
                       <Link
                         key={item.href}
                         href={item.href}
-                        onClick={() => setIsMenuOpen(false)}
+                        onMouseEnter={() => router.prefetch(item.href)}
+                        onClick={() => handleLinkClick(item.href)}
                         className={`
                           flex items-center gap-4 px-5 py-4 rounded-[1.5rem] text-sm font-bold transition-all relative group active:scale-95
                           ${isActive 
@@ -173,7 +196,8 @@ export function DashboardShell({
             <ThemeToggle />
             <Link
               href="/dashboard/settings"
-              onClick={() => setIsMenuOpen(false)}
+              onMouseEnter={() => router.prefetch('/dashboard/settings')}
+              onClick={() => handleLinkClick('/dashboard/settings')}
               className={`flex items-center gap-4 px-5 py-3 rounded-2xl text-sm font-bold text-zinc-500 hover:bg-indigo-500/10 hover:text-indigo-600 transition-all`}
             >
               <Settings size={18} />
