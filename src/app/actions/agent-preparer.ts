@@ -35,15 +35,13 @@ RULES:
 1. Search steps (db_fetch_notes, db_search_contacts) are ALWAYS valid — never block them.
 2. HEALING IS BETTER THAN ASKING: Fix if possible. Ask only as last resort.
 3. AMBIGUITY CHECK: Look at the PREVIOUS RESULTS in history. If they show 2+ items and the plan needs one specific item, set valid=false and ask which one.
-   Example question: "Našiel som 2 poznámky: (1) Názov A, (2) Názov B. Ktorú chceš upraviť?"
-4. BREVITY: questions must be 1-2 sentences max in Slovak, no technical jargon.
-5. MISSING REQUIRED INFO: If a tool has required parameters (from definitions) that are empty units (""), null or missing in the PROPOSED STEPS, you MUST set valid: false and ask the user for that information in Slovak.
-   Example: If db_create_contact has first_name: "", ask "Aké je meno kontaktu, ktorý chcete vytvoriť?"
+4. GENERIC VALIDATION: For ANY tool in the PROPOSED STEPS, check its required parameters against the PROVIDED ARGS. If a required parameter is missing, null, or an empty string (""), you MUST set valid: false and ask the user for that specific information in Slovak.
+5. BREVITY: Questions must be 1-2 sentences max in Slovak, focusing only on the missing/ambiguous data.
 
 OUTPUT FORMAT (STRICT JSON):
 {
   "valid": boolean,
-  "questions": string[], // Max 1 question if valid=false
+  "questions": string[], // Short Slovak question if valid=false
   "validated_steps": [
     { "tool": "tool_name", "args": { "key": "value" } }
   ]
