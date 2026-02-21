@@ -114,31 +114,87 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         }
       }
 
-      // DEVELOPMENT MOCK DATA: Inject 100 fake emails for visualization if no real context found
+      // DEVELOPMENT MOCK DATA: Inject fake emails for visualization
       if (process.env.NODE_ENV === "development") {
         setMessages(prev => {
-          if (prev.length > 0) return prev; // Don't overwrite real data if it exists
+          if (prev.length > 0) return prev;
           
-          const mocks: GmailMessage[] = Array.from({ length: 100 }).map((_, i) => ({
-            id: `mock-${i}`,
-            threadId: `thread-${i}`,
-            from: i % 3 === 0 ? "Andrej Sládkovič <andrej@example.com>" : i % 2 === 0 ? "Real Estate Agent <agent@property.sk>" : "Zuzana Marketingová <zuzana@trend.cz>",
-            subject: i % 4 === 0 ? "⚠️ Naliehavý dopyt: Geodetické meranie pozemku" : `Projektová dokumentácia - Verzia ${i}`,
-            snippet: "Dobrý deň, obraciam sa na Vás s prosbou o vypracovanie ponuky na zameranie hraníc pozemku v okolí Bratislavy. Termín realizácie by bol ideálne...",
-            date: new Date(Date.now() - i * 3600000).toISOString(),
-            isRead: i > 5, // First 5 are unread
-            body: "Mock body content for visualization.",
-            labels: [], // Added missing labels property
-            classification: i % 5 === 0 ? {
+          const mockTemplates = [
+            {
+              from: "Miroslav Horský <miro.horsky@reality-ba.sk>",
+              subject: "⚠️ SÚRNE: Zameranie hraníc pozemku - Stupava",
+              body: "Dobrý deň,\n\npotreboval by som súrne zamerať hranice pozemku v Stupave pre účely dedičského konania. Máme tam spor so susedom o cca 2 metre.\n\nVedeli by ste sa na to prísť pozrieť do konca týždňa? Dokumentáciu z katastra mám k dispozícii.\n\nS pozdravom,\nHorský",
+              snippet: "Dobrý deň, potreboval by som súrne zamerať hranice pozemku v Stupave pre účely dedičského konania...",
+              budget: "1 500 €",
               intent: "dopyt",
-              priority: "vysoka",
-              estimated_budget: "1 200 €",
-              summary: "Klient hľadá rýchle nacenenie merania pozemku v Bratislave.",
-              next_step: "Navrhnúť termín obhliadky",
-              service_category: "Geodézia",
-              sentiment: "pozitivny" // Added missing sentiment property
-            } : undefined
-          }));
+              category: "Geodézia",
+              nextStep: "Zavolať klientovi a dohodnúť obhliadku"
+            },
+            {
+              from: "Lucia Nováková <lucia@fashion-web.sk>",
+              subject: "Dopyt: Redizajn e-shopu na mieru",
+              body: "Zdravím tím Arcigy,\n\nnaša značka rastie a náš aktuálny e-shop už nestíha. Potrebujeme niečo moderné, rýchle a hlavne Mobile-First.\n\nMáte skúsenosti s prepojením na Shoptet alebo radšej staviate na vlastnom jadre? Radi by sme začali s prácami čo najskôr.\n\nVďaka, Lucia",
+              snippet: "Zdravím tím Arcigy, naša značka rastie a náš aktuálny e-shop už nestíha. Potrebujeme niečo moderné...",
+              budget: "4 000 €",
+              intent: "dopyt",
+              category: "Web Development",
+              nextStep: "Poslať dotazník na špecifikáciu"
+            },
+            {
+              from: "Peter Kováč <peter.kovac@gmail.com>",
+              subject: "Otázka k faktúre č. 2024015",
+              body: "Dobrý deň, v poslednej faktúre vidím položku 'Dodatočné merania', o ktorých sme nehovorili. Môžete mi k tomu poslať viac informácií?\n\nĎakujem,\nKováč",
+              snippet: "Dobrý deň, v poslednej faktúre vidím položku 'Dodatočné merania', o ktorých sme nehovorili...",
+              budget: "—",
+              intent: "podpora",
+              category: "Administratíva",
+              nextStep: "Preveriť záznamy u účtovníčky"
+            },
+             {
+              from: "Google Cloud <noreply@google.com>",
+              subject: "Monthly Statement: February 2026",
+              body: "Your monthly statement for Google Cloud is now available. Your total for this month is $12.45.\n\nYou can view and download your statement in the Cloud Console.",
+              snippet: "Your monthly statement for Google Cloud is now available. Your total for this month is $12.45...",
+              budget: "—",
+              intent: "notifikácia",
+              category: "IT / Infraštruktúra",
+              nextStep: "Archivovať faktúru"
+            },
+            {
+              from: "Zuzana Trénerka <zuzi@fit-studio.sk>",
+              subject: "Rezervácia termínu - Geodetické práce",
+              body: "Ahojte, chcem sa opýtať na voľné termíny na vytýčenie stavby rodinného domu v Senci. Základy by sme chceli kopať o 2 týždne, tak by bolo super to stihnúť v predstihu.\n\nTelefón na mňa: 0903 123 456.\n\nDajte vedieť!",
+              snippet: "Ahojte, chcem sa opýtať na voľné termíny na vytýčenie stavby rodinného domu v Senci...",
+              budget: "800 €",
+              intent: "dopyt",
+              category: "Lokalizácia stavby",
+              nextStep: "Preveriť dostupnosť v kalendári"
+            }
+          ];
+
+          const mocks: GmailMessage[] = Array.from({ length: 40 }).map((_, i) => {
+            const template = mockTemplates[i % mockTemplates.length];
+            return {
+              id: `mock-${i}`,
+              threadId: `thread-${i}`,
+              from: template.from,
+              subject: template.subject,
+              snippet: template.snippet,
+              date: new Date(Date.now() - i * 7200000).toISOString(),
+              isRead: i > 2,
+              body: template.body,
+              labels: [],
+              classification: {
+                intent: (template.intent as any),
+                priority: (i % 7 === 0 ? "vysoka" : "stredna") as any,
+                estimated_budget: template.budget,
+                summary: template.body.substring(0, 80) + "...",
+                next_step: template.nextStep,
+                service_category: template.category,
+                sentiment: "pozitivny" as any
+              }
+            };
+          });
           return mocks;
         });
       }

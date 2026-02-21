@@ -69,7 +69,7 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
   const classification = email.classification;
 
   return (
-    <div className="flex flex-col h-full bg-[#f6f8fc] dark:bg-black text-[#1f1f1f] font-sans overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+    <div className="flex flex-col h-full bg-[#f8f7ff] dark:bg-black text-[#1f1f1f] font-sans overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
       {/* ── Top Toolbar (Gmail Style) ── */}
       <div className="h-14 px-4 flex items-center justify-between flex-shrink-0 bg-transparent dark:bg-zinc-950/50">
         <div className="flex items-center gap-1">
@@ -211,7 +211,7 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
         )}
 
         {/* ── Email Body Content Area ── */}
-        <div className="text-[15px] leading-[1.6] text-[#1f1f1f] whitespace-pre-wrap mb-12">
+        <div className="text-[16px] leading-[1.7] text-[#111111] dark:text-zinc-100 whitespace-pre-wrap mb-12">
           {email.bodyHtml ? (
             <iframe
               srcDoc={`
@@ -221,18 +221,18 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
                     <meta charset="utf-8">
                     <style>
                       body { 
-                        font-family: Arial, sans-serif; 
-                        font-size: 15px; 
-                        line-height: 1.6; 
-                        color: #1f1f1f;
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; 
+                        font-size: 16px; 
+                        line-height: 1.7; 
+                        color: #111111;
                         margin: 0;
                         padding: 0;
                       }
-                      a { color: #1a73e8; text-decoration: none; }
+                      a { color: #0053cc; text-decoration: none; font-weight: 500; }
                       a:hover { text-decoration: underline; }
-                      img { max-width: 100%; height: auto; border-radius: 4px; }
-                      table { width: 100% !important; border-collapse: collapse; }
-                      blockquote { border-left: 4px solid #efefef; margin: 15px 0; padding-left: 15px; color: #5e5e5e; }
+                      img { max-width: 100%; height: auto; border-radius: 8px; }
+                      table { width: 100% !important; border-collapse: collapse; margin: 20px 0; }
+                      blockquote { border-left: 4px solid #e5e7eb; margin: 15px 0; padding-left: 20px; color: #4b5563; font-style: italic; }
                     </style>
                   </head>
                   <body>${email.bodyHtml}</body>

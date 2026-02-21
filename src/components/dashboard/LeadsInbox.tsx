@@ -133,7 +133,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
       </div>
 
       {/* Main Content Area: Switch between List and Detail */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10 bg-[#f6f8fc] dark:bg-black min-w-0">
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10 bg-[#f8f7ff] dark:bg-black min-w-0">
         {selectedEmail ? (
           <EmailDetailView
             email={selectedEmail}
