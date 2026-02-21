@@ -71,7 +71,7 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
   return (
     <div className="flex flex-col h-full bg-[#f8f7ff] dark:bg-black text-[#1f1f1f] font-sans overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
       {/* ── Top Toolbar (Gmail Style) ── */}
-      <div className="h-14 px-4 flex items-center justify-between flex-shrink-0 bg-transparent dark:bg-zinc-950/50">
+      <div className="h-14 px-4 flex items-center justify-between flex-shrink-0 bg-transparent">
         <div className="flex items-center gap-1">
           <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Späť">
             <ArrowLeft className="w-5 h-5" />
@@ -112,15 +112,15 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-6">
-        <div className="bg-white dark:bg-zinc-950/40 min-h-full rounded-[1.5rem] shadow-sm border border-black/[0.03] dark:border-white/[0.03] px-12 py-8">
+      <div className="flex-1 overflow-y-auto px-4 pb-12 relative scroll-smooth thin-scrollbar">
+        <div className="bg-white/95 dark:bg-zinc-900/60 min-h-full rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(100,_0,_255,_0.05)] border-none px-12 py-10 transition-all">
           {/* ── Subject Area ── */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <h2 className="text-[22px] font-normal tracking-tight text-[#111111]">
+          <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-4">
+              <h2 className="text-[28px] font-black tracking-tight text-[#2d1b4e] dark:text-zinc-100 leading-tight">
                 {email.subject || "(Bez predmetu)"}
               </h2>
-              <span className="px-2 py-0.5 bg-[#f0abfc] text-[#701a75] text-[11px] rounded flex items-center gap-1 font-black uppercase tracking-wider shadow-[0_0_10px_rgba(240,171,252,0.5)]">
+              <span className="px-3 py-1 bg-[#f0abfc] text-[#701a75] text-[11px] rounded-full flex items-center gap-1 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(240,171,252,0.6)] border border-white/50">
                 Doručené <span className="opacity-60 text-[10px]">x</span>
               </span>
             </div>
@@ -312,7 +312,9 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
           </button>
         </div>
       </div>
+      </div>
+      {/* ── Bottom Fade Gradient ── */}
+      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#f8f7ff] via-[#f8f7ff]/90 to-transparent pointer-events-none z-20" />
     </div>
-  </div>
-);
+  );
 }

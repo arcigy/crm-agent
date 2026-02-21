@@ -31,7 +31,7 @@ export function LeadsHeader({
   totalCount = 0,
 }: LeadsHeaderProps) {
   return (
-    <div className="px-6 h-14 border-b border-[#f1f1f1] dark:border-white/5 flex items-center justify-between bg-transparent relative z-20">
+    <div className="px-6 h-14 flex items-center justify-between bg-transparent relative z-20">
       {/* Left Actions */}
       <div className="flex items-center gap-1.5">
         <button className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-all text-[#444746] dark:text-zinc-400 group">

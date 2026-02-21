@@ -83,7 +83,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
   }, []);
 
   return (
-    <div className="flex h-full bg-white dark:bg-black overflow-hidden relative border-t border-black/5 dark:border-white/5">
+    <div className="flex h-full bg-white dark:bg-black overflow-hidden relative">
       {/* Contact Extraction Modal */}
       {isContactModalOpen && contactModalData && (
         <ContactExtractionModal
@@ -124,7 +124,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
       )}
 
       {/* Sidebar for Navigation */}
-      <div className="relative z-10 border-r border-[#f1f1f1] dark:border-white/5 bg-white dark:bg-zinc-950 w-[240px] flex-shrink-0">
+      <div className="relative z-10 border-r border-black/[0.02] dark:border-white/[0.02] bg-white dark:bg-zinc-950 w-[240px] flex-shrink-0">
         <LeadsSidebar 
           selectedTab={selectedTab} 
           onTabChange={setSelectedTab} 
