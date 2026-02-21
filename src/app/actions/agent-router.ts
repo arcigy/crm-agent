@@ -28,9 +28,9 @@ export async function routeIntent(
     `;
 
     const response = await generateText({
-      model: google("gemini-2.0-flash"), // Fast & cost-effective model for routing
+      model: google("gemini-2.0-flash"), 
       system: systemPrompt,
-      prompt: `HISTORY:\n${JSON.stringify(history.slice(-2))}\n\nMESSAGE:\n${lastUserMessage}`,
+      prompt: `HISTORY:\n${JSON.stringify(history?.slice?.(-2) || [])}\n\nMESSAGE:\n${lastUserMessage}`,
     });
 
     trackAICall(
@@ -40,19 +40,23 @@ export async function routeIntent(
         systemPrompt + lastUserMessage,
         response.text,
         Date.now() - start,
-        (response.usage as any).promptTokens || (response.usage as any).inputTokens,
-        (response.usage as any).completionTokens || (response.usage as any).outputTokens
+        (response.usage as any).inputTokens,
+        (response.usage as any).outputTokens
     );
 
-    try {
-        const cleanText = response.text.replace(/```json/g, "").replace(/```/g, "").trim();
-        return JSON.parse(cleanText);
-    } catch (e) {
-        return { type: "CONVERSATION", reason: "Fallback on parse error" };
+    const rawText = response.text || "";
+    const startIdx = rawText.indexOf('{');
+    const endIdx = rawText.lastIndexOf('}');
+    
+    if (startIdx === -1) {
+        throw new Error("No JSON found");
     }
 
-  } catch (error) {
+    const clean = rawText.substring(startIdx, endIdx + 1);
+    return JSON.parse(clean);
+
+  } catch (error: any) {
     console.error("Router Error:", error);
-    return { type: "CONVERSATION", reason: "Fallback on error" };
+    return { type: "CONVERSATION", reason: `Fallback: ${error.message}` };
   }
 }
