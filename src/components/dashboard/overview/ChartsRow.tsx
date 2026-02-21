@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, BarChart3 } from "lucide-react";
+import { ChevronDown, BarChart3, TrendingUp } from "lucide-react";
 
 export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -35,21 +35,19 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-5 md:p-8 rounded-none md:rounded-[2.5rem] border-b md:border border-indigo-500/20 dark:border-indigo-500/20 md:dark:bg-indigo-950/10 md:border-indigo-500/10 md:dark:border-indigo-500/5 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-8'}`}>
-      {/* 2. Soft Radial Glows - Only on Mobile */}
-      <div className="absolute -top-24 -left-24 w-64 h-64 bg-zinc-500/10 rounded-full blur-[100px] pointer-events-none opacity-50 group-hover:opacity-100 group-hover:bg-zinc-500/20 transition-all duration-300 md:hidden" />
+    <div className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl px-5 md:px-8 pt-2 md:pt-3 pb-4 md:pb-6 rounded-none md:rounded-[2.5rem] border-b md:border border-violet-500/20 dark:border-violet-500/20 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full' : 'h-auto md:h-full shadow-sm hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-1.5'}`}>
+      <div className="absolute -top-6 -left-6 w-24 h-24 bg-violet-500/20 rounded-full blur-[40px] pointer-events-none group-hover:bg-violet-500/30 transition-all duration-300" />
       
       <div 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full md:cursor-default relative z-20 cursor-pointer md:cursor-auto"
+        className="flex items-center justify-between w-full md:cursor-default relative z-20 cursor-pointer md:cursor-auto mb-1 md:mb-2"
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 md:w-10 md:h-10 rounded-2xl md:bg-zinc-500/10 bg-zinc-500/20 flex items-center justify-center border border-zinc-500/30 md:border-zinc-500/20">
-            <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-zinc-500" />
+          <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl md:bg-violet-500/10 bg-violet-500/20 flex items-center justify-center border border-violet-500/30 md:border-violet-500/20">
+            <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-violet-500" />
           </div>
           <div className="flex flex-col items-start text-left">
-            <h3 className="text-base md:text-xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Pipeline Projektov</h3>
-            <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Stavy aktívnych projektov</span>
+            <h3 className="text-sm md:text-lg font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Pipeline Projektov</h3>
           </div>
         </div>
         <div className={`w-5 h-5 flex items-center justify-center transition-all duration-300 md:hidden ${isExpanded ? 'rotate-180' : ''}`}>
@@ -57,10 +55,10 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
         </div>
       </div>
       
-      <div className={`flex-1 flex flex-col transition-all duration-500 ${isExpanded ? 'mt-6 opacity-100 block' : 'hidden md:block md:mt-6 opacity-0 md:opacity-100'}`}>
-        <div className="space-y-3.5 overflow-auto thin-scrollbar pr-2 relative z-10">
+      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'opacity-100 block' : 'hidden md:block opacity-0 md:opacity-100'}`}>
+        <div className="space-y-1 md:space-y-1.5 relative z-10 overflow-hidden">
           {pipelineStages.map((stage, i) => (
-            <div key={i} className="bg-white/60 dark:bg-zinc-900/40 py-1.5 px-4 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
+            <div key={i} className="bg-white/60 dark:bg-zinc-900/40 py-0.5 md:py-1 px-4 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
               <div className="flex justify-between text-[9px] font-black mb-1 transition-all">
                 <span className="uppercase tracking-[0.2em] text-muted-foreground opacity-60 font-black italic">{stage.label}</span>
                 <span className="text-foreground font-black italic">{stage.count}</span>

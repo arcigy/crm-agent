@@ -113,6 +113,35 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
           }
         }
       }
+
+      // DEVELOPMENT MOCK DATA: Inject 100 fake emails for visualization if no real context found
+      if (process.env.NODE_ENV === "development") {
+        setMessages(prev => {
+          if (prev.length > 0) return prev; // Don't overwrite real data if it exists
+          
+          const mocks: GmailMessage[] = Array.from({ length: 100 }).map((_, i) => ({
+            id: `mock-${i}`,
+            threadId: `thread-${i}`,
+            from: i % 3 === 0 ? "Andrej Sládkovič <andrej@example.com>" : i % 2 === 0 ? "Real Estate Agent <agent@property.sk>" : "Zuzana Marketingová <zuzana@trend.cz>",
+            subject: i % 4 === 0 ? "⚠️ Naliehavý dopyt: Geodetické meranie pozemku" : `Projektová dokumentácia - Verzia ${i}`,
+            snippet: "Dobrý deň, obraciam sa na Vás s prosbou o vypracovanie ponuky na zameranie hraníc pozemku v okolí Bratislavy. Termín realizácie by bol ideálne...",
+            date: new Date(Date.now() - i * 3600000).toISOString(),
+            isRead: i > 5, // First 5 are unread
+            body: "Mock body content for visualization.",
+            labels: [], // Added missing labels property
+            classification: i % 5 === 0 ? {
+              intent: "dopyt",
+              priority: "vysoka",
+              estimated_budget: "1 200 €",
+              summary: "Klient hľadá rýchle nacenenie merania pozemku v Bratislave.",
+              next_step: "Navrhnúť termín obhliadky",
+              service_category: "Geodézia",
+              sentiment: "pozitivny" // Added missing sentiment property
+            } : undefined
+          }));
+          return mocks;
+        });
+      }
     } catch (error) {
       console.error("Failed to fetch inbox:", error);
     } finally {

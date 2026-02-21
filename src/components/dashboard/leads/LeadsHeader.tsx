@@ -1,7 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Search, RefreshCcw, Sparkles } from "lucide-react";
+import { 
+  Square, 
+  RefreshCcw, 
+  MoreVertical, 
+  ChevronLeft, 
+  ChevronRight,
+  Search,
+  RotateCcw
+} from "lucide-react";
 
 interface LeadsHeaderProps {
   isConnected: boolean;
@@ -10,6 +18,7 @@ interface LeadsHeaderProps {
   onSearchChange: (query: string) => void;
   onRefresh: () => void;
   onConnect: () => void;
+  totalCount?: number;
 }
 
 export function LeadsHeader({
@@ -19,41 +28,48 @@ export function LeadsHeader({
   onSearchChange,
   onRefresh,
   onConnect,
+  totalCount = 0,
 }: LeadsHeaderProps) {
   return (
-    <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-card/30">
-      <div className="flex items-center gap-3">
-        <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
-          Leads
-        </h1>
+    <div className="px-6 py-3 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-white/40 dark:bg-zinc-950/80 backdrop-blur-xl relative z-20">
+      {/* Left Actions */}
+      <div className="flex items-center gap-1.5">
+        <button className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all text-muted-foreground group">
+          <Square className="w-4 h-4 group-hover:text-foreground transition-colors" />
+        </button>
+        <button 
+          onClick={onRefresh}
+          className={`p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all text-muted-foreground group ${loading ? "animate-spin" : ""}`}
+        >
+          <RotateCcw className="w-4 h-4 group-hover:text-foreground transition-colors" />
+        </button>
+        <button className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all text-muted-foreground group">
+          <MoreVertical className="w-4 h-4 group-hover:text-foreground transition-colors" />
+        </button>
+
         {!isConnected && !loading && (
           <button
             onClick={onConnect}
-            className="flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 transition-all"
+            className="ml-6 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
           >
-            <Sparkles className="w-3 h-3" /> Povoliť Gmail
+            Prepojiť Gmail
           </button>
         )}
       </div>
-      <div className="flex items-center gap-3">
-        <div className="relative w-64">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Hľadať správu..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-foreground"
-          />
+
+      {/* Right Actions / Pagination */}
+      <div className="flex items-center gap-6">
+        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500/60">
+          {totalCount > 0 ? `1 — ${Math.min(50, totalCount)} z ${totalCount.toLocaleString()}` : "0 z 0"}
         </div>
-        <button
-          onClick={onRefresh}
-          className={`p-2.5 rounded-xl bg-card text-foreground/70 border border-border hover:bg-muted transition-all ${
-            loading ? "animate-spin" : ""
-          }`}
-        >
-          <RefreshCcw className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5">
+          <button className="p-1 px-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-all disabled:opacity-20 text-muted-foreground" disabled>
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button className="p-1 px-3 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-all text-indigo-500 dark:text-indigo-400 shadow-sm active:scale-90">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

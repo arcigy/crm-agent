@@ -145,16 +145,16 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
                 return clerkTokenData.token;
             }
         } catch (clerkErr: any) {
-            console.error("❌ [getValidToken] Clerk OAuth error:", clerkErr.status, clerkErr.message);
-            
-            if (clerkErr.status === 422) {
-                console.error("💡 TIP: Užívateľ nemá prepojený Google účet v Clerk (OAuth). Je potrebné sa odhlásiť a znova prihlásiť cez Google, alebo prepojiť účet v nastaveniach Clerk.");
+            if (clerkErr.status === 400 || clerkErr.status === 422) {
+                // These are expected when the user hasn't linked Google or the session is invalid
+                console.log(`[getValidToken] Google account not linked in Clerk (Status: ${clerkErr.status}). skipping calendar.`);
+            } else {
+                console.error("❌ [getValidToken] Clerk OAuth error:", clerkErr.status, clerkErr.message);
+                if (clerkErr.errors) {
+                    console.error("Details:", JSON.stringify(clerkErr.errors, null, 2));
+                }
             }
-
-            if (clerkErr.errors) {
-                console.error("Details:", JSON.stringify(clerkErr.errors, null, 2));
-            }
-            return null; // Return null instead of throwing to allow caller to handle it gracefully
+            return null;
         }
 
         console.warn(`[getValidToken] No token found in Clerk either.`);

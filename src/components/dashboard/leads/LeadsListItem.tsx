@@ -4,18 +4,16 @@ import * as React from "react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
 import {
+  Star,
+  Square,
+  CheckSquare,
+  MoreVertical,
+  Paperclip,
   Zap,
-  TrendingUp,
-  Target,
   Trash2,
-  X,
-  Sparkles,
   Brain,
-  RefreshCcw,
-  PhoneIncoming,
-  PhoneOutgoing,
-  PhoneMissed,
-  MessageSquare,
+  Sparkles,
+  X
 } from "lucide-react";
 import { GmailMessage } from "@/types/gmail";
 import { AndroidLog } from "@/types/android";
@@ -52,230 +50,143 @@ export function LeadsListItem({
   onDraftReply,
   onExecuteCustomCommand,
 }: LeadsListItemProps) {
+  const [isStarred, setIsStarred] = React.useState(false);
+  const [isSelected, setIsSelected] = React.useState(false);
+
   if (item.itemType === "email") {
     const msg = item as unknown as GmailMessage;
     const isSpam = msg.classification?.intent === "spam";
-
-    // New Radial Gradient System
-    let priorityColor = "hover:bg-gray-50";
-    let borderColor = "border-transparent border-b-gray-50";
-
-    if (isSpam) {
-      priorityColor =
-        "bg-gray-100/80 grayscale opacity-60 hover:opacity-100 hover:bg-gray-200/50 transition-all";
-      borderColor = "border border-gray-200";
-    } else if (msg.classification?.priority === "vysoka") {
-      priorityColor =
-        "bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-300 via-red-200/60 to-transparent shadow-[inset_0_0_40px_rgba(239,68,68,0.25)]";
-      borderColor = "border border-red-400/60";
-    } else if (msg.classification?.priority === "stredna") {
-      priorityColor =
-        "bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-300 via-amber-200/60 to-transparent shadow-[inset_0_0_40px_rgba(245,158,11,0.25)]";
-      borderColor = "border border-amber-400/60";
-    } else {
-      priorityColor =
-        "bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-200 via-blue-100/50 to-transparent shadow-[inset_0_0_40px_rgba(59,130,246,0.15)]";
-      borderColor = "border border-blue-300/50";
-    }
-
-    const readStyle = !msg.isRead ? "" : "opacity-95";
-
-    const panelTheme = isSpam
-      ? {
-          bg: "bg-gray-50 border-gray-200",
-          iconBg: "bg-gray-200 text-gray-500",
-          button: "bg-gray-700 hover:bg-gray-800",
-          text: "text-gray-600",
-        }
-      : msg.classification?.priority === "vysoka"
-        ? {
-            bg: "bg-gradient-to-r from-red-50/80 to-white border-red-100",
-            iconBg: "bg-red-100 text-red-600 border-red-200",
-            button: "bg-red-600 hover:bg-red-700 text-white",
-            text: "text-gray-900",
-            accent: "text-red-700",
-          }
-        : msg.classification?.priority === "stredna"
-          ? {
-              bg: "bg-gradient-to-r from-amber-50/80 to-white border-amber-100",
-              iconBg: "bg-amber-100 text-amber-600 border-amber-200",
-              button: "bg-amber-600 hover:bg-amber-700 text-white",
-              text: "text-gray-900",
-              accent: "text-amber-700",
-            }
-          : {
-              bg: "bg-gradient-to-r from-blue-50/80 to-white border-blue-100",
-              iconBg: "bg-blue-100 text-blue-600 border-blue-200",
-              button: "bg-gray-900 hover:bg-black text-white",
-              text: "text-gray-900",
-              accent: "text-blue-700",
-            };
+    const isRead = msg.isRead;
 
     return (
       <React.Fragment>
         <div
           onClick={() => onOpenEmail(msg)}
-          className={`group flex items-center gap-6 px-6 py-4 transition-all cursor-pointer relative
-                                    ${readStyle} ${priorityColor} ${borderColor}
-                                    ${isActionOpen ? "brightness-[0.98] shadow-inner" : ""}`}
+          className={`group flex items-center px-4 py-4 border-b border-violet-500/10 dark:border-violet-500/20 transition-all cursor-pointer relative ${
+            !isRead 
+              ? "bg-white/40 dark:bg-black font-bold z-10 border-l-[6px] border-l-violet-600 hover:bg-violet-500/5 dark:hover:bg-violet-500/[0.05]" 
+              : "bg-white/10 dark:bg-transparent opacity-70 hover:opacity-100 hover:bg-violet-500/5 dark:hover:bg-violet-500/[0.05]"
+          }`}
         >
-          <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center text-sm font-black text-foreground/60 shadow-sm group-hover:scale-105 transition-transform">
-            {(msg.from || "?").substring(0, 1).toUpperCase()}
+          {/* Controls: Checkbox and Star */}
+          <div className="flex items-center gap-2 mr-6 flex-shrink-0 opacity-30 group-hover:opacity-100 transition-opacity">
+            <button 
+              onClick={(e) => { e.stopPropagation(); setIsSelected(!isSelected); }}
+              className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-all text-muted-foreground"
+            >
+              {isSelected ? <CheckSquare className="w-4 h-4 text-indigo-500" /> : <Square className="w-4 h-4" />}
+            </button>
+            <button 
+              onClick={(e) => { e.stopPropagation(); setIsStarred(!isStarred); }}
+              className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-all"
+            >
+              <Star className={`w-4 h-4 ${isStarred ? "fill-amber-400 text-amber-400" : "text-muted-foreground group-hover:text-amber-400/50"}`} />
+            </button>
           </div>
 
-          <div className="flex-1 min-w-0 grid grid-cols-12 gap-4 items-center">
-            <div className="col-span-2">
-              <span
-                className={`text-sm truncate block ${!msg.isRead ? "font-black text-foreground" : "font-bold text-foreground/80"}`}
-              >
-                {msg.from || "Neznámy odosielateľ"}
-              </span>
-              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
-                {msg.date
-                  ? format(new Date(msg.date), "d. MMM HH:mm", { locale: sk })
-                  : "Neznámy dátum"}
-              </span>
-            </div>
+          {/* Sender */}
+          <div className={`w-[220px] flex-shrink-0 truncate text-sm mr-4 tracking-tight ${!isRead ? "font-black text-foreground" : "font-semibold text-muted-foreground"}`}>
+            {msg.from || "Neznámy"}
+          </div>
 
-            <div className="col-span-4">
-              <h4
-                className={`text-sm truncate mb-0.5 ${!msg.isRead ? "font-black text-foreground" : "font-medium text-foreground/90"}`}
-              >
+          {/* Subject and Snippet */}
+          <div className="flex-1 min-w-0 flex items-center gap-3">
+            <div className="flex-1 truncate">
+              <span className={`text-sm ${!isRead ? "font-black text-foreground" : "font-semibold text-muted-foreground"}`}>
                 {msg.subject}
-              </h4>
-              <p className="text-xs text-gray-500 truncate font-medium">
+              </span>
+              <span className="text-sm text-zinc-500/40 mx-2">—</span>
+              <span className="text-sm text-zinc-500 dark:text-zinc-500 font-medium truncate">
                 {msg.snippet}
-              </p>
+              </span>
             </div>
 
-            <div className="col-span-6 flex justify-end items-center gap-2">
-              {msg.classification ? (
-                <div className="flex items-center gap-2">
-                  {msg.classification.estimated_budget &&
-                    msg.classification.estimated_budget !== "—" &&
-                    msg.classification.estimated_budget !== "Neznámy" && (
-                      <div className="hidden lg:flex px-2 py-1 rounded-lg bg-white/60 border border-gray-200 text-gray-700 items-center gap-1.5 shadow-sm">
-                        <Zap className="w-3 h-3" />
-                        <span className="text-[10px] font-black uppercase tracking-wide">
-                          {msg.classification.estimated_budget}
-                        </span>
-                      </div>
-                    )}
-
-                  {msg.classification.service_category &&
-                    msg.classification.service_category !== "—" && (
-                      <div className="hidden xl:flex px-2 py-1 rounded-lg bg-white/60 border border-gray-200 text-gray-600 items-center gap-1.5 shadow-sm">
-                        <TrendingUp className="w-3 h-3" />
-                        <span className="text-[10px] font-bold uppercase tracking-wide truncate max-w-[100px]">
-                          {msg.classification.service_category}
-                        </span>
-                      </div>
-                    )}
-
-                  <div
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border shadow-sm bg-white/80 border-gray-200 text-gray-700`}
-                  >
-                    {isSpam ? (
-                      <Trash2 className="w-3.5 h-3.5" />
-                    ) : (
-                      <Target className="w-3.5 h-3.5" />
-                    )}
-                    <span className="text-[10px] font-black uppercase tracking-wider">
-                      {isSpam ? "SPAM" : msg.classification.intent}
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={(e) => onToggleAction(e, msg.id)}
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isActionOpen ? "bg-gray-900 text-white shadow-lg rotate-180" : "bg-white border border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200"}`}
-                  >
-                    {isActionOpen ? (
-                      <X className="w-4 h-4" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={(e) => onManualAnalyze(e, msg)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-900 text-white hover:bg-black transition-all shadow-lg shadow-gray-200 active:scale-95 group/btn"
-                >
-                  {msg.isAnalyzing ? (
-                    <RefreshCcw className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Brain className="w-3 h-3 group-hover/btn:scale-110 transition-transform" />
-                  )}
-                  <span className="text-[10px] font-black uppercase tracking-wider">
-                    Analyzovať
+            {/* AI Badges (Subtle but high contrast) */}
+            {msg.classification && !isSpam && (
+              <div className="flex items-center gap-1.5 flex-shrink-0 mr-4">
+                {msg.classification.priority === "vysoka" && (
+                  <span className="px-2 py-0.5 rounded-md bg-red-500/10 text-red-500 text-[9px] font-black uppercase tracking-widest border border-red-500/20">Vysoká</span>
+                )}
+                {msg.classification.estimated_budget && msg.classification.estimated_budget !== "—" && (
+                  <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 text-[9px] font-black uppercase tracking-widest border border-indigo-500/20">
+                    {msg.classification.estimated_budget}
                   </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Date and Hover Actions */}
+          <div className="flex-shrink-0 ml-4 flex items-center gap-4 min-w-[80px] justify-end">
+            <span className={`text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500/60 group-hover:hidden transition-all italic`}>
+              {msg.date ? format(new Date(msg.date), "d. M.", { locale: sk }) : ""}
+            </span>
+            
+            <div className="hidden group-hover:flex items-center gap-1 animate-in fade-in slide-in-from-right-2 duration-200">
+              <button 
+                onClick={(e) => { e.stopPropagation(); onToggleAction(e, msg.id); }}
+                className="p-2 hover:bg-indigo-500/10 rounded-xl transition-all text-indigo-400"
+                title="AI Akcia"
+              >
+                <Sparkles className="w-4 h-4" />
+              </button>
+              {!msg.classification && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onManualAnalyze(e, msg); }}
+                  className="p-2 hover:bg-indigo-500/10 rounded-xl transition-all text-indigo-400"
+                  title="Analyzovať"
+                >
+                  <Brain className="w-4 h-4" />
                 </button>
               )}
+              <button className="p-2 hover:bg-red-500/10 rounded-xl transition-all text-red-500">
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
 
         {isActionOpen && msg.classification && (
-          <LeadsActionPanel
-            email={msg}
-            isGeneratingDraft={isGeneratingDraft}
-            customCommandMode={customCommandMode}
-            customPrompt={customPrompt}
-            panelTheme={panelTheme}
-            setCustomPrompt={setCustomPrompt}
-            setCustomCommandMode={setCustomCommandMode}
-            onSaveContact={onSaveContact}
-            onDraftReply={onDraftReply}
-            onExecuteCustomCommand={onExecuteCustomCommand}
-            onToggleAction={onToggleAction}
-          />
+          <div className="px-12 py-6 bg-indigo-500/5 dark:bg-white/5 backdrop-blur-md border-b border-black/5 dark:border-white/5 animate-in slide-in-from-top-4 duration-300">
+            <LeadsActionPanel
+              email={msg}
+              isGeneratingDraft={isGeneratingDraft}
+              customCommandMode={customCommandMode}
+              customPrompt={customPrompt}
+              panelTheme={{
+                bg: "bg-transparent",
+                iconBg: "bg-indigo-500/10 text-indigo-600",
+                button: "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/20",
+                text: "text-foreground",
+                accent: "text-indigo-600"
+              }}
+              setCustomPrompt={setCustomPrompt}
+              setCustomCommandMode={setCustomCommandMode}
+              onSaveContact={onSaveContact}
+              onDraftReply={onDraftReply}
+              onExecuteCustomCommand={onExecuteCustomCommand}
+              onToggleAction={onToggleAction}
+            />
+          </div>
         )}
       </React.Fragment>
     );
-  } else {
-    const log = item as unknown as AndroidLog;
-    const isCall = log.type === "call";
-    const isMissed = log.direction === "missed" || log.direction === "rejected";
-
-    return (
-      <div
-        key={log.id}
-        className="group flex items-center gap-6 px-6 py-4 hover:bg-gray-50 transition-all cursor-pointer border-l-[3px] border-transparent"
-      >
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${isCall ? (isMissed ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600") : "bg-indigo-50 text-indigo-600"}`}
-        >
-          {isCall ? (
-            log.direction === "incoming" ? (
-              <PhoneIncoming className="w-5 h-5" />
-            ) : log.direction === "outgoing" ? (
-              <PhoneOutgoing className="w-5 h-5" />
-            ) : (
-              <PhoneMissed className="w-5 h-5" />
-            )
-          ) : (
-            <MessageSquare className="w-5 h-5" />
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-sm font-black text-gray-900 tracking-tight">
-              {log.phone_number || "Neznáme číslo"}
-            </span>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              {log.timestamp
-                ? format(new Date(log.timestamp), "d. MMM HH:mm", {
-                    locale: sk,
-                  })
-                : "Neznámy čas"}
-            </span>
-          </div>
-          <p className="text-xs font-bold text-gray-500 truncate">
-            {isCall ? `Hovor (${log.duration}s)` : log.body}
-          </p>
-        </div>
-      </div>
-    );
   }
+
+  // Handle Android Log (SMS/Calls) in similar style
+  return (
+    <div className="group flex items-center px-4 py-2 border-b border-black/5 hover:bg-black/5 transition-all cursor-pointer bg-white/40">
+       <div className="w-[200px] flex-shrink-0 truncate text-sm font-bold text-[#444746] mr-4 ml-10">
+        {(item as any).phone_number || "Neznáme"}
+      </div>
+      <div className="flex-1 truncate text-sm text-[#444746]">
+        {(item as any).body || `Hovor (${(item as any).duration}s)`}
+      </div>
+      <div className="flex-shrink-0 ml-4">
+        <span className="text-[11px] font-bold text-[#444746]">
+          {(item as any).timestamp ? format(new Date((item as any).timestamp), "d. M.", { locale: sk }) : ""}
+        </span>
+      </div>
+    </div>
+  );
 }
