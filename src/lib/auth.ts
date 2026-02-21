@@ -63,7 +63,8 @@ export async function getAuthorizedEmails(): Promise<string[]> {
 
     const TEAM_MEMBERS = [
         "branislav@arcigy.group",
-        "andrej@arcigy.group"
+        "andrej@arcigy.group",
+        "arcigyback@gmail.com"
     ];
 
     if (TEAM_MEMBERS.includes(email.toLowerCase())) {
@@ -80,7 +81,8 @@ export function isTeamMember(email: string | null | undefined): boolean {
     if (!email) return false;
     const TEAM_MEMBERS = [
         "branislav@arcigy.group",
-        "andrej@arcigy.group"
+        "andrej@arcigy.group",
+        "arcigyback@gmail.com"
     ];
     return TEAM_MEMBERS.includes(email.toLowerCase());
 }

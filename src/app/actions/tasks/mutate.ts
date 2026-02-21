@@ -21,6 +21,7 @@ export async function createTask(title: string, dueDate?: string) {
     )) as Record<string, unknown>;
 
     revalidatePath("/dashboard/todo");
+    revalidatePath("/dashboard");
     return {
         success: true as const,
         data: {
@@ -104,7 +105,8 @@ export async function updateTask(id: string, data: Partial<Task>) {
     )) as Record<string, unknown>;
 
     revalidatePath("/dashboard/todo");
-    return { 
+    revalidatePath("/dashboard");
+    return {
       success: true as const,
       data: {
         id: updated.id as string,
