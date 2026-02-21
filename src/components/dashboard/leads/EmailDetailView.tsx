@@ -116,136 +116,141 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
         <div className="bg-white dark:bg-zinc-950/40 min-h-full rounded-[1.5rem] shadow-sm border border-black/[0.03] dark:border-white/[0.03] px-12 py-8">
           {/* ── Subject Area ── */}
           <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <h2 className="text-[22px] font-normal tracking-tight text-[#1f1f1f]">
-              {email.subject || "(Bez predmetu)"}
-            </h2>
-            <span className="px-1.5 py-0.5 bg-[#dddddd] text-[#444746] text-[11px] rounded flex items-center gap-1 font-medium">
-              Doručené <span className="opacity-60">x</span>
-            </span>
+            <div className="flex items-center gap-3">
+              <h2 className="text-[22px] font-normal tracking-tight text-[#111111]">
+                {email.subject || "(Bez predmetu)"}
+              </h2>
+              <span className="px-2 py-0.5 bg-[#f0abfc] text-[#701a75] text-[11px] rounded flex items-center gap-1 font-black uppercase tracking-wider shadow-[0_0_10px_rgba(240,171,252,0.5)]">
+                Doručené <span className="opacity-60 text-[10px]">x</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-[#444746]">
+              <button title="Vytlačiť všetko" className="hover:text-indigo-600 transition-colors"><Printer className="w-5 h-5" /></button>
+              <button title="V novom okne" className="hover:text-indigo-600 transition-colors"><ExternalLink className="w-5 h-5" /></button>
+            </div>
           </div>
-          <div className="flex items-center gap-4 text-[#444746]">
-            <button title="Vytlačiť všetko"><Printer className="w-5 h-5" /></button>
-            <button title="V novom okne"><ExternalLink className="w-5 h-5" /></button>
-          </div>
-        </div>
 
-        {/* ── Sender Information ── */}
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg font-medium uppercase shadow-sm">
-              {(email.from || "?")[0]}
-            </div>
-            <div className="text-[14px]">
-              <div className="flex items-center gap-1">
-                <span className="font-bold text-[#1f1f1f]">{email.from?.split("<")[0] || email.from}</span>
-                <span className="text-[#5e5e5e] text-[12px]">&lt;{email.from?.match(/<(.+)>/)?.[1] || email.from}&gt;</span>
+          {/* ── Sender Information ── */}
+          <div className="flex items-start justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 text-white flex items-center justify-center text-xl font-black uppercase shadow-lg border-2 border-white">
+                {(email.from || "?")[0]}
               </div>
-              <div className="text-[#5e5e5e] text-[12px] flex items-center gap-1 mt-0.5">
-                komu: <span className="font-medium">mne</span>
-                <button className="hover:bg-black/5 p-0.5 rounded transition-all">
-                  <ChevronRight className="w-3 h-3 rotate-90" />
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 text-[#5e5e5e]">
-            <div className="text-[12px] font-medium flex items-center gap-1">
-              {email.date && !isNaN(new Date(email.date).getTime()) ? (
-                <>
-                  {format(new Date(email.date), "eee d. M. H:mm", { locale: sk })}
-                  <span className="opacity-60 ml-1">
-                    ({formatDistanceToNow(new Date(email.date), { addSuffix: true, locale: sk })})
+              <div className="text-[14px]">
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-[16px] text-violet-700 dark:text-violet-400">
+                    {email.from?.split("<")[0].replace(/"/g, "") || email.from}
                   </span>
-                </>
-              ) : ""}
+                  <span className="text-indigo-500 font-bold bg-indigo-50 px-2 py-0.5 rounded-md text-[12px] border border-indigo-100">
+                    &lt;{email.from?.match(/<(.+)>/)?.[1] || email.from}&gt;
+                  </span>
+                </div>
+                <div className="text-[#5e5e5e] text-[12px] flex items-center gap-1 mt-1 font-medium">
+                  komu: <span className="font-bold text-[#111111]">mne</span>
+                  <button className="hover:bg-black/5 p-0.5 rounded transition-all">
+                    <ChevronRight className="w-3 h-3 rotate-90" />
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button className="p-1 hover:bg-black/5 rounded-full"><Star className="w-5 h-5" /></button>
-              <button className="p-1 hover:bg-black/5 rounded-full"><Smile className="w-5 h-5 opacity-0 group-hover:opacity-100" /></button>
-              <button className="p-1 hover:bg-black/5 rounded-full"><Reply className="w-5 h-5" /></button>
-              <button className="p-1 hover:bg-black/5 rounded-full"><MoreVertical className="w-5 h-5" /></button>
+            <div className="flex items-center gap-4 text-[#5e5e5e]">
+              <div className="text-[12px] font-bold flex items-center gap-1">
+                {email.date && !isNaN(new Date(email.date).getTime()) ? (
+                  <>
+                    <span className="text-violet-600/80">{format(new Date(email.date), "eee d. M. H:mm", { locale: sk })}</span>
+                    <span className="opacity-40 font-normal ml-1">
+                      ({formatDistanceToNow(new Date(email.date), { addSuffix: true, locale: sk })})
+                    </span>
+                  </>
+                ) : ""}
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="p-1.5 hover:bg-violet-50 hover:text-violet-600 rounded-full transition-all"><Star className="w-5 h-5" /></button>
+                <button className="p-1.5 hover:bg-violet-50 hover:text-violet-600 rounded-full transition-all"><Reply className="w-5 h-5" /></button>
+                <button className="p-1.5 hover:bg-violet-50 hover:text-violet-600 rounded-full transition-all"><MoreVertical className="w-5 h-5" /></button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* ── AI Insights Panel (CRM Integration) ── */}
-        {classification && (
-          <div className="mb-8 p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl flex gap-4">
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0 text-indigo-600">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-               <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-indigo-600">AI Analýza dopytu</span>
-                  {classification.priority === "vysoka" && (
-                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[9px] font-black rounded uppercase tracking-wider">Vysoká priorita</span>
-                  )}
-               </div>
-               <p className="text-[14px] text-[#444746] font-medium leading-relaxed">
-                  {classification.summary}
-               </p>
-               <div className="mt-4 flex flex-wrap gap-2">
-                  <div className="flex items-center gap-2 px-3 py-1 bg-white border border-indigo-100 rounded-lg text-[12px] font-bold text-indigo-700 shadow-sm">
-                    <Target className="w-3 h-3" /> {classification.intent}
-                  </div>
-                  {classification.estimated_budget && classification.estimated_budget !== "—" && (
-                     <div className="flex items-center gap-2 px-3 py-1 bg-violet-600 text-white rounded-lg text-[12px] font-bold shadow-sm">
-                        <Zap className="w-3 h-3" /> {classification.estimated_budget}
-                     </div>
-                  )}
-                  {classification.service_category && classification.service_category !== "—" && (
-                     <div className="flex items-center gap-2 px-3 py-1 bg-white border border-emerald-100 text-emerald-700 rounded-lg text-[12px] font-bold shadow-sm">
-                        <TrendingUp className="w-3 h-3" /> {classification.service_category}
-                     </div>
-                  )}
-               </div>
-               {classification.next_step && classification.next_step !== "—" && (
-                 <div className="mt-4 p-3 bg-white/50 border border-dashed border-indigo-200 rounded-xl">
-                    <p className="text-[12px] font-black text-indigo-500 uppercase tracking-widest mb-1">Odporúčaný ďalší krok</p>
-                    <p className="text-[13px] font-bold text-indigo-700 italic">💡 {classification.next_step}</p>
+          {/* ── Email Body Content Area (Moved Up) ── */}
+          <div className="text-[16px] leading-[1.8] text-[#111111] dark:text-zinc-100 whitespace-pre-wrap mb-10 border-b border-black/[0.03] pb-10">
+            {email.bodyHtml ? (
+              <iframe
+                srcDoc={`
+                  <!DOCTYPE html>
+                  <html>
+                    <head>
+                      <meta charset="utf-8">
+                      <style>
+                        body { 
+                          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+                          font-size: 16px; 
+                          line-height: 1.8; 
+                          color: #111111;
+                          margin: 0;
+                          padding: 0;
+                        }
+                        a { color: #6366f1; text-decoration: none; font-weight: 600; }
+                        a:hover { text-decoration: underline; }
+                        img { max-width: 100%; height: auto; border-radius: 12px; margin: 20px 0; }
+                        table { width: 100% !important; border-collapse: collapse; margin: 25px 0; }
+                        blockquote { border-left: 4px solid #ddd6fe; margin: 20px 0; padding-left: 20px; color: #5b21b6; font-style: italic; background: #f5f3ff; padding: 10px 20px; border-radius: 0 8px 8px 0; }
+                      </style>
+                    </head>
+                    <body>${email.bodyHtml}</body>
+                  </html>
+                `}
+                className="w-full h-[600px] border-none"
+                title="Email Content"
+                sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
+              />
+            ) : (
+              <div className="font-sans whitespace-pre-wrap leading-relaxed">{email.body || "(Prázdny obsah)"}</div>
+            )}
+          </div>
+
+          {/* ── AI Insights Panel (Now below the body) ── */}
+          {classification && (
+            <div className="mb-10 p-6 bg-[#f8f6ff] border border-violet-100 rounded-[2rem] flex gap-5 shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center flex-shrink-0 text-violet-600 shadow-inner">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                 <div className="flex items-center gap-3 mb-3">
+                    <span className="text-[12px] font-black uppercase tracking-widest text-violet-600">AI Analýza dopytu</span>
+                    {classification.priority === "vysoka" && (
+                      <span className="px-3 py-1 bg-red-100 text-red-700 text-[10px] font-black rounded-full uppercase tracking-tighter">Vysoká priorita</span>
+                    )}
                  </div>
-               )}
+                 <p className="text-[15px] text-[#2e2e2e] font-bold leading-relaxed mb-4">
+                    {classification.summary}
+                 </p>
+                 <div className="flex flex-wrap gap-3">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white border border-violet-100 rounded-xl text-[13px] font-black text-violet-700 shadow-sm">
+                      <Target className="w-4 h-4" /> {classification.intent}
+                    </div>
+                    {classification.estimated_budget && classification.estimated_budget !== "—" && (
+                       <div className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-xl text-[13px] font-black shadow-lg shadow-violet-600/20">
+                          <Zap className="w-4 h-4" /> {classification.estimated_budget}
+                       </div>
+                    )}
+                    {classification.service_category && classification.service_category !== "—" && (
+                       <div className="flex items-center gap-2 px-4 py-2 bg-white border border-emerald-100 text-emerald-700 rounded-xl text-[13px] font-black shadow-sm">
+                          <TrendingUp className="w-4 h-4" /> {classification.service_category}
+                       </div>
+                    )}
+                 </div>
+                 {classification.next_step && classification.next_step !== "—" && (
+                   <div className="mt-5 p-4 bg-white/80 border border-dashed border-violet-200 rounded-2xl">
+                      <p className="text-[11px] font-black text-violet-400 uppercase tracking-widest mb-1.5">Odporúčaný ďalší krok</p>
+                      <p className="text-[14px] font-black text-violet-800 italic flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-600 animate-pulse" /> {classification.next_step}
+                      </p>
+                   </div>
+                 )}
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* ── Email Body Content Area ── */}
-        <div className="text-[16px] leading-[1.7] text-[#111111] dark:text-zinc-100 whitespace-pre-wrap mb-12">
-          {email.bodyHtml ? (
-            <iframe
-              srcDoc={`
-                <!DOCTYPE html>
-                <html>
-                  <head>
-                    <meta charset="utf-8">
-                    <style>
-                      body { 
-                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; 
-                        font-size: 16px; 
-                        line-height: 1.7; 
-                        color: #111111;
-                        margin: 0;
-                        padding: 0;
-                      }
-                      a { color: #0053cc; text-decoration: none; font-weight: 500; }
-                      a:hover { text-decoration: underline; }
-                      img { max-width: 100%; height: auto; border-radius: 8px; }
-                      table { width: 100% !important; border-collapse: collapse; margin: 20px 0; }
-                      blockquote { border-left: 4px solid #e5e7eb; margin: 15px 0; padding-left: 20px; color: #4b5563; font-style: italic; }
-                    </style>
-                  </head>
-                  <body>${email.bodyHtml}</body>
-                </html>
-              `}
-              className="w-full h-[600px] border-none"
-              title="Email Content"
-              sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
-            />
-          ) : (
-            <div className="font-sans whitespace-pre-wrap">{email.body || "(Prázdny obsah)"}</div>
           )}
-        </div>
 
         {/* ── Attachments Section (Gmail Style) ── */}
         {email.attachments && email.attachments.length > 0 && (
