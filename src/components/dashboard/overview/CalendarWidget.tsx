@@ -3,7 +3,7 @@
 import { format, startOfWeek, addDays, isSameDay, getISOWeek } from "date-fns";
 import { sk } from "date-fns/locale";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, ExternalLink } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 
 const SK_DAYS = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
@@ -13,14 +13,9 @@ export function CalendarWidget({ events }: { events: any[] }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  useState(() => {
-    // This runs once on mount
-    if (typeof window !== 'undefined') {
-        setMounted(true);
-    }
-  });
-
-  if (!mounted) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -65,6 +60,11 @@ export function CalendarWidget({ events }: { events: any[] }) {
       .replace(/&nbsp;/g, ' ')
       .trim();
   };
+
+  // Render nothing until component is mounted on the client
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className={`bg-indigo-50/30 dark:bg-indigo-950/20 backdrop-blur-2xl px-5 md:p-8 rounded-none md:rounded-[2.5rem] border-b md:border border-indigo-500/20 dark:border-indigo-500/20 md:dark:bg-indigo-950/10 md:border-indigo-500/10 md:dark:border-indigo-500/5 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full py-5' : 'h-auto md:h-full py-4 md:py-8'}`}>

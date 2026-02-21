@@ -22,7 +22,6 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
     setMounted(true);
   }, []);
 
-  if (!mounted) return null;
   // Removed animatingIds for rapid toggling support
 
   useEffect(() => {
@@ -79,6 +78,8 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
       toast.error("Chyba pripojenia");
     }
   };
+
+  if (!mounted) return null;
 
   const title = mode === "today" ? "Úlohy na dnes" : "Tento týždeň";
   const Icon = mode === "today" ? Clock : Calendar;
