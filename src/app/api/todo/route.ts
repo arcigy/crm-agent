@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { getUserEmail } from '@/lib/auth';
 import directus from '@/lib/directus';
 import { createItem, readItems, updateItem, deleteItem, readItem } from '@directus/sdk';
 
@@ -7,8 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        const user = await currentUser();
-        const userEmail = user?.emailAddresses[0]?.emailAddress;
+        const userEmail = await getUserEmail();
         if (!userEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         // @ts-ignore
@@ -25,8 +24,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
     try {
-        const user = await currentUser();
-        const userEmail = user?.emailAddresses[0]?.emailAddress;
+        const userEmail = await getUserEmail();
         if (!userEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const { title, contact_id, project_id, due_date } = await req.json();
@@ -49,8 +47,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
     try {
-        const user = await currentUser();
-        const userEmail = user?.emailAddresses[0]?.emailAddress;
+        const userEmail = await getUserEmail();
         if (!userEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const { id, completed, title, contact_id, project_id, due_date } = await req.json();
@@ -78,8 +75,7 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
     try {
-        const user = await currentUser();
-        const userEmail = user?.emailAddresses[0]?.emailAddress;
+        const userEmail = await getUserEmail();
         if (!userEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const { searchParams } = new URL(req.url);
