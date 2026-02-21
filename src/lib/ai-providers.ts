@@ -6,6 +6,8 @@
  * - Orchestrator: Claude 3.5 Sonnet (najlepší tool-use)
  * - Verifier: Gemini 1.5 Flash (rýchly, overenie)
  * - Final Report: Gemini 1.5 Flash (stručný report)
+ * 
+ * Deployment Trigger: 2026-02-21 11:10
  */
 
 import OpenAI from "openai";
