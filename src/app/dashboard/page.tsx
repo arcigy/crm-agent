@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { tools } from "@/tools/registry";
 import { PaymentSuccessToast } from "@/components/dashboard/PaymentSuccessToast";
 import { DashboardStats } from "@/components/dashboard/overview/StatCards";
@@ -16,7 +17,7 @@ import { getCalendarEvents } from "@/app/actions/calendar";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+async function DashboardContent() {
   // Fetch everything for the overview
   const [
     contactsRes,
@@ -53,20 +54,13 @@ export default async function DashboardPage() {
     completedTasks: tasks.filter(t => t.completed).length,
   };
 
-  const activeTools = new Set(tools.map((t) => t.id));
-
   return (
-    <div className="h-auto md:h-[calc(100vh-40px)] flex flex-col max-w-full mx-auto overflow-y-auto md:overflow-hidden gap-1 md:gap-4 p-0">
-      <PaymentSuccessToast />
-
-      {/* Primary Stats */}
+    <>
       <div className="flex-shrink-0">
         <DashboardStats stats={stats} />
       </div>
 
-      {/* Main Operations Grid */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-0 md:gap-6 pb-8 md:max-w-5xl md:mx-auto w-full">
-        {/* Mobile: Tight stack for all items. Desktop: Grid-aware via contents. */}
         <div className="lg:contents flex flex-col gap-0 overflow-hidden">
           <div className="lg:min-h-0"><TodoListWidget tasks={tasks} mode="today" /></div>
           <CalendarWidget events={calendarEvents} />
@@ -74,6 +68,33 @@ export default async function DashboardPage() {
           <ChartsRow deals={deals} projects={projects} />
         </div>
       </div>
+    </>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="w-full h-full flex flex-col gap-6 animate-pulse p-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-24 mb-4">
+        {[...Array(4)].map((_, i) => <div key={i} className="bg-zinc-100 dark:bg-zinc-800 rounded-3xl" />)}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
+        {[...Array(4)].map((_, i) => <div key={i} className="bg-zinc-100 dark:bg-zinc-800 rounded-[2.5rem] min-h-[200px]" />)}
+      </div>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  const activeTools = new Set(tools.map((t) => t.id));
+
+  return (
+    <div className="h-auto md:h-[calc(100vh-40px)] flex flex-col max-w-full mx-auto overflow-y-auto md:overflow-hidden gap-1 md:gap-4 p-0">
+      <PaymentSuccessToast />
+
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardContent />
+      </Suspense>
 
       <div className="hidden">
         {tools.map((tool) => (

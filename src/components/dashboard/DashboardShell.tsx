@@ -120,7 +120,7 @@ export function DashboardShell({
       {/* Top Loading Bar */}
       {isNavigating && (
         <div className="fixed top-0 left-0 right-0 h-1 z-[3000] overflow-hidden">
-          <div className="h-full bg-indigo-600 animate-[loading-bar_1.5s_infinite_linear]" style={{ width: '40%' }} />
+          <div className="h-full bg-indigo-600 animate-[loading-bar_0.8s_infinite_linear]" style={{ width: '40%' }} />
         </div>
       )}
 
@@ -144,7 +144,7 @@ export function DashboardShell({
 
       <aside
         className={`
-          fixed inset-y-0 left-0 z-[2000] bg-white/95 dark:bg-zinc-900/95 border-r border-white/10 flex flex-col transition-transform duration-300 ease-out will-change-transform
+          fixed inset-y-0 left-0 z-[2000] bg-white/95 dark:bg-zinc-900/95 border-r border-white/10 flex flex-col transition-transform duration-200 ease-out will-change-transform
           ${isMenuOpen ? "w-80 translate-x-0 shadow-[20px_0_60px_rgba(0,0,0,0.2)]" : "w-80 -translate-x-full"}
         `}
       >
