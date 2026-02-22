@@ -99,6 +99,28 @@ export async function executeDbTaskTool(
         message: "Úloha bola aktualizovaná.",
       };
 
+    case "db_get_overdue_tasks":
+      const now = new Date().toISOString();
+      const overdueTasks = (await directus.request(
+        readItems("crm_tasks", {
+          filter: {
+            _and: [
+              { user_email: { _eq: userEmail } },
+              { completed: { _eq: false } },
+              { due_date: { _lt: now } },
+              { due_date: { _nnull: true } }
+            ]
+          },
+          sort: ["due_date"],
+        })
+      )) as Record<string, unknown>[];
+
+      return {
+        success: true,
+        data: overdueTasks,
+        message: `Nájdených ${overdueTasks.length} úloh po termíne.`,
+      };
+
     default:
       throw new Error(`Tool ${name} not found in DB Task executors`);
   }

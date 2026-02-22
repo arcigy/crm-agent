@@ -173,7 +173,13 @@ export function toolToSlovak(tool: string): string {
     db_merge_records: "Zlúčenie duplicitných kontaktov",
     db_get_pipeline_stats: "Výpočet CRM analytiky a štatistík",
     sys_export_to_csv: "Export dát do formatu CSV",
-    sys_set_agent_reminder: "Nastavenie trvalého monitorovania"
+    sys_set_agent_reminder: "Nastavenie trvalého monitorovania",
+    db_get_contact_overview: "Načítanie 360-prehľadu kontaktu",
+    db_search_deals: "Vyhľadávanie obchodov",
+    db_get_overdue_tasks: "Načítanie úloh po termíne",
+    db_find_duplicate_contacts: "Hľadanie duplicitných kontaktov",
+    calendar_get_upcoming_events: "Načítanie najbližších udalostí z kalendára",
+    db_convert_lead_to_contact: "Konverzia leada na kontakt"
   };
   return map[tool] ?? `Operácia ${tool}`;
 }

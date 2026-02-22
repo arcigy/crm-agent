@@ -84,7 +84,9 @@ export async function executeAtomicTool(
       name.startsWith("db_get_all_contacts") ||
       name.startsWith("db_delete_contact") ||
       name.startsWith("db_add_contact_comment") ||
-      name === "db_merge_records"
+      name === "db_merge_records" ||
+      name === "db_get_contact_overview" ||
+      name === "db_find_duplicate_contacts"
     ) {
       return await executeDbContactTool(name, safeArgs, userEmail);
     }

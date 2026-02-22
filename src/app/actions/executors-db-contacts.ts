@@ -301,6 +301,84 @@ export async function executeDbContactTool(
         message: `Kontakt ID ${dId} bol štruktúrovane zlúčený do primárneho kontaktu ID ${pId} a následne spoľahlivo archivovaný.`,
       };
 
+    case "db_get_contact_overview":
+      const overviewCid = args.contact_id as number;
+      
+      const [
+        [baseContact],
+        relatedProjects,
+        relatedTasks,
+        relatedActivities,
+        relatedNotes
+      ] = await Promise.all([
+        directus.request(readItems("contacts", { filter: { id: { _eq: overviewCid }, user_email: { _eq: userEmail } } })),
+        directus.request(readItems("projects", { filter: { contact_id: { _eq: overviewCid }, user_email: { _eq: userEmail } } })),
+        directus.request(readItems("crm_tasks", { filter: { contact_id: { _eq: overviewCid }, user_email: { _eq: userEmail } } })),
+        directus.request(readItems("activities", { filter: { contact_id: { _eq: String(overviewCid) } } })),
+        directus.request(readItems("crm_notes", { filter: { contact_id: { _eq: overviewCid }, user_email: { _eq: userEmail } } }))
+      ]).catch(e => {
+        throw new Error("Nepodarilo sa načítať komplexný prehľad kontaktu: " + e.message);
+      });
+
+      if (!baseContact) throw new Error(`Kontakt ID ${overviewCid} sa nenašiel.`);
+
+      return {
+        success: true,
+        data: {
+          contact: baseContact,
+          projects: relatedProjects || [],
+          tasks: relatedTasks || [],
+          activities: relatedActivities || [],
+          notes: relatedNotes || []
+        },
+        message: `Komplexný prehľad kontaktu ID ${overviewCid} načítaný (Projekty: ${(relatedProjects||[]).length}, Úlohy: ${(relatedTasks||[]).length}, Aktivity: ${(relatedActivities||[]).length}).`
+      };
+
+    case "db_find_duplicate_contacts":
+      const allC = (await directus.request(
+        readItems("contacts", {
+          filter: {
+            user_email: { _eq: userEmail },
+            deleted_at: { _null: true },
+            status: { _neq: "archived" }
+          },
+          limit: -1,
+        })
+      )) as Record<string, any>[];
+
+      // Very simple O(n^2) duplicate detector for fuzzy matching
+      // Groups by email or exact phone or similar first_name+last_name
+      const duplicateGroups: Record<string, any[]> = {};
+
+      for (const current of allC) {
+        let matchKey = null;
+        if (current.email) matchKey = `email:${current.email.toLowerCase()}`;
+        else if (current.phone) matchKey = `phone:${current.phone}`;
+        else if (current.first_name && current.last_name) matchKey = `name:${current.first_name.toLowerCase()}_${current.last_name.toLowerCase()}`;
+        
+        if (matchKey) {
+          if (!duplicateGroups[matchKey]) duplicateGroups[matchKey] = [];
+          duplicateGroups[matchKey].push({
+            id: current.id,
+            name: `${current.first_name} ${current.last_name || ""}`,
+            company: current.company,
+            email: current.email,
+            phone: current.phone,
+            created: current.date_created
+          });
+        }
+      }
+
+      const confirmedDuplicates = Object.values(duplicateGroups).filter(group => group.length > 1);
+
+      return {
+        success: true,
+        data: confirmedDuplicates,
+        message: confirmedDuplicates.length > 0 
+           ? `Našiel som ${confirmedDuplicates.length} skupín duplicitných kontaktov pripravených na zlúčenie.` 
+           : "Nenašli sa žiadne zjavné duplicity."
+      };
+
     default:
       throw new Error(`Tool ${name} not found in DB Contact executors`);
   }

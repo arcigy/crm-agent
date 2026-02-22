@@ -75,6 +75,49 @@ export async function executeDbLeadTool(
         message: `Status leada zmenený na "${args.status}".`,
       };
 
+    case "db_convert_lead_to_contact":
+      const [leadToConvert] = (await directus.request(
+        readItems("cold_leads", {
+          filter: {
+            id: { _eq: args.lead_id },
+            user_email: { _eq: userEmail },
+          },
+        }),
+      )) as any[];
+
+      if (!leadToConvert) {
+        throw new Error("Lead not found or access denied");
+      }
+
+      // 1. Create a new contact from the lead data
+      const newContact = (await directus.request(
+        createItem("contacts", {
+          first_name: leadToConvert.first_name || leadToConvert.title || "",
+          last_name: leadToConvert.last_name || "",
+          email: leadToConvert.email || "",
+          company: leadToConvert.company_name_reworked || leadToConvert.company_name || "",
+          notes: leadToConvert.description || "",
+          status: (args.status as string) || "new",
+          user_email: userEmail,
+          date_created: new Date().toISOString(),
+        }),
+      )) as Record<string, unknown>;
+
+      // 2. Mark the lead as converted
+      await directus.request(
+        updateItem("cold_leads", args.lead_id as number, {
+          status: "converted",
+        }),
+      );
+
+      return {
+        success: true,
+        data: { contact_id: newContact.id },
+        action: "open_contact",
+        url: `/dashboard/contacts/${newContact.id}`,
+        message: `Lead bol úspešne prekonvertovaný na kontakt (ID: ${newContact.id}).`,
+      };
+
     default:
       throw new Error(`Tool ${name} not found in DB Lead executors`);
   }

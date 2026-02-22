@@ -24,7 +24,8 @@ export async function executeCalendarTool(
 
   switch (name) {
     case "calendar_check_availability":
-      const days = (args.days as number) || 3;
+    case "calendar_get_upcoming_events":
+      const days = (args.days as number) || (args.days_ahead as number) || 3;
       const timeMin = new Date().toISOString();
       const timeMax = new Date(
         Date.now() + days * 24 * 60 * 60 * 1000,

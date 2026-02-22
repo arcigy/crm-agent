@@ -69,6 +69,30 @@ export async function executeDbDealTool(
         message: `Zoznam obchodov načítaný (${dealsRes.length}).`,
       };
 
+    case "db_search_deals":
+      const sdealsRes = (await directus.request(
+        readItems("deals", {
+          filter: {
+            _and: [
+              { user_email: { _eq: userEmail } },
+              { deleted_at: { _null: true } },
+              {
+                _or: [
+                   { name: { _icontains: args.query as string } },
+                   { description: { _icontains: args.query as string } }
+                ]
+              }
+            ],
+          },
+          limit: 10,
+        }),
+      )) as Record<string, unknown>[];
+      return {
+        success: true,
+        data: sdealsRes,
+        message: `Nájdených obchodov pre "${args.query}": ${sdealsRes.length}.`,
+      };
+
     case "db_invoice_deal":
       await directus.request(
         updateItem("deals", args.deal_id as string, { paid: true }),

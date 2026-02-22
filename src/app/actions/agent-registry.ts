@@ -302,6 +302,31 @@ export const INBOX_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
+      name: "db_get_contact_overview",
+      description: "H1: Retrieves a comprehensive 360-degree overview of a contact, including their projects, tasks, past deals, activities, and communication history in one call.",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "number", description: "ID of the contact to overview" },
+        },
+        required: ["contact_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_find_duplicate_contacts",
+      description: "Scans the entire contact database for potential duplicates based on fuzzy matching logic (same email, phone, or very similar names).",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "db_add_contact_comment",
       description: "Adds a comment (note) to a contact.",
       parameters: {
@@ -397,6 +422,20 @@ export const DEAL_ATOMS: ToolDefinition[] = [
           description: { type: "string" },
         },
         required: ["name", "contact_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_search_deals",
+      description: "Searches for deals based on name or description.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search query" },
+        },
+        required: ["query"],
       },
     },
   },
@@ -960,6 +999,17 @@ export const TASKS_ATOMS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "db_get_overdue_tasks",
+      description: "Retrieves a list of all tasks that are past their due date and not yet marked as completed.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
 ];
 
 export const LEADS_ATOMS: ToolDefinition[] = [
@@ -1013,9 +1063,37 @@ export const LEADS_ATOMS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "db_convert_lead_to_contact",
+      description: "Converts an existing cold lead into a CRM contact. Closes the lead and provisions a contact record simultaneously.",
+      parameters: {
+        type: "object",
+        properties: {
+          lead_id: { type: "number", description: "ID of the lead to convert" },
+          status: { type: "string", description: "Status of the new contact", enum: ["new", "contacted", "qualified", "lost"], default: "new" }
+        },
+        required: ["lead_id"],
+      },
+    },
+  },
 ];
 
 export const CALENDAR_ATOMS: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "calendar_get_upcoming_events",
+      description: "Retrieves upcoming events from the user's primary calendar.",
+      parameters: {
+        type: "object",
+        properties: {
+          days_ahead: { type: "number", description: "Number of days ahead to look for events", default: 3 },
+        },
+      },
+    },
+  },
   {
     type: "function",
     function: {
