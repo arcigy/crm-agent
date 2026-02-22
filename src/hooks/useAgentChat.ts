@@ -168,6 +168,12 @@ export function useAgentChat() {
     setMessages(msgs);
   };
 
+  const copyMessagesToClipboard = () => {
+    const data = JSON.stringify(messages, null, 2);
+    navigator.clipboard.writeText(data);
+    toast.success("Debug dáta skopírované!");
+  };
+
   return {
     chatId,
     chatList,
@@ -181,5 +187,6 @@ export function useAgentChat() {
     handleSend,
     createNewChat,
     loadChat,
+    copyMessagesToClipboard,
   };
 }

@@ -18,19 +18,30 @@ export async function executeDbProjectTool(
 
   switch (name) {
     case "db_fetch_projects":
+      const filters: any[] = [
+        {
+          _or: [
+            { user_email: { _eq: userEmail } },
+            { user_email: { _null: true } },
+          ]
+        },
+        { deleted_at: { _null: true } },
+      ];
+
+      if (args.contact_id) {
+        filters.push({ contact_id: { _eq: String(args.contact_id) } });
+      }
+
+      if (args.stage) {
+        filters.push({ stage: { _eq: args.stage as string } });
+      }
+
       const prRes = (await directus.request(
         readItems("projects", {
           filter: {
-            _and: [
-              {
-                _or: [
-                  { user_email: { _eq: userEmail } },
-                  { user_email: { _null: true } },
-                ]
-              },
-              { deleted_at: { _null: true } },
-            ],
+            _and: filters,
           },
+          sort: ["-date_created"],
           limit: (args.limit as number) || 20,
         }),
       )) as Record<string, unknown>[];

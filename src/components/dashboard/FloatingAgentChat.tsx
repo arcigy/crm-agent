@@ -5,7 +5,8 @@ import {
   Bot, 
   X, 
   Send, 
-  RefreshCcw
+  RefreshCcw,
+  Bug
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -31,6 +32,7 @@ export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentCh
     expandedLogs,
     toggleLog,
     handleSend,
+    copyMessagesToClipboard
   } = useAgentChat();
 
   React.useEffect(() => {
@@ -83,6 +85,14 @@ export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentCh
                 </Link>
 
                 <div className="flex items-center gap-2 relative z-10">
+                    <button 
+                        onClick={copyMessagesToClipboard}
+                        className="p-2 hover:bg-indigo-500/10 rounded-xl transition-all text-muted-foreground hover:text-indigo-500 group/debug"
+                        title="Copy Debug JSON"
+                    >
+                        <Bug className="w-4 h-4 group-hover/debug:rotate-12 transition-transform" />
+                    </button>
+
                     {totalSessionCost > 0 && (
                         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                             <span className="text-[10px] font-black text-emerald-500">

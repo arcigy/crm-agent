@@ -433,12 +433,13 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "db_fetch_projects",
-      description: "Retrieves a list of projects, optionally filtered by contact.",
+      description: "Retrieves a list of projects, optionally filtered by contact or stage. Returns latest projects first.",
       parameters: {
         type: "object",
         properties: {
           limit: { type: "number", default: 10, description: "Max projects to return" },
           contact_id: { type: "number", description: "ID of contact to filter projects by" },
+          stage: { type: "string", description: "Filter by project stage (e.g., 'planning', 'completed')" },
         },
       },
     },
