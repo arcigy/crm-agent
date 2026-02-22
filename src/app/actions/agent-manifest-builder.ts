@@ -110,6 +110,10 @@ function buildResultSummary(result: ToolResult): string {
     return `Vytvorené ID: ${data.id || data.contact_id || data.project_id || data.task_id}`;
   }
 
+  if (result.tool === "sys_show_info") {
+    return `Doručená informácia: "${data.title}"\n${data.content}`;
+  }
+
   return result.message || "Operácia úspešná.";
 }
 
@@ -132,6 +136,11 @@ function extractKeyOutputs(result: ToolResult): Record<string, string> {
   else if (item.name) outputs["name"] = String(item.name);
   if (item.title) outputs["title"] = String(item.title);
   if (item.subject) outputs["subject"] = String(item.subject);
+
+  if (result.tool === "sys_show_info") {
+    outputs["report_title"] = data.title;
+    outputs["report_content"] = data.content;
+  }
 
   return outputs;
 }
@@ -158,6 +167,7 @@ export function toolToSlovak(tool: string): string {
     web_search: "Webové vyhľadávanie",
     drive_search_file: "Hľadanie v Google Drive",
     sys_capture_memory: "Uloženie do pamäte",
+    sys_show_info: "Zobrazenie informácií v chate",
     db_save_analysis: "Uloženie analýzy emailu",
     gmail_analyze_and_save_lead: "Analýza a uloženie leadu"
   };

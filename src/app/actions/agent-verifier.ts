@@ -51,6 +51,7 @@ PRAVIDLÁ:
 6. NIKDY neodhaľuj: raw UUIDs, interné ID, model names, stack traces
 7. NIKDY nepoužívaj frázу "Ako AI"
 8. PROAKTÍVNA PAMÄŤ: Ak vidíš úspešné "sys_capture_memory", spomeň to prirodzene na konci správy.
+9. EXPLICITNÝ REPORT: Ak uvidíš v detailoch krok "sys_show_info" (Zobrazenie informácií v chate), jeho obsah (content) vypíš do správy DOSLOVA tak, ako je v dátach. Toto má najvyššiu prioritu a ignoruj vtedy pravidlo o 3 vetách.
 `;
 
     let prompt = "";

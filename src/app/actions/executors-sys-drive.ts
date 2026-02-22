@@ -103,6 +103,16 @@ export async function executeSysTool(name: string, args: Record<string, any>) {
         data: logs,
         message: `Načítaných ${Array.isArray(logs) ? logs.length : 0} záznamov hovorov/SMS.`,
       };
+    case "sys_show_info":
+      return {
+        success: true,
+        data: {
+          title: args.title,
+          content: args.content,
+          type: args.type || "text"
+        },
+        message: `Zobrazené info: ${args.title}`
+      };
 
     default:
       throw new Error(`Tool ${name} not found in System executors`);

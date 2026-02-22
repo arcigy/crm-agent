@@ -616,6 +616,22 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "sys_show_info",
+      description: "Directly displays a formatted report, table, or detailed text in the chat for the user. Use this when you have a finalized list, status report, or data that MUST be seen by the user apart from the standard confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Title of the report or information block" },
+          content: { type: "string", description: "The content to display (Markdown supported)" },
+          type: { type: "string", enum: ["text", "table", "list"], default: "text" }
+        },
+        required: ["title", "content"],
+      },
+    },
+  },
 ];
 
 export const ACTIVITY_ATOMS: ToolDefinition[] = [
