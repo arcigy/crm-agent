@@ -31,16 +31,45 @@ export function buildExecutionManifest(
   goal: string,
   state: MissionState
 ): ExecutionManifest {
-  const entries: ManifestEntry[] = state.allResults.map((result, index) => {
-    return {
-      step: index + 1,
-      tool: result.tool,
-      humanName: toolToSlovak(result.tool),
-      status: result.success ? "SUCCESS" : "FAILED",
-      summary: buildResultSummary(result),
-      keyOutputs: extractKeyOutputs(result),
-    };
-  });
+  const entries: ManifestEntry[] = [];
+  let stepCounter = 1;
+
+  for (const result of state.allResults) {
+    // 🔍 UNWRAP Dispatcher results (sys_execute_plan) to make them visible to Verifier
+    if (result.tool === "sys_execute_plan" && Array.isArray(result.data)) {
+      const subResults = result.data as Array<{ tool: string; status: string; output: any }>;
+      
+      for (const sub of subResults) {
+        // Construct a pseudo-result for the helper functions
+        const pseudoResult: ToolResult = {
+          tool: sub.tool,
+          success: sub.status === "success",
+          data: sub.output?.data || sub.output,
+          error: sub.output?.error,
+          message: sub.output?.message
+        };
+
+        entries.push({
+          step: stepCounter++,
+          tool: sub.tool,
+          humanName: toolToSlovak(sub.tool),
+          status: pseudoResult.success ? "SUCCESS" : "FAILED",
+          summary: buildResultSummary(pseudoResult),
+          keyOutputs: extractKeyOutputs(pseudoResult),
+        });
+      }
+    } else {
+      // Regular tool execution
+      entries.push({
+        step: stepCounter++,
+        tool: result.tool,
+        humanName: toolToSlovak(result.tool),
+        status: result.success ? "SUCCESS" : "FAILED",
+        summary: buildResultSummary(result),
+        keyOutputs: extractKeyOutputs(result),
+      });
+    }
+  }
 
   return {
     goal,
@@ -74,10 +103,12 @@ function buildResultSummary(result: ToolResult): string {
 
   // Object results
   if (data.first_name) return `Kontakt: ${data.first_name} ${data.last_name || ""}${data.id ? ` (ID: ${data.id})` : ""}`;
-  if (data.name) return `Položka: "${data.name}"${data.id ? ` (ID: ${data.id})` : ""}`;
-  if (data.title) return `Úloha/Záznam: "${data.title}"${data.id ? ` (ID: ${data.id})` : ""}`;
+  if (data.name) return `Položka: "${data.name}"${(data.id || data.project_id) ? ` (ID: ${data.id || data.project_id})` : ""}`;
+  if (data.title) return `Úloha/Záznam: "${data.title}"${(data.id || data.task_id) ? ` (ID: ${data.id || data.task_id})` : ""}`;
   if (data.subject) return `Email: "${data.subject}"`;
-  if (data.id) return `Vytvorené/Nájdené ID: ${data.id}`;
+  if (data.id || data.contact_id || data.project_id || data.task_id) {
+    return `Vytvorené ID: ${data.id || data.contact_id || data.project_id || data.task_id}`;
+  }
 
   return result.message || "Operácia úspešná.";
 }
@@ -93,11 +124,14 @@ function extractKeyOutputs(result: ToolResult): Record<string, string> {
   const item = Array.isArray(data) ? data[0] : data;
   if (!item) return outputs;
 
-  if (item.id) outputs["id"] = String(item.id);
+  const id = item.id || item.contact_id || item.project_id || item.task_id;
+  if (id) outputs["id"] = String(id);
+  
   if (item.email) outputs["email"] = String(item.email);
   if (item.first_name) outputs["name"] = `${item.first_name} ${item.last_name || ""}`.trim();
   else if (item.name) outputs["name"] = String(item.name);
   if (item.title) outputs["title"] = String(item.title);
+  if (item.subject) outputs["subject"] = String(item.subject);
 
   return outputs;
 }
@@ -115,6 +149,9 @@ export function toolToSlovak(tool: string): string {
     db_create_contact: "Vytvorenie kontaktu",
     db_update_contact: "Aktualizácia kontaktu",
     db_create_activity: "Záznam aktivity",
+    db_add_contact_comment: "Pridanie poznámky ku kontaktu",
+    db_create_task: "Vytvorenie úlohy",
+    db_delete_project: "Zmazanie projektu",
     gmail_send_email: "Odoslanie emailu",
     gmail_create_draft: "Vytvorenie konceptu emailu",
     gmail_fetch_list: "Načítanie zoznamu emailov",
