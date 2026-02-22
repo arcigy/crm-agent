@@ -239,38 +239,66 @@ export async function executeDbContactTool(
       const pId = args.primary_contact_id as number;
       const dId = args.duplicate_contact_id as number;
 
-      if (pId === dId) throw new Error("Primary and duplicate IDs cannot be the same");
+      if (pId === dId) throw new Error("Primárne a duplicitné ID nemôžu byť rovnaké");
 
       const [primaryRes, dupRes] = await Promise.all([
         directus.request(readItems("contacts", { filter: { id: { _eq: pId }, user_email: { _eq: userEmail } } })),
         directus.request(readItems("contacts", { filter: { id: { _eq: dId }, user_email: { _eq: userEmail } } }))
       ]);
 
-      if (!primaryRes.length || !dupRes.length) throw new Error("One or both contacts not found");
+      if (!primaryRes.length || !dupRes.length) throw new Error("Jeden alebo oba kontakty sa nenašli");
 
       const primary = primaryRes[0];
       const duplicate = dupRes[0];
 
-      // Merge comments
-      const mergedComments = `\n\n--- ZLÚČENÝ KONTAKT (pôvodné ID: ${dId}) ---\nMeno: ${duplicate.first_name} ${duplicate.last_name || ""}\nEmail: ${duplicate.email || "N/A"}\nTelefón: ${duplicate.phone || "N/A"}\nFirma: ${duplicate.company || "N/A"}\nPoznámky:\n${duplicate.comments || ""}`;
-      const updatedComments = primary.comments ? `${primary.comments}${mergedComments}` : mergedComments;
-
-      // Uniquely identify the update items requests (assuming directus SDK is limited to simple updates)
-      await directus.request(updateItem("contacts", pId, { comments: updatedComments }));
+      // Step 1: Backup primary contact comments in case of failure
+      const backupComments = primary.comments || "";
+      const { createItem: createMemory } = await import("@directus/sdk");
       
-      // Update related items mapping - assuming we have simple directus SDK without custom graph QL
-      // Since updating all related fields recursively is complex, we just mark the duplicate as archived
-      await directus.request(updateItem("contacts", dId, { 
-        status: "archived", 
-        deleted_at: new Date().toISOString() 
-      }));
+      try {
+        await directus.request(createMemory("ai_memories", {
+          user_email: userEmail,
+          category: "merge_backup",
+          fact: `SNAPSHOT pre kontakt ${pId} pred zlúčením.`,
+          confidence: 1
+        }));
+      } catch (e) {
+        // Continue, memory backup is best-effort not critical failure
+        console.warn("Could not save merge backup to ai_memories");
+      }
 
-      // In a real production system we'd need to re-link projects, deals, tasks, activities etc.
-      // But for agentic robustness, deleting and noting it in comments is a solid first version.
+      // Step 2: Structured comments merge (append duplicate data cleanly to primary)
+      const timestamp = new Date().toLocaleString("sk-SK");
+      let structuredAddition = `\n\n--- ZLÚČENÉ z kontaktu ID ${dId} (${timestamp}) ---\nMeno: ${duplicate.first_name} ${duplicate.last_name || ""}\nEmail: ${duplicate.email || "N/A"}\nTelefón: ${duplicate.phone || "N/A"}\nFirma: ${duplicate.company || "N/A"}\n`;
+      
+      if (duplicate.comments) {
+          structuredAddition += `\n[Historické poznámky]:\n${duplicate.comments}\n`;
+      }
+      
+      const newPrimaryComments = backupComments ? `${backupComments}${structuredAddition}` : structuredAddition.trim();
+
+      // Step 3: Update Primary
+      await directus.request(updateItem("contacts", pId, { comments: newPrimaryComments }));
+      
+      // Step 4: Transaction Guard - Try to soft delete Duplicate
+      try {
+          await directus.request(updateItem("contacts", dId, { 
+            status: "archived", 
+            deleted_at: new Date().toISOString() 
+          }));
+      } catch (err) {
+          // Rollback! Soft delete failed, so we restore the primary contact.
+          try {
+              await directus.request(updateItem("contacts", pId, { comments: backupComments }));
+              throw new Error(`Zlyhalo zmazanie duplikátu. Zlúčenie do kontaktu ${pId} bolo vrátené späť (rollback).`);
+          } catch (rollbackErr) {
+              throw new Error(`FATAL: Merge zlyhal a rollback sa nepodaril pre kontakt ${pId}.`);
+          }
+      }
 
       return {
         success: true,
-        message: `Kontakt ID ${dId} bol zlúčený do primárneho kontaktu ID ${pId} a následne archivovaný.`,
+        message: `Kontakt ID ${dId} bol štruktúrovane zlúčený do primárneho kontaktu ID ${pId} a následne spoľahlivo archivovaný.`,
       };
 
     default:

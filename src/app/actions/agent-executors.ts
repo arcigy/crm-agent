@@ -220,7 +220,7 @@ export async function executeAtomicTool(
 
     // System Tools
     if (name.startsWith("sys_")) {
-      return await executeSysTool(name, safeArgs);
+      return await executeSysTool(name, safeArgs, userId);
     }
 
     return { success: false, error: `Tool group not found for: ${name}` };

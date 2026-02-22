@@ -51,7 +51,7 @@ export async function executeDriveTool(
   }
 }
 
-export async function executeSysTool(name: string, args: Record<string, any>) {
+export async function executeSysTool(name: string, args: Record<string, any>, userId?: string) {
   switch (name) {
     case "sys_list_files":
       const targetPath = path.resolve(process.cwd(), args.path || ".");
@@ -129,20 +129,36 @@ export async function executeSysTool(name: string, args: Record<string, any>) {
         return { success: false, message: "Žiadne dáta na export." };
       }
 
-      // Very simple CSV conversion logic for demo/agent robustness
+      // CSV String Upload to Drive
+      if (!userId) throw new Error("Chýba identifikácia užívateľa pre prístup na Google Drive.");
+      
       const headers = Object.keys(exportData[0]).filter(k => !k.includes("user_email") && !k.includes("drive_folder_id"));
       const csvRows = [headers.join(",")];
       exportData.forEach(row => {
         csvRows.push(headers.map(h => `"${String(row[h] || '').replace(/"/g, '""')}"`).join(","));
       });
       const csvString = csvRows.join("\n");
-      const base64 = Buffer.from(csvString, "utf8").toString("base64");
-      const dataUri = `data:text/csv;charset=utf-8;base64,${base64}`;
+
+      // Save to Google Drive
+      const drive = await getDrive(userId);
+      const fileName = `Export_${args.entity_type}_${new Date().toISOString().split("T")[0]}.csv`;
+      
+      const fileRes = await drive.files.create({
+        requestBody: {
+          name: fileName,
+          mimeType: "text/csv",
+        },
+        media: {
+          mimeType: "text/csv",
+          body: csvString,
+        },
+        fields: "id, webViewLink",
+      });
 
       return {
         success: true,
-        data: { link: dataUri, count: exportData.length },
-        message: `Vygenerovaný CSV export (${exportData.length} riadkov). Odkaz na stiahnutie pripravený.`
+        data: { link: fileRes.data.webViewLink, count: exportData.length },
+        message: `Vygenerovaný CSV export (${exportData.length} riadkov). Súbor '${fileName}' bol uložený na Google Drive a odkaz je pripravený.`
       };
 
     case "sys_set_agent_reminder":
@@ -156,7 +172,11 @@ export async function executeSysTool(name: string, args: Record<string, any>) {
         await reminderDirectus.request(createReminder("ai_memories", {
           user_email: "system", // Or resolved user
           category: "agent_reminder",
-          fact: `MONITOR [${args.condition}]: ACTION [${args.action}]`,
+          fact: JSON.stringify({
+            condition: args.condition,
+            action: args.action,
+            raw_instruction: args.condition,
+          }),
           confidence: 1
         }));
       } catch (e) {
