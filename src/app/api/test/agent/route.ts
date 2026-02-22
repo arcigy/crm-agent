@@ -1,76 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getIsolatedAIContext } from "@/lib/ai-context";
 import { startCostSession, endCostSession } from "@/lib/ai-cost-tracker";
 import { ChatMessage, UserResource } from "@/app/actions/agent-types";
-import { runGatekeeper, handleInfoOnly, runFinalReporter } from "@/app/actions/agent-helpers";
+import { runGatekeeper } from "@/app/actions/agent-helpers";
 import { runOrchestratorLoop } from "@/app/actions/agent-orchestrator";
+import { verifyExecutionResults } from "@/app/actions/agent-verifier";
 
-// ─────────────────────────────────────────────────────────
-// TEST ENDPOINT — /api/test/agent
-// No Clerk auth required. Uses TEST_API_KEY header instead.
-// Returns full debug trace alongside the final response.
-// Used by test-agent.ps1 script for terminal-based testing.
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// /api/test/agent  — terminal-friendly test endpoint
+// Auth: x-test-api-key header (no Clerk)
+// User: branislav@arcigy.group
+// Returns: { response, tool_results, _debug }
+// ─────────────────────────────────────────────────────────────────────────────
 
 const TEST_USER: UserResource = {
   id: "test-user-branislav",
   emailAddresses: [{ emailAddress: "branislav@arcigy.group" }],
 };
 
-// Intercepts all console.log/warn/error during the request
-// and captures them for the debug output
+// Capture server-side console output for debug
 function createConsoleCapture() {
-  const captured: { level: string; message: string; timestamp: string }[] = [];
-  const original = {
-    log: console.log.bind(console),
-    warn: console.warn.bind(console),
-    error: console.error.bind(console),
+  const logs: { level: string; message: string; ts: string }[] = [];
+  const orig = { log: console.log, warn: console.warn, error: console.error };
+
+  const cap = (level: string) => (...args: any[]) => {
+    const msg = args.map(a => typeof a === "object" ? JSON.stringify(a, null, 0) : String(a)).join(" ");
+    logs.push({ level, message: msg, ts: new Date().toISOString() });
+    (orig as any)[level](msg);
   };
 
-  const capture = (level: string) => (...args: any[]) => {
-    const message = args.map(a => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ");
-    captured.push({ level, message, timestamp: new Date().toISOString() });
-    original[level as keyof typeof original](message);
-  };
-
-  console.log = capture("log");
-  console.warn = capture("warn");
-  console.error = capture("error");
-
-  const restore = () => {
-    console.log = original.log;
-    console.warn = original.warn;
-    console.error = original.error;
-  };
-
-  return { captured, restore };
-}
-
-function createMockSuperState() {
-  const stateEvents: any[] = [];
-  let finalState: any = null;
+  console.log = cap("log");
+  console.warn = cap("warn");
+  console.error = cap("error");
 
   return {
-    update: (data: any) => stateEvents.push({ event: "update", data, ts: new Date().toISOString() }),
-    done: (data: any) => {
-      finalState = data;
-      stateEvents.push({ event: "done", data, ts: new Date().toISOString() });
-    },
-    error: (err: any) => stateEvents.push({ event: "error", data: String(err), ts: new Date().toISOString() }),
-    getEvents: () => stateEvents,
-    getFinalState: () => finalState,
+    logs,
+    restore: () => { console.log = orig.log; console.warn = orig.warn; console.error = orig.error; }
+  };
+}
+
+// Dummy superState that doesn't use RSC streams — just collects data
+function createDummySuperState() {
+  let finalData: any = null;
+  const events: any[] = [];
+  return {
+    update: (d: any) => events.push({ event: "update", data: d }),
+    done:   (d: any) => { finalData = d; events.push({ event: "done", data: d }); },
+    error:  (e: any) => events.push({ event: "error", data: String(e) }),
+    getFinalData: () => finalData,
+    getEvents: () => events,
     value: null,
   };
 }
 
 export async function POST(req: NextRequest) {
-  // Auth check
   const apiKey = req.headers.get("x-test-api-key");
   if (!apiKey || apiKey !== process.env.TEST_API_KEY) {
     return NextResponse.json({ error: "Unauthorized — set x-test-api-key header" }, { status: 401 });
   }
 
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const message: string = body.message || "";
   const history: ChatMessage[] = body.history || [];
 
@@ -79,100 +67,94 @@ export async function POST(req: NextRequest) {
   }
 
   const messages: ChatMessage[] = [...history, { role: "user", content: message }];
-  const startTime = Date.now();
-
-  // Capture ALL console output during the request
-  const { captured: consoleLogs, restore: restoreConsole } = createConsoleCapture();
+  const t0 = Date.now();
+  const { logs: consoleLogs, restore } = createConsoleCapture();
 
   try {
-    const userEmail = TEST_USER.emailAddresses[0].emailAddress;
-    const context = await getIsolatedAIContext(userEmail, "GLOBAL");
-    startCostSession(userEmail);
+    startCostSession(TEST_USER.emailAddresses[0].emailAddress);
 
-    // ── GATEKEEPER ────────────────────────────────────────
-    const gatekeeper_start = Date.now();
+    // ── 1. GATEKEEPER ─────────────────────────────────────────────────────────
+    const t_gk = Date.now();
+    console.log(`[TEST] Running gatekeeper for: "${message}"`);
     const verdict = await runGatekeeper(messages);
-    const gatekeeper_ms = Date.now() - gatekeeper_start;
+    const gk_ms = Date.now() - t_gk;
+    console.log(`[TEST] Gatekeeper: ${verdict.intent} (${gk_ms}ms)`);
 
-    // ── INFO_ONLY path ────────────────────────────────────
+    // ── 2. INFO_ONLY shortcut ─────────────────────────────────────────────────
     if (verdict.intent === "INFO_ONLY") {
-      const mockState = createMockSuperState();
-      await handleInfoOnly(messages, context, mockState as any, verdict);
       const cost = endCostSession();
-      restoreConsole();
-
+      restore();
       return NextResponse.json({
         _debug: {
           path: "INFO_ONLY",
-          total_ms: Date.now() - startTime,
-          gatekeeper: { verdict: verdict.intent, ms: gatekeeper_ms },
+          total_ms: Date.now() - t0,
+          gatekeeper: { verdict: verdict.intent, ms: gk_ms },
           console_logs: consoleLogs,
-          state_events: mockState.getEvents(),
         },
-        response: mockState.getFinalState()?.content ?? "—",
+        response: "Táto správa bola klasifikovaná ako INFO_ONLY (konverzačná). Pre akčné požiadavky sa opýtaj konkrétne.",
         tool_results: [],
       });
     }
 
-    // ── ACTION path ───────────────────────────────────────
-    const mockState = createMockSuperState();
-    const loop_start = Date.now();
+    // ── 3. ORCHESTRATOR LOOP ──────────────────────────────────────────────────
+    const t_loop = Date.now();
+    const dummyState = createDummySuperState();
+    console.log(`[TEST] Starting orchestrator loop...`);
 
     const { finalResults, missionHistory, attempts, lastPlan } =
-      await runOrchestratorLoop(messages, TEST_USER, mockState as any);
+      await runOrchestratorLoop(messages, TEST_USER, dummyState as any);
 
-    const loop_ms = Date.now() - loop_start;
+    const loop_ms = Date.now() - t_loop;
+    console.log(`[TEST] Loop done: ${attempts} iterations, ${finalResults.length} tool results (${loop_ms}ms)`);
 
-    // ── FINAL REPORTER ────────────────────────────────────
-    const reporter_start = Date.now();
-    const reporterState = createMockSuperState();
-    await runFinalReporter(
-      messages, finalResults, missionHistory,
-      attempts, verdict, reporterState as any, lastPlan
-    );
-    const reporter_ms = Date.now() - reporter_start;
+    // ── 4. VERIFIER — get friendly response ───────────────────────────────────
+    const t_verify = Date.now();
+    let response = "Misia dokončená.";
+    try {
+      const verification = await verifyExecutionResults(message, finalResults);
+      response = verification.analysis || response;
+      console.log(`[TEST] Verifier done in ${Date.now() - t_verify}ms`);
+    } catch(e: any) {
+      console.error(`[TEST] Verifier failed: ${e.message} — using fallback`);
+      const ok = finalResults.filter(r => r.status === "done").length;
+      response = ok > 0
+        ? `Vykonal som ${ok}/${finalResults.length} akcií úspešne.`
+        : lastPlan?.message ?? "Misia dokončená bez akcií.";
+    }
 
     const cost = endCostSession();
-    restoreConsole();
+    restore();
 
     return NextResponse.json({
       _debug: {
         path: "ACTION",
-        total_ms: Date.now() - startTime,
+        total_ms: Date.now() - t0,
         iterations: attempts,
-        gatekeeper: { verdict: verdict.intent, ms: gatekeeper_ms },
-        orchestrator: {
-          ms: loop_ms,
-          last_plan: lastPlan,
-          mission_history_steps: missionHistory.length,
-        },
-        reporter: { ms: reporter_ms },
+        gatekeeper:   { verdict: verdict.intent, ms: gk_ms },
+        orchestrator: { ms: loop_ms, last_plan: lastPlan, steps_count: missionHistory.length },
+        verifier:     { ms: Date.now() - t_verify },
         tool_results_summary: finalResults.map(r => ({
-          tool: r.tool,
-          status: r.status,
+          tool:    r.tool,
+          status:  r.status,
           success: (r.result as any)?.success,
-          error: (r.result as any)?.error,
+          error:   (r.result as any)?.error ?? null,
         })),
-        state_events: mockState.getEvents(),
+        state_events: dummyState.getEvents(),
         console_logs: consoleLogs,
         cost_summary: cost,
       },
-      response: reporterState.getFinalState()?.content ?? lastPlan?.message ?? "Misia dokončená.",
+      response,
       tool_results: finalResults,
     });
-  } catch (error: any) {
-    restoreConsole();
-    const cost = endCostSession();
-    return NextResponse.json(
-      {
-        error: error.message,
-        stack: error.stack?.split("\n").slice(0, 8).join("\n"),
-        _debug: {
-          total_ms: Date.now() - startTime,
-          console_logs: consoleLogs,
-        },
-      },
-      { status: 500 }
-    );
+
+  } catch (err: any) {
+    restore();
+    endCostSession();
+    console.error(`[TEST] FATAL: ${err.message}`);
+    return NextResponse.json({
+      error: err.message,
+      stack: err.stack?.split("\n").slice(0, 6).join("\n"),
+      _debug: { total_ms: Date.now() - t0, console_logs: consoleLogs },
+    }, { status: 500 });
   }
 }
