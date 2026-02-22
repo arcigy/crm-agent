@@ -15,11 +15,13 @@ export async function executeDbDealTool(
 
   switch (name) {
     case "db_create_deal":
+      const safeValueDeal = Math.min((args.value as number) || 0, 99999.99); // DB limitation hack (decimal 10,5)
+
       const nDeal = (await directus.request(
         createItem("deals", {
           name: args.name as string,
           contact_id: args.contact_id as string,
-          value: (args.value as number) || 0,
+          value: safeValueDeal,
           description: (args.description as string) || "",
           user_email: userEmail,
           date_created: new Date().toISOString(),
