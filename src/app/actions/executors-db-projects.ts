@@ -47,16 +47,13 @@ export async function executeDbProjectTool(
       )) as Record<string, unknown>[];
       return { success: true, data: prRes, message: `Načítaných ${prRes.length} projektov.` };
 
-    case "db_create_project":
-      const safeValue = Math.min((args.value as number) || 0, 99999.99); // DB limitation hack (decimal 10,5)
-
       const nProj = (await directus.request(
         createItem("projects", {
           name: (args.name as string) || (args.project_type as string),
           project_type: args.project_type as string,
           contact_id: args.contact_id as string,
           contact_name: (args.contact_name as string) || "Neznámy",
-          value: safeValue,
+          value: (args.value as number) || 0,
           stage: (args.stage as string) || "planning",
           end_date: (args.end_date as string) || null,
           user_email: userEmail,
@@ -67,7 +64,7 @@ export async function executeDbProjectTool(
       if (userId) {
         try {
           const client = await clerkClient();
-          const tokenRes = await client.users.getUserOauthAccessToken(userId, "oauth_google");
+          const tokenRes = await client.users.getUserOauthAccessToken(userId as string, "oauth_google");
           const token = tokenRes.data[0]?.token;
 
           if (token) {
