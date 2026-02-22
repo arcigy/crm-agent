@@ -1,5 +1,3 @@
-"use server";
-
 // ─────────────────────────────────────────────────────────
 // ESCALATOR
 // Called when self-correction fails or MAX_SAME_TOOL_REPEAT hit.

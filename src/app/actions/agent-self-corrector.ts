@@ -1,5 +1,3 @@
-"use server";
-
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { AI_MODELS } from "@/lib/ai-providers";
