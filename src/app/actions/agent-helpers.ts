@@ -2,7 +2,6 @@
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createStreamableValue } from "@ai-sdk/rsc";
 import { trackAICall, endCostSession } from "@/lib/ai-cost-tracker";
 import { AIContextBundle } from "@/lib/ai-context";
@@ -16,8 +15,6 @@ import { withRetry } from "@/lib/ai-retry";
 import { AI_MODELS } from "@/lib/ai-providers";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
-const geminiBase = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const gemini = geminiBase.getGenerativeModel({ model: AI_MODELS.REPORT });
 
 export async function runGatekeeper(
   messages: ChatMessage[],
@@ -95,8 +92,20 @@ KONTEXT: Užívateľ "${context.user_nickname}".
 OTÁZKA: ${userText}
 Odpovedz priamo a stručne. Ak sa pýta na tvoje schopnosti, odpovedz áno/nie + krátke vysvetlenie.`;
   const start = Date.now();
-  const res = await withRetry(() => gemini.generateContent(prompt));
-  const output = res.response?.text() || "Chyba AI poskytovateľa.";
+  console.log(`[INFO-ONLY] Calling AI, prompt length: ${prompt.length}`);
+  let output = "Prepáč, nastal problém s AI odpoveďou.";
+  try {
+    const res = await withRetry(() => generateText({
+      model: google(AI_MODELS.REPORT),
+      system: "Si ArciGy CRM asistent. Odpovedaj stručne v slovenčine.",
+      prompt,
+      temperature: 0.3,
+    }));
+    output = res.text || "Prepáč, nastal problém s AI odpoveďou.";
+    console.log(`[INFO-ONLY] Done in ${Date.now() - start}ms`);
+  } catch(err: any) {
+    console.error(`[INFO-ONLY] Failed: ${err.message}`);
+  }
   trackAICall(
     "conversational",
     "gemini",
@@ -128,13 +137,35 @@ export async function runFinalReporter(
   lastPlan?: any,
 ) {
   const orchestratorMessage = lastPlan?.message ? `Orchestrátor odkázal: ${lastPlan.message}` : "";
+  // Compress results so the prompt stays small
+  const resultsSummary = results.slice(0, 10).map(r => ({
+    tool: r.tool,
+    status: r.status,
+    success: (r.result as any)?.success,
+    message: (r.result as any)?.message,
+  }));
   const prompt = `JAZYK: Slovenčina. ŠTÝL: Extrémne stručný report (max 2 vety). 
-    ${orchestratorMessage ? `POVINNOSŤ: Odpovedz na základe tohto odkazu od orchestrátora: "${orchestratorMessage}".` : "Povedz presne čo si spravil a čo je výsledok."}
-    DÔLEŽITÉ: Ak sú výsledky prázdne ([]), jednoducho povedz užívateľovi, že si nenašiel nič nové alebo misia nevyžadovala ďalšie akcie. NEVYMÝŠĽAJ SI.
-    Výsledky akcií: ${JSON.stringify(results)}`;
+    ${orchestratorMessage ? `POVINNOSŤ: Odpovedz na základe tohto odkazu: "${orchestratorMessage}".` : "Povedz presne čo si spravil a čo je výsledok."}
+    DÔLEŽITÉ: Ak sú výsledky prázdne ([]), jednoducho povedz že misia skončila bez ďalších akcií.
+    Výsledky: ${JSON.stringify(resultsSummary)}`;
   const start = Date.now();
-  const res = await withRetry(() => gemini.generateContent(prompt));
-  let output = res.response?.text() || "Misia dokončená.";
+  console.log(`[REPORTER] Calling AI model: ${AI_MODELS.REPORT}, prompt length: ${prompt.length}`);
+  let output = "Misia dokončená.";
+  try {
+    const res = await withRetry(() => generateText({
+      model: google(AI_MODELS.REPORT),
+      system: "Si stručný CRM reporter. Odpovedaj v slovenčine, max 2 vety.",
+      prompt,
+      temperature: 0.2,
+    }));
+    output = res.text || "Misia dokončená.";
+    console.log(`[REPORTER] Done in ${Date.now() - start}ms. Output: ${output.substring(0, 100)}`);
+  } catch (err: any) {
+    console.error(`[REPORTER] Failed: ${err.message}`);
+    output = results.length > 0
+      ? `Vykonal som ${results.filter(r => r.status === "done").length}/${results.length} krokov úspešne.`
+      : "Misia dokončená bez ďalších akcií.";
+  }
 
   trackAICall(
     "reporter",
