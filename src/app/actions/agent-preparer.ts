@@ -17,30 +17,31 @@ export async function validateActionPlan(
 ) {
   const start = Date.now();
   try {
-    // Compact tool documentation to save prompt space
-    const toolsContext = ALL_ATOMS.map((t) => {
-      const p = t.function.parameters?.properties || {};
-      const required = t.function.parameters?.required || [];
-      const paramsSummary = Object.keys(p).map(k => {
-        const isReq = required.includes(k) ? "*" : "";
-        return `${isReq}${k}`;
-      }).join(",");
-      return `${t.function.name}(${paramsSummary})`;
-    }).join(" | ");
+    // ONLY include documentation for tools that are actually in the proposed steps
+    const proposedToolNames = new Set(steps.map(s => s.tool));
+    const toolsContext = ALL_ATOMS
+      .filter(t => proposedToolNames.has(t.function.name))
+      .map((t) => {
+        const p = t.function.parameters?.properties || {};
+        const required = t.function.parameters?.required || [];
+        const paramsSummary = Object.keys(p).map(k => {
+          const isReq = required.includes(k) ? "*" : "";
+          return `${isReq}${k}`;
+        }).join(",");
+        return `${t.function.name}(${paramsSummary})`;
+      }).join(" | ");
 
     const systemPrompt = `
 ROLE:
-You are the Action Preparer (Safety Net) for a CRM agent. Your job: validate and heal the plan, and detect user-facing ambiguity.
+You are the Action Preparer (Safety Net) for a CRM agent. Your job: validate and heal the plan.
 
 TASK:
-1. HEAL: If a required ID (e.g., contact_id) is missing in PROPOSED STEPS, but you see it in the PREVIOUS ITERATION RESULTS (mission history), INJECT IT into the arguments.
-2. DETECT AMBIGUITY: If the mission history contains MULTIPLE items and the NEXT STEPS require picking one, set valid: false and ask the user to choose.
-3. VALIDATE: Only block (valid:false) if a required argument is truly missing and cannot be found in the history.
-4. TRUST THE SEARCH: Never block search tools (web_search_google, db_search_contacts, etc.) if they have a query.
+1. HEAL: If a required ID is missing in PROPOSED STEPS, find it in MISSION HISTORY and INJECT it.
+2. DETECT AMBIGUITY: If multiple items exist and you can't decide, set valid:false and ask the user.
+3. TRUST SEARCH: Never block search tools if they have a query.
 
-RULES:
-- Be concise. One witty Slovak sentence if valid:false.
-- If the agent just fetched a list to perform an action on them, the IDs are valid. DO NOT ask the user "which ones" if the agent is already targeting them by ID.
+SCHEMA FOR CURRENT STEPS:
+${toolsContext}
 
 OUTPUT FORMAT (STRICT JSON):
 {
@@ -50,13 +51,20 @@ OUTPUT FORMAT (STRICT JSON):
 }
 `;
 
-    // Compress mission history for the prompt
+    // Aggressive mission history compression for Preparer
     const compressedHistory = missionHistory.slice(-3).map(h => {
         return h.steps.map((s: any) => {
             let res = s.result as any;
-            if (res && res.success && Array.isArray(res.data)) {
-                res = { success: true, data: res.data.slice(0, 5).map((item: any) => {
-                    const { date_created, date_updated, deleted_at, user_email, ...essential } = item;
+            if (res && res.success && res.data) {
+                const data = Array.isArray(res.data) ? res.data : [res.data];
+                res = { success: true, data: data.slice(0, 5).map((item: any) => {
+                    const { date_created, date_updated, deleted_at, user_email, google_id, labels, comments, ...essential } = item;
+                    // Truncate long strings
+                    Object.keys(essential).forEach(key => {
+                        if (typeof essential[key] === 'string' && essential[key].length > 150) {
+                            essential[key] = essential[key].substring(0, 150) + "...";
+                        }
+                    });
                     return essential;
                 })};
             }

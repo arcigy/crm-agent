@@ -68,7 +68,12 @@ export async function POST(req: Request) {
                 await log("LOOP", `Iteration ${iter}/5`);
                 await log("ORCHESTRATOR", "Planning...");
                 
-                const taskPlan = await orchestrateParams(messages, missionHistory, routing.translated_intent);
+                const taskPlan = await orchestrateParams(
+                  messages, 
+                  missionHistory, 
+                  routing.orchestrator_brief,
+                  routing.negative_constraints
+                );
                 await log("ORCHESTRATOR", "Plan", taskPlan.steps);
 
                 if (!taskPlan.steps?.length) {

@@ -92,23 +92,14 @@ export async function runOrchestratorLoop(
 export async function orchestrateParams(
   messages: ChatMessage[],
   missionHistory: MissionHistoryItem[],
-  translatedIntent?: string
+  orchestratorBrief?: string,
+  negativeConstraints: string[] = []
 ) {
   const start = Date.now();
   try {
-    // Compact tool documentation to save prompt space
+    // Compact tool documentation for the Orchestrator (just name and description)
     const toolsDocs = ALL_ATOMS.map((t) => {
-      const p = t.function.parameters?.properties || {};
-      const required = t.function.parameters?.required || [];
-      const paramsSummary = Object.keys(p).map(k => {
-        const info = p[k];
-        const isReq = required.includes(k) ? "*" : "";
-        const type = info.type || "any";
-        const desc = info.description ? ` (${info.description})` : "";
-        return `${isReq}${k}:${type}${desc}`;
-      }).join(", ");
-      
-      return `- ${t.function.name}: ${t.function.description} [Params: ${paramsSummary}]`;
+      return `- ${t.function.name}: ${t.function.description}`;
     }).join("\n");
 
     const systemPrompt = `
@@ -122,15 +113,15 @@ CORE PRINCIPLE: PARAMETER AGNOSTICISM
 You are a STRUCTURAL ARCHITECT. Your job is to decide *which* tools must be called to fulfill the intent, not to verify the data completeness.
 1. You do NOT care if the user provided all required parameters for a tool yet.
 2. You do NOT care if the parameters are currently empty or invalid.
-3. If the user's intent clearly maps to a tool's capability (e.g., "vytvor kontakt", "pridaj poznamku", "posli email"), you MUST include that tool in the 'steps' array.
+3. If the user's intent clearly maps to a tool's capability, you MUST include that tool in the 'steps' array.
 4. For any missing parameters, use an empty string "" or null.
-5. Do NOT try to be a gatekeeper or ask questions. If the intent is there, the tool must be in the plan. A secondary "Preparer" layer will handle data gathering from the user.
+5. Do NOT try to be a gatekeeper or ask questions.
 
 TASK LOGIC:
 1. Analyze user intent from messages and history.
-2. If identifying data (IDs) are missing, search for them first (db_search_contacts, etc.).
+2. If identifying data (IDs) are missing, search for them first.
 3. Map every pending action to its corresponding tool.
-4. Only return steps: [] if the message is purely conversational (greetings, thanks) or if the mission is 100% complete.
+4. Only return steps: [] if the message is purely conversational or if the mission is 100% complete.
 
 RULES:
 1. ID VALIDITY: Never guess IDs. Use search tools if they are not in history.
@@ -138,12 +129,13 @@ RULES:
 3. NO REPETITION: If a tool returned 0 results in history, don't repeat it.
 4. SLOVAK ARGS: All text arguments (title, content, comment, subject, body) must be in Slovak.
 5. NO REDUNDANCY: Never repeat a successful action already present in HISTORY.
-6. STRICT PARAMS: Always use exact parameter names from the provided TOOL DEFINITIONS. Do not invent aliases like 'name' if the tool expects 'first_name'.
+6. STRICT PARAMS: Always use exact parameter names from the provided TOOL DEFINITIONS.
+7. NEGATIVE CONSTRAINTS: You MUST strictly adhere to the provided STRATEGIC CONSTRAINTS. If a constraint says "Do not send email", you must NOT plan 'send_email' or 'gmail_reply' tool calls.
 
 OUTPUT FORMAT (STRICT JSON):
 {
   "intent": "short_description",
-  "thought": "one short sentence reasoning in English",
+  "thought": "one short sentence reasoning in English, specifically noting if you are respecting a negative constraint",
   "steps": [
     { "tool": "tool_name", "args": { "key": "value" } }
   ]
@@ -153,15 +145,26 @@ OUTPUT FORMAT (STRICT JSON):
     const historyContext = [
         ...messages.map(m => ({ role: m.role, content: m.content })),
         ...missionHistory.map((h, i) => {
-            // Compress results to save tokens
+            // Aggressive content compression
             const compressedSteps = h.steps.map(s => {
                 let compressedResult = s.result as any;
-                if (compressedResult && compressedResult.success && Array.isArray(compressedResult.data)) {
-                    // Truncate large arrays to essential info only
+                if (compressedResult && compressedResult.success && compressedResult.data) {
+                    const data = Array.isArray(compressedResult.data) ? compressedResult.data : [compressedResult.data];
                     compressedResult = {
-                        ...compressedResult,
-                        data: compressedResult.data.slice(0, 10).map((item: any) => {
-                            const { date_created, date_updated, deleted_at, user_email, google_id, labels, comments, ...essential } = item;
+                        success: true,
+                        data: data.slice(0, 5).map((item: any) => {
+                            // Keep only essential ID and identity fields
+                            const { 
+                              date_created, date_updated, deleted_at, user_email, 
+                              google_id, labels, comments, ...essential 
+                            } = item;
+                            
+                            // Truncate long strings in essential fields to 150 chars
+                            Object.keys(essential).forEach(key => {
+                                if (typeof essential[key] === 'string' && essential[key].length > 150) {
+                                    essential[key] = essential[key].substring(0, 150) + "... [truncated]";
+                                }
+                            });
                             return essential;
                         })
                     };
@@ -170,7 +173,7 @@ OUTPUT FORMAT (STRICT JSON):
             });
             return {
                 role: "assistant",
-                content: `KROK ${i + 1} VÝSLEDKY: ${JSON.stringify(compressedSteps)}`
+                content: `STEP ${i + 1} RESULT: ${JSON.stringify(compressedSteps)}`
             };
         })
     ];
@@ -179,12 +182,16 @@ OUTPUT FORMAT (STRICT JSON):
     console.log(`[ORCHESTRATOR] History Context sent to AI: ${JSON.stringify(historyContext).length} chars`);
     console.log(`[ORCHESTRATOR] Calling AI model: ${AI_MODELS.ORCHESTRATOR}...`);
     
+    const constraintsText = negativeConstraints.length > 0 
+      ? `\n\nSTRATEGIC CONSTRAINTS (MUST FOLLOW):\n${negativeConstraints.map(c => `- ${c}`).join("\n")}`
+      : "";
+
     const aiStart = Date.now();
     const response = await withRetry(() => generateText({
       model: google(AI_MODELS.ORCHESTRATOR),
       system: systemPrompt,
       temperature: 0.1, // Near-deterministic planning
-      prompt: `KONVERZÁCIA (Context): \n${JSON.stringify(historyContext.slice(-10))}\n\nSTRATEGICKÉ ZADANIE (English Intent): ${translatedIntent || "Analyse last message."}\n\nDOSIAHNI CIEĽ.`,
+      prompt: `KONVERZÁCIA (Context): \n${JSON.stringify(historyContext.slice(-10))}\n\nSTRATEGICKÉ ZADANIE (Brief): ${orchestratorBrief || "Analyze last message."}${constraintsText}\n\nDOSIAHNI CIEĽ.`,
     }));
     console.log(`[ORCHESTRATOR] AI Call finished in ${Date.now() - aiStart}ms`);
 
