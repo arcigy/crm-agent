@@ -760,7 +760,7 @@ export const TASKS_ATOMS: ToolDefinition[] = [
           title: { type: "string", description: "Task title/description" },
           due_date: {
             type: "string",
-            description: "Due date (YYYY-MM-DD)",
+            description: "Deadline or reminder time. Supports YYYY-MM-DD or full ISO string (YYYY-MM-DDTHH:mm:ss) for specific time alerts.",
           },
           contact_id: { type: "number", description: "Optional contact ID" },
           project_id: { type: "number", description: "Optional project ID" },
@@ -826,7 +826,7 @@ export const TASKS_ATOMS: ToolDefinition[] = [
         properties: {
           task_id: { type: "number", description: "The ID of the task to update" },
           title: { type: "string", description: "New title for the task" },
-          due_date: { type: "string", description: "New due date (YYYY-MM-DD)" },
+          due_date: { type: "string", description: "New deadline or reminder time (YYYY-MM-DD or ISO string)" },
           completed: { type: "boolean", description: "Set to true for completed, false for pending" },
         },
         required: ["task_id"],
