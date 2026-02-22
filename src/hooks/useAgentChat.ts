@@ -19,13 +19,7 @@ export function useAgentChat() {
   const router = useRouter();
   const [chatId, setChatId] = React.useState<string>("");
   const [chatList, setChatList] = React.useState<AgentChatType[]>([]);
-  const [messages, setMessages] = React.useState<Message[]>([
-    {
-      role: "assistant",
-      content:
-        "Čau! Som tvoj ArciGy Agent. Pozvám ťa do tvojho CRM – pýtaj sa, čo potrebuješ.",
-    },
-  ]);
+  const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [totalSessionCost, setTotalSessionCost] = React.useState(0);

@@ -98,6 +98,20 @@ export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentCh
 
             {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide relative bg-gradient-to-b from-transparent to-indigo-500/5">
+                {messages.length === 0 && (
+                    <div className="h-full flex flex-col items-center justify-center text-center px-4 animate-in fade-in zoom-in duration-1000">
+                        <div className="relative mb-6">
+                            <div className="absolute inset-0 bg-indigo-500 blur-2xl opacity-20 animate-pulse" />
+                            <Bot className="w-12 h-12 text-indigo-500/50 relative z-10" />
+                        </div>
+                        <h4 className="text-sm font-black uppercase tracking-widest text-foreground/80 mb-2">
+                            Pripravený na akciu
+                        </h4>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest max-w-[200px] leading-relaxed">
+                            Napíš mi, čo potrebuješ vybaviť v CRM (napr. vytvoriť kontakt, úlohu alebo poslať mail)
+                        </p>
+                    </div>
+                )}
                 {messages.map((msg, idx) => (
                     <AgentChatMessage key={idx} idx={idx} msg={msg} isExpanded={!!expandedLogs[idx]} onToggleLog={toggleLog} />
                 ))}
@@ -112,17 +126,18 @@ export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentCh
             </div>
 
             {/* Input */}
-            <div className="p-6 border-t border-border bg-card/80 backdrop-blur-xl relative z-10">
-                <div className="flex items-end gap-3">
+            <div className="p-6 border-t border-border bg-card/85 backdrop-blur-xl relative z-10">
+                <div className="flex items-center gap-3">
                     <div className="flex-1 relative group">
                         <div className="absolute inset-0 bg-indigo-500/5 rounded-2xl blur-lg opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                        <textarea
-                            rows={1}
+                        <input
+                            type="text"
+                            autoFocus
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSend(); } }}
                             placeholder="Čo mám dnes urobiť?"
-                            className="w-full bg-muted/40 border border-border/50 rounded-2xl py-4 px-5 text-sm font-bold focus:border-indigo-500/50 outline-none transition-all resize-none shadow-inner"
+                            className="w-full bg-muted/40 border border-border/50 rounded-2xl py-4 px-5 text-sm font-bold focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all shadow-inner"
                         />
                     </div>
                     <button onClick={handleSend} disabled={!input.trim() || isLoading} className="p-4 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 active:scale-90 disabled:opacity-40 transition-all flex items-center justify-center group">
