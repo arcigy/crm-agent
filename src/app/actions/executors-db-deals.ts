@@ -103,36 +103,31 @@ export async function executeDbDealTool(
       };
 
     case "db_get_deals_by_stage":
-      const stageFilter: any = {
+      const dealFilters: any = {
           _and: [
             { user_email: { _eq: userEmail } },
             { deleted_at: { _null: true } },
           ],
       };
       
-      if (args.stage) {
-          stageFilter._and.push({ stage: { _eq: args.stage as string } });
-      }
-
-      const stageDeals = (await directus.request(
+      const allDeals = (await directus.request(
         readItems("deals", {
-          filter: stageFilter,
+          filter: dealFilters,
           limit: -1,
         }),
       )) as Record<string, unknown>[];
 
-      // Grouping deals by stage if a specific stage isn't provided
-      const grouped: Record<string, any[]> = {};
-      stageDeals.forEach(d => {
-         const stageName = (d.stage as string) || "Neznáma fáza";
-         if (!grouped[stageName]) grouped[stageName] = [];
-         grouped[stageName].push(d);
+      const groupedDeals: Record<string, any[]> = { "Zaplatené": [], "Nezaplatené": [] };
+      allDeals.forEach(d => {
+         const isPaid = !!d.paid;
+         if (isPaid) groupedDeals["Zaplatené"].push(d);
+         else groupedDeals["Nezaplatené"].push(d);
       });
 
       return {
         success: true,
-        data: args.stage ? stageDeals : grouped,
-        message: args.stage ? `Nájdených ${stageDeals.length} obchodov vo fáze "${args.stage}".` : `Obchody roztriedené podľa fáz (${stageDeals.length} celkovo).`,
+        data: groupedDeals,
+        message: `Nájdené obchody: ${groupedDeals["Zaplatené"].length} zaplatených, ${groupedDeals["Nezaplatené"].length} nezaplatených.`,
       };
 
     default:
