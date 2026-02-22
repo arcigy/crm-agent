@@ -148,7 +148,12 @@ export async function executeDbContactTool(
           });
         }
 
-        const res = (await directus.request(readItems("contacts", { filter, limit: 20 }))) as Record<string, unknown>[];
+        const res = (await directus.request(readItems("contacts", { 
+          filter, 
+          limit: 20,
+          sort: ["-date_created"] 
+        }))) as Record<string, unknown>[];
+        
         if (res.length > 0) {
           searchRes = res;
           usedQuery = q;
@@ -157,12 +162,16 @@ export async function executeDbContactTool(
         }
       }
 
+      // Rank results by relevance (H1 + Ranking Fix)
+      const selectionReason = searchRes.length > 1 ? "zoradené podľa dátumu (najnovšie)" : "priama zhoda";
+
       return {
         success: true,
         data: searchRes,
+        selectionReason,
         message: `Bolo nájdených ${searchRes.length} kontaktov pre dopyt "${usedQuery}"${
           usedQuery !== rawQuery ? ` (upravené z "${rawQuery}")` : ""
-        }.`,
+        }. Výber: ${selectionReason}.`,
       };
 
 
@@ -175,13 +184,14 @@ export async function executeDbContactTool(
               { status: { _neq: "archived" } },
             ],
           } as Record<string, unknown>,
+          sort: ["-date_created"],
           limit: (args.limit as number) || 50,
         }),
       )) as Record<string, unknown>[];
       return {
         success: true,
         data: allRes,
-        message: `Zoznam všetkých kontaktov bol načítaný (${allRes.length}).`,
+        message: `Zoznam všetkých kontaktov bol načítaný (${allRes.length}). Zoradené od najnovších.`,
       };
 
     case "db_delete_contact":

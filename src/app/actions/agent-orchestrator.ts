@@ -351,8 +351,15 @@ TOOL CHAINING ORDER (never skip):
 - TASKS need project_id OR contact_id
 - COMMUNICATION runs last (needs contact email)
 
-verify_* tools are ONLY for post-action confirmation (after creating/updating something).
-Never use verify_* as an initial search — use db_search_contacts instead.
+## DISAMBIGUATION PROTOCOL (When Search Returns More Results Than Expected)
+When a search returns MORE results than the task requires, do NOT stop and ask the user.
+Instead, apply these rules IN ORDER:
+1. RECENCY: If the task mentions no preference, prefer the most recently created records (check date_created).
+2. RELEVANCE: If context mentions a company, prefer contacts matching that company.
+3. EXPLICIT MATCH: Prefer exact name matches over partial ones.
+4. FALLBACK: Take the top N by recency and explain your choice in "thought".
+
+CRITICAL: After applying tie-breaking, continue the plan using the chosen IDs.
 
 OUTPUT FORMAT (STRICT JSON):
 {

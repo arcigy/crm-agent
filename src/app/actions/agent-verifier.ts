@@ -21,58 +21,62 @@ import { AI_MODELS } from "@/lib/ai-providers";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
+import { ExecutionManifest } from "./agent-manifest-builder";
+
 export async function verifyExecutionResults(
   originalIntent: string,
-  results: any[]
+  results: any[],
+  manifest?: ExecutionManifest
 ) {
   const start = Date.now();
   const tag = "[VERIFIER]";
 
   try {
-    const successCount = results.filter(
+    const successCount = manifest ? manifest.successCount : results.filter(
       (r) => r.status === "done" || r.result?.success === true || r.success === true
     ).length;
-    const failCount = results.length - successCount;
-    const partialSuccess = successCount > 0 && failCount > 0;
+    const failCount = manifest ? manifest.failCount : results.length - successCount;
 
     console.log(`${tag} Results: ${results.length} total, ${successCount} success, ${failCount} failed`);
-    console.log(`${tag} Original intent: ${originalIntent}`);
-
+    
     const systemPrompt = `
 Si Verifier v CRM systéme. Prekladáš výsledky agenta do jednej jasnej, ľudsky čitateľnej odpovede pre používateľa.
 
 PRAVIDLÁ:
 1. Píš v slovenčine, neformálne ale profesionálne (tykanie)
-2. Začni vždy tým čo sa PODARILO (nie čo zlyhalo)
+2. Začni vždy tým čo sa PODARILO
 3. Emoji: ✅ hotovo · ❌ zlyhalo · 📋 info — použi striedmo
 4. Všetko OK → stručné potvrdenie (2-3 vety MAX)
-5. Čiastočný úspech → jasne rozdeľ: čo prebehlo / čo nie / čo má urobiť
-6. NIKDY neodhaľuj: stack trace, interné ID (UUID), názvy polí v databáze
-7. NIKDY nepoužívaj frázу "Ako AI" alebo "Nebol som schopný"
-8. VŽDY konkrétny výsledok — čo sa stalo, nie čo mal stať
-9. PROAKTÍVNA PAMÄŤ: Ak vidíš úspešné volanie "sys_capture_memory", na konci správy to stručne a milo spomeň (napr. "Mimochodom, zapamätal som si, že..."). Pomáha to budovať dôveru, že systém sa učí.
+5. Čiastočný úspech → jasne rozdeľ: čo prebehlo / čo zlyhalo / čo má urobiť ďalej
+6. NIKDY neodhaľuj: raw UUIDs, interné ID, model names, stack traces
+7. NIKDY nepoužívaj frázу "Ako AI"
+8. PROAKTÍVNA PAMÄŤ: Ak vidíš úspešné "sys_capture_memory", spomeň to prirodzene na konci správy.
 `;
 
-    // Strip UUIDs and internal fields from results before sending to AI
-    const sanitizedResults = results.map((r) => ({
-      tool: r.tool,
-      status: r.status || (r.result?.success ? "done" : "error"),
-      message: r.result?.message || r.message,
-      // Include summary data but strip raw IDs
-      summary: summarizeResult(r),
-    }));
+    let prompt = "";
+    if (manifest) {
+      prompt = `
+PÔVODNÝ ZÁMER: ${manifest.goal}
+STAV: ${manifest.successCount} úspechov, ${manifest.failCount} zlyhaní
 
-    console.log(`${tag} Sanitized results: ${JSON.stringify(sanitizedResults)}`);
-
-    const prompt = `
-PÔVODNÝ ZÁMER: ${originalIntent}
-VÝSLEDKY (${successCount} úspech / ${failCount} zlyhanie):
-${JSON.stringify(sanitizedResults, null, 2)}
-
-PARTIAL_SUCCESS: ${partialSuccess}
+DETAILNÉ VÝSLEDKY:
+${manifest.entries.map(e => `
+Krok ${e.step}: ${e.humanName}
+Stav: ${e.status}
+Výsledok: ${e.summary}
+Dáta: ${JSON.stringify(e.keyOutputs)}
+`).join("\n---\n")}
 
 Napíš finálnu správu pre užívateľa.
 `;
+    } else {
+      // Legacy fallback
+      prompt = `
+PÔVODNÝ ZÁMER: ${originalIntent}
+VÝSLEDKY: ${JSON.stringify(results.map(r => ({ tool: r.tool, summary: summarizeResult(r) })))}
+Napíš finálnu správu.
+`;
+    }
 
     const aiStart = Date.now();
     const response = await generateText({
@@ -86,14 +90,12 @@ Napíš finálnu správu pre užívateľa.
       "verifier",
       "gemini",
       AI_MODELS.VERIFIER,
-      systemPrompt + originalIntent,
+      systemPrompt + prompt,
       response.text,
       Date.now() - start,
-      (response.usage as any).promptTokens || (response.usage as any).inputTokens,
-      (response.usage as any).completionTokens || (response.usage as any).outputTokens
+      (response.usage as any).inputTokens || 0,
+      (response.usage as any).outputTokens || 0
     );
-
-    console.log(`${tag} Response: ${response.text.substring(0, 300)}`);
 
     return {
       success: failCount === 0,
@@ -104,8 +106,7 @@ Napíš finálnu správu pre užívateľa.
     console.error(`${tag} Error: ${error.message}`);
     return {
       success: false,
-      analysis: "Nepodarilo sa overiť výsledky spracovania.",
-      error: error.message,
+      analysis: "Nepodarilo sa verifikovať výsledky misie.",
     };
   }
 }

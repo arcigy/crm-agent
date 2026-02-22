@@ -15,6 +15,10 @@ import { verifyExecutionResults } from '@/app/actions/agent-verifier';
 import { executeAtomicTool } from '@/app/actions/agent-executors';
 import { startCostSession, endCostSession } from '@/lib/ai-cost-tracker';
 import { AI_MODELS } from '@/lib/ai-providers';
+import { buildExecutionManifest } from '@/app/actions/agent-manifest-builder';
+import { selfReflect } from '@/app/actions/agent-self-reflector';
+import { extractAndStoreIds } from '@/app/actions/agent-self-corrector';
+import { MissionState, ToolResult } from '@/app/actions/agent-types';
 
 export async function POST(req: Request) {
     const { messages, debug = false } = await req.json();
@@ -75,18 +79,30 @@ export async function POST(req: Request) {
             let iter = 0;
             const finalResults: any[] = [];
             const missionHistory: any[] = [];
+            const state: MissionState = {
+                iteration: 0,
+                resolvedEntities: {},
+                completedTools: [],
+                lastToolResult: null,
+                allResults: [],
+                correctionAttempts: 0,
+                toolCallCounts: {}
+            };
 
-            while (iter < 5) {
+            const goal = routing.orchestrator_brief_structured?.goal || lastUserMsg;
+
+            while (iter < 10) {
                 iter++;
-                await log("LOOP", `Iteration ${iter}/5`);
+                state.iteration = iter;
+                await log("LOOP", `Iteration ${iter}/10`);
                 await log("ORCHESTRATOR", "Planning...");
                 
                 const taskPlan = await orchestrateParams(
                   messages, 
                   missionHistory,
-                  undefined, // state (not used in this route, managed by loop vars)
+                  state,
                   routing.orchestrator_brief,
-                  routing.negative_constraints  // C3 FIX: pass on every iteration
+                  routing.negative_constraints
                 );
                 await log("ORCHESTRATOR", "Plan", taskPlan.steps);
 
@@ -111,6 +127,20 @@ export async function POST(req: Request) {
                     const res = await executeAtomicTool(stepToRun.tool, stepToRun.args, user!);
                     await log("EXECUTOR", "Result", res);
                     
+                    const toolResult: ToolResult = {
+                        tool: stepToRun.tool,
+                        success: res.success,
+                        data: (res as any).data,
+                        error: (res as any).error,
+                        message: (res as any).message,
+                        originalArgs: stepToRun.args
+                    };
+
+                    extractAndStoreIds(toolResult, state);
+                    state.lastToolResult = toolResult;
+                    state.allResults.push(toolResult);
+                    state.completedTools.push(stepToRun.tool);
+
                     finalResults.push({ tool: stepToRun.tool, status: res.success ? 'success' : 'error', output: res });
                     missionHistory.push({ steps: [{ tool: stepToRun.tool, args: stepToRun.args, status: res.success ? 'done' : 'error', result: res }], verification: { success: res.success } });
                 } catch(e: any) {
@@ -119,14 +149,25 @@ export async function POST(req: Request) {
                 }
             }
 
+            // 4. MANIFEST & REFLECTION
+            await log("MANIFEST", "Building execution manifest...");
+            const manifest = buildExecutionManifest(goal, state);
+            
+            await log("REFLECTION", "Auditing mission success...");
+            const reflection = await selfReflect(goal, manifest);
+            
+            if (reflection.reflectionNote) {
+                await log("REFLECTION", "Note", reflection.reflectionNote);
+            }
+
             await log("VERIFIER", "Analyzing results...");
-            const verification = await verifyExecutionResults(lastUserMsg, finalResults);
+            const verification = await verifyExecutionResults(lastUserMsg, finalResults, manifest);
             await log("VERIFIER", "Analysis", verification.analysis);
             
             // 5. FINAL REPORT
             const reportResult = streamText({ 
                 model: google(AI_MODELS.REPORT), 
-                system: "Si priateľský CRM asistent. Tvojou úlohou je doručiť užívateľovi finálnu správu o výsledku jeho požiadavky. Odpovedaj v slovenčine.",
+                system: `Si priateľský CRM asistent. Tvojou úlohou je doručiť užívateľovi finálnu správu o výsledku jeho požiadavky. Odpovedaj v slovenčine. ${reflection.reflectionNote ? `Poznámka pre teba: ${reflection.reflectionNote}` : ''}`,
                 prompt: `Sformuluj finálnu odpoveď na základe tejto analýzy: "${verification.analysis}"` 
             });
             for await (const delta of reportResult.textStream) await writer.write(encoder.encode(delta));
