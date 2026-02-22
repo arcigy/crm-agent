@@ -1,7 +1,7 @@
 "use server";
 
 import directus from "@/lib/directus";
-import { readItems, createItem, updateItem } from "@directus/sdk";
+import { readItems, createItem, updateItem, deleteItem } from "@directus/sdk";
 
 export async function executeDbTaskTool(
   name: string,
@@ -74,6 +74,29 @@ export async function executeDbTaskTool(
       return {
         success: true,
         message: "Úloha bola označená ako splnená.",
+      };
+
+    case "db_delete_task":
+      await directus.request(
+        deleteItem("crm_tasks", args.task_id as number)
+      );
+      return {
+        success: true,
+        message: "Úloha bola úspešne vymazaná.",
+      };
+
+    case "db_update_task":
+      const updateData: any = {};
+      if (args.title) updateData.title = args.title;
+      if (args.due_date) updateData.due_date = args.due_date;
+      if (args.completed !== undefined) updateData.completed = args.completed;
+
+      await directus.request(
+        updateItem("crm_tasks", args.task_id as number, updateData)
+      );
+      return {
+        success: true,
+        message: "Úloha bola aktualizovaná.",
       };
 
     default:

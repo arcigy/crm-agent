@@ -145,13 +145,13 @@ export const INBOX_ATOMS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "db_update_lead_info",
-      description: "Updates lead analysis data in the CRM.",
+      description: "Updates AI analysis data for a specific lead.",
       parameters: {
         type: "object",
         properties: {
-          message_id: { type: "string" },
-          priority: { type: "string", enum: ["high", "medium", "low"] },
-          next_step: { type: "string" },
+          message_id: { type: "string", description: "ID of the message analysis to update" },
+          priority: { type: "string", enum: ["high", "medium", "low"], description: "Urgency level of the lead" },
+          next_step: { type: "string", description: "Suggested action to take next" },
         },
         required: ["message_id"],
       },
@@ -309,11 +309,11 @@ export const NOTES_ATOMS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "db_fetch_notes",
-      description: "Lists your recent CRM notes.",
+      description: "Lists recent CRM notes with an optional limit.",
       parameters: {
         type: "object",
         properties: {
-          limit: { type: "number", default: 10 },
+          limit: { type: "number", default: 10, description: "Maximum number of notes to return" },
         },
       },
     },
@@ -372,12 +372,12 @@ export const DEAL_ATOMS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "db_fetch_deals",
-      description: "Retrieves a list of deals.",
+      description: "Retrieves a list of sales deals.",
       parameters: {
         type: "object",
         properties: {
-          limit: { type: "number", default: 10 },
-          status: { type: "string" },
+          limit: { type: "number", default: 10, description: "Max deals to return" },
+          status: { type: "string", description: "Filter deals by status" },
         },
       },
     },
@@ -433,12 +433,12 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "db_fetch_projects",
-      description: "Retrieves a list of projects.",
+      description: "Retrieves a list of projects, optionally filtered by contact.",
       parameters: {
         type: "object",
         properties: {
-          limit: { type: "number", default: 10 },
-          contact_id: { type: "number" },
+          limit: { type: "number", default: 10, description: "Max projects to return" },
+          contact_id: { type: "number", description: "ID of contact to filter projects by" },
         },
       },
     },
@@ -773,7 +773,7 @@ export const TASKS_ATOMS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "db_fetch_tasks",
-      description: "Retrieves a list of tasks.",
+      description: "Retrieves a list of pending or completed tasks.",
       parameters: {
         type: "object",
         properties: {
@@ -781,8 +781,9 @@ export const TASKS_ATOMS: ToolDefinition[] = [
             type: "string",
             enum: ["all", "pending", "completed"],
             default: "pending",
+            description: "Filter tasks by completion status"
           },
-          limit: { type: "number", default: 10 },
+          limit: { type: "number", default: 10, description: "Max tasks to return" },
         },
       },
     },
@@ -795,7 +796,38 @@ export const TASKS_ATOMS: ToolDefinition[] = [
       parameters: {
         type: "object",
         properties: {
-          task_id: { type: "number" },
+          task_id: { type: "number", description: "The ID of the task to complete" },
+        },
+        required: ["task_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_delete_task",
+      description: "Permanently removes a task from the CRM.",
+      parameters: {
+        type: "object",
+        properties: {
+          task_id: { type: "number", description: "The ID of the task to delete" },
+        },
+        required: ["task_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_update_task",
+      description: "Updates an existing task's title, due date, or completion status.",
+      parameters: {
+        type: "object",
+        properties: {
+          task_id: { type: "number", description: "The ID of the task to update" },
+          title: { type: "string", description: "New title for the task" },
+          due_date: { type: "string", description: "New due date (YYYY-MM-DD)" },
+          completed: { type: "boolean", description: "Set to true for completed, false for pending" },
         },
         required: ["task_id"],
       },
@@ -808,15 +840,15 @@ export const LEADS_ATOMS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "db_fetch_leads",
-      description: "Retrieves a list of cold leads.",
+      description: "Retrieves a list of cold leads with status filtering.",
       parameters: {
         type: "object",
         properties: {
           status: {
             type: "string",
-            description: "Filter by status (e.g., 'new')",
+            description: "Filter by status (e.g., 'new', 'rejected')",
           },
-          limit: { type: "number", default: 10 },
+          limit: { type: "number", default: 10, description: "Max leads to return" },
         },
       },
     },
@@ -825,15 +857,15 @@ export const LEADS_ATOMS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "db_create_lead",
-      description: "Creates a new cold lead.",
+      description: "Creates a new cold lead in the CRM.",
       parameters: {
         type: "object",
         properties: {
-          email: { type: "string" },
-          first_name: { type: "string" },
-          last_name: { type: "string" },
-          company: { type: "string" },
-          status: { type: "string", default: "new" },
+          email: { type: "string", description: "Lead email address" },
+          first_name: { type: "string", description: "First name" },
+          last_name: { type: "string", description: "Last name" },
+          company: { type: "string", description: "Company name" },
+          status: { type: "string", default: "new", description: "Initial status" },
         },
         required: ["email"],
       },
@@ -843,12 +875,12 @@ export const LEADS_ATOMS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "db_update_lead_status",
-      description: "Changes a cold lead's status.",
+      description: "Updates the status of an existing cold lead.",
       parameters: {
         type: "object",
         properties: {
-          lead_id: { type: "number" },
-          status: { type: "string" },
+          lead_id: { type: "number", description: "The ID of the lead to update" },
+          status: { type: "string", description: "The new status" },
         },
         required: ["lead_id", "status"],
       },
