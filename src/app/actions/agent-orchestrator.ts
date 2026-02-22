@@ -293,9 +293,25 @@ export async function orchestrateParams(
 ) {
   const start = Date.now();
   try {
-    const toolsDocs = ALL_ATOMS.map((t) => {
-      return `- ${t.function.name}: ${t.function.description}`;
-    }).join("\n");
+    // Group tools to help LLM attention focus dynamically by domain
+    const registry = await import("./agent-registry");
+    const categories = [
+      { name: "📇 KONTAKTY & GMAIL", tools: registry.INBOX_ATOMS },
+      { name: "🏢 PROJEKTY", tools: registry.PROJECT_ATOMS },
+      { name: "💰 OBCHODY", tools: registry.DEAL_ATOMS },
+      { name: "📋 ÚLOHY", tools: registry.TASKS_ATOMS },
+      { name: "🗓️ KALENDÁR", tools: registry.CALENDAR_ATOMS },
+      { name: "🎯 LEADS", tools: registry.LEADS_ATOMS },
+      { name: "🧠 AI & ANALÝZA", tools: registry.AI_ATOMS || [] },
+      { name: "⚙️ SYSTÉM & OSTATNÉ", tools: [...registry.SYSTEM_ATOMS, ...registry.WEB_ATOMS, ...registry.NOTES_ATOMS, ...registry.ACTIVITY_ATOMS, ...registry.VERIFIER_ATOMS] },
+    ];
+
+    let toolsDocs = "";
+    categories.forEach(cat => {
+        toolsDocs += `\n### ${cat.name}\n`;
+        toolsDocs += cat.tools.map((t) => `- ${t.function.name}: ${t.function.description}`).join("\n");
+        toolsDocs += `\n`;
+    });
 
     // CRITICAL: inject resolvedEntities into every iteration prompt
     const resolvedEntitiesBlock = state?.resolvedEntities && Object.keys(state.resolvedEntities).length > 0
