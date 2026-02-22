@@ -139,16 +139,19 @@ export async function runOrchestratorLoop(
       console.log(`${tag}[exec=${step.tool}] Args: ${JSON.stringify(step.args)}`);
 
       const rawResult = await executeAtomicTool(step.tool, step.args, user);
+      if (!rawResult) {
+        throw new Error(`Execution of ${step.tool} returned no result.`);
+      }
       console.log(`${tag}[exec=${step.tool}] Raw result: ${JSON.stringify(rawResult).substring(0, 500)}`);
 
       // Build normalized ToolResult with retryable flag
       const toolResult: ToolResult = {
         tool: step.tool,
-        success: rawResult.success,
+        success: !!rawResult.success,
         data: (rawResult as any).data,
         error: rawResult.success ? undefined : String((rawResult as any).error ?? "Unknown error"),
         message: (rawResult as any).message,
-        retryable: rawResult.success ? false : isRetryable((rawResult as any).error),
+        retryable: rawResult.success ? false : isRetryable((rawResult as any).error, step.tool),
         originalArgs: step.args,
       };
 
@@ -161,6 +164,19 @@ export async function runOrchestratorLoop(
         state.correctionAttempts = 0; // Reset correction attempts on success
         state.completedTools.push(step.tool);
         console.log(`${tag}[exec=${step.tool}] SUCCESS. resolvedEntities now: ${JSON.stringify(state.resolvedEntities)}`);
+
+        // H3 FIX: Auto-log activity silently if contact_id is known
+        const contactId = state.resolvedEntities["contact_id"];
+        if (contactId && !step.tool.includes("activity") && !step.tool.includes("fetch") && !step.tool.includes("search")) {
+           console.log(`${tag} Silently auto-logging activity for contact ${contactId}...`);
+           executeAtomicTool("db_create_activity", {
+             contact_id: contactId,
+             type: "ai_action",
+             subject: `Agent: ${step.tool}`,
+             content: `AI agent vykonal akciu: ${step.tool}. Pôvodný cieľ: ${lastPlan.intent || 'Neznámy'}`
+           }, user).catch(err => console.error("[AUTO-LOG] Failed:", err));
+        }
+
       } else {
         // SELF-CORRECTION LAYER
         console.warn(`${tag}[exec=${step.tool}] FAILED: ${toolResult.error}`);
@@ -171,7 +187,8 @@ export async function runOrchestratorLoop(
           state.correctionAttempts++;
           console.log(`${tag}[self-correct] Retrying ${step.tool} with fixed args: ${JSON.stringify(correction.correctedArgs)}`);
           const retryRaw = await executeAtomicTool(step.tool, correction.correctedArgs, user);
-          console.log(`${tag}[self-correct][retry] Result: ${JSON.stringify(retryRaw).substring(0, 300)}`);
+          if (retryRaw) {
+            console.log(`${tag}[self-correct][retry] Result: ${JSON.stringify(retryRaw).substring(0, 300)}`);
 
           if (retryRaw.success) {
             toolResult.success = true;
@@ -205,6 +222,7 @@ export async function runOrchestratorLoop(
             });
             return { finalResults, missionHistory, attempts: state.iteration, lastPlan };
           }
+        }
         } else if (correction.action === "SKIP") {
           console.log(`${tag}[self-correct] Skipping non-critical step: ${step.tool}`);
           // Continue to next step
@@ -288,6 +306,14 @@ export async function orchestrateParams(
       ? `\n## COMPLETED TOOLS (DO NOT REPEAT THESE)\n${state.completedTools.join(", ")}`
       : "";
 
+    // C3 FIX: Build hard constraints block — injected into EVERY iteration
+    const negativeConstraintsList = (negativeConstraints || []).length > 0
+      ? (negativeConstraints || []).map((c) => `❌ ZAKÁZANÉ: ${c}`).join("\n")
+      : "";
+    const hardConstraintsBlock = negativeConstraintsList
+      ? `\n## HARD CONSTRAINTS (NEVER VIOLATE — USER EXPLICITLY SET THESE)\n${negativeConstraintsList}`
+      : "";
+
     const systemPrompt = `
 ROLE:
 You are the Supreme Strategic Planner for a Business CRM. Map user's intent into tool call sequences.
@@ -296,6 +322,7 @@ AVAILABLE TOOLS:
 ${toolsDocs}
 ${resolvedEntitiesBlock}
 ${completedToolsBlock}
+${hardConstraintsBlock}
 
 CORE PRINCIPLE: PARAMETER AGNOSTICISM
 You are a STRUCTURAL ARCHITECT. Decide *which* tools to call, not validate data completeness.
@@ -313,16 +340,19 @@ TASK LOGIC:
 RULES:
 1. ID VALIDITY: Never guess IDs. Use RESOLVED ENTITIES if available, else search first.
 2. ATOMICITY: One tool = one step. Return ONLY the next 1-3 steps needed.
-3. NO REPETITION: If a tool returned 0 results in history, don't repeat it.
+3. NO REPETITION: If a tool returned 0 results in history, don't repeat it with identical args.
 4. SLOVAK ARGS: All text arguments (title, content, comment, subject, body) must be in Slovak.
 5. STRICT PARAMS: Always use exact parameter names from the TOOL DEFINITIONS.
-6. NEGATIVE CONSTRAINTS: Strictly adhere to provided strategic constraints.
+6. HARD CONSTRAINTS: The HARD CONSTRAINTS block above is absolute — never plan a blocked tool.
 
 TOOL CHAINING ORDER (never skip):
 - CONTACTS always first if entity unknown → db_search_contacts → db_create_contact
 - PROJECTS need contact_id → db_create_project (use contact_id from RESOLVED ENTITIES)
 - TASKS need project_id OR contact_id
 - COMMUNICATION runs last (needs contact email)
+
+verify_* tools are ONLY for post-action confirmation (after creating/updating something).
+Never use verify_* as an initial search — use db_search_contacts instead.
 
 OUTPUT FORMAT (STRICT JSON):
 {
@@ -336,7 +366,7 @@ OUTPUT FORMAT (STRICT JSON):
 
     // Compress mission history aggressively to save tokens
     const historyContext = [
-      ...messages.map((m) => ({ role: m.role, content: m.content })),
+      ...(messages || []).map((m) => ({ role: m.role, content: m.content })),
       ...missionHistory.map((h, i) => {
         const compressedSteps = h.steps.map((s) => {
           let compressedResult = s.result as any;
@@ -374,8 +404,8 @@ OUTPUT FORMAT (STRICT JSON):
     console.log(`[ORCHESTRATOR][orchestrateParams] Calling model: ${AI_MODELS.ORCHESTRATOR}`);
 
     const constraintsText =
-      negativeConstraints.length > 0
-        ? `\n\nSTRATEGIC CONSTRAINTS (MUST FOLLOW):\n${negativeConstraints.map((c) => `- ${c}`).join("\n")}`
+      (negativeConstraints || []).length > 0
+        ? `\n\nSTRATEGIC CONSTRAINTS (MUST FOLLOW):\n${(negativeConstraints || []).map((c) => `- ${c}`).join("\n")}`
         : "";
 
     const aiStart = Date.now();
@@ -476,17 +506,36 @@ OUTPUT FORMAT (STRICT JSON):
 // HELPERS
 // ─────────────────────────────────────────────────────────
 
-function isRetryable(error: unknown): boolean {
+// H5 FIX: Context-aware retryable classification
+// Old logic: "not found" was always NOT retryable.
+// Problem: search tools SHOULD retry (different query), fetch-by-ID should NOT.
+function isRetryable(error: unknown, tool?: string): boolean {
   if (!error) return false;
   const msg = String(error).toLowerCase();
-  // Non-retryable: validation errors, auth, not found
+
+  // Auth: never retry
   if (msg.includes("forbidden") || msg.includes("unauthorized")) return false;
-  if (msg.includes("not found") || msg.includes("404")) return false;
-  if (msg.includes("invalid") && msg.includes("field")) return true; // Wrong field → correctable
+
+  // Search tools: "not found" / "0 results" is retryable (different query variant)
+  if (tool?.includes("search") && (msg.includes("not found") || msg.includes("0 result"))) return true;
+  if (tool?.includes("search") && msg.includes("404")) return true;
+
+  // Fetch by ID: "not found" means the ID is wrong — not retryable
+  if (tool?.includes("fetch") && (msg.includes("not found") || msg.includes("404"))) return false;
+
+  // Gmail token expiry: not retryable (needs re-auth flow)
+  if (msg.includes("invalid_grant") || msg.includes("token expired")) return false;
+
+  // Validation/field errors: retryable (self-corrector can fix args)
+  if (msg.includes("invalid") && msg.includes("field")) return true;
   if (msg.includes("required") && msg.includes("missing")) return true;
-  // Retryable: network, timeout, server errors
+  if (msg.includes("validation")) return true;
+
+  // Infrastructure: retryable
   if (msg.includes("timeout") || msg.includes("network") || msg.includes("503")) return true;
   if (msg.includes("500") || msg.includes("internal")) return true;
+
   // Default: attempt correction
   return true;
 }
+

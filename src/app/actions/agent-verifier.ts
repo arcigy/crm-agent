@@ -50,6 +50,7 @@ PRAVIDLÁ:
 6. NIKDY neodhaľuj: stack trace, interné ID (UUID), názvy polí v databáze
 7. NIKDY nepoužívaj frázу "Ako AI" alebo "Nebol som schopný"
 8. VŽDY konkrétny výsledok — čo sa stalo, nie čo mal stať
+9. PROAKTÍVNA PAMÄŤ: Ak vidíš úspešné volanie "sys_capture_memory", na konci správy to stručne a milo spomeň (napr. "Mimochodom, zapamätal som si, že..."). Pomáha to budovať dôveru, že systém sa učí.
 `;
 
     // Strip UUIDs and internal fields from results before sending to AI

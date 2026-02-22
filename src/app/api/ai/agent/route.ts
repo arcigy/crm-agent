@@ -59,6 +59,19 @@ export async function POST(req: Request) {
                 return;
             }
 
+            // C2 FIX: Confidence threshold gate
+            // If router is not confident + has ambiguities → ask user instead of going to orchestrator
+            const CONFIDENCE_THRESHOLD = 0.65;
+            const ambiguities = routing.orchestrator_brief_structured?.ambiguities ?? [];
+            if (routing.confidence < CONFIDENCE_THRESHOLD && ambiguities.length > 0) {
+                await log("ROUTER", `Low confidence (${routing.confidence}), requesting clarification`);
+                const clarification = ambiguities.length > 0
+                    ? `Pred tým, ako začnem, potrebujem vedieť: ${ambiguities.join(", ")}`
+                    : `Môžeš mi upresnit, čo presnne chceš spravit? Napríklad pre koho alebo čo?`;
+                await writer.write(encoder.encode(clarification));
+                return;
+            }
+
             let iter = 0;
             const finalResults: any[] = [];
             const missionHistory: any[] = [];
@@ -70,9 +83,10 @@ export async function POST(req: Request) {
                 
                 const taskPlan = await orchestrateParams(
                   messages, 
-                  missionHistory, 
+                  missionHistory,
+                  undefined, // state (not used in this route, managed by loop vars)
                   routing.orchestrator_brief,
-                  routing.negative_constraints
+                  routing.negative_constraints  // C3 FIX: pass on every iteration
                 );
                 await log("ORCHESTRATOR", "Plan", taskPlan.steps);
 

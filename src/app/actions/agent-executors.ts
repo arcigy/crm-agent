@@ -173,13 +173,27 @@ export async function executeAtomicTool(
     }
 
     // AI Tools
-    if (name.startsWith("ai_")) {
+    if (name.startsWith("ai_") || name === "gmail_analyze_and_save_lead") {
+        if (name === "gmail_analyze_and_save_lead") {
+            const analysisRes = await executeAiTool("ai_deep_analyze_lead", safeArgs, userEmail);
+            if (!analysisRes.success) return analysisRes;
+            
+            return await executeDbVerificationTool("db_save_analysis", { 
+                analysis_data: analysisRes.data 
+            }, userEmail);
+        }
         return await executeAiTool(name, safeArgs, userEmail);
     }
 
     // Web Tools
     if (name.startsWith("web_")) {
       return await executeWebTool(name, safeArgs);
+    }
+
+    // Activity Tools
+    if (name.startsWith("db_") && name.includes("activity")) {
+        const { executeDbActivityTool } = await import("./executors-db-activities");
+        return await executeDbActivityTool(name, safeArgs, userEmail);
     }
 
     // Task Tools

@@ -109,6 +109,23 @@ export const INBOX_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
+      name: "gmail_analyze_and_save_lead",
+      description: "H4 FIX: Performs deep AI analysis of an email (intent, priority, sentiment) AND automatically saves the result to CRM. Use this instead of CALLING analyze + save separately.",
+      parameters: {
+        type: "object",
+        properties: {
+          messageId: { type: "string", description: "The ID of the email to analyze" },
+          content: { type: "string", description: "Body of the email" },
+          subject: { type: "string", description: "Subject of the email" },
+          sender: { type: "string", description: "Sender's email address" },
+        },
+        required: ["messageId", "content", "subject", "sender"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "ai_deep_analyze_lead",
       description:
         "In-depth AI analysis of email text (entity extraction, intent identification, and prioritization).",
@@ -584,6 +601,43 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "sys_fetch_call_logs",
+      description: "L3: Retrieves metadata from Android call logs (duration, direction, phone number) for a contact. Use this to find the last interaction date.",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "string", description: "ID of the contact to fetch logs for" },
+          limit: { type: "number", default: 5 },
+        },
+        required: ["contact_id"],
+      },
+    },
+  },
+];
+
+export const ACTIVITY_ATOMS: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "db_create_activity",
+      description: "H3: Logs an action to the CRM activity timeline for a contact. Use this to record sales calls, meetings, or important AI actions manually.",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "number" },
+          type: { type: "string", description: "Type of activity (e.g., 'call', 'meeting', 'ai_action')" },
+          subject: { type: "string", description: "Brief title of the activity" },
+          content: { type: "string", description: "Detailed description of what happened" },
+          duration: { type: "number", description: "Duration in minutes" },
+          project_id: { type: "number", description: "Optional project link" },
+        },
+        required: ["contact_id", "type", "subject"],
+      },
+    },
+  },
 ];
 
 export const VERIFIER_ATOMS: ToolDefinition[] = [
@@ -985,5 +1039,6 @@ export const ALL_ATOMS = [
   ...NOTES_ATOMS,
   ...CALENDAR_ATOMS,
   ...AI_ATOMS,
+  ...ACTIVITY_ATOMS,
   ...DISPATCHER_ATOM,
 ];

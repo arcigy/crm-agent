@@ -17,6 +17,29 @@ function formatPhoneNumber(phone: string | null | undefined): string | null {
 }
 
 /**
+ * H1 FIX: Normalize search query and generate fallback variants.
+ * Tries original → diacritics-stripped → surname-only.
+ * Resolves in 1 Directus query sequence instead of 2-3 orchestrator iterations.
+ */
+function buildSearchQueryVariants(query: string): string[] {
+  const variants: string[] = [query];
+
+  // Strip diacritics (e.g. "Važný" → "Vazny")
+  const stripped = query.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (stripped !== query) variants.push(stripped);
+
+  // Surname-only fallback for multi-word names ("Teodor Važný" → "Važný")
+  const parts = query.trim().split(/\s+/);
+  if (parts.length > 1) {
+    variants.push(parts[parts.length - 1]); // last word
+    variants.push(stripped.split(/\s+/).pop() ?? stripped); // stripped last word
+  }
+
+  return [...new Set(variants)]; // deduplicate
+}
+
+
+/**
  * Handles database contact operations.
  */
 export async function executeDbContactTool(
@@ -83,65 +106,65 @@ export async function executeDbContactTool(
       };
 
     case "db_search_contacts":
-      const query = (args.query as string || "").trim();
-      const queryParts = query.split(/\s+/);
-      
-      const filter: any = {
-        _and: [
-          {
-            _or: [
-              { user_email: { _eq: userEmail } },
-              { user_email: { _null: true } },
-            ],
-          },
-          { status: { _neq: "archived" } },
-        ]
-      };
+      const rawQuery = (args.query as string || "").trim();
 
-      if (queryParts.length > 1) {
-        // Multi-word search (e.g. "Martin Mrkva")
-        filter._and.push({
-          _or: [
+      // H1 FIX: Try each query variant, return first non-empty result
+      const queryVariants = buildSearchQueryVariants(rawQuery);
+      let searchRes: Record<string, unknown>[] = [];
+      let usedQuery = rawQuery;
+
+      for (const q of queryVariants) {
+        const qParts = q.split(/\s+/);
+        const filter: any = {
+          _and: [
             {
-              _and: [
-                { first_name: { _icontains: queryParts[0] } },
-                { last_name: { _icontains: queryParts.slice(1).join(" ") } }
-              ]
+              _or: [
+                { user_email: { _eq: userEmail } },
+                { user_email: { _null: true } },
+              ],
             },
-            {
-              _and: [
-                { last_name: { _icontains: queryParts[0] } },
-                { first_name: { _icontains: queryParts.slice(1).join(" ") } }
-              ]
-            },
-            { first_name: { _icontains: query } },
-            { last_name: { _icontains: query } },
-            { company: { _icontains: query } }
+            { status: { _neq: "archived" } },
           ]
-        });
-      } else {
-        // Single word search
-        filter._and.push({
-          _or: [
-            { first_name: { _icontains: query } },
-            { last_name: { _icontains: query } },
-            { email: { _icontains: query } },
-            { company: { _icontains: query } },
-          ]
-        });
+        };
+
+        if (qParts.length > 1) {
+          filter._and.push({
+            _or: [
+              { _and: [{ first_name: { _icontains: qParts[0] } }, { last_name: { _icontains: qParts.slice(1).join(" ") } }] },
+              { _and: [{ last_name: { _icontains: qParts[0] } }, { first_name: { _icontains: qParts.slice(1).join(" ") } }] },
+              { first_name: { _icontains: q } },
+              { last_name: { _icontains: q } },
+              { company: { _icontains: q } },
+            ]
+          });
+        } else {
+          filter._and.push({
+            _or: [
+              { first_name: { _icontains: q } },
+              { last_name: { _icontains: q } },
+              { email: { _icontains: q } },
+              { company: { _icontains: q } },
+            ]
+          });
+        }
+
+        const res = (await directus.request(readItems("contacts", { filter, limit: 20 }))) as Record<string, unknown>[];
+        if (res.length > 0) {
+          searchRes = res;
+          usedQuery = q;
+          if (q !== rawQuery) console.log(`[SEARCH][H1] Diacritics fallback matched: "${rawQuery}" → "${q}"`);
+          break;
+        }
       }
 
-      const searchRes = (await directus.request(
-        readItems("contacts", {
-          filter,
-          limit: 20,
-        }),
-      )) as Record<string, unknown>[];
       return {
         success: true,
         data: searchRes,
-        message: `Bolo nájdených ${searchRes.length} kontaktov pre dopyt "${query}".`,
+        message: `Bolo nájdených ${searchRes.length} kontaktov pre dopyt "${usedQuery}"${
+          usedQuery !== rawQuery ? ` (upravené z "${rawQuery}")` : ""
+        }.`,
       };
+
 
     case "db_get_all_contacts":
       const allRes = (await directus.request(

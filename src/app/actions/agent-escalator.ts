@@ -68,6 +68,23 @@ function buildUserActions(tool: string): string {
 export function buildEscalationMessage(ctx: EscalationContext): string {
   const { failedTool, attemptsMade, partialSuccesses, diagnosis } = ctx;
 
+  // M4 FIX: Special handling for Gmail OAuth expiry
+  const isGmailAuthError = 
+    diagnosis?.includes("GMAIL_TOKEN_EXPIRED") || 
+    partialSuccesses.some(r => r.error === "GMAIL_TOKEN_EXPIRED");
+
+  if (isGmailAuthError) {
+    return `
+❌ **Tvoje pripojenie k Gmailu vypršalo.**
+
+Aby som mohol pokračovať v odosielaní alebo čítaní emailov, musíš si účet znova prepojiť. Trvá to len pár sekúnd.
+
+**👉 [Klikni sem pre opätovné pripojenie Gmailu](/settings/integrations)**
+
+Po pripojení mi stačí napísať "skús to znova".
+`.trim();
+  }
+
   const successItems = partialSuccesses
     .filter((r) => r.success)
     .map((r) => `✅ ${toolToSlovak(r.tool)}`)
@@ -77,7 +94,7 @@ export function buildEscalationMessage(ctx: EscalationContext): string {
 
   const userAction = buildUserActions(failedTool);
 
-  const diagnosisNote = diagnosis
+  const diagnosisNote = diagnosis && !isGmailAuthError
     ? `\n*Technický detail:* ${diagnosis}`
     : "";
 
@@ -96,6 +113,7 @@ ${userAction}${diagnosisNote}
 Chceš, aby som to skúsil inak?
 `.trim();
 }
+
 
 // Logs the full escalation context for debugging
 export function logEscalation(ctx: EscalationContext): void {

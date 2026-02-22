@@ -88,6 +88,22 @@ export async function executeSysTool(name: string, args: Record<string, any>) {
         data: output.slice(0, 5000),
         message: "Diagnostický príkaz bol vykonaný.",
       };
+    case "sys_fetch_call_logs":
+      const directus = (await import("@/lib/directus")).default;
+      const { readItems } = await import("@directus/sdk");
+      const logs = await directus.request(
+        readItems("android_logs" as any, {
+          filter: { contact_id: { _eq: args.contact_id } },
+          limit: args.limit || 5,
+          sort: ["-timestamp"],
+        })
+      );
+      return {
+        success: true,
+        data: logs,
+        message: `Načítaných ${Array.isArray(logs) ? logs.length : 0} záznamov hovorov/SMS.`,
+      };
+
     default:
       throw new Error(`Tool ${name} not found in System executors`);
   }
