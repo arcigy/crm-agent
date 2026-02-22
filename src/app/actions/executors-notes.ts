@@ -35,7 +35,11 @@ export async function executeDbNoteTool(
             file_link: args.file_link || null,
           } as any),
         );
-        revalidatePath("/dashboard/notes");
+        try {
+            revalidatePath("/dashboard/notes");
+        } catch (e) {
+            console.warn("revalidatePath ignored in current context");
+        }
         return { 
             success: true, 
             data: newNote, 
@@ -76,7 +80,11 @@ export async function executeDbNoteTool(
             date_updated: new Date().toISOString(),
           } as any),
         );
-        revalidatePath("/dashboard/notes");
+        try {
+            revalidatePath("/dashboard/notes");
+        } catch (e) {
+            console.warn("revalidatePath ignored in current context");
+        }
         return { 
             success: true, 
             data: updatedNote, 
@@ -96,7 +104,11 @@ export async function executeDbNoteTool(
         }
 
         await directus.request(deleteItem("crm_notes", delId));
-        revalidatePath("/dashboard/notes");
+        try {
+            revalidatePath("/dashboard/notes");
+        } catch (e) {
+            console.warn("revalidatePath ignored in current context");
+        }
         return { success: true, message: "Poznámka bola úspešne vymazaná." };
 
       default:

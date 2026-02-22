@@ -38,7 +38,11 @@ export async function addAIMemory(fact: string, category: string = "manual") {
       }),
     );
 
-    revalidatePath("/dashboard/settings/memory");
+    try {
+        revalidatePath("/dashboard/settings/memory");
+    } catch (e) {
+        console.warn("revalidatePath ignored in current context");
+    }
     return { success: true };
   } catch (error: any) {
     console.error("Add AI Memory Error:", error);
@@ -59,7 +63,11 @@ export async function deleteAIMemory(id: string) {
 
     // @ts-ignore
     await directus.request(deleteItem("ai_memories", id));
-    revalidatePath("/dashboard/settings/memory");
+    try {
+        revalidatePath("/dashboard/settings/memory");
+    } catch (e) {
+        console.warn("revalidatePath ignored in current context");
+    }
     return { success: true };
   } catch (error: any) {
     console.error("Delete AI Memory Error:", error);
@@ -85,7 +93,11 @@ export async function updateAIMemory(id: string, fact: string) {
         date_updated: new Date().toISOString(),
       }),
     );
-    revalidatePath("/dashboard/settings/memory");
+    try {
+        revalidatePath("/dashboard/settings/memory");
+    } catch (e) {
+        console.warn("revalidatePath ignored in current context");
+    }
     return { success: true };
   } catch (error: any) {
     console.error("Update AI Memory Error:", error);
