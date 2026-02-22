@@ -8,6 +8,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/health",
   "/api/webhooks(.*)",
   "/api/cron(.*)",
+  "/api/test(.*)",   // Test endpoints — secured by x-test-api-key, not Clerk
   "/oauth-callback"
 ]);
 
