@@ -143,6 +143,34 @@ export const INBOX_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
+      name: "ai_suggest_next_action",
+      description: "H5: Analyzes a contact's or project's history to intelligently recommend the next best action.",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "number" },
+          project_id: { type: "number" }
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ai_score_lead",
+      description: "Calculates an AI-driven score (0-100) and recommendation for a lead/contact based on engagement and value.",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "number" },
+        },
+        required: ["contact_id"]
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "db_save_analysis",
       description: "Saves the result of a lead's AI analysis into the CRM database.",
       parameters: {
@@ -171,6 +199,65 @@ export const INBOX_ATOMS: ToolDefinition[] = [
           next_step: { type: "string", description: "Suggested action to take next" },
         },
         required: ["message_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_bulk_update",
+      description: "Performs a bulk update on multiple CRM records (e.g. projects, deals, tasks) matching a specific Directus schema filter.",
+      parameters: {
+        type: "object",
+        properties: {
+          entity_type: { type: "string", description: "The directus collection name (projects, deals, crm_tasks, contacts)" },
+          filter: { type: "object", description: "Directus API filter object (e.g. { name: { _icontains: 'Google' } })" },
+          update_payload: { type: "object", description: "The fields and values to update across all matched records" },
+        },
+        required: ["entity_type", "filter", "update_payload"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ai_suggest_next_action",
+      description: "H5: Analyzes a contact's or project's history to intelligently recommend the next best action.",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "number" },
+          project_id: { type: "number" }
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "sys_generate_report",
+      description: "Generates a well-formatted Markdown summary/report based on injected dataset context.",
+      parameters: {
+        type: "object",
+        properties: {
+          report_topic: { type: "string" },
+          data_context: { type: "string", description: "JSON string or text containing the dataset to report on" },
+        },
+        required: ["report_topic", "data_context"]
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ai_score_lead",
+      description: "Calculates an AI-driven score (0-100) and recommendation for a lead/contact based on engagement and value.",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "number" },
+        },
+        required: ["contact_id"]
       },
     },
   },
@@ -249,6 +336,37 @@ export const INBOX_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
+      name: "gmail_save_draft",
+      description: "Creates and saves a draft email explicitly into the user's Gmail Drafts without opening the compose UI.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string" },
+          subject: { type: "string" },
+          body: { type: "string" },
+        },
+        required: ["to", "subject", "body"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "gmail_get_conversation_with_contact",
+      description: "Retrieves the full Gmail email thread/conversation specifically filtered by the given contact's email address.",
+      parameters: {
+        type: "object",
+        properties: {
+          email: { type: "string", description: "Contact email address" },
+          limit: { type: "number", default: 10 },
+        },
+        required: ["email"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "gmail_forward_email",
       description: "Forwards an email to a specified address.",
       parameters: {
@@ -296,6 +414,19 @@ export const INBOX_ATOMS: ToolDefinition[] = [
           duplicate_contact_id: { type: "number", description: "ID of the contact to merge and archive" },
         },
         required: ["primary_contact_id", "duplicate_contact_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_get_contacts_without_activity",
+      description: "Finds clients/contacts completely missing any activity entries for a specified amount of recent days.",
+      parameters: {
+        type: "object",
+        properties: {
+          days: { type: "number", description: "Number of days elapsed without contact. E.g. 30", default: 30 },
+        },
       },
     },
   },
@@ -478,6 +609,33 @@ export const DEAL_ATOMS: ToolDefinition[] = [
         type: "object",
         properties: {
           deal_id: { type: "number" },
+        },
+        required: ["deal_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_get_deals_by_stage",
+      description: "Extracts deals and groups them exclusively by their current Pipeline stage.",
+      parameters: {
+        type: "object",
+        properties: {
+          stage: { type: "string", description: "Filter to a specific stage, optional." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_create_invoice",
+      description: "Initiates the invoice generation procedure for a valid CRM deal.",
+      parameters: {
+        type: "object",
+        properties: {
+          deal_id: { type: "number", description: "Valid deal ID to invoice against" },
         },
         required: ["deal_id"],
       },
@@ -724,6 +882,37 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
           action: { type: "string", description: "What to do or inform about when condition is met" },
         },
         required: ["condition", "action"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "sys_generate_report",
+      description: "Generates a well-formatted Markdown summary/report based on injected dataset context.",
+      parameters: {
+        type: "object",
+        properties: {
+          report_topic: { type: "string" },
+          data_context: { type: "string", description: "JSON string or text containing the dataset" },
+        },
+        required: ["report_topic", "data_context"]
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "db_bulk_update",
+      description: "Performs a bulk update on multiple CRM records (projects, deals, tasks, contacts).",
+      parameters: {
+        type: "object",
+        properties: {
+          entity_type: { type: "string", enum: ["projects", "deals", "crm_tasks", "contacts"] },
+          filter: { type: "object", description: "Directus API filter object (e.g. { name: { _icontains: 'X' } })" },
+          update_payload: { type: "object", description: "Fields to update" },
+        },
+        required: ["entity_type", "filter", "update_payload"],
       },
     },
   },

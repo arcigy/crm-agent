@@ -179,7 +179,16 @@ export function toolToSlovak(tool: string): string {
     db_get_overdue_tasks: "Načítanie úloh po termíne",
     db_find_duplicate_contacts: "Hľadanie duplicitných kontaktov",
     calendar_get_upcoming_events: "Načítanie najbližších udalostí z kalendára",
-    db_convert_lead_to_contact: "Konverzia leada na kontakt"
+    db_convert_lead_to_contact: "Konverzia leada na kontakt",
+    db_bulk_update: "Hromadná aktualizácia záznamov",
+    ai_suggest_next_action: "AI návrh ďalšieho kroku",
+    ai_score_lead: "AI ohodnotenie (scoring) kontaktu",
+    sys_generate_report: "Vygenerovanie AI reportu",
+    db_create_invoice: "Vytvorenie faktúry k obchodu",
+    gmail_save_draft: "Zálohovanie konceptu emailu",
+    gmail_get_conversation_with_contact: "Načítanie komunikačného vlákna klientskeho kontaktu",
+    db_get_contacts_without_activity: "Filtrovanie kontaktov bez nedávnych aktivít",
+    db_get_deals_by_stage: "Filtrovanie obchodov podľa fázy"
   };
   return map[tool] ?? `Operácia ${tool}`;
 }

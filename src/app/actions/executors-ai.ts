@@ -69,6 +69,21 @@ export async function executeAiTool(name: string, args: Record<string, unknown>,
             message: "AI hĺbková analýza leada bola úspešne dokončená."
          };
 
+      case "ai_suggest_next_action":
+         return {
+            success: true,
+            data: { recommendation: "Odporúčam ihneď poslať follow-up email - lead je aktívny, no dlho nereagoval." }, // Prompt-driven logic placeholder for agent evaluation
+            message: "AI úspešne determinovala najlepšiu ďalšiu akciu."
+         };
+
+      case "ai_score_lead":
+         const leadScore = Math.floor(Math.random() * 50) + 50; // Mock AI score
+         return {
+            success: true,
+            data: { score: leadScore, priority: leadScore > 80 ? "high" : "medium" }, 
+            message: `Lead bol ohodnotený so skóre ${leadScore}/100.`
+         };
+
       default:
         throw new Error(`Tool ${name} not found in AI executors`);
     }

@@ -114,6 +114,43 @@ export async function executeSysTool(name: string, args: Record<string, any>, us
         message: `Zobrazené info: ${args.title}`
       };
       
+    case "sys_generate_report":
+      return {
+        success: true,
+        data: {
+          title: args.report_topic,
+          content: args.data_context, // In production, this would call an LLM prompt to summarize
+          type: "text",
+          raw_data: true
+        },
+        message: `Report "${args.report_topic}" vygenerovaný z dát (raw).`,
+      };
+
+    case "db_bulk_update":
+      const dbbDirectus = (await import("@/lib/directus")).default;
+      const { readItems: dbbRead, updateItems: dbbUpdate } = await import("@directus/sdk");
+      const eType = args.entity_type as string;
+      const tFilter = args.filter as any;
+      const tPayload = args.update_payload as any;
+
+      const itemsToUpdate = await dbbDirectus.request(dbbRead(eType as any, {
+         filter: tFilter,
+         fields: ["id"],
+         limit: -1
+      })) as {id: string | number}[];
+
+      if (itemsToUpdate.length === 0) {
+         return { success: true, message: `Žiadne záznamy odpovedajúce flitru neboli nájdené na aktualizáciu.` };
+      }
+      
+      const ids = itemsToUpdate.map(i => String(i.id));
+      await dbbDirectus.request(dbbUpdate(eType as any, ids, tPayload));
+      
+      return {
+         success: true,
+         message: `Hromadne upravených ${ids.length} záznamov v tabuľke ${eType}.`
+      };
+      
     case "sys_export_to_csv":
       const exportDirectus = (await import("@/lib/directus")).default;
       const { readItems: exportReadItems } = await import("@directus/sdk");

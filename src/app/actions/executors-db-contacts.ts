@@ -379,6 +379,42 @@ export async function executeDbContactTool(
            : "Nenašli sa žiadne zjavné duplicity."
       };
 
+    case "db_get_contacts_without_activity":
+      const days = (args.days as number) || 30;
+      const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      
+      const allContacts = (await directus.request(
+        readItems("contacts", {
+          filter: {
+            user_email: { _eq: userEmail },
+            deleted_at: { _null: true },
+          },
+          limit: -1,
+        })
+      )) as Record<string, any>[];
+
+      const allActivities = (await directus.request(
+        readItems("activities", {
+            filter: {
+               activity_date: { _gt: cutoff }
+            },
+            fields: ["contact_id"],
+            limit: -1,
+        })
+      )) as Record<string, any>[];
+
+      const activeContactIds = new Set(allActivities.map(a => String(a.contact_id)));
+      
+      const inactiveContacts = allContacts.filter(
+         c => !activeContactIds.has(String(c.id))
+      );
+
+      return {
+          success: true,
+          data: inactiveContacts,
+          message: `Nájdených ${inactiveContacts.length} kontaktov, ktoré nemali pridanú žiadnu aktivitu za posledných ${days} dní.`
+      };
+      
     default:
       throw new Error(`Tool ${name} not found in DB Contact executors`);
   }

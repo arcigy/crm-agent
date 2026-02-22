@@ -178,6 +178,72 @@ export async function executeGmailTool(
             "Oknom s konceptom prepusielania správy bolo otvorené.",
         };
 
+      case "gmail_get_conversation_with_contact":
+        const queryEmail = args.email as string;
+        const qContact = `from:${queryEmail} OR to:${queryEmail}`;
+        const convList = await gmail.users.messages.list({
+          userId: "me",
+          q: qContact,
+          maxResults: (args.limit as number) || 10,
+        });
+
+        const cMessages = convList.data.messages || [];
+        if (cMessages.length === 0) {
+          return {
+            success: true,
+            data: [],
+            message: `S kontaktom ${queryEmail} neboli nájdené žiadne e-maily.`,
+          };
+        }
+
+        const eMessages = await Promise.all(
+          cMessages.map(async (m) => {
+            const detail = await gmail.users.messages.get({
+              userId: "me",
+              id: m.id!,
+              format: "metadata",
+              metadataHeaders: ["Subject", "From", "Date", "To"],
+            });
+            const h = detail.data.payload?.headers;
+            return {
+              id: m.id,
+              threadId: m.threadId,
+              subject: h?.find((x) => x.name === "Subject")?.value || "(No Subject)",
+              from: h?.find((x) => x.name === "From")?.value || "(Unknown)",
+              to: h?.find((x) => x.name === "To")?.value || "(Unknown)",
+              date: h?.find((x) => x.name === "Date")?.value || "",
+              snippet: detail.data.snippet,
+            };
+          })
+        );
+        return {
+          success: true,
+          data: eMessages,
+          message: `Nájdených ${eMessages.length} správ s ${queryEmail}.`,
+        };
+
+      case "gmail_save_draft":
+        const draftHeaders = [
+          `To: ${args.to}`,
+          `Subject: ${args.subject}`,
+          'Content-Type: text/html; charset=utf-8',
+          '',
+          args.body as string
+        ].join('\n');
+        
+        await gmail.users.drafts.create({
+          userId: "me",
+          requestBody: {
+            message: {
+              raw: Buffer.from(draftHeaders).toString("base64url"),
+            }
+          }
+        });
+        return {
+          success: true,
+          message: `Koncept " ${args.subject} " pre ${args.to} bol úspešne uložený do Gmailu bez zobrazenia UI.`,
+        };
+
       default:
         throw new Error("Gmail tool not found");
     }
