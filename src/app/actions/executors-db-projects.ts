@@ -129,6 +129,44 @@ export async function executeDbProjectTool(
       )) as Record<string, unknown>[];
       return { success: !!vProj, data: vProj || null, message: vProj ? "Nájdený." : "Nenájdený." };
 
+    case "db_get_pipeline_stats":
+      // Fetch all projects for the user to calculate statistics
+      const allProjects = (await directus.request(
+        readItems("projects", {
+          filter: {
+            _and: [
+              {
+                _or: [
+                  { user_email: { _eq: userEmail } },
+                  { user_email: { _null: true } },
+                ]
+              },
+              { deleted_at: { _null: true } },
+            ],
+          },
+          limit: -1, // Fetches all records
+        }),
+      )) as Record<string, any>[];
+
+      let totalValue = 0;
+      const stageCounts: Record<string, number> = {};
+
+      for (const p of allProjects) {
+        totalValue += Number(p.value) || 0;
+        const s = p.stage || "Neznáme";
+        stageCounts[s] = (stageCounts[s] || 0) + 1;
+      }
+
+      return {
+        success: true,
+        data: {
+          total_projects: allProjects.length,
+          total_pipeline_value: totalValue,
+          stage_distribution: stageCounts,
+        },
+        message: `Pipeline prehľad úspešne kalkulovaný z ${allProjects.length} projektov.`,
+      };
+
     default:
       throw new Error(`Tool ${name} not found`);
   }

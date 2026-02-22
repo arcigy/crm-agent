@@ -83,7 +83,8 @@ export async function executeAtomicTool(
       name.startsWith("db_search_contacts") ||
       name.startsWith("db_get_all_contacts") ||
       name.startsWith("db_delete_contact") ||
-      name.startsWith("db_add_contact_comment")
+      name.startsWith("db_add_contact_comment") ||
+      name === "db_merge_records"
     ) {
       return await executeDbContactTool(name, safeArgs, userEmail);
     }
@@ -95,7 +96,8 @@ export async function executeAtomicTool(
       name.startsWith("db_update_project") ||
       name.startsWith("db_delete_project") ||
       name.startsWith("db_search_projects") ||
-      name.startsWith("verify_project_exists")
+      name.startsWith("verify_project_exists") ||
+      name === "db_get_pipeline_stats"
     ) {
       return await executeDbProjectTool(name, safeArgs, userEmail, userId);
     }

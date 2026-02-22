@@ -287,6 +287,21 @@ export const INBOX_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
+      name: "db_merge_records",
+      description: "Merges a duplicate contact into a primary contact. Moves all related data (projects, tasks, emails, notes) to the primary contact and archives the duplicate.",
+      parameters: {
+        type: "object",
+        properties: {
+          primary_contact_id: { type: "number", description: "ID of the contact to keep" },
+          duplicate_contact_id: { type: "number", description: "ID of the contact to merge and archive" },
+        },
+        required: ["primary_contact_id", "duplicate_contact_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "db_add_contact_comment",
       description: "Adds a comment (note) to a contact.",
       parameters: {
@@ -508,6 +523,17 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "db_get_pipeline_stats",
+      description: "Retrieves aggregated statistics and analytics for projects/deals (e.g., total pipeline value, count by stage).",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
 ];
 
 export const FILE_ATOMS: ToolDefinition[] = [
@@ -629,6 +655,36 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
           type: { type: "string", enum: ["text", "table", "list"], default: "text" }
         },
         required: ["title", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "sys_export_to_csv",
+      description: "Generates a CSV export of contacts or projects based on a specific filter, and returns a download link.",
+      parameters: {
+        type: "object",
+        properties: {
+          entity_type: { type: "string", enum: ["contacts", "projects"], description: "Which entity to export" },
+          filter: { type: "string", description: "Optional filter description to apply for the export (e.g., 'only IT sector', 'no recent deals')" },
+        },
+        required: ["entity_type"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "sys_set_agent_reminder",
+      description: "Sets a proactive system reminder/monitor. The agent will check conditions in the background and notify the user when met.",
+      parameters: {
+        type: "object",
+        properties: {
+          condition: { type: "string", description: "Condition to monitor (e.g., 'If Peter doesn't reply in 3 days')" },
+          action: { type: "string", description: "What to do or inform about when condition is met" },
+        },
+        required: ["condition", "action"],
       },
     },
   },

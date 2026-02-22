@@ -169,7 +169,11 @@ export function toolToSlovak(tool: string): string {
     sys_capture_memory: "Uloženie do pamäte",
     sys_show_info: "Zobrazenie informácií v chate",
     db_save_analysis: "Uloženie analýzy emailu",
-    gmail_analyze_and_save_lead: "Analýza a uloženie leadu"
+    gmail_analyze_and_save_lead: "Analýza a uloženie leadu",
+    db_merge_records: "Zlúčenie duplicitných kontaktov",
+    db_get_pipeline_stats: "Výpočet CRM analytiky a štatistík",
+    sys_export_to_csv: "Export dát do formatu CSV",
+    sys_set_agent_reminder: "Nastavenie trvalého monitorovania"
   };
   return map[tool] ?? `Operácia ${tool}`;
 }
