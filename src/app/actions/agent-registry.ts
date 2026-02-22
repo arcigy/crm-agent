@@ -38,21 +38,47 @@ export const INBOX_ATOMS: ToolDefinition[] = [
     function: {
       name: "gmail_reply",
       description:
-        "Prepares a reply to an email and opens the compose window in the CRM. This tool NEVER sends the email directly - it only prepares a draft for the user to review and send manually.",
+        "Prepares a reply to an existing email thread and opens the compose window. ONLY use this when you have a valid threadId from a previous email. It never sends directly - it only prepares a draft for the user to review.",
       parameters: {
         type: "object",
         properties: {
           threadId: {
             type: "string",
-            description: "ID of the thread being replied to",
+            description: "The ID of the thread to reply to.",
           },
           body: {
             type: "string",
             description:
-              "Reply text in HTML or plain text - AI pre-fills this content",
+              "Reply content in HTML or plain text.",
           },
         },
         required: ["threadId", "body"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "gmail_send_email",
+      description:
+        "Opens the compose window for a NEW email (not a reply). Use this when starting a fresh conversation with a contact. It pre-fills the recipient, subject, and body.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: {
+            type: "string",
+            description: "Recipient email address",
+          },
+          subject: {
+            type: "string",
+            description: "Email subject",
+          },
+          body: {
+            type: "string",
+            description: "Email body content",
+          },
+        },
+        required: ["to", "subject", "body"],
       },
     },
   },

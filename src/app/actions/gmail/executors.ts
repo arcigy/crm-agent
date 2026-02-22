@@ -97,6 +97,21 @@ export async function executeGmailTool(
         message: "E-mail bol archivovaný (odstránený z doručenej pošty).",
       };
 
+    case "gmail_send_email":
+      return {
+        success: true,
+        action: "open_compose",
+        compose: {
+          to: args.to as string,
+          toName: args.to as string,
+          subject: args.subject as string,
+          body: args.body as string,
+          threadId: undefined,
+        },
+        message:
+          "Oknom s novým konceptom e-mailu bolo otvorené v CRM.",
+      };
+
     case "gmail_reply":
       const thread = await gmail.users.threads.get({
         userId: "me",

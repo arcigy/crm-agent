@@ -49,14 +49,26 @@ export async function agentSendEmail(args: {
   const user = (await currentUser()) as unknown as UserResource | null;
   if (!user) return { success: false, error: "Unauthorized" };
 
-  return (await executeAtomicTool(
-    "gmail_reply",
-    {
-      threadId: args.threadId || "new",
-      body: args.body_html,
-    },
-    user,
-  )) as ActionResult;
+  if (args.threadId && args.threadId !== "new") {
+    return (await executeAtomicTool(
+      "gmail_reply",
+      {
+        threadId: args.threadId,
+        body: args.body_html,
+      },
+      user,
+    )) as ActionResult;
+  } else {
+    return (await executeAtomicTool(
+      "gmail_send_email",
+      {
+        to: args.recipient,
+        subject: args.subject,
+        body: args.body_html,
+      },
+      user,
+    )) as ActionResult;
+  }
 }
 
 export async function agentCreateContact(
