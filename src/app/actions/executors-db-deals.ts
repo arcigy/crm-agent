@@ -31,6 +31,7 @@ export async function executeDbDealTool(
         message: "Nový obchod bol úspešne vytvorený.",
       };
 
+    case "db_invoice_deal":
     case "db_update_deal":
       // Ownership check
       const current = (await directus.request(
@@ -45,10 +46,16 @@ export async function executeDbDealTool(
       )) as Record<string, unknown>[];
       if (current.length === 0) throw new Error("Access denied or not found");
 
-      await directus.request(updateItem("deals", args.deal_id as string, args));
+      const updatePayload = { ...args };
+      if (name === "db_invoice_deal") {
+        (updatePayload as any).status = "invoiced";
+        (updatePayload as any).invoice_date = new Date().toISOString();
+      }
+
+      await directus.request(updateItem("deals", args.deal_id as string, updatePayload));
       return {
         success: true,
-        message: "Obchod bol úspešne aktualizovaný.",
+        message: name === "db_invoice_deal" ? "Obchod bol úspešne vyfakturovaný." : "Obchod bol úspešne aktualizovaný.",
       };
 
     case "db_fetch_deals":

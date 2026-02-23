@@ -114,17 +114,42 @@ export function extractAndStoreIds(
 
   const updates: Record<string, string> = {};
 
-  // Generic ID always stored as last_id
+  // Helper to slugify names for consistent keys
+  const slugify = (text: string) => text.toLowerCase().trim().replace(/[^a-z0-9]/g, "_").substring(0, 20);
+
+  const storeSemanticId = (entityType: string, id: any, entityData: any, originalArgs: any) => {
+    const stringId = String(id);
+    // 1. Store generic key (latest one wins, for simple backward compatibility)
+    updates[`${entityType}_id`] = stringId;
+    
+    // 2. Namespaced key based on name from RESULT (e.g., "Google" -> contact_google_id)
+    const nameFromResult = entityData?.name || entityData?.first_name || entityData?.company;
+    if (nameFromResult) {
+       updates[`${entityType}_${slugify(nameFromResult)}_id`] = stringId;
+    }
+
+    // 3. Namespaced key based on name from ARGS (e.g., search query "Martin" -> contact_martin_id)
+    const nameFromArgs = originalArgs?.query || originalArgs?.first_name || originalArgs?.name || originalArgs?.company;
+    if (nameFromArgs && typeof nameFromArgs === "string") {
+       updates[`${entityType}_${slugify(nameFromArgs)}_id`] = stringId;
+    }
+
+    // 4. Specific tool result key
+    updates[`${result.tool}_result_id`] = stringId;
+  };
+
+  // Generic ID
   if (data.id) {
     updates["last_id"] = String(data.id);
-    updates[`${result.tool}_result_id`] = String(data.id);
+    storeSemanticId("last", data.id, data, result.originalArgs);
   }
 
-  // Semantic fields
-  if (data.contact_id) updates["contact_id"] = String(data.contact_id);
-  if (data.project_id) updates["project_id"] = String(data.project_id);
-  if (data.deal_id) updates["deal_id"] = String(data.deal_id);
-  if (data.task_id) updates["task_id"] = String(data.task_id);
+  // Semantic fields in object result
+  if (data.contact_id) storeSemanticId("contact", data.contact_id, data, result.originalArgs);
+  if (data.project_id) storeSemanticId("project", data.project_id, data, result.originalArgs);
+  if (data.deal_id) storeSemanticId("deal", data.deal_id, data, result.originalArgs);
+  if (data.task_id) storeSemanticId("task", data.task_id, data, result.originalArgs);
+  
   if (data.email) updates["contact_email"] = String(data.email);
   if (data.first_name || data.last_name) {
     updates["last_name"] = `${data.first_name || ""} ${data.last_name || ""}`.trim();
@@ -136,9 +161,9 @@ export function extractAndStoreIds(
     const first = data[0];
     if (first.id) {
       updates["last_id"] = String(first.id);
-      updates[`${result.tool}_result_id`] = String(first.id);
+      storeSemanticId("last", first.id, first, result.originalArgs);
     }
-    if (first.contact_id) updates["contact_id"] = String(first.contact_id);
+    if (first.contact_id) storeSemanticId("contact", first.contact_id, first, result.originalArgs);
     if (first.email) updates["contact_email"] = String(first.email);
     if (first.first_name || first.last_name) {
       updates["last_name"] = `${first.first_name || ""} ${first.last_name || ""}`.trim();

@@ -1637,4 +1637,8 @@ export const ALL_ATOMS = [
   ...CALENDAR_ATOMS,
   ...AI_ATOMS,
   ...ACTIVITY_ATOMS,
-  ];
+];
+
+// sys_execute_plan — INTENTIONALLY EXCLUDED from ALL_ATOMS
+// Reason: Bypasses checklist system — orchestrator cannot see individual step completions
+// Do NOT add back to ALL_ATOMS without updating checklist integration first.

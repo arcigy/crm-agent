@@ -86,9 +86,19 @@ export function updateChecklistState(checklist: ChecklistItem[], completedTools:
 }
 
 export function shouldBuildChecklist(goalText: string): boolean {
-    const actionVerbs = ["vytvor", "pridaj", "pošli", "zmaž", "uprav", "zlúč", "prirad", "vyrieš", "naplánuj"];
-    const verbCount = actionVerbs.filter(v => goalText.toLowerCase().includes(v)).length;
-    // If it's a simple search or fetch request, we skip the checklist overhead
-    if (verbCount === 0 && goalText.length < 80) return false;
-    return true; // Use checklist for complex or action-oriented goals
+    const actionVerbs = [
+        "vytvor", "pridaj", "pošli", "zmaž", "uprav", "zlúč", "prirad", "vyrieš", "naplánuj",
+        "create", "add", "send", "delete", "remove", "update", "merge", "assign", "resolve", "schedule"
+    ];
+    const lowerGoal = goalText.toLowerCase();
+    const verbCount = actionVerbs.filter(v => lowerGoal.includes(v)).length;
+    
+    // Signals for multiple actions or entities
+    const hasMultipleSignals = lowerGoal.includes(" a ") || lowerGoal.includes(" and ") || lowerGoal.includes(",");
+    
+    // If it's a simple search or fetch request without action verbs, we skip the checklist overhead
+    if (verbCount === 0 && goalText.length < 50 && !hasMultipleSignals) return false;
+    
+    // If we have multiple verbs or explicit multi-goal signals, definitely use checklist
+    return verbCount > 0 || hasMultipleSignals || goalText.length > 80;
 }
