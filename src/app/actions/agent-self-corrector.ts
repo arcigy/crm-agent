@@ -114,8 +114,15 @@ export function extractAndStoreIds(
 
   const updates: Record<string, string> = {};
 
-  // Helper to slugify names for consistent keys
-  const slugify = (text: string) => text.toLowerCase().trim().replace(/[^a-z0-9]/g, "_").substring(0, 20);
+  // Helper to slugify names for consistent keys (handles diacritics)
+  const slugify = (text: string) => 
+    text.toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // remove diacritics
+      .trim()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "")
+      .substring(0, 30);
 
   const storeSemanticId = (entityType: string, id: any, entityData: any, originalArgs: any) => {
     const stringId = String(id);

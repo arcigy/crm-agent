@@ -230,6 +230,8 @@ export async function runOrchestratorLoop(
           extractAndStoreIds(toolResult, state);
           state.correctionAttempts = 0;
           state.completedTools.push(step.tool);
+          // Update checklist state immediately for this tool
+          state.checklist = updateChecklistState(state.checklist, state.completedTools);
           console.log(`${tag}[exec=${step.tool}] SUCCESS. resolvedEntities now: ${JSON.stringify(state.resolvedEntities)}`);
 
           const contactId = state.resolvedEntities["contact_id"];
@@ -260,6 +262,8 @@ export async function runOrchestratorLoop(
                 extractAndStoreIds(toolResult, state);
                 state.correctionAttempts = 0;
                 state.completedTools.push(step.tool);
+                // Update checklist state immediately
+                state.checklist = updateChecklistState(state.checklist, state.completedTools);
                 console.log(`${tag}[self-correct] RETRY SUCCESS.`);
               } else {
                 toolResult.error = String((retryRaw as any).error ?? "Retry also failed");
@@ -304,7 +308,7 @@ export async function runOrchestratorLoop(
   console.log(`[ORCHESTRATOR] Completed tools: ${JSON.stringify(state.completedTools)}`);
   console.log(`[ORCHESTRATOR] Final resolvedEntities: ${JSON.stringify(state.resolvedEntities)}`);
 
-  return { finalResults, missionHistory, attempts: state.iteration, lastPlan };
+  return { finalResults, missionHistory, attempts: state.iteration, lastPlan, state };
 }
 
 // ─────────────────────────────────────────────────────────
@@ -332,8 +336,32 @@ export async function orchestrateParams(
       { name: "⚙️ SYSTÉM & OSTATNÉ", tools: [...registry.SYSTEM_ATOMS, ...registry.WEB_ATOMS, ...registry.NOTES_ATOMS, ...registry.ACTIVITY_ATOMS, ...registry.VERIFIER_ATOMS] },
     ];
 
+    // Category-First Scaling: Filter relevant categories to keep prompt clean
+    const lowerGoal = (orchestratorBrief || messages[messages.length - 1].content).toLowerCase();
+    const relevantCategories = categories.filter(cat => {
+      // Always include System tools for safety
+      if (cat.name.includes("SYSTÉM")) return true;
+      
+      // Keywords mapping to domains
+      const keywords: Record<string, string[]> = {
+        "KONTAKTY": ["kontakt", "gmail", "mail", "peter", "mali", "osoba", "clovek", "email", "volaj"],
+        "PROJEKTY": ["projekt", "stavba", "faza", "termin", "drive", "priecinok"],
+        "OBCHODY": ["obchod", "deal", "peniaze", "faktura", "suma", "hodnota", "vyhral", "prehral"],
+        "ÚLOHY": ["uloha", "pripomienka", "task", "urob", "zajtra", "deadline"],
+        "KALENDÁR": ["kalendar", "event", "udalost", "cas", "stretnutie", "meeting"],
+        "LEADS": ["lead", "potencial", "marketing", "kampan"],
+        "AI": ["analyza", "skore", "navrh", "co dalej", "identifikuj"]
+      };
+
+      const domain = Object.keys(keywords).find(k => cat.name.includes(k));
+      if (!domain) return true; // Default to including unknown categories
+      
+      return keywords[domain].some(kw => lowerGoal.includes(kw)) || 
+             state?.completedTools.some(tool => cat.tools.some(t => t.function.name === tool));
+    });
+
     let toolsDocs = "";
-    categories.forEach(cat => {
+    relevantCategories.forEach(cat => {
         toolsDocs += `\n### ${cat.name}\n`;
         toolsDocs += cat.tools.map((t) => `- ${t.function.name}: ${t.function.description}`).join("\n");
         toolsDocs += `\n`;

@@ -127,6 +127,11 @@ Odpovedz priamo a stručne. Ak sa pýta na tvoje schopnosti, odpovedz áno/nie +
   });
 }
 
+import { buildExecutionManifest } from "./agent-manifest-builder";
+import { selfReflect } from "./agent-self-reflector";
+import { verifyExecutionResults } from "./agent-verifier";
+import { MissionState, ToolResult } from "./agent-types";
+
 export async function runFinalReporter(
   messages: ChatMessage[],
   results: AgentStep[],
@@ -135,57 +140,58 @@ export async function runFinalReporter(
   verdict: ChatVerdict,
   superState: ReturnType<typeof createStreamableValue>,
   lastPlan?: any,
+  state?: MissionState
 ) {
-  const orchestratorMessage = lastPlan?.message ? `Orchestrátor odkázal: ${lastPlan.message}` : "";
-  // Compress results so the prompt stays small
-  const resultsSummary = results.slice(0, 10).map(r => ({
-    tool: r.tool,
-    status: r.status,
-    success: (r.result as any)?.success,
-    message: (r.result as any)?.message,
-  }));
-  const prompt = `JAZYK: Slovenčina. ŠTÝL: Extrémne stručný report (max 2 vety). 
-    ${orchestratorMessage ? `POVINNOSŤ: Odpovedz na základe tohto odkazu: "${orchestratorMessage}".` : "Povedz presne čo si spravil a čo je výsledok."}
-    DÔLEŽITÉ: Ak sú výsledky prázdne ([]), jednoducho povedz že misia skončila bez ďalších akcií.
-    Výsledky: ${JSON.stringify(resultsSummary)}`;
   const start = Date.now();
-  console.log(`[REPORTER] Calling AI model: ${AI_MODELS.REPORT}, prompt length: ${prompt.length}`);
-  let output = "Misia dokončená.";
+  const goal = state?.checklist?.length ? messages[messages.length - 1].content : (lastPlan?.intent || messages[messages.length - 1].content);
+  
+  console.log(`[REPORTER] Starting final reporting sequence...`);
+  
   try {
-    const res = await withRetry(() => generateText({
-      model: google(AI_MODELS.REPORT),
-      system: "Si stručný CRM reporter. Odpovedaj v slovenčine, max 2 vety.",
-      prompt,
-      temperature: 0.2,
-    }));
-    output = res.text || "Misia dokončená.";
-    console.log(`[REPORTER] Done in ${Date.now() - start}ms. Output: ${output.substring(0, 100)}`);
+    if (!state) throw new Error("Mission state is required for advanced reporting.");
+
+    // 1. Build Execution Manifest
+    superState.update({ status: "thinking", message: "Generujem manifest krokov...", toolResults: results });
+    const manifest = buildExecutionManifest(goal, state);
+    console.log(`[REPORTER] Manifest built: ${manifest.totalSteps} steps.`);
+
+    // 2. Self-Reflection Audit
+    superState.update({ status: "thinking", message: "Auditujem výsledky misie...", toolResults: results });
+    const reflection = await selfReflect(goal, manifest);
+    console.log(`[REPORTER] Reflection finished. Goal achieved: ${reflection.goalAchieved}`);
+
+    // 3. Verifier pass (Human-friendly summary)
+    superState.update({ status: "thinking", message: "Finalizujem odpoveď...", toolResults: results });
+    const verification = await verifyExecutionResults(goal, results, manifest);
+    
+    let finalOutput = verification.analysis;
+    
+    // If reflection found issues, we can append a subtle warning or note
+    if (!reflection.goalAchieved && reflection.reflectionNote) {
+       finalOutput += `\n\n> 💡 **Poznámka:** ${reflection.reflectionNote}`;
+    }
+
+    superState.done({
+      content: finalOutput,
+      status: "done",
+      toolResults: results,
+      attempt: attempts,
+      thoughts: {
+        intent: "Misia dokončená",
+        extractedData: verdict.extracted_data,
+        plan: history.flatMap((h) => h.steps.map((s) => s.tool)),
+      },
+      costTracking: endCostSession(),
+    });
+
   } catch (err: any) {
-    console.error(`[REPORTER] Failed: ${err.message}`);
-    output = results.length > 0
-      ? `Vykonal som ${results.filter(r => r.status === "done").length}/${results.length} krokov úspešne.`
-      : "Misia dokončená bez ďalších akcií.";
+    console.error(`[REPORTER] Pipeline failed: ${err.message}`);
+    // Minimal fallback
+    superState.done({
+      content: `Vykonal som ${results.filter(r => r.status === "done").length} krokov. Misia je hotová.`,
+      status: "done",
+      toolResults: results,
+      costTracking: endCostSession(),
+    });
   }
-
-  trackAICall(
-    "reporter",
-    "gemini",
-    AI_MODELS.REPORT,
-    prompt,
-    output,
-    Date.now() - start,
-  );
-
-  superState.done({
-    content: output,
-    status: "done",
-    toolResults: results,
-    attempt: attempts,
-    thoughts: {
-      intent: "Misia dokončená",
-      extractedData: verdict.extracted_data,
-      plan: history.flatMap((h) => h.steps.map((s) => s.tool)),
-    },
-    costTracking: endCostSession(),
-  });
 }

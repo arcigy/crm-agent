@@ -91,14 +91,20 @@ export function shouldBuildChecklist(goalText: string): boolean {
         "create", "add", "send", "delete", "remove", "update", "merge", "assign", "resolve", "schedule"
     ];
     const lowerGoal = goalText.toLowerCase();
-    const verbCount = actionVerbs.filter(v => lowerGoal.includes(v)).length;
     
-    // Signals for multiple actions or entities
-    const hasMultipleSignals = lowerGoal.includes(" a ") || lowerGoal.includes(" and ") || lowerGoal.includes(",");
+    // Count how many distinct action verbs are present
+    const distinctVerbsFound = actionVerbs.filter(v => lowerGoal.includes(v));
+    const verbCount = distinctVerbsFound.length;
     
-    // If it's a simple search or fetch request without action verbs, we skip the checklist overhead
-    if (verbCount === 0 && goalText.length < 50 && !hasMultipleSignals) return false;
+    // Signals for multiple actions 
+    // We check if " a " or " and " is likely connecting two different items or actions
+    const hasMultipleActions = (lowerGoal.includes(" a ") || lowerGoal.includes(" and ") || lowerGoal.includes(","));
     
-    // If we have multiple verbs or explicit multi-goal signals, definitely use checklist
-    return verbCount > 0 || hasMultipleSignals || goalText.length > 80;
+    // If we have 2 or more distinct verbs, it's definitely a multi-step mission
+    if (verbCount >= 2) return true;
+    
+    // If it's a simple search or fetch request without multiple action verbs, we skip
+    if (verbCount <= 1 && goalText.length < 100 && !hasMultipleActions) return false;
+    
+    return true; 
 }

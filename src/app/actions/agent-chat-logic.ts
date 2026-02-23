@@ -84,7 +84,7 @@ export async function chatWithAgent(messages: ChatMessage[]) {
       }
 
       // 2. ORCHESTRATOR LOOP - Performs actions using tools
-      const { finalResults, missionHistory, attempts, lastPlan } =
+      const { finalResults, missionHistory, attempts, lastPlan, state } =
         await runOrchestratorLoop(messages, user, superState);
 
       // 3. FINAL REPORTER - Summarizes the mission
@@ -96,6 +96,7 @@ export async function chatWithAgent(messages: ChatMessage[]) {
         verdict,
         superState,
         lastPlan,
+        state
       );
     } catch (error) {
       console.error("Agent Error:", error);

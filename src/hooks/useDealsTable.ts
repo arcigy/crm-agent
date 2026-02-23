@@ -4,7 +4,7 @@ import * as React from "react";
 import { SortingState } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Deal } from "@/types/deal";
-import { Project } from "@/types/project";
+import { Project, ProjectStage } from "@/types/project";
 import { Lead } from "@/types/contact";
 import { updateProject, updateProjectStage } from "@/app/actions/projects";
 
@@ -95,7 +95,7 @@ export function useDealsTable(
     uninvoicedOnly,
   ]);
 
-  const handleUpdateProjectStage = async (id: number, newStage: string) => {
+  const handleUpdateProjectStage = async (id: number, newStage: ProjectStage) => {
     setCurrentProjects((prev) =>
       prev.map((p) => (p.id === id ? { ...p, stage: newStage } : p)),
     );
