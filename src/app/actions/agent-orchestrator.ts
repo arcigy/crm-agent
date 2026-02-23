@@ -157,140 +157,129 @@ export async function runOrchestratorLoop(
       return { finalResults, missionHistory, attempts: state.iteration };
     }
 
-    // 3. Execute each validated step
+    // 3. Execution Phase - Parallel Batches
     const iterationSteps: AgentStep[] = [];
+    const batches: any[][] = [];
+    let currentBatch: any[] = [];
 
+    // Form batches based on isParallelSafe and dependencies
     for (const step of preparer.validated_steps) {
+      const def = ALL_ATOMS.find(a => a.function.name === step.tool);
+      const isParallelSafe = def?.function?.isParallelSafe ?? false;
+      
+      if (!isParallelSafe) {
+        if (currentBatch.length > 0) { batches.push([...currentBatch]); currentBatch = []; }
+        batches.push([step]);
+      } else {
+        // Break batch if it depends on unresolved keys that might be produced by same batch
+        let dependsOnUnresolved = false;
+        for (const reqKey of (def?.function?.requiredEntityKeys || [])) {
+          if (!state.resolvedEntities[reqKey] && !step.args[reqKey]) {
+             dependsOnUnresolved = true;
+          }
+        }
+        if (dependsOnUnresolved) {
+          if (currentBatch.length > 0) { batches.push([...currentBatch]); currentBatch = []; }
+          batches.push([step]);
+        } else {
+          currentBatch.push(step);
+        }
+      }
+    }
+    if (currentBatch.length > 0) batches.push([...currentBatch]);
+
+    console.log(`${tag} Formed ${batches.length} execution batches:`, batches.map(b => b.map(s => s.tool)));
+
+    for (const batch of batches) {
       superState.update({
         status: "executing" as const,
-        message: `Vykonávam ${step.tool}...`,
+        message: `Vykonávam: ${batch.map(s => s.tool).join(", ")}...`,
       });
 
-      // Track tool call count
-      state.toolCallCounts[step.tool] = (state.toolCallCounts[step.tool] ?? 0) + 1;
-      console.log(`${tag}[exec=${step.tool}] Args: ${JSON.stringify(step.args)}`);
+      // Execute all tools in the current batch in parallel
+      const batchResults = await Promise.all(batch.map(async (step) => {
+        state.toolCallCounts[step.tool] = (state.toolCallCounts[step.tool] ?? 0) + 1;
+        console.log(`${tag}[exec=${step.tool}] Args: ${JSON.stringify(step.args)}`);
 
-      const rawResult = await executeAtomicTool(step.tool, step.args, user);
-      if (!rawResult) {
-        throw new Error(`Execution of ${step.tool} returned no result.`);
-      }
-      console.log(`${tag}[exec=${step.tool}] Raw result: ${JSON.stringify(rawResult).substring(0, 500)}`);
+        const rawResult = await executeAtomicTool(step.tool, step.args, user);
+        if (!rawResult) throw new Error(`Execution of ${step.tool} returned no result.`);
+        console.log(`${tag}[exec=${step.tool}] Raw result: ${JSON.stringify(rawResult).substring(0, 500)}`);
 
-      // Build normalized ToolResult with retryable flag
-      const toolResult: ToolResult = {
-        tool: step.tool,
-        success: !!rawResult.success,
-        data: (rawResult as any).data,
-        error: rawResult.success ? undefined : String((rawResult as any).error ?? "Unknown error"),
-        message: (rawResult as any).message,
-        retryable: rawResult.success ? false : isRetryable((rawResult as any).error, step.tool),
-        originalArgs: step.args,
-      };
+        const toolResult: ToolResult = {
+          tool: step.tool,
+          success: !!rawResult.success,
+          data: (rawResult as any).data,
+          error: rawResult.success ? undefined : String((rawResult as any).error ?? "Unknown error"),
+          message: (rawResult as any).message,
+          retryable: rawResult.success ? false : isRetryable((rawResult as any).error, step.tool),
+          originalArgs: step.args,
+        };
+        return { step, toolResult };
+      }));
 
-      // Update state
-      state.lastToolResult = toolResult;
+      // Process results sequentially (important for state mutations and self-correct escalations)
+      for (const { step, toolResult } of batchResults) {
+        state.lastToolResult = toolResult;
 
-      if (toolResult.success) {
-        // Extract all IDs from successful result into resolvedEntities
-        extractAndStoreIds(toolResult, state);
-        state.correctionAttempts = 0; // Reset correction attempts on success
-        state.completedTools.push(step.tool);
-        console.log(`${tag}[exec=${step.tool}] SUCCESS. resolvedEntities now: ${JSON.stringify(state.resolvedEntities)}`);
+        if (toolResult.success) {
+          extractAndStoreIds(toolResult, state);
+          state.correctionAttempts = 0;
+          state.completedTools.push(step.tool);
+          console.log(`${tag}[exec=${step.tool}] SUCCESS. resolvedEntities now: ${JSON.stringify(state.resolvedEntities)}`);
 
-        // H3 FIX: Auto-log activity silently if contact_id is known
-        const contactId = state.resolvedEntities["contact_id"];
-        if (contactId && !step.tool.includes("activity") && !step.tool.includes("fetch") && !step.tool.includes("search")) {
-           console.log(`${tag} Silently auto-logging activity for contact ${contactId}...`);
-           executeAtomicTool("db_create_activity", {
-             contact_id: contactId,
-             type: "ai_action",
-             subject: `Agent: ${step.tool}`,
-             content: `AI agent vykonal akciu: ${step.tool}. Pôvodný cieľ: ${lastPlan.intent || 'Neznámy'}`
-           }, user).catch(err => console.error("[AUTO-LOG] Failed:", err));
-        }
+          const contactId = state.resolvedEntities["contact_id"];
+          if (contactId && !step.tool.includes("activity") && !step.tool.includes("fetch") && !step.tool.includes("search")) {
+             console.log(`${tag} Silently auto-logging activity for contact ${contactId}...`);
+             executeAtomicTool("db_create_activity", {
+               contact_id: contactId,
+               type: "ai_action",
+               subject: `Agent: ${step.tool}`,
+               content: `AI agent vykonal akciu: ${step.tool}. Pôvodný cieľ: ${lastPlan.intent || 'Neznámy'}`
+             }, user).catch(err => console.error("[AUTO-LOG] Failed:", err));
+          }
+        } else {
+          console.warn(`${tag}[exec=${step.tool}] FAILED: ${toolResult.error}`);
+          const correction = await selfCorrect(toolResult, state);
+          console.log(`${tag}[self-correct] Decision: ${correction.action}, diagnosis: ${correction.diagnosis}`);
 
-      } else {
-        // SELF-CORRECTION LAYER
-        console.warn(`${tag}[exec=${step.tool}] FAILED: ${toolResult.error}`);
-        const correction = await selfCorrect(toolResult, state);
-        console.log(`${tag}[self-correct] Decision: ${correction.action}, diagnosis: ${correction.diagnosis}`);
-
-        if (correction.action === "RETRY" && correction.correctedArgs) {
-          state.correctionAttempts++;
-          console.log(`${tag}[self-correct] Retrying ${step.tool} with fixed args: ${JSON.stringify(correction.correctedArgs)}`);
-          const retryRaw = await executeAtomicTool(step.tool, correction.correctedArgs, user);
-          if (retryRaw) {
-            console.log(`${tag}[self-correct][retry] Result: ${JSON.stringify(retryRaw).substring(0, 300)}`);
-
-          if (retryRaw.success) {
-            toolResult.success = true;
-            toolResult.data = (retryRaw as any).data;
-            toolResult.error = undefined;
-            extractAndStoreIds(toolResult, state);
-            state.correctionAttempts = 0;
-            state.completedTools.push(step.tool);
-            console.log(`${tag}[self-correct] RETRY SUCCESS.`);
+          if (correction.action === "RETRY" && correction.correctedArgs) {
+            state.correctionAttempts++;
+            console.log(`${tag}[self-correct] Retrying ${step.tool} with fixed args: ${JSON.stringify(correction.correctedArgs)}`);
+            const retryRaw = await executeAtomicTool(step.tool, correction.correctedArgs, user);
+            if (retryRaw) {
+              console.log(`${tag}[self-correct][retry] Result: ${JSON.stringify(retryRaw).substring(0, 300)}`);
+              if (retryRaw.success) {
+                toolResult.success = true;
+                toolResult.data = (retryRaw as any).data;
+                toolResult.error = undefined;
+                extractAndStoreIds(toolResult, state);
+                state.correctionAttempts = 0;
+                state.completedTools.push(step.tool);
+                console.log(`${tag}[self-correct] RETRY SUCCESS.`);
+              } else {
+                toolResult.error = String((retryRaw as any).error ?? "Retry also failed");
+                console.error(`${tag}[self-correct] RETRY FAILED: ${toolResult.error}`);
+                logEscalation({ failedTool: step.tool, attemptsMade: state.correctionAttempts, partialSuccesses: state.allResults, diagnosis: correction.diagnosis });
+                const escalationMsg = buildEscalationMessage({ failedTool: step.tool, attemptsMade: state.correctionAttempts, partialSuccesses: state.allResults, diagnosis: correction.diagnosis });
+                superState.done({ content: escalationMsg, status: "done", toolResults: finalResults, thoughts: { intent: "Eskalácia po retry", extractedData: null, plan: state.completedTools }});
+                return { finalResults, missionHistory, attempts: state.iteration, lastPlan };
+              }
+            }
+          } else if (correction.action === "SKIP") {
+            console.log(`${tag}[self-correct] Skipping non-critical step: ${step.tool}`);
           } else {
-            toolResult.error = String((retryRaw as any).error ?? "Retry also failed");
-            console.error(`${tag}[self-correct] RETRY FAILED: ${toolResult.error}`);
-            // Escalate
-            logEscalation({
-              failedTool: step.tool,
-              attemptsMade: state.correctionAttempts,
-              partialSuccesses: state.allResults,
-              diagnosis: correction.diagnosis,
-            });
-            const escalationMsg = buildEscalationMessage({
-              failedTool: step.tool,
-              attemptsMade: state.correctionAttempts,
-              partialSuccesses: state.allResults,
-              diagnosis: correction.diagnosis,
-            });
-            superState.done({
-              content: escalationMsg,
-              status: "done",
-              toolResults: finalResults,
-              thoughts: { intent: "Eskalácia po retry", extractedData: null, plan: state.completedTools },
-            });
+            logEscalation({ failedTool: step.tool, attemptsMade: state.correctionAttempts, partialSuccesses: state.allResults, diagnosis: correction.diagnosis });
+            const escalationMsg = buildEscalationMessage({ failedTool: step.tool, attemptsMade: state.correctionAttempts, partialSuccesses: state.allResults, diagnosis: correction.diagnosis });
+            superState.done({ content: escalationMsg, status: "done", toolResults: finalResults, thoughts: { intent: "Eskalácia", extractedData: null, plan: state.completedTools }});
             return { finalResults, missionHistory, attempts: state.iteration, lastPlan };
           }
         }
-        } else if (correction.action === "SKIP") {
-          console.log(`${tag}[self-correct] Skipping non-critical step: ${step.tool}`);
-          // Continue to next step
-        } else {
-          // ESCALATE immediately
-          logEscalation({
-            failedTool: step.tool,
-            attemptsMade: state.correctionAttempts,
-            partialSuccesses: state.allResults,
-            diagnosis: correction.diagnosis,
-          });
-          const escalationMsg = buildEscalationMessage({
-            failedTool: step.tool,
-            attemptsMade: state.correctionAttempts,
-            partialSuccesses: state.allResults,
-            diagnosis: correction.diagnosis,
-          });
-          superState.done({
-            content: escalationMsg,
-            status: "done",
-            toolResults: finalResults,
-            thoughts: { intent: "Eskalácia", extractedData: null, plan: state.completedTools },
-          });
-          return { finalResults, missionHistory, attempts: state.iteration, lastPlan };
-        }
+
+        state.allResults.push(toolResult);
+        const agentStep: AgentStep = { tool: step.tool, status: toolResult.success ? "done" : "error", result: toolResult };
+        iterationSteps.push(agentStep);
+        finalResults.push(agentStep);
       }
-
-      state.allResults.push(toolResult);
-
-      const agentStep: AgentStep = {
-        tool: step.tool,
-        status: toolResult.success ? "done" : "error",
-        result: toolResult,
-      };
-      iterationSteps.push(agentStep);
-      finalResults.push(agentStep);
     }
 
     missionHistory.push({
