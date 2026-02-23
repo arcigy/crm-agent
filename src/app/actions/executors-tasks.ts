@@ -36,6 +36,13 @@ export async function executeDbTaskTool(
       const filter: any = { user_email: { _eq: userEmail } };
       if (args.status === "pending") filter.completed = { _eq: false };
       if (args.status === "completed") filter.completed = { _eq: true };
+      if (args.status === "overdue") {
+        filter.completed = { _eq: false };
+        filter.due_date = { _lt: new Date().toISOString() };
+      }
+      if (args.contact_id) filter.contact_id = { _eq: args.contact_id };
+      if (args.project_id) filter.project_id = { _eq: args.project_id };
+      if (args.due_before) filter.due_date = { _lt: args.due_before };
 
       const tasks = (await directus.request(
         readItems("crm_tasks", {

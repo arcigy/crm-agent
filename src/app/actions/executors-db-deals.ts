@@ -52,13 +52,17 @@ export async function executeDbDealTool(
       };
 
     case "db_fetch_deals":
+      const fetchDealFilters: any[] = [
+        { user_email: { _eq: userEmail } },
+        { deleted_at: { _null: true } },
+      ];
+      if (args.contact_id) {
+        fetchDealFilters.push({ contact_id: { _eq: String(args.contact_id) } });
+      }
       const dealsRes = (await directus.request(
         readItems("deals", {
           filter: {
-            _and: [
-              { user_email: { _eq: userEmail } },
-              { deleted_at: { _null: true } },
-            ],
+            _and: fetchDealFilters,
           },
           limit: (args.limit as number) || 10,
         }),

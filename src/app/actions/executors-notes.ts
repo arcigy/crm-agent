@@ -50,9 +50,12 @@ export async function executeDbNoteTool(
 
       case "db_fetch_notes":
         const limit = (args.limit as number) || 10;
+        const notesFilter: any = { user_email: { _eq: userEmail } };
+        if (args.contact_id) notesFilter.contact_id = { _eq: String(args.contact_id) };
+        if (args.project_id) notesFilter.project_id = { _eq: String(args.project_id) };
         const notes = await directus.request(
           readItems("crm_notes", {
-            filter: { user_email: { _eq: userEmail } },
+            filter: notesFilter,
             sort: ["-date_created"],
             limit: limit,
           } as any),

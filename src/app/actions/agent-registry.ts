@@ -502,6 +502,8 @@ export const NOTES_ATOMS: ToolDefinition[] = [
         type: "object",
         properties: {
           limit: { type: "number", default: 10, description: "Maximum number of notes to return" },
+          contact_id: { type: "string", description: "Filter notes for a specific contact" },
+          project_id: { type: "string", description: "Filter notes for a specific project" },
         },
       },
     },
@@ -579,7 +581,8 @@ export const DEAL_ATOMS: ToolDefinition[] = [
         type: "object",
         properties: {
           limit: { type: "number", default: 10, description: "Max deals to return" },
-          status: { type: "string", description: "Filter deals by status" },
+          status: { type: "string", enum: ["open", "won", "lost", "invoiced"], description: "Filter deals by status" },
+          contact_id: { type: "string", description: "Filter deals for a specific contact" },
         },
       },
     },
@@ -667,8 +670,8 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
         type: "object",
         properties: {
           limit: { type: "number", default: 10, description: "Max projects to return" },
-          contact_id: { type: "number", description: "ID of contact to filter projects by" },
-          stage: { type: "string", description: "Filter by project stage (e.g., 'planning', 'completed')" },
+          contact_id: { type: "string", description: "Filter projects for a specific contact" },
+          stage: { type: "string", description: "Filter by stage name" },
         },
       },
     },
@@ -1134,11 +1137,14 @@ export const TASKS_ATOMS: ToolDefinition[] = [
         properties: {
           status: {
             type: "string",
-            enum: ["all", "pending", "completed"],
+            enum: ["all", "pending", "completed", "overdue"],
             default: "pending",
             description: "Filter tasks by completion status"
           },
           limit: { type: "number", default: 10, description: "Max tasks to return" },
+          contact_id: { type: "string", description: "Filter tasks by contact ID" },
+          project_id: { type: "string", description: "Filter tasks by project ID" },
+          due_before: { type: "string", description: "ISO date string — return tasks due before this date" },
         },
       },
     },
