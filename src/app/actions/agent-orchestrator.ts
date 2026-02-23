@@ -19,6 +19,7 @@ import { withRetry } from "@/lib/ai-retry";
 import { AI_MODELS } from "@/lib/ai-providers";
 import { selfCorrect, extractAndStoreIds } from "./agent-self-corrector";
 import { buildEscalationMessage, logEscalation } from "./agent-escalator";
+import { buildMissionChecklist, updateChecklistState } from "./agent-checklist";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -38,7 +39,22 @@ export async function runOrchestratorLoop(
   const missionHistory: MissionHistoryItem[] = [];
   let lastPlan: any = null;
 
-  // Initialize mission state — this IS the agent's memory between LLM calls
+  console.log(`[ORCHESTRATOR] ======= NEW MISSION STARTED =======`);
+  console.log(`[ORCHESTRATOR] User: ${user.emailAddresses[0]?.emailAddress}`);
+
+  // ---> CHECKLIST PHASE <---
+  superState.update({
+    status: "thinking" as const,
+    attempt: 0,
+    message: "Generujem checklist misií...",
+    toolResults: finalResults,
+  });
+
+  // Let the LLM read the context and generate an explicit checklist FIRST
+  const intentStr = messages[messages.length - 1]?.content || "Unknown";
+  const initialChecklist = await buildMissionChecklist(messages, intentStr);
+  console.log(`[CHECKLIST] Generated ${initialChecklist.length} steps:`, initialChecklist.map(i => i.toolExpected));
+
   const state: MissionState = {
     iteration: 0,
     resolvedEntities: {},
@@ -47,10 +63,10 @@ export async function runOrchestratorLoop(
     allResults: [],
     correctionAttempts: 0,
     toolCallCounts: {},
+    checklist: initialChecklist,
+    checklistComplete: initialChecklist.length === 0,
+    checklistReminderInjected: false,
   };
-
-  console.log(`[ORCHESTRATOR] ======= NEW MISSION STARTED =======`);
-  console.log(`[ORCHESTRATOR] User: ${user.emailAddresses[0]?.emailAddress}`);
 
   while (state.iteration < MAX_ITERATIONS) {
     state.iteration++;
@@ -66,11 +82,27 @@ export async function runOrchestratorLoop(
       toolResults: finalResults,
     });
 
+    // Update Checklist status based on completed defaults
+    state.checklist = updateChecklistState(state.checklist, state.completedTools);
+    state.checklistComplete = state.checklist.every(c => c.status === "DONE" || c.status === "FAILED");
+
+    // Pre-empt LLM if it tries to stop early but checklist is NOT done
+    let negativeConstraintsForIteration: string[] = [];
+    if (!state.checklistComplete) {
+       negativeConstraintsForIteration.push("DO NOT STOP. Your checklist is NOT COMPLETE. Return actionable tools.");
+    }
+
     // 1. Plan next steps (inject resolvedEntities into every call)
-    lastPlan = await orchestrateParams(messages, missionHistory, state);
+    lastPlan = await orchestrateParams(messages, missionHistory, state, undefined, negativeConstraintsForIteration);
     console.log(`${tag} Plan: ${JSON.stringify(lastPlan, null, 2)}`);
 
     if (!lastPlan.steps || lastPlan.steps.length === 0) {
+      if (!state.checklistComplete && !state.checklistReminderInjected) {
+         console.warn(`${tag} LLM tried to terminate early but checklist implies more tasks! Injecting force warning.`);
+         state.checklistReminderInjected = true;
+         // Skip termination, force loop to try one more time
+         continue;
+      }
       console.log(`${tag} No more steps. Mission complete.`);
       break;
     }
@@ -322,6 +354,11 @@ export async function orchestrateParams(
       ? `\n## COMPLETED TOOLS (DO NOT REPEAT THESE)\n${state.completedTools.join(", ")}`
       : "";
 
+    // D1 FIX: Inject the Checklist into the prompt so LLM aligns with its own predefined phases
+    const checklistBlock = state?.checklist?.length
+      ? `\n## MISSION CHECKLIST\n${state.checklist.map(i => `[${i.status}] ${i.description} (Expected tool: ${i.toolExpected})`).join("\n")}`
+      : "";
+
     // C3 FIX: Build hard constraints block — injected into EVERY iteration
     const negativeConstraintsList = (negativeConstraints || []).length > 0
       ? (negativeConstraints || []).map((c) => `❌ ZAKÁZANÉ: ${c}`).join("\n")
@@ -337,6 +374,7 @@ You are the Supreme Strategic Planner for a Business CRM. Map user's intent into
 AVAILABLE TOOLS:
 ${toolsDocs}
 ${resolvedEntitiesBlock}
+${checklistBlock}
 ${completedToolsBlock}
 ${hardConstraintsBlock}
 

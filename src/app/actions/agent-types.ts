@@ -43,6 +43,16 @@ export interface ToolResult {
   originalArgs?: Record<string, unknown>; // stored for diagnosis
 }
 
+// ─── CHECKLIST ITEM ─────────────────────────────────────────
+export interface ChecklistItem {
+  id: string;                    // e.g. "create_contact", "create_project"
+  description: string;           // Human-readable: "Create contact Peter Maličký"
+  toolExpected: string;          // Which tool satisfies this item
+  status: "PENDING" | "IN_PROGRESS" | "DONE" | "FAILED";
+  resultKey?: string;            // Which resolvedEntity key this produces (e.g. "contact_id")
+  dependsOn?: string[];          // item IDs that must be DONE first
+}
+
 // ─── MISSION STATE ───────────────────────────────────────
 // Explicit state accumulator carried through every orchestrator iteration.
 // `resolvedEntities` IS the agent's memory between LLM calls.
@@ -54,6 +64,9 @@ export interface MissionState {
   allResults: ToolResult[];
   correctionAttempts: number;      // resets per-tool, max 2
   toolCallCounts: Record<string, number>; // tracks repeats for guard rail
+  checklist: ChecklistItem[];           // Authoritative task list, built ONCE at mission start
+  checklistComplete: boolean;           // Computed property
+  checklistReminderInjected?: boolean;  // Flag used to warn LLM about premature termination
 }
 
 // ─── SELF-CORRECTOR DECISION ─────────────────────────────
