@@ -24,6 +24,9 @@ export interface ToolDefinition {
       >;
       required?: string[];
     };
+    producesEntityKey?: string;
+    requiredEntityKeys?: string[];
+    isParallelSafe?: boolean;
   };
 }
 

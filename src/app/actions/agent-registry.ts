@@ -16,6 +16,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
           maxResults: { type: "number", default: 5 },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -31,6 +34,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["messageId"],
       },
+      producesEntityKey: "message_id",
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -54,6 +60,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["threadId", "body"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["threadId"],
+      isParallelSafe: true,
     },
   },
   {
@@ -80,6 +89,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["to", "subject", "body"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -92,6 +104,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         properties: { messageId: { type: "string" } },
         required: ["messageId"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["messageId"],
+      isParallelSafe: false,
     },
   },
   {
@@ -104,6 +119,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         properties: { messageId: { type: "string" } },
         required: ["messageId"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["messageId"],
+      isParallelSafe: false,
     },
   },
   {
@@ -121,6 +139,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["messageId", "content", "subject", "sender"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["messageId"],
+      isParallelSafe: true,
     },
   },
   {
@@ -138,6 +159,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["content"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -152,6 +176,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
           project_id: { type: "number" }
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -166,6 +193,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["contact_id"]
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["contact_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -184,6 +214,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["message_id", "intent"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["message_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -200,6 +233,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["message_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["message_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -216,6 +252,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["entity_type", "filter", "update_payload"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: false,
     },
   },
   {
@@ -230,6 +269,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
           project_id: { type: "number" }
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -245,6 +287,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["report_topic", "data_context"]
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -259,6 +304,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["contact_id"]
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["contact_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -283,6 +331,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["first_name"],
       },
+      producesEntityKey: "contact_id",
+      requiredEntityKeys: [],
+      isParallelSafe: false,
     },
   },
   {
@@ -297,6 +348,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["query"],
       },
+      producesEntityKey: "contact_id",
+      requiredEntityKeys: [],
+      isParallelSafe: false,
     },
   },
   {
@@ -314,6 +368,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
           },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -331,6 +388,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["contact_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["contact_id"],
+      isParallelSafe: false,
     },
   },
   {
@@ -347,6 +407,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["to", "subject", "body"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -362,6 +425,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["email"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -377,6 +443,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["messageId", "to"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["messageId"],
+      isParallelSafe: true,
     },
   },
   {
@@ -400,6 +469,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["contact_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["contact_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -415,6 +487,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["primary_contact_id", "duplicate_contact_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["primary_contact_id","duplicate_contact_id"],
+      isParallelSafe: false,
     },
   },
   {
@@ -428,6 +503,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
           days: { type: "number", description: "Number of days elapsed without contact. E.g. 30", default: 30 },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -442,6 +520,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["contact_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["contact_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -453,6 +534,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         type: "object",
         properties: {},
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -471,6 +555,9 @@ export const INBOX_ATOMS: ToolDefinition[] = [
         },
         required: ["contact_id", "comment"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["contact_id"],
+      isParallelSafe: true,
     },
   },
 ];
@@ -491,6 +578,9 @@ export const NOTES_ATOMS: ToolDefinition[] = [
         },
         required: ["title", "content"],
       },
+      producesEntityKey: "note_id",
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -506,6 +596,9 @@ export const NOTES_ATOMS: ToolDefinition[] = [
           project_id: { type: "string", description: "Filter notes for a specific project" },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -522,6 +615,9 @@ export const NOTES_ATOMS: ToolDefinition[] = [
         },
         required: ["note_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["note_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -536,6 +632,9 @@ export const NOTES_ATOMS: ToolDefinition[] = [
         },
         required: ["note_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["note_id"],
+      isParallelSafe: false,
     },
   },
 ];
@@ -556,6 +655,9 @@ export const DEAL_ATOMS: ToolDefinition[] = [
         },
         required: ["name", "contact_id"],
       },
+      producesEntityKey: "deal_id",
+      requiredEntityKeys: ["contact_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -570,6 +672,9 @@ export const DEAL_ATOMS: ToolDefinition[] = [
         },
         required: ["query"],
       },
+      producesEntityKey: "deal_id",
+      requiredEntityKeys: [],
+      isParallelSafe: false,
     },
   },
   {
@@ -585,6 +690,9 @@ export const DEAL_ATOMS: ToolDefinition[] = [
           contact_id: { type: "string", description: "Filter deals for a specific contact" },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -601,6 +709,9 @@ export const DEAL_ATOMS: ToolDefinition[] = [
         },
         required: ["deal_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["deal_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -615,6 +726,9 @@ export const DEAL_ATOMS: ToolDefinition[] = [
         },
         required: ["deal_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["deal_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -628,6 +742,9 @@ export const DEAL_ATOMS: ToolDefinition[] = [
           stage: { type: "string", description: "Filter to a specific stage, optional." },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -642,6 +759,9 @@ export const DEAL_ATOMS: ToolDefinition[] = [
         },
         required: ["deal_id"],
       },
+      producesEntityKey: "invoice_id",
+      requiredEntityKeys: ["deal_id"],
+      isParallelSafe: true,
     },
   },
 ];
@@ -659,6 +779,9 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
         },
         required: ["query"],
       },
+      producesEntityKey: "project_id",
+      requiredEntityKeys: [],
+      isParallelSafe: false,
     },
   },
   {
@@ -674,6 +797,9 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
           stage: { type: "string", description: "Filter by stage name" },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -691,6 +817,9 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
         },
         required: ["name", "contact_id"],
       },
+      producesEntityKey: "project_id",
+      requiredEntityKeys: ["contact_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -707,6 +836,9 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
         },
         required: ["project_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["project_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -721,6 +853,9 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
         },
         required: ["project_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["project_id"],
+      isParallelSafe: false,
     },
   },
   {
@@ -732,6 +867,9 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
         type: "object",
         properties: {},
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
 ];
@@ -749,6 +887,9 @@ export const FILE_ATOMS: ToolDefinition[] = [
         },
         required: ["query"],
       },
+      producesEntityKey: "file_id",
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -763,6 +904,9 @@ export const FILE_ATOMS: ToolDefinition[] = [
         },
         required: ["file_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["file_id"],
+      isParallelSafe: true,
     },
   },
 ];
@@ -783,6 +927,9 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
           depth: { type: "number", default: 2 },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -795,6 +942,9 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
         properties: { path: { type: "string" } },
         required: ["path"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -810,6 +960,9 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
         },
         required: ["command"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -825,6 +978,9 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
         },
         required: ["fact"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -840,6 +996,9 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
         },
         required: ["contact_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["contact_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -856,6 +1015,9 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
         },
         required: ["title", "content"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -871,6 +1033,9 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
         },
         required: ["entity_type"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -886,6 +1051,9 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
         },
         required: ["condition", "action"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -901,6 +1069,9 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
         },
         required: ["report_topic", "data_context"]
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -917,6 +1088,9 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
         },
         required: ["entity_type", "filter", "update_payload"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: false,
     },
   },
 ];
@@ -939,6 +1113,9 @@ export const ACTIVITY_ATOMS: ToolDefinition[] = [
         },
         required: ["contact_id", "type", "subject"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["contact_id"],
+      isParallelSafe: true,
     },
   },
 ];
@@ -959,6 +1136,9 @@ export const VERIFIER_ATOMS: ToolDefinition[] = [
         },
         required: ["contact_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["contact_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -973,6 +1153,9 @@ export const VERIFIER_ATOMS: ToolDefinition[] = [
         },
         required: ["email"],
       },
+      producesEntityKey: "contact_id",
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -988,6 +1171,9 @@ export const VERIFIER_ATOMS: ToolDefinition[] = [
         },
         required: ["first_name"],
       },
+      producesEntityKey: "contact_id",
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -1002,6 +1188,9 @@ export const VERIFIER_ATOMS: ToolDefinition[] = [
           limit: { type: "number", description: "Number of contacts to check", default: 5 },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -1016,6 +1205,9 @@ export const VERIFIER_ATOMS: ToolDefinition[] = [
         },
         required: ["project_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["project_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -1027,6 +1219,9 @@ export const VERIFIER_ATOMS: ToolDefinition[] = [
         type: "object",
         properties: {},
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
 ];
@@ -1045,6 +1240,9 @@ export const WEB_ATOMS: ToolDefinition[] = [
         },
         required: ["url"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -1065,6 +1263,9 @@ export const WEB_ATOMS: ToolDefinition[] = [
         },
         required: ["url"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: false,
     },
   },
   {
@@ -1083,6 +1284,9 @@ export const WEB_ATOMS: ToolDefinition[] = [
         },
         required: ["query"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -1102,6 +1306,9 @@ export const WEB_ATOMS: ToolDefinition[] = [
         },
         required: ["url", "prompt"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
 ];
@@ -1125,6 +1332,9 @@ export const TASKS_ATOMS: ToolDefinition[] = [
         },
         required: ["title"],
       },
+      producesEntityKey: "task_id",
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -1147,6 +1357,9 @@ export const TASKS_ATOMS: ToolDefinition[] = [
           due_before: { type: "string", description: "ISO date string — return tasks due before this date" },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -1161,6 +1374,9 @@ export const TASKS_ATOMS: ToolDefinition[] = [
         },
         required: ["task_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["task_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -1175,6 +1391,9 @@ export const TASKS_ATOMS: ToolDefinition[] = [
         },
         required: ["task_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["task_id"],
+      isParallelSafe: false,
     },
   },
   {
@@ -1192,6 +1411,9 @@ export const TASKS_ATOMS: ToolDefinition[] = [
         },
         required: ["task_id"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["task_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -1203,6 +1425,9 @@ export const TASKS_ATOMS: ToolDefinition[] = [
         type: "object",
         properties: {},
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
 ];
@@ -1223,6 +1448,9 @@ export const LEADS_ATOMS: ToolDefinition[] = [
           limit: { type: "number", default: 10, description: "Max leads to return" },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -1241,6 +1469,9 @@ export const LEADS_ATOMS: ToolDefinition[] = [
         },
         required: ["email"],
       },
+      producesEntityKey: "lead_id",
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -1256,6 +1487,9 @@ export const LEADS_ATOMS: ToolDefinition[] = [
         },
         required: ["lead_id", "status"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: ["lead_id"],
+      isParallelSafe: true,
     },
   },
   {
@@ -1271,6 +1505,9 @@ export const LEADS_ATOMS: ToolDefinition[] = [
         },
         required: ["lead_id"],
       },
+      producesEntityKey: "contact_id",
+      requiredEntityKeys: ["lead_id"],
+      isParallelSafe: false,
     },
   },
 ];
@@ -1287,6 +1524,9 @@ export const CALENDAR_ATOMS: ToolDefinition[] = [
           days_ahead: { type: "number", description: "Number of days ahead to look for events", default: 3 },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -1300,6 +1540,9 @@ export const CALENDAR_ATOMS: ToolDefinition[] = [
           days: { type: "number", default: 3 },
         },
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
   {
@@ -1317,6 +1560,9 @@ export const CALENDAR_ATOMS: ToolDefinition[] = [
         },
         required: ["summary", "start_time", "end_time"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
 ];
@@ -1339,6 +1585,9 @@ export const AI_ATOMS: ToolDefinition[] = [
         },
         required: ["context", "instruction"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
     },
   },
 ];
@@ -1367,6 +1616,9 @@ export const DISPATCHER_ATOM: ToolDefinition[] = [
         },
         required: ["steps"],
       },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: false,
     },
   },
 ];
