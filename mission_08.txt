@@ -1,0 +1,1 @@
+Nájdi všetky kontakty bez akejkoľvek aktivity za posledných 30 dní. Ku každému z nich pridaj poznámku 'Audit: Kontakt bez histórie' a nastav im status na 'archived'.

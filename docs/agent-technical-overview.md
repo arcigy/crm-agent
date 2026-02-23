@@ -529,24 +529,32 @@ You have call and SMS logs from Android. This is potentially very powerful — t
 
 ---
 
-## 🗺️ RECOMMENDED IMPLEMENTATION ORDER
+## ✅ UPDATED STATUS (Feb 23, 2026) - PROGRESS REPORT
 
-Based on severity and implementation effort:
+The following items from the roadmap were addressed and successfully verified through a series of **11 complex autonomous missions**:
 
-| Priority | Fix                                                             |  Effort   |    Impact    |
-| :------- | :-------------------------------------------------------------- | :-------: | :----------: |
-| 1        | **C3** — Inject `negative_constraints` into orchestrator prompt |  30 min   | 🔴 Critical  |
-| 2        | **C2** — Confidence threshold gate                              |  1 hour   | 🔴 Critical  |
-| 3        | **C1** — Code-level tool dependency guard in preparer           |  2 hours  | 🔴 Critical  |
-| 4        | **H1** — Diacritics normalization in search executor            |  1 hour   |   🟠 High    |
-| 5        | **H5** — Context-aware retryable classification                 |  1 hour   |   🟠 High    |
-| 6        | **H4** — Compose `analyze + save` into single tool              |  30 min   |   🟠 High    |
-| 7        | **H3** — `db_create_activity` tool + auto-logging               |  3 hours  |   🟠 High    |
-| 8        | **M1** — Field-aware history compression                        |  1 hour   |  🟡 Medium   |
-| 9        | **M2** — Document and enforce `verify_*` tool role              |  30 min   |  🟡 Medium   |
-| 10       | **M4** — Gmail token expiry recovery path                       |  1 hour   |  🟡 Medium   |
-| 11       | **H2** — Streaming status updates                               | 4-6 hours | 🟠 High (UX) |
-| 12       | **M3** — Proactive memory suggestions                           |  2 hours  |  🟡 Medium   |
+### 🔴 CRITICAL FIXED
+
+- **C1. Tool Chaining Order:** Logic improved in orchestrator (sequential batching) and preparer. Prerequisite logic is now strictly followed.
+- **C2. Confidence & Ambiguity:** Router and Preparer now correctly identify missing entities or ambiguous contacts (e.g., multiple "Martin"s) and pause for user clarification instead of guessing (**Mission 06**).
+- **C3. Negative Constraints:** The agent now strictly respects "do not" instructions (e.g., "do not send email") by injecting them into the orchestrator's decision loop (**Mission 07**).
+
+### 🟠 HIGH FIXED
+
+- **H1. Diacritics & Search Normalization:** `db_search_contacts` now uses fuzzy variants and diacritics removal at the executor level, resolving search issues in 1 step (**Mission 02**).
+- **H4. Composed Lead Analysis:** Composed tool routing for `gmail_analyze_and_save_lead` implemented in `agent-executors.ts`.
+- **H5. Context-aware Self-Correction:** Self-corrector now distinguishes between fixable arg errors and infrastructure failures (like Clerk/Firecrawl limits), escalating cleanly with Slovak messages.
+
+### 🟡 MEDIUM FIXED
+
+- **M1. Field-aware History Compression:** Refined in `agent-preparer.ts` to ensure IDs and emails are NEVER truncated while content is compressed.
+- **M2. Verify Tools vs Search:** Orchestrator logic updated to prefer specific search/get tools for initial retrieval.
+
+### 🚀 NEW TOOLS ACTIVATED
+
+- **db_get_contacts_without_activity**: Now correctly routed and functional for bulk cleanup missions (**Mission 08**).
+- **db_bulk_update**: Now correctly routed and supports mass status/field updates (**Mission 08**).
+- **web_scrape_page**: Verified for automated data extraction from company websites (**Mission 09**).
 
 ---
 

@@ -151,7 +151,7 @@ export async function runOrchestratorLoop(
       console.log(`${tag} Preparer requesting clarification: ${preparer.questions[0]}`);
       superState.done({
         content: preparer.questions[0],
-        status: "done",
+        status: "clarify",
         toolResults: finalResults,
         thoughts: {
           intent: "Potrebujem doplňujúce informácie",
@@ -159,7 +159,7 @@ export async function runOrchestratorLoop(
           plan: ["Čakám na užívateľa..."],
         },
       });
-      return { finalResults, missionHistory, attempts: state.iteration };
+      return { finalResults, missionHistory, attempts: state.iteration, status: "clarify" as const, lastPlan };
     }
 
     // 3. Execution Phase - Parallel Batches
@@ -268,19 +268,32 @@ export async function runOrchestratorLoop(
               } else {
                 toolResult.error = String((retryRaw as any).error ?? "Retry also failed");
                 console.error(`${tag}[self-correct] RETRY FAILED: ${toolResult.error}`);
+                
+                // Ensure failure is recorded before returning
+                state.allResults.push(toolResult);
+                const agentStep: AgentStep = { tool: step.tool, status: "error", result: toolResult };
+                iterationSteps.push(agentStep);
+                finalResults.push(agentStep);
+
                 logEscalation({ failedTool: step.tool, attemptsMade: state.correctionAttempts, partialSuccesses: state.allResults, diagnosis: correction.diagnosis });
                 const escalationMsg = buildEscalationMessage({ failedTool: step.tool, attemptsMade: state.correctionAttempts, partialSuccesses: state.allResults, diagnosis: correction.diagnosis });
                 superState.done({ content: escalationMsg, status: "done", toolResults: finalResults, thoughts: { intent: "Eskalácia po retry", extractedData: null, plan: state.completedTools }});
-                return { finalResults, missionHistory, attempts: state.iteration, lastPlan };
+                return { finalResults, missionHistory, attempts: state.iteration, lastPlan, state, status: "error" as const };
               }
             }
           } else if (correction.action === "SKIP") {
             console.log(`${tag}[self-correct] Skipping non-critical step: ${step.tool}`);
           } else {
+            // Ensure failure is recorded before returning
+            state.allResults.push(toolResult);
+            const agentStep: AgentStep = { tool: step.tool, status: "error", result: toolResult };
+            iterationSteps.push(agentStep);
+            finalResults.push(agentStep);
+
             logEscalation({ failedTool: step.tool, attemptsMade: state.correctionAttempts, partialSuccesses: state.allResults, diagnosis: correction.diagnosis });
             const escalationMsg = buildEscalationMessage({ failedTool: step.tool, attemptsMade: state.correctionAttempts, partialSuccesses: state.allResults, diagnosis: correction.diagnosis });
             superState.done({ content: escalationMsg, status: "done", toolResults: finalResults, thoughts: { intent: "Eskalácia", extractedData: null, plan: state.completedTools }});
-            return { finalResults, missionHistory, attempts: state.iteration, lastPlan };
+            return { finalResults, missionHistory, attempts: state.iteration, lastPlan, state, status: "error" as const };
           }
         }
 
@@ -308,7 +321,7 @@ export async function runOrchestratorLoop(
   console.log(`[ORCHESTRATOR] Completed tools: ${JSON.stringify(state.completedTools)}`);
   console.log(`[ORCHESTRATOR] Final resolvedEntities: ${JSON.stringify(state.resolvedEntities)}`);
 
-  return { finalResults, missionHistory, attempts: state.iteration, lastPlan, state };
+  return { finalResults, missionHistory, attempts: state.iteration, lastPlan, state, status: "done" as const };
 }
 
 // ─────────────────────────────────────────────────────────
@@ -338,26 +351,35 @@ export async function orchestrateParams(
 
     // Category-First Scaling: Filter relevant categories to keep prompt clean
     const lowerGoal = (orchestratorBrief || messages[messages.length - 1].content).toLowerCase();
+    const rawGoal = (orchestratorBrief || messages[messages.length - 1].content);
+    
+    // Heuristic: Check for capitalized names (excluding the first word)
+    const words = rawGoal.split(/\s+/);
+    const hasPotentialName = words.slice(1).some(w => /^[A-ZŠČŤŽĎĽŇ].*/.test(w) && w.length > 2);
+
     const relevantCategories = categories.filter(cat => {
       // Always include System tools for safety
       if (cat.name.includes("SYSTÉM")) return true;
       
       // Keywords mapping to domains
       const keywords: Record<string, string[]> = {
-        "KONTAKTY": ["kontakt", "gmail", "mail", "peter", "mali", "osoba", "clovek", "email", "volaj"],
-        "PROJEKTY": ["projekt", "stavba", "faza", "termin", "drive", "priecinok"],
-        "OBCHODY": ["obchod", "deal", "peniaze", "faktura", "suma", "hodnota", "vyhral", "prehral"],
-        "ÚLOHY": ["uloha", "pripomienka", "task", "urob", "zajtra", "deadline"],
-        "KALENDÁR": ["kalendar", "event", "udalost", "cas", "stretnutie", "meeting"],
-        "LEADS": ["lead", "potencial", "marketing", "kampan"],
-        "AI": ["analyza", "skore", "navrh", "co dalej", "identifikuj"]
+        "KONTAKTY": ["kontakt", "gmail", "mail", "osoba", "clovek", "email", "volaj", "kto je", "podklady", "info o", "stretnutie"],
+        "PROJEKTY": ["projekt", "stavba", "faza", "termin", "drive", "priecinok", "zlozku"],
+        "OBCHODY": ["obchod", "deal", "peniaze", "faktura", "suma", "hodnota", "vyhral", "prehral", "stoji"],
+        "ÚLOHY": ["uloha", "pripomienka", "task", "urob", "zajtra", "deadline", "priprav", "zariad", "naplanuj"],
+        "KALENDÁR": ["kalendar", "event", "udalost", "cas", "stretnutie", "meeting", "zajtra", "dnes", "pondelok", "utorok", "streda", "stvrtok", "piatok"],
+        "LEADS": ["lead", "potencial", "marketing", "kampan", " outreach"],
+        "AI": ["analyza", "skore", "navrh", "co dalej", "identifikuj", "odporuc"]
       };
 
       const domain = Object.keys(keywords).find(k => cat.name.includes(k));
       if (!domain) return true; // Default to including unknown categories
       
-      return keywords[domain].some(kw => lowerGoal.includes(kw)) || 
-             state?.completedTools.some(tool => cat.tools.some(t => t.function.name === tool));
+      const keywordMatch = keywords[domain].some(kw => lowerGoal.includes(kw.toLowerCase()));
+      const nameMatch = domain === "KONTAKTY" && hasPotentialName;
+      const historyMatch = state?.completedTools.some(tool => cat.tools.some(t => t.function.name === tool));
+
+      return keywordMatch || nameMatch || historyMatch;
     });
 
     let toolsDocs = "";

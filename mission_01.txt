@@ -1,0 +1,1 @@
+Vytvor nový kontakt Lucia Kováčová lucia@techstart.sk, okamžite jej vytvor projekt 'Q1 Audit' v hodnote 3500 eur, pridaj k projektu poznámku 'Klientka preferuje komunikáciu cez email', vytvor úlohu 'Odoslať NDA zmluvu' s termínom zajtra a zavolaj verifikátor aby si potvrdil že kontakt skutočne existuje.

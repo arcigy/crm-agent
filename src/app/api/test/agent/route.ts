@@ -101,8 +101,10 @@ export async function POST(req: NextRequest) {
     const dummyState = createDummySuperState();
     console.log(`[TEST] Starting orchestrator loop...`);
 
-    const { finalResults, missionHistory, attempts, lastPlan } =
+    const orchestratorLoopRes =
       await runOrchestratorLoop(messages, TEST_USER, dummyState as any);
+
+    const { finalResults, missionHistory, attempts, lastPlan } = orchestratorLoopRes;
 
     const loop_ms = Date.now() - t_loop;
     console.log(`[TEST] Loop done: ${attempts} iterations, ${finalResults.length} tool results (${loop_ms}ms)`);
@@ -110,16 +112,28 @@ export async function POST(req: NextRequest) {
     // ── 4. VERIFIER — get friendly response ───────────────────────────────────
     const t_verify = Date.now();
     let response = "Misia dokončená.";
-    try {
-      const verification = await verifyExecutionResults(message, finalResults);
-      response = verification.analysis || response;
-      console.log(`[TEST] Verifier done in ${Date.now() - t_verify}ms`);
-    } catch(e: any) {
-      console.error(`[TEST] Verifier failed: ${e.message} — using fallback`);
-      const ok = finalResults.filter(r => r.status === "done").length;
-      response = ok > 0
-        ? `Vykonal som ${ok}/${finalResults.length} akcií úspešne.`
-        : lastPlan?.message ?? "Misia dokončená bez akcií.";
+    
+    const orchestratorResult = dummyState.getFinalData();
+    const missionStatus = (orchestratorLoopRes as any).status;
+
+    if (missionStatus === "clarify") {
+      response = orchestratorResult?.content || "Potrebujem doplňujúce informácie.";
+      console.log(`[TEST] Orbiting verifier due to CLARIFY status.`);
+    } else if (missionStatus === "error") {
+      response = orchestratorResult?.content || "Vyskytla sa chyba pri plnení misie.";
+      console.log(`[TEST] Orbiting verifier due to ERROR status.`);
+    } else {
+      try {
+        const verification = await verifyExecutionResults(message, finalResults);
+        response = verification.analysis || response;
+        console.log(`[TEST] Verifier done in ${Date.now() - t_verify}ms`);
+      } catch(e: any) {
+        console.error(`[TEST] Verifier failed: ${e.message} — using fallback`);
+        const ok = finalResults.filter(r => r.status === "done").length;
+        response = ok > 0
+          ? `Vykonal som ${ok}/${finalResults.length} akcií úspešne.`
+          : lastPlan?.message ?? "Misia dokončená bez akcií.";
+      }
     }
 
     const cost = endCostSession();

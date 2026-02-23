@@ -86,7 +86,8 @@ export async function executeAtomicTool(
       name.startsWith("db_add_contact_comment") ||
       name === "db_merge_records" ||
       name === "db_get_contact_overview" ||
-      name === "db_find_duplicate_contacts"
+      name === "db_find_duplicate_contacts" ||
+      name === "db_get_contacts_without_activity"
     ) {
       return await executeDbContactTool(name, safeArgs, userEmail);
     }
@@ -221,7 +222,7 @@ export async function executeAtomicTool(
     }
 
     // System Tools
-    if (name.startsWith("sys_")) {
+    if (name.startsWith("sys_") || name === "db_bulk_update") {
       return await executeSysTool(name, safeArgs, userId);
     }
 

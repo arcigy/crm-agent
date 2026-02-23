@@ -51,8 +51,9 @@ Respond cleanly with a JSON array of objects. NOTHING ELSE.
 
     try {
         const { text } = await generateText({
-            model: google("gemini-2.5-flash"),
-            messages: [{ role: "system", content: systemPrompt }],
+            model: google("gemini-flash-latest"),
+            system: systemPrompt,
+            prompt: "Generuj checklist krokov pre túto misiu na základe zadania a dostupných nástrojov.",
             temperature: 0.1,
         });
 

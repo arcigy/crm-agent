@@ -1,0 +1,1 @@
+Analyzuj históriu môjho posledného vytvoreného kontaktu. Ak tam chýba email alebo telefón, skús ho dohľadať na webe jeho firmy (ak je známa). Ak nájdeš nové údaje, doplň ich. Nakoniec mi navrhni tvojim AI odhadom, aký ďalší krok by som s týmto kontaktom mal urobiť.

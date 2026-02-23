@@ -26,13 +26,13 @@ const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "missing-gem
 // === MODEL CONFIGURATION ===
 
 export const AI_MODELS = {
-  GATEKEEPER: process.env.AI_MODEL_GATEKEEPER || "gemini-2.5-flash",
-  ORCHESTRATOR: process.env.AI_MODEL_ORCHESTRATOR || "gemini-2.5-flash",
-  VERIFIER: process.env.AI_MODEL_VERIFIER || "gemini-2.5-flash",
-  REPORT: process.env.AI_MODEL_REPORT || "gemini-2.5-flash",
-  EMAIL_CLASSIFIER: process.env.AI_MODEL_CLASSIFIER || "gemini-2.5-flash",
-  ROUTER: process.env.AI_MODEL_ROUTER || "gemini-2.5-flash",
-  PREPARER: process.env.AI_MODEL_PREPARER || "gemini-2.5-flash",
+  GATEKEEPER: process.env.AI_MODEL_GATEKEEPER || "gemini-flash-latest",
+  ORCHESTRATOR: process.env.AI_MODEL_ORCHESTRATOR || "gemini-flash-latest",
+  VERIFIER: process.env.AI_MODEL_VERIFIER || "gemini-flash-latest",
+  REPORT: process.env.AI_MODEL_REPORT || "gemini-flash-latest",
+  EMAIL_CLASSIFIER: process.env.AI_MODEL_CLASSIFIER || "gemini-flash-latest",
+  ROUTER: process.env.AI_MODEL_ROUTER || "gemini-flash-latest",
+  PREPARER: process.env.AI_MODEL_PREPARER || "gemini-flash-latest",
 } as const;
 
 // === UNIFIED RESPONSE TYPE ===

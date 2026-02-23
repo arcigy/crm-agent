@@ -127,3 +127,19 @@ git push origin main
 
 Railway automaticky deployuje z main branch.
 NIKDY netestuj len lokálne - vždy deploy na produkciu!
+
+🤖 11. AGENT ARCHITECTURE (7-LAYER PIPELINE)
+Systém beží na robustnej pipeline, ktorá zabezpečuje >97% spoľahlivosť:
+
+1. Gatekeeper → Router (Identifikácia zámeru)
+2. Checklist (Stavový zoznam úloh - zabraňuje predčasnému koncu)
+3. Orchestrator (Category-First plánovanie - šetrí tokeny a zvyšuje presnosť)
+4. Preparer (Validácia argumentov a healing chýbajúcich ID)
+5. Executor (Izolované a paralelné vykonávanie toolov)
+6. Self-Corrector (Automatický retry pri chybe toolu)
+7. Manifest & Reflection (Audit výsledkov a finálna verifikácia)
+
+Kľúčové kľúče v stave:
+
+- namespaced IDs (napr. contact_google_id) riešia kolízie pri misiách s viacerými entitami.
+- isParallelSafe: true umožnuje asynchrónny beh (napr. generovanie textu), false vynucuje sekvenciu pre zápis do DB.

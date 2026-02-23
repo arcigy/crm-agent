@@ -1,0 +1,1 @@
+Vytvor kontakt Ján Mrkvička jan.mrkvicka@firma.sk. Potom zisti či v CRM existuje iný kontakt s rovnakou emailovou adresou. Ak áno, zlúč duplikáty — starší kontakt je duplikát.
