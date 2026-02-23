@@ -47,6 +47,7 @@ export async function executeDbProjectTool(
       )) as Record<string, unknown>[];
       return { success: true, data: prRes, message: `Načítaných ${prRes.length} projektov.` };
 
+    case "db_create_project":
       const nProj = (await directus.request(
         createItem("projects", {
           name: (args.name as string) || (args.project_type as string),
