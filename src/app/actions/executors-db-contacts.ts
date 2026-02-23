@@ -152,12 +152,27 @@ export async function executeDbContactTool(
           filter, 
           limit: 20,
           sort: ["-date_created"] 
-        }))) as Record<string, unknown>[];
+        }))) as Record<string, any>[];
         
         if (res.length > 0) {
+          // C1/H1 FIX: Strict similarity verification to prevent Novák -> Nováková auto-matches
+          const exactMatch = res.find(c => 
+            (c.first_name?.toLowerCase() === rawQuery.toLowerCase()) ||
+            (`${c.first_name} ${c.last_name}`.toLowerCase() === rawQuery.toLowerCase()) ||
+            (c.last_name?.toLowerCase() === rawQuery.toLowerCase())
+          );
+
+          if (exactMatch) {
+            searchRes = [exactMatch];
+            usedQuery = rawQuery;
+            break;
+          }
+
+          // If no exact match, but results found, we return them all as potential candidates.
+          // This forces the Orchestrator/Preparer to trigger a CLARIFY in the next step.
           searchRes = res;
           usedQuery = q;
-          if (q !== rawQuery) console.log(`[SEARCH][H1] Diacritics fallback matched: "${rawQuery}" → "${q}"`);
+          console.log(`[SEARCH][H1] Fuzzy match detected for "${rawQuery}", returning ${res.length} candidates for clarification.`);
           break;
         }
       }

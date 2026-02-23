@@ -198,3 +198,24 @@ export async function callEmailClassifier(
 
   return null;
 }
+
+// === GENERIC CALL (Gemini Flash) ===
+
+export async function callModel(
+  prompt: string,
+  options: { temperature?: number; maxTokens?: number } = {},
+): Promise<string> {
+  const model = gemini.getGenerativeModel({ 
+    model: AI_MODELS.ORCHESTRATOR // Default to Flash for reliability
+  });
+
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: options.temperature ?? 0,
+      maxOutputTokens: options.maxTokens ?? 2048,
+    },
+  });
+
+  return result.response.text();
+}

@@ -1,0 +1,1 @@
+Nájdi všetky kontakty so statusom 'new'. Každému z nich (individuálne) pridaj komentár 'Audit 2026' a zmeň mu status na 'contacted'. Chcem vidieť, ako si poradíš s väčším množstvom zmien.

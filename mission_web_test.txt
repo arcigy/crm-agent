@@ -1,0 +1,1 @@
+Nájdi na webe informácie o tom, čo je "Agentic RAG" a ulož mi to do poznámky s nadpisom "Agentic RAG Výskum".
