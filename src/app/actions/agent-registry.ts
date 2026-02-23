@@ -62,7 +62,7 @@ export const INBOX_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["threadId"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -91,7 +91,7 @@ export const INBOX_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: [],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -141,7 +141,7 @@ export const INBOX_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["messageId"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -216,7 +216,7 @@ export const INBOX_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["message_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -235,7 +235,7 @@ export const INBOX_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["message_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -409,7 +409,7 @@ export const INBOX_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: [],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -445,7 +445,7 @@ export const INBOX_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["messageId"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -471,7 +471,7 @@ export const INBOX_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["contact_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -557,7 +557,7 @@ export const INBOX_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["contact_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
 ];
@@ -580,7 +580,7 @@ export const NOTES_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: "note_id",
       requiredEntityKeys: [],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -617,7 +617,7 @@ export const NOTES_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["note_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -657,7 +657,7 @@ export const DEAL_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: "deal_id",
       requiredEntityKeys: ["contact_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -711,7 +711,7 @@ export const DEAL_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["deal_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -728,7 +728,7 @@ export const DEAL_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["deal_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -761,7 +761,7 @@ export const DEAL_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: "invoice_id",
       requiredEntityKeys: ["deal_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
 ];
@@ -819,7 +819,7 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: "project_id",
       requiredEntityKeys: ["contact_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -838,7 +838,7 @@ export const PROJECT_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["project_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -1053,7 +1053,7 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: [],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -1115,7 +1115,7 @@ export const ACTIVITY_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["contact_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
 ];
@@ -1334,7 +1334,7 @@ export const TASKS_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: "task_id",
       requiredEntityKeys: [],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -1376,7 +1376,7 @@ export const TASKS_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["task_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -1413,7 +1413,7 @@ export const TASKS_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["task_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -1471,7 +1471,7 @@ export const LEADS_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: "lead_id",
       requiredEntityKeys: [],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -1489,7 +1489,7 @@ export const LEADS_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: ["lead_id"],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
   {
@@ -1562,7 +1562,7 @@ export const CALENDAR_ATOMS: ToolDefinition[] = [
       },
       producesEntityKey: undefined,
       requiredEntityKeys: [],
-      isParallelSafe: true,
+      isParallelSafe: false,
     },
   },
 ];
@@ -1637,5 +1637,4 @@ export const ALL_ATOMS = [
   ...CALENDAR_ATOMS,
   ...AI_ATOMS,
   ...ACTIVITY_ATOMS,
-  ...DISPATCHER_ATOM,
-];
+  ];

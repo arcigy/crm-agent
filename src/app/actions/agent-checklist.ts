@@ -84,3 +84,11 @@ export function updateChecklistState(checklist: ChecklistItem[], completedTools:
     }
     return newChecklist;
 }
+
+export function shouldBuildChecklist(goalText: string): boolean {
+    const actionVerbs = ["vytvor", "pridaj", "pošli", "zmaž", "uprav", "zlúč", "prirad", "vyrieš", "naplánuj"];
+    const verbCount = actionVerbs.filter(v => goalText.toLowerCase().includes(v)).length;
+    // If it's a simple search or fetch request, we skip the checklist overhead
+    if (verbCount === 0 && goalText.length < 80) return false;
+    return true; // Use checklist for complex or action-oriented goals
+}

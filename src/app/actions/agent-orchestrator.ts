@@ -13,13 +13,14 @@ import {
   MissionHistoryItem,
   MissionState,
   ToolResult,
+  ChecklistItem,
 } from "./agent-types";
 import { createStreamableValue } from "@ai-sdk/rsc";
 import { withRetry } from "@/lib/ai-retry";
 import { AI_MODELS } from "@/lib/ai-providers";
 import { selfCorrect, extractAndStoreIds } from "./agent-self-corrector";
 import { buildEscalationMessage, logEscalation } from "./agent-escalator";
-import { buildMissionChecklist, updateChecklistState } from "./agent-checklist";
+import { buildMissionChecklist, updateChecklistState, shouldBuildChecklist } from "./agent-checklist";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -42,18 +43,22 @@ export async function runOrchestratorLoop(
   console.log(`[ORCHESTRATOR] ======= NEW MISSION STARTED =======`);
   console.log(`[ORCHESTRATOR] User: ${user.emailAddresses[0]?.emailAddress}`);
 
-  // ---> CHECKLIST PHASE <---
-  superState.update({
-    status: "thinking" as const,
-    attempt: 0,
-    message: "Generujem checklist misií...",
-    toolResults: finalResults,
-  });
-
   // Let the LLM read the context and generate an explicit checklist FIRST
   const intentStr = messages[messages.length - 1]?.content || "Unknown";
-  const initialChecklist = await buildMissionChecklist(messages, intentStr);
-  console.log(`[CHECKLIST] Generated ${initialChecklist.length} steps:`, initialChecklist.map(i => i.toolExpected));
+  let initialChecklist: ChecklistItem[] = [];
+  
+  if (shouldBuildChecklist(intentStr)) {
+    superState.update({
+      status: "thinking" as const,
+      attempt: 0,
+      message: "Generujem checklist misií...",
+      toolResults: finalResults,
+    });
+    initialChecklist = await buildMissionChecklist(messages, intentStr);
+    console.log(`[CHECKLIST] Generated ${initialChecklist.length} steps:`, initialChecklist.map((i: any) => i.toolExpected));
+  } else {
+    console.log(`[CHECKLIST] Skipped for simple task.`);
+  }
 
   const state: MissionState = {
     iteration: 0,
