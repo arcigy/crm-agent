@@ -464,20 +464,8 @@ OUTPUT FORMAT (STRICT JSON):
       }
       let clean = rawText.substring(startIdx, endIdx + 1);
 
-      // Escape control chars inside strings only
-      clean = clean.replace(/\"((?:[^\"\\]|\\.)*)\"/g, (match, p1) => {
-        return (
-          '"' +
-          p1
-            .replace(/\n/g, "\\n")
-            .replace(/\r/g, "\\r")
-            .replace(/\t/g, "\\t")
-            .replace(/[\x00-\x1F\x7F-\x9F]/g, " ") +
-          '"'
-        );
-      });
-
-      // Fix unquoted "???" placeholders
+      // Remove raw control characters that could break JSON parsing
+      clean = clean.replace(/[\x00-\x09\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, "");
       clean = clean.replace(/:\s*\?\?\?\s*([,}])/g, ': "???"$1');
 
       try {
