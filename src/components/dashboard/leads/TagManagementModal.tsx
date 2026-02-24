@@ -127,10 +127,10 @@ export function TagManagementModal({
         onClick={onClose}
       />
       
-      <div className="flex gap-4 items-stretch max-w-[800px] w-full justify-center relative scale-90 sm:scale-100">
-        {/* Side Panel Color Picker (Left) - Enhanced Layout */}
+      <div className="relative scale-90 sm:scale-100 flex items-center justify-center">
+        {/* Side Panel Color Picker (Left) - Absolute positioned to keep main modal centered */}
         <div 
-          className={`w-[210px] bg-white/95 dark:bg-[#0b0c10]/95 backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-500 transform ${activePicker ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}
+          className={`absolute right-full mr-6 w-[210px] h-full bg-white/95 dark:bg-[#0b0c10]/95 backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-500 transform ${activePicker ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12 pointer-events-none'}`}
           style={{
             boxShadow: activePicker ? `0 0 30px -10px ${currentColor}30, 0 20px 40px -12px rgba(0,0,0,0.5)` : 'none'
           }}
