@@ -104,16 +104,26 @@ export const LeadsListItem = React.memo(({
               : "bg-transparent dark:bg-transparent text-zinc-500/80 dark:text-zinc-500 border-violet-500/[0.06] dark:border-violet-400/[0.08] hover:bg-violet-50/60 dark:hover:bg-violet-900/10"
           }`}
         >
-          {/* Status Bar Indicator - Neon Violet & White */}
+          {/* Status Bar Indicator — color matches tag */}
           <div 
-            className={`absolute left-0 top-0 bottom-0 w-[6px] transition-all duration-300 z-30`} 
-            style={{ 
-              backgroundColor: !isRead ? '#FFFFFF' : '#d946ef',
-              boxShadow: !isRead 
-                ? '0 0 8px rgba(255,255,255,1), 2px 0 15px rgba(255,255,255,0.6), 4px 0 25px rgba(255,255,255,0.2)' 
-                : '0 0 8px rgba(217, 70, 239, 1), 2px 0 15px rgba(217, 70, 239, 0.6), 4px 0 25px rgba(217, 70, 239, 0.2)',
-              borderRight: !isRead ? '1px solid rgba(255,255,255,0.5)' : '1px solid rgba(217, 70, 239, 0.5)'
-            }}
+            className="absolute left-0 top-0 bottom-0 w-[6px] transition-all duration-300 z-30"
+            style={(() => {
+              // Pick color based on tag + read state
+              let color: string;
+              if (isNaliehave)      color = !isRead ? '#ff6d00' : '#ff6d0060';
+              else if (isUrgentne) color = !isRead ? '#ff2040' : '#ff204060';
+              else                  color = !isRead ? '#FFFFFF'  : '#d946ef';
+
+              const glow = !isRead
+                ? `0 0 8px ${color}, 2px 0 15px ${color}99, 4px 0 25px ${color}44`
+                : `0 0 6px ${color}, 2px 0 10px ${color}66`;
+
+              return {
+                backgroundColor: color,
+                boxShadow: glow,
+                borderRight: `1px solid ${color}80`
+              };
+            })()}
           />
 
           {/* Controls */}

@@ -133,8 +133,7 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
           style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)" }}
         />
         <div className="flex items-center justify-between mb-3 px-1">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+          <div className="flex items-center">
             <span
               className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40"
             >
