@@ -14,6 +14,7 @@ import { EmailDetailView } from "./leads/EmailDetailView";
 import { LeadsSidebar } from "./leads/LeadsSidebar";
 import { LeadsHeader } from "./leads/LeadsHeader";
 import { LeadsListItem } from "./leads/LeadsListItem";
+import { TagManagementModal } from "./leads/TagManagementModal";
 import { GmailMessage } from "@/types/gmail";
 
 interface LeadsInboxProps {
@@ -23,15 +24,22 @@ interface LeadsInboxProps {
 export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
   const {
     messages,
-    allItems,
     loading,
     isConnected,
     searchQuery,
-    setSearchQuery,
-    selectedTab,
-    setSelectedTab,
+    onSearchChange: setSearchQuery,
+    onRefresh: fetchMessages,
+    onConnect: handleConnect,
+    totalCount,
+    currentPage,
+    onPageChange: setCurrentPage,
+    totalPages,
+    allItems,
+    paginatedItems,
     selectedEmail,
     setSelectedEmail,
+    selectedTab,
+    setSelectedTab,
     isContactModalOpen,
     setIsContactModalOpen,
     contactModalData,
@@ -41,32 +49,18 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
     draftingEmail,
     setDraftingEmail,
     draftContent,
+    setIsGeneratingDraft,
     isGeneratingDraft,
     customCommandMode,
     setCustomCommandMode,
     customPrompt,
     setCustomPrompt,
-    fetchMessages,
-    handleConnect,
-    handleOpenEmail,
-    handleToggleStar,
-    handleManualAnalyze,
-    handleToggleAction,
-    handleDraftReply,
-    handleExecuteCustomCommand,
-    handleSaveContact,
-    analyzeEmail,
-    currentPage,
-    setCurrentPage,
-    totalPages,
-    paginatedItems,
     isComposeOpen,
     setIsComposeOpen,
     hasDraft,
     setHasDraft,
     draftData,
     setDraftData,
-    handleAddLocalSentMessage,
     handleDeleteMessage,
     handleArchiveMessage,
     handleSpamMessage,
@@ -75,6 +69,27 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
     toggleSelection,
     selectAll,
     clearSelection,
+    handleBulkArchive,
+    handleBulkTag,
+    handleToggleTag,
+    handleRemoveCustomTag,
+    handleEmptyTrash,
+    analyzeEmail,
+    handleOpenEmail,
+    handleToggleStar,
+    handleManualAnalyze,
+    handleToggleAction,
+    handleDraftReply,
+    handleExecuteCustomCommand,
+    handleSaveContact,
+    customTags,
+    setCustomTags,
+    messageTags,
+    isTagModalOpen,
+    setIsTagModalOpen,
+    tagModalEmail,
+    setTagModalEmail,
+    handleAddLocalSentMessage,
   } = useLeadsInbox(initialMessages);
 
   const analyzedIds = React.useRef<Set<string>>(new Set());
@@ -166,6 +181,18 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         }}
       />
 
+      {/* Tag Management Modal */}
+      <TagManagementModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+        email={tagModalEmail}
+        customTags={customTags}
+        messageTags={messageTags}
+        onAddTag={(tag) => setCustomTags(prev => [...new Set([...prev, tag])].sort())}
+        onToggleTag={handleToggleTag}
+        onRemoveCustomTag={handleRemoveCustomTag}
+      />
+
       {/* Sidebar for Navigation */}
       <div className="relative z-10 bg-white dark:bg-zinc-950 w-[240px] flex-shrink-0">
         <LeadsSidebar 
@@ -178,6 +205,11 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
           unreadCount={messages.filter((m: any) => !m.isRead).length}
           draftCount={hasDraft ? 1 : 0}
           onCompose={() => setIsComposeOpen(true)}
+          customTags={customTags}
+          onManageTags={() => {
+            setTagModalEmail(null);
+            setIsTagModalOpen(true);
+          }}
         />
       </div>
 
@@ -231,6 +263,10 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
                 selectAll(emailsToSelect);
               }}
               onClearSelection={clearSelection}
+              onBulkArchive={() => handleBulkArchive(Array.from(selectedIds))}
+              onBulkTag={(tag) => handleBulkTag(Array.from(selectedIds), tag)}
+              onEmptyTrash={handleEmptyTrash}
+              currentTab={selectedTab}
             />
 
             {/* Message List Floating Container - Full Width Compact */}
@@ -273,6 +309,11 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
                         onDeleteMessage={handleDeleteMessage}
                         isSelected={selectedIds.has((item as any).id)}
                         onToggleSelection={(e, id) => toggleSelection(id)}
+                        onToggleTag={(e, msg) => {
+                          setTagModalEmail(msg);
+                          setIsTagModalOpen(true);
+                        }}
+                        tags={messageTags[(item as any).id] || []}
                       />
                     ))}
                   </div>

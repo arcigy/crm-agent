@@ -18,14 +18,16 @@ import {
 } from "lucide-react";
 
 interface LeadsSidebarProps {
-  selectedTab: "all" | "unread" | "leads" | "sms" | "calls" | "starred" | "snoozed" | "sent" | "drafts" | "shopping" | "more" | "archive" | "spam" | "trash";
+  selectedTab: string;
   onTabChange: (tab: any) => void;
   unreadCount?: number;
   draftCount?: number;
   onCompose: () => void;
+  customTags?: string[];
+  onManageTags?: () => void;
 }
 
-export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftCount = 0, onCompose }: LeadsSidebarProps) {
+export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftCount = 0, onCompose, customTags = [], onManageTags }: LeadsSidebarProps) {
   const [isMoreExpanded, setIsMoreExpanded] = React.useState(false);
 
   const mainItems = [
@@ -137,11 +139,26 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
             Štítky
           </span>
           <button
-            className="p-1 rounded-full transition-all duration-200 hover:bg-white/5 hover:text-violet-400"
-            style={{ color: "rgba(255,255,255,0.2)" }}
+            onClick={onManageTags}
+            title="Spravovať štítky"
+            className="p-1 rounded-full transition-all duration-200 hover:bg-white/10 hover:text-violet-400"
+            style={{ color: "rgba(255,255,255,0.4)" }}
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
+        </div>
+        <div className="mt-2 -mx-2">
+          {customTags.map((tag) => (
+             <SidebarButton
+               key={`tag:${tag}`}
+               item={{ id: `tag:${tag}`, label: tag, icon: Tag }}
+               isActive={selectedTab === `tag:${tag}`}
+               onClick={() => onTabChange(`tag:${tag}`)}
+             />
+          ))}
+          {customTags.length === 0 && (
+             <div className="text-[11px] text-white/30 px-3 py-2 italic font-medium">Žiadne štítky, začnite pridaním cez +</div>
+          )}
         </div>
       </div>
     </div>

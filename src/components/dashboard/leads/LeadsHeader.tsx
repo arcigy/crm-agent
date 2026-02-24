@@ -10,7 +10,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   Search,
-  RefreshCw
+  RefreshCw,
+  X
 } from "lucide-react";
 
 interface LeadsHeaderProps {
@@ -28,6 +29,10 @@ interface LeadsHeaderProps {
   totalVisibleCount?: number;
   onToggleSelectAll?: () => void;
   onClearSelection?: () => void;
+  onBulkArchive?: () => void;
+  onBulkTag?: (tag: string) => void;
+  onEmptyTrash?: () => void;
+  currentTab?: string;
 }
 
 export function LeadsHeader({
@@ -45,6 +50,10 @@ export function LeadsHeader({
   totalVisibleCount = 0,
   onToggleSelectAll,
   onClearSelection,
+  onBulkArchive,
+  onBulkTag,
+  onEmptyTrash,
+  currentTab,
 }: LeadsHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
@@ -119,7 +128,7 @@ export function LeadsHeader({
                 <button 
                   onClick={() => {
                     setIsMenuOpen(false);
-                    import('sonner').then(({ toast }) => toast.info("Systémové nastavenia účtu", { description: "Budú čoskoro presunuté do profilu." }));
+                    window.location.href = '/dashboard/settings';
                   }} 
                   className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-zinc-700 dark:text-zinc-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-700 transition-colors"
                 >
@@ -129,14 +138,45 @@ export function LeadsHeader({
                 <button 
                   onClick={() => {
                     setIsMenuOpen(false);
-                    if (selectedCount > 0) import('sonner').then(({ toast }) => toast.info(`Hromadný archív pre ${selectedCount} správ(y) príde v 1.1.`));
-                    else import('sonner').then(({ toast }) => toast.error("Najprv vyberte aspoň jednu správu."));
+                    if (selectedCount > 0) {
+                      onBulkArchive?.();
+                      onClearSelection?.();
+                    } else import('sonner').then(({ toast }) => toast.error("Najprv vyberte aspoň jednu správu."));
                   }} 
                   className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-zinc-700 dark:text-zinc-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-700 transition-colors flex items-center justify-between"
                 >
                   Hromadný archív
-                  {selectedCount > 0 && <span className="bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded text-[10px]">{selectedCount}</span>}
+                  {selectedCount > 0 && <span className="bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded text-[10px]">{selectedCount}</span>}
                 </button>
+                <button 
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    if (selectedCount > 0) {
+                      const newTag = window.prompt("Zadaj názov štítku:");
+                      if (newTag && newTag.trim() && onBulkTag) {
+                        onBulkTag(newTag.trim());
+                      }
+                    } else import('sonner').then(({ toast }) => toast.error("Najprv vyberte aspoň jednu správu."));
+                  }} 
+                  className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-zinc-700 dark:text-zinc-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-700 transition-colors flex items-center justify-between"
+                >
+                  Označiť štítkom
+                  {selectedCount > 0 && <span className="bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded text-[10px]">{selectedCount}</span>}
+                </button>
+                {currentTab === "trash" && (
+                  <>
+                    <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1 mx-2"></div>
+                    <button 
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onEmptyTrash?.();
+                      }} 
+                      className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                    >
+                      <X className="w-3.5 h-3.5" /> Vysypať kôš
+                    </button>
+                  </>
+                )}
               </div>
             </>
           )}
@@ -159,17 +199,28 @@ export function LeadsHeader({
       </div>
 
       {/* Center: Search Bar */}
-      <div className="flex-1 max-w-2xl relative group">
-        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-          <Search className="h-4 w-4 text-zinc-400 group-focus-within:text-violet-500 transition-colors" />
+      <div className="flex-1 max-w-2xl relative group mx-4 transition-all duration-300">
+        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none z-10">
+          <Search className={`h-[18px] w-[18px] transition-all duration-300 ${searchQuery ? 'text-violet-500 font-bold scale-110' : 'text-zinc-400 group-focus-within:text-violet-500'}`} />
         </div>
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Hľadať v správach..."
-          className="w-full bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.03] dark:border-white/[0.05] rounded-[1rem] py-2 pl-11 pr-4 text-[13px] font-bold focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:bg-white dark:focus:bg-zinc-900 transition-all placeholder:text-zinc-400 placeholder:font-medium"
+          className="w-full bg-black/5 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-2xl py-2.5 pl-12 pr-10 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:bg-white dark:focus:bg-[#12141a] transition-all placeholder:text-zinc-500 placeholder:font-medium shadow-sm hover:bg-black/[0.07] dark:hover:bg-white/10"
         />
+        {searchQuery && (
+          <button 
+            onClick={() => onSearchChange("")}
+            className="absolute inset-y-0 right-3 flex items-center justify-center text-zinc-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+            title="Vymazať vyhľadávanie"
+          >
+            <div className="p-1 hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-full transition-all">
+               <X className="w-4 h-4" />
+            </div>
+          </button>
+        )}
       </div>
 
       {/* Right Actions / Pagination */}

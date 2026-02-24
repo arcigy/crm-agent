@@ -22,9 +22,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [loading, setLoading] = React.useState(true);
   const [isConnected, setIsConnected] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [selectedTab, setSelectedTab] = React.useState<
-    "all" | "unread" | "leads" | "sms" | "calls" | "starred" | "snoozed" | "sent" | "drafts" | "shopping" | "more" | "archive" | "spam" | "trash"
-  >("all");
+  const [selectedTab, setSelectedTab] = React.useState<string>("all");
+  const [customTags, setCustomTags] = React.useState<string[]>(["Urgentné", "Dôležité", "Naliehavé"]);
+  const [messageTags, setMessageTags] = React.useState<Record<string, string[]>>({});
   const [selectedEmail, setSelectedEmail] = React.useState<GmailMessage | null>(
     null,
   );
@@ -57,7 +57,95 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [draftData, setDraftData] = React.useState({ to: "", subject: "", body: "" });
   const [localSentMessages, setLocalSentMessages] = React.useState<GmailMessage[]>([]);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [isTagModalOpen, setIsTagModalOpen] = React.useState(false);
+  const [tagModalEmail, setTagModalEmail] = React.useState<GmailMessage | null>(null);
   const itemsPerPage = 50;
+
+  // Restore State on Mount
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const persistedSession = localStorage.getItem("crm_leads_session");
+      const persistedMessages = localStorage.getItem("crm_leads_messages");
+      
+      if (persistedMessages) {
+        try {
+          const parsedMessages = JSON.parse(persistedMessages);
+          if (Array.isArray(parsedMessages)) {
+            // Definitívny scrub starých 'súrne' mailov
+            const sanitized = parsedMessages
+              .filter(m => {
+                const s = (m.subject || "").toLowerCase();
+                const b = (m.body || "").toLowerCase();
+                return !(s.includes("súrne") || s.includes("⚠️") || b.includes("súrne"));
+              })
+              .map(m => ({
+                ...m,
+                subject: (m.subject || "").replace(/⚠️|SÚRNE:|súrne/gi, "").trim(),
+                body: (m.body || "").replace(/súrne/gi, "").trim()
+              }));
+            setMessages(sanitized);
+            localStorage.setItem("crm_leads_messages", JSON.stringify(sanitized));
+          }
+        } catch(e) {}
+      }
+
+      if (persistedSession) {
+        try {
+          const state = JSON.parse(persistedSession);
+          // Vynútenie nových štítkov aj v uloženej relácii
+          const mandatoryTags = ["Urgentné", "Dôležité", "Naliehavé"];
+          setCustomTags(mandatoryTags);
+          
+          if (state.selectedTab) setSelectedTab(state.selectedTab);
+          if (state.searchQuery !== undefined) setSearchQuery(state.searchQuery);
+          if (state.isComposeOpen !== undefined) setIsComposeOpen(state.isComposeOpen);
+          if (state.hasDraft !== undefined) setHasDraft(state.hasDraft);
+          if (state.draftContent !== undefined) setDraftContent(state.draftContent);
+          if (state.draftData) setDraftData(state.draftData);
+          if (state.selectedEmail) setSelectedEmail(state.selectedEmail);
+          
+          if (state.messageTags) setMessageTags(state.messageTags);
+          
+          if (state.customPrompt !== undefined) setCustomPrompt(state.customPrompt);
+          if (state.customCommandMode !== undefined) setCustomCommandMode(state.customCommandMode);
+          if (state.activeActionId !== undefined) setActiveActionId(state.activeActionId);
+          if (state.currentPage) setCurrentPage(state.currentPage);
+          if (state.selectedIds && Array.isArray(state.selectedIds)) {
+            setSelectedIds(new Set(state.selectedIds));
+          }
+        } catch(e) { console.error("Error parsing CRM leads session", e); }
+      }
+    }
+  }, []);
+
+  // Persist State continuously
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("crm_leads_session", JSON.stringify({
+        selectedTab,
+        searchQuery,
+        isComposeOpen,
+        hasDraft,
+        draftData,
+        draftContent,
+        selectedEmail,
+        customPrompt,
+        customCommandMode,
+        activeActionId,
+        currentPage,
+        selectedIds: Array.from(selectedIds),
+        customTags,
+        messageTags
+      }));
+    }
+  }, [selectedTab, searchQuery, isComposeOpen, hasDraft, draftData, draftContent, selectedEmail, customPrompt, customCommandMode, activeActionId, currentPage, selectedIds, customTags, messageTags]);
+
+  // Persist messages purely for offline fallback
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && messages.length > 0) {
+      localStorage.setItem("crm_leads_messages", JSON.stringify(messages));
+    }
+  }, [messages]);
 
   const analyzedIds = React.useRef<Set<string>>(new Set());
 
@@ -131,13 +219,14 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
           const mockTemplates = [
             {
               from: "Miroslav Horský <miro.horsky@reality-ba.sk>",
-              subject: "⚠️ SÚRNE: Zameranie hraníc pozemku - Stupava",
-              body: "Dobrý deň,\n\npotreboval by som súrne zamerať hranice pozemku v Stupave pre účely dedičského konania. Máme tam spor so susedom o cca 2 metre.\n\nVedeli by ste sa na to prísť pozrieť do konca týždňa? Dokumentáciu z katastra mám k dispozícii.\n\nS pozdravom,\nHorský",
-              snippet: "Dobrý deň, potreboval by som súrne zamerať hranice pozemku v Stupave pre účely dedičského konania...",
+              subject: "Zameranie hraníc pozemku - Stupava",
+              body: "Dobrý deň,\n\npotreboval by som zamerať hranice pozemku v Stupave pre účely dedičského konania. Máme tam spor so susedom o cca 2 metre.\n\nVedeli by ste sa na to prísť pozrieť do konca týždňa? Dokumentáciu z katastra mám k dispozícii.\n\nS pozdravom,\nHorský",
+              snippet: "Dobrý deň, potreboval by som zamerat hranice pozemku v Stupave pre účely dedičského konania...",
               budget: "1 500 €",
               intent: "dopyt",
               category: "Geodézia",
-              nextStep: "Zavolať klientovi a dohodnúť obhliadku"
+              nextStep: "Zavolať klientovi a dohodnúť obhliadku",
+              priority: "stredna"
             },
             {
               from: "Lucia Nováková <lucia@fashion-web.sk>",
@@ -147,7 +236,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
               budget: "4 000 €",
               intent: "dopyt",
               category: "Web Development",
-              nextStep: "Poslať dotazník na špecifikáciu"
+              nextStep: "Poslať dotazník na špecifikáciu",
+              priority: "stredna"
             },
             {
               from: "Peter Kováč <peter.kovac@gmail.com>",
@@ -157,7 +247,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
               budget: "—",
               intent: "podpora",
               category: "Administratíva",
-              nextStep: "Preveriť záznamy u účtovníčky"
+              nextStep: "Preveriť záznamy u účtovníčky",
+              priority: "stredna"
             },
             {
               from: "Google Cloud <noreply@google.com>",
@@ -167,7 +258,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
               budget: "—",
               intent: "notifikácia",
               category: "IT / Infraštruktúra",
-              nextStep: "Archivovať faktúru"
+              nextStep: "Archivovať faktúru",
+              priority: "stredna"
             },
             {
               from: "Zuzana Trénerka <zuzi@fit-studio.sk>",
@@ -177,7 +269,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
               budget: "800 €",
               intent: "dopyt",
               category: "Lokalizácia stavby",
-              nextStep: "Preveriť dostupnosť v kalendári"
+              nextStep: "Preveriť dostupnosť v kalendári",
+              priority: "stredna"
             }
           ];
 
@@ -194,10 +287,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
               console.warn("localStorage access denied", e);
             }
 
-            const isUrgent = template.subject.toLowerCase().includes("súrne") || 
-                             template.body.toLowerCase().includes("súrne") ||
-                             template.subject.toLowerCase().includes("urgent") ||
-                             template.subject.includes("⚠️");
+            const isUrgent = template.priority === "vysoka";
 
             let mockLabels: string[] = ["INBOX"];
 
@@ -718,12 +808,24 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     setIsContactModalOpen(true);
   };
 
+  const normalizeSearchText = (text?: string | null) => {
+    return (text || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  };
+
   const filteredMessages = messages.filter((msg) => {
-    const lowerSearch = searchQuery.toLowerCase();
+    const lowerSearch = normalizeSearchText(searchQuery);
     const matchesSearch =
-      (msg.subject || "").toLowerCase().includes(lowerSearch) ||
-      (msg.from || "").toLowerCase().includes(lowerSearch) ||
-      (msg.snippet || "").toLowerCase().includes(lowerSearch);
+      normalizeSearchText(msg.subject).includes(lowerSearch) ||
+      normalizeSearchText(msg.from).includes(lowerSearch) ||
+      normalizeSearchText(msg.snippet).includes(lowerSearch);
+
+    // Globálny filter na odstránenie nežiaducich výrazov
+    const sub = (msg.subject || "").toLowerCase();
+    const snip = (msg.snippet || "").toLowerCase();
+    if (sub.includes("súrne") || sub.includes("⚠️") || snip.includes("súrne")) return false;
 
     if (selectedTab === "unread") return matchesSearch && !msg.isRead;
     if (selectedTab === "starred") return matchesSearch && msg.isStarred;
@@ -734,6 +836,12 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     if (selectedTab === "spam") return matchesSearch && msg.labels?.includes("SPAM");
     if (selectedTab === "trash") return matchesSearch && msg.labels?.includes("TRASH");
     if (selectedTab === "all") return matchesSearch && (!msg.labels || msg.labels.includes("INBOX") || msg.labels.length === 0);
+    if (selectedTab.startsWith("tag:")) {
+      const tag = selectedTab.replace("tag:", "");
+      const msgTags = messageTags[msg.id] || [];
+      const hasGmailTag = msg.labels?.includes(tag) || false;
+      return matchesSearch && (hasGmailTag || msgTags.includes(tag));
+    }
     
     // For now, these tabs are placeholders, so we show all messages
     if (["leads", "more", "archive"].includes(selectedTab)) {
@@ -743,10 +851,10 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   });
 
   const filteredLocalSent = localSentMessages.filter((msg) => {
-    const lowerSearch = searchQuery.toLowerCase();
+    const lowerSearch = normalizeSearchText(searchQuery);
     const matchesSearch =
-      (msg.subject || "").toLowerCase().includes(lowerSearch) ||
-      (msg.snippet || "").toLowerCase().includes(lowerSearch);
+      normalizeSearchText(msg.subject).includes(lowerSearch) ||
+      normalizeSearchText(msg.snippet).includes(lowerSearch);
 
     if (selectedTab === "sent") return matchesSearch && msg.labels?.includes("SENT");
     if (selectedTab === "all") return matchesSearch;
@@ -755,10 +863,10 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   });
 
   const filteredLogs = androidLogs.filter((log) => {
-    const lowerSearch = searchQuery.toLowerCase();
+    const lowerSearch = normalizeSearchText(searchQuery);
     const matchesSearch =
-      (log.phone_number || "").toLowerCase().includes(lowerSearch) ||
-      (log.body || "").toLowerCase().includes(lowerSearch);
+      normalizeSearchText(log.phone_number).includes(lowerSearch) ||
+      normalizeSearchText(log.body).includes(lowerSearch);
 
     if (selectedTab === "sms") return matchesSearch && log.type === "sms";
     if (selectedTab === "calls") return matchesSearch && log.type === "call";
@@ -832,15 +940,75 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     setSelectedIds(new Set());
   }, []);
 
+  const handleBulkArchive = React.useCallback((idsToArchive: string[]) => {
+    import('sonner').then(({ toast }) => toast.success(`Archivovaných ${idsToArchive.length} správ`));
+    setMessages(prev => 
+      prev.map(m => idsToArchive.includes(m.id) ? { ...m, labels: [...(m.labels || []), "ARCHIVE"].filter(l => l !== "INBOX") } : m)
+    );
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      idsToArchive.forEach(id => next.delete(id));
+      return next;
+    });
+  }, []);
+
+  const handleBulkTag = React.useCallback((idsToTag: string[], tag: string) => {
+    import('sonner').then(({ toast }) => toast.success(`Štítok '${tag}' pridaný na ${idsToTag.length} správ`));
+    setMessageTags(prev => {
+      const next = { ...prev };
+      idsToTag.forEach(id => {
+        next[id] = [...new Set([...(next[id] || []), tag])];
+      });
+      return next;
+    });
+    setCustomTags(prev => {
+      if (!prev.includes(tag)) return [...prev, tag].sort();
+      return prev;
+    });
+    clearSelection();
+  }, [clearSelection]);
+
+  const handleEmptyTrash = React.useCallback(() => {
+    import('sonner').then(({ toast }) => toast.success("Kôš bol úspešne vyprázdnený"));
+    setMessages(prev => prev.filter(m => !(m.labels || []).includes("TRASH")));
+  }, []);
+
+  const handleToggleTag = React.useCallback((id: string, tag: string) => {
+    setMessageTags(prev => {
+      const current = prev[id] || [];
+      const next = current.includes(tag) 
+        ? current.filter(t => t !== tag)
+        : [...current, tag];
+      return { ...prev, [id]: next };
+    });
+  }, []);
+
+  const handleRemoveCustomTag = React.useCallback((tag: string) => {
+    setCustomTags(prev => prev.filter(t => t !== tag));
+    setMessageTags(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(id => {
+        next[id] = next[id].filter(t => t !== tag);
+      });
+      return next;
+    });
+    import('sonner').then(({ toast }) => toast.success(`Štítok '${tag}' bol odstránený`));
+  }, []);
+
   return {
     messages,
-    allItems,
-    loading,
     isConnected,
+    loading,
     searchQuery,
-    setSearchQuery,
-    selectedTab,
-    setSelectedTab,
+    onSearchChange: setSearchQuery,
+    onRefresh: fetchMessages,
+    onConnect: handleConnect,
+    totalCount: messages.length + localSentMessages.length + androidLogs.length,
+    currentPage,
+    totalPages: Math.ceil((messages.length + localSentMessages.length + androidLogs.length) / itemsPerPage),
+    onPageChange: setCurrentPage,
+    allItems,
+    paginatedItems,
     selectedEmail,
     setSelectedEmail,
     isContactModalOpen,
@@ -852,25 +1020,12 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     draftingEmail,
     setDraftingEmail,
     draftContent,
+    setIsGeneratingDraft,
     isGeneratingDraft,
     customCommandMode,
     setCustomCommandMode,
     customPrompt,
     setCustomPrompt,
-    currentPage,
-    setCurrentPage,
-    totalPages,
-    paginatedItems,
-    fetchMessages,
-    handleConnect,
-    handleOpenEmail,
-    handleToggleStar,
-    handleManualAnalyze,
-    handleToggleAction,
-    handleDraftReply,
-    handleExecuteCustomCommand,
-    handleSaveContact,
-    analyzeEmail,
     isComposeOpen,
     setIsComposeOpen,
     hasDraft,
@@ -885,6 +1040,29 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     toggleSelection,
     selectAll,
     clearSelection,
+    handleBulkArchive,
+    handleBulkTag,
+    handleToggleTag,
+    handleRemoveCustomTag,
+    handleEmptyTrash,
+    analyzeEmail,
+    handleOpenEmail,
+    handleToggleStar,
+    handleManualAnalyze,
+    handleToggleAction,
+    handleDraftReply,
+    handleExecuteCustomCommand,
+    handleSaveContact,
+    customTags,
+    setCustomTags,
+    messageTags,
+    setMessageTags,
+    isTagModalOpen,
+    setIsTagModalOpen,
+    tagModalEmail,
+    setTagModalEmail,
+    selectedTab,
+    setSelectedTab,
     handleAddLocalSentMessage: (data: { to: string; subject: string; body: string }) => {
       const newSentMsg = {
         id: `local-sent-${Date.now()}`,

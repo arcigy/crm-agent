@@ -14,7 +14,8 @@ import {
    Brain,
    Sparkles,
    X,
-   AlertCircle
+   AlertCircle,
+   Tag
 } from "lucide-react";
 import { GmailMessage } from "@/types/gmail";
 import { AndroidLog } from "@/types/android";
@@ -38,6 +39,8 @@ interface LeadsListItemProps {
   onDeleteMessage: (e: React.MouseEvent, email: GmailMessage) => void;
   isSelected?: boolean;
   onToggleSelection?: (e: React.MouseEvent, id: string) => void;
+  tags?: string[];
+  onToggleTag?: (e: React.MouseEvent, msg: GmailMessage) => void;
 }
 
 // Optimization: Use memo to prevent re-renders when scrolling other parts of the UI
@@ -59,6 +62,8 @@ export const LeadsListItem = React.memo(({
   onDeleteMessage,
   isSelected,
   onToggleSelection,
+  tags = [],
+  onToggleTag
 }: LeadsListItemProps) => {
 
   // Performance optimization: Pre-format date
@@ -137,17 +142,24 @@ export const LeadsListItem = React.memo(({
               <span className={`text-[12px] truncate font-semibold ${!isRead ? "text-zinc-800 dark:text-zinc-200" : "text-zinc-500 dark:text-zinc-500"}`}>
                 {msg.snippet}
               </span>
+              {tags.length > 0 && (
+                <div className="flex items-center gap-1.5 ml-3 flex-shrink-0">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-[2px] rounded-md text-[10px] font-black tracking-widest uppercase border border-violet-500/20 bg-violet-50 dark:bg-violet-900/10 text-violet-600 dark:text-violet-400"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* AI Badges */}
             {msg.classification && !isSpam && (
               <div className="flex items-center gap-1.5 flex-shrink-0 mr-4">
-                {msg.classification.priority === "vysoka" && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-600 dark:bg-red-500 text-white text-[9px] font-black uppercase tracking-[0.1em] shadow-[0_4px_12px_rgba(220,38,38,0.25)] border border-red-400/20">
-                    <AlertCircle className="w-3 h-3" />
-                    <span>Súrne</span>
-                  </div>
-                )}
+                {/* Priorita skrytá na žiadosť používateľa */}
               </div>
             )}
           </div>
@@ -165,6 +177,13 @@ export const LeadsListItem = React.memo(({
                 title="AI Intelligence"
               >
                 <Sparkles className="w-3 h-3" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleTag?.(e, msg); }}
+                className="p-1.5 hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-lg transition-all text-zinc-400 hover:text-violet-600 hover:scale-110 active:scale-95"
+                title="Pridať štítok"
+              >
+                <Tag className="w-3 h-3" />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); onDeleteMessage(e, msg); }}
