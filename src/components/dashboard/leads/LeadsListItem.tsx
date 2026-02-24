@@ -88,7 +88,7 @@ export const LeadsListItem = React.memo(({
       <React.Fragment>
         <div
           onClick={() => onOpenEmail(msg)}
-          className={`group flex items-center h-[52px] px-10 border-b border-violet-500/[0.06] dark:border-violet-400/[0.08] cursor-pointer relative transition-all duration-200 ${
+          className={`group flex items-center min-h-[52px] py-1 px-10 border-b border-violet-500/[0.06] dark:border-violet-400/[0.08] cursor-pointer relative transition-all duration-200 ${
             !isRead 
               ? "bg-[#fdfdfe] dark:bg-zinc-700 z-10 shadow-sm" 
               : "bg-transparent dark:bg-transparent text-zinc-500/80 dark:text-zinc-500"

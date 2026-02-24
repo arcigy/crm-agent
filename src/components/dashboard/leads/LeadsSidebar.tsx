@@ -216,18 +216,11 @@ function SidebarButton({ item, isActive, onClick, color }: { item: any; isActive
       )}
 
       <div className="flex items-center gap-3">
-        {color && !isActive ? (
-          <div 
-            className="w-2.5 h-2.5 rounded-full shadow-sm ml-0.5 mr-0.5" 
-            style={{ backgroundColor: color }} 
-          />
-        ) : (
-          <item.icon
-            className={`w-4 h-4 flex-shrink-0 transition-all duration-200 ${!isActive ? 'group-hover:text-violet-400' : ''}`}
-            style={{ color: isActive ? (color || "#c4b5fd") : undefined }}
-          />
-        )}
-        <span className={`tracking-wide ${isActive ? "font-bold text-white" : "font-semibold text-white/50 group-hover:text-violet-300 transition-colors"}`}>
+        <item.icon
+          className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${!isActive ? 'group-hover:scale-110' : ''}`}
+          style={{ color: color || (isActive ? "#c4b5fd" : "rgba(255,255,255,0.4)") }}
+        />
+        <span className={`tracking-wide ${isActive ? "font-bold text-white" : "font-semibold text-white/50 group-hover:text-white/80 transition-colors"}`}>
           {item.label}
         </span>
       </div>

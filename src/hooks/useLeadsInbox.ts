@@ -24,13 +24,10 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedTab, setSelectedTab] = React.useState<string>("all");
   const [customTags, setCustomTags] = React.useState<string[]>([
-    "URGENTNÉ", "DO VYBAVENIA", "NA PREČÍTANIE", 
-    "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"
+    "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"
   ]);
   const [tagColors, setTagColors] = React.useState<Record<string, string>>({
     "URGENTNÉ": "#ef4444",
-    "DO VYBAVENIA": "#eab308",
-    "NA PREČÍTANIE": "#94a3b8",
     "NOVÝ OBCHOD": "#22c55e",
     "SERVIS": "#3b82f6",
     "BACKOFFICE": "#a855f7",
@@ -47,8 +44,6 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     
     // Priority Mapping
     if (classification.priority === "vysoka") newTags.push("URGENTNÉ");
-    else if (classification.priority === "stredna") newTags.push("DO VYBAVENIA");
-    else if (classification.priority === "nizka") newTags.push("NA PREČÍTANIE");
     
     // Intent Mapping
     if (classification.intent === "dopyt") newTags.push("NOVÝ OBCHOD");
@@ -129,15 +124,13 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         try {
           const state = JSON.parse(persistedSession);
           // ALWAYS merge defaults to ensure they are visible even in old sessions
-          const aiDefaults = ["URGENTNÉ", "DO VYBAVENIA", "NA PREČÍTANIE", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"];
+          const aiDefaults = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"];
           const existingTags = state.customTags && Array.isArray(state.customTags) ? state.customTags : [];
           const mergedTags = Array.from(new Set([...existingTags, ...aiDefaults])).sort();
           setCustomTags(mergedTags);
           
           const defaultColors: Record<string, string> = {
             "URGENTNÉ": "#ef4444",
-            "DO VYBAVENIA": "#eab308",
-            "NA PREČÍTANIE": "#94a3b8",
             "NOVÝ OBCHOD": "#22c55e",
             "SERVIS": "#3b82f6",
             "BACKOFFICE": "#a855f7",
@@ -171,7 +164,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
             .then(data => {
               if (data.success && data.settings) {
                 if (data.settings.customTags && Array.isArray(data.settings.customTags)) {
-                  const aiDefs = ["URGENTNÉ", "DO VYBAVENIA", "NA PREČÍTANIE", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"];
+                  const aiDefs = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"];
                   const safelyMergedTags = Array.from(new Set([...data.settings.customTags, ...aiDefs])).sort();
                   setCustomTags(safelyMergedTags);
                 }
