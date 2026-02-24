@@ -39,36 +39,41 @@ export function TagManagementModal({
   const [animate, setAnimate] = React.useState(false);
 
   const COLORS = [
-    // Neon Purples/Violets
+    // Reds/Pinks
+    { name: "Neon Red", value: "#ff0000" },
+    { name: "Plasma Red", value: "#ef4444" },
+    { name: "Crimson", value: "#dc2626" },
+    { name: "Radical Rose", value: "#f43f5e" },
+    { name: "Hot Pink", value: "#ff007f" },
+    { name: "Cyber Purple", value: "#d946ef" },
+    // Violets/Indigos
+    { name: "Deep Fuchsia", value: "#c026d3" },
     { name: "Neon Violet", value: "#a855f7" },
     { name: "Electric Indigo", value: "#6366f1" },
-    { name: "Cyber Purple", value: "#d946ef" },
-    { name: "Hot Pink", value: "#ff007f" },
-    // Neon Blues
+    { name: "Royal Blue", value: "#4338ca" },
     { name: "Neon Blue", value: "#3b82f6" },
     { name: "Electric Cyan", value: "#00f2ff" },
-    { name: "Sky Blue", value: "#0ea5e9" },
+    // Teals/Greens
     { name: "Ice Teal", value: "#2dd4bf" },
-    // Neon Greens
+    { name: "Sky Blue", value: "#0ea5e9" },
+    { name: "Cyan Spark", value: "#22d3ee" },
+    { name: "Mint Neon", value: "#00ff9f" },
     { name: "Neon Green", value: "#39ff14" },
     { name: "Lime Shock", value: "#ccff00" },
+    // Yellows/Oranges
     { name: "Acid Green", value: "#84cc16" },
-    { name: "Mint Neon", value: "#00ff9f" },
-    // Neon Yellows/Oranges
     { name: "Neon Yellow", value: "#fff200" },
+    { name: "Amber Glint", value: "#fbbf24" },
     { name: "Electric Amber", value: "#f59e0b" },
-    { name: "Neon Orange", value: "#ff5e00" },
     { name: "Safety Orange", value: "#ff9100" },
-    // Neon Reds
-    { name: "Neon Red", value: "#ff0000" },
-    { name: "Radical Rose", value: "#f43f5e" },
-    { name: "Plasma Red", value: "#ef4444" },
-    { name: "Infrared", value: "#7f1d1d" },
-    // Modern Cyber Neutrals
-    { name: "Cyber Slate", value: "#475569" },
+    { name: "Neon Orange", value: "#ff5e00" },
+    // Neutrals
+    { name: "Pure White", value: "#ffffff" },
+    { name: "Silver", value: "#e2e8f0" },
+    { name: "Titanium", value: "#94a3b8" },
     { name: "Obsidian", value: "#0f172a" },
-    { name: "Holographic Silver", value: "#cbd5e1" },
-    { name: "Titanium", value: "#71717a" },
+    { name: "Chrome", value: "#475569" },
+    { name: "Gold", value: "#d4af37" },
   ];
 
   const [activePicker, setActivePicker] = React.useState<string | "new" | null>(null);
@@ -118,18 +123,18 @@ export function TagManagementModal({
       <div className="flex gap-4 items-stretch max-w-[800px] w-full justify-center relative scale-90 sm:scale-100">
         {/* Side Panel Color Picker (Left) - Compact Neon Style */}
         <div 
-          className={`w-[220px] bg-white/95 dark:bg-[#0b0c10]/95 backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-500 transform ${activePicker ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}
+          className={`w-[200px] bg-white/95 dark:bg-[#0b0c10]/95 backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-500 transform ${activePicker ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}
           style={{
             boxShadow: activePicker ? `0 0 30px -10px ${currentColor}30, 0 20px 40px -12px rgba(0,0,0,0.5)` : 'none'
           }}
         >
-          <div className="p-5 border-b border-violet-500/10">
-            <h3 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">
+          <div className="p-4 border-b border-violet-500/10">
+            <h3 className="text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-[0.25em] text-center">
               Neon Palette
             </h3>
           </div>
           
-          <div className="p-5 overflow-y-auto thin-scrollbar grid grid-cols-5 gap-3 auto-rows-max">
+          <div className="p-4 overflow-y-auto thin-scrollbar grid grid-cols-6 gap-2.5 auto-rows-max">
             {COLORS.map((c) => (
               <button
                 key={c.value}
@@ -137,10 +142,10 @@ export function TagManagementModal({
                   if (activePicker === 'new') setSelectedColor(c.value);
                   else if (activePicker) onUpdateTagColor(activePicker, c.value);
                 }}
-                className={`w-6 h-6 rounded-full transition-all duration-300 hover:scale-125 shadow-sm border-2 relative group flex-shrink-0 ${currentColor === c.value ? 'border-white scale-125 shadow-lg' : 'border-transparent'}`}
+                className={`w-5 h-5 rounded-full transition-all duration-300 hover:scale-125 shadow-sm border relative group flex-shrink-0 ${currentColor === c.value ? 'border-white scale-125 shadow-lg' : 'border-transparent'}`}
                 style={{ 
                   backgroundColor: c.value,
-                  boxShadow: currentColor === c.value ? `0 0 15px -5px ${c.value}` : 'none'
+                  boxShadow: currentColor === c.value ? `0 0 12px -3px ${c.value}` : 'none'
                 }}
                 title={c.name}
               >
@@ -149,9 +154,9 @@ export function TagManagementModal({
             ))}
             
             {/* Custom Color Mixer */}
-            <div className="col-span-5 mt-4 pt-4 border-t border-violet-500/10 flex flex-col gap-3">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em]">Mixer</span>
-              <div className="flex items-center gap-3">
+            <div className="col-span-6 mt-3 pt-3 border-t border-violet-500/10 flex flex-col gap-2">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">Mixer</span>
+              <div className="flex items-center gap-2 justify-center">
                 <input 
                   type="color" 
                   value={currentColor || "#8b5cf6"}
@@ -159,7 +164,7 @@ export function TagManagementModal({
                     if (activePicker === 'new') setSelectedColor(e.target.value);
                     else if (activePicker) onUpdateTagColor(activePicker, e.target.value);
                   }}
-                  className="w-10 h-10 rounded-xl cursor-pointer bg-transparent border-none appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-xl [&::-webkit-color-swatch]:border-none shadow-lg hover:scale-105 transition-transform"
+                  className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-none appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-none shadow-md hover:scale-110 transition-transform"
                 />
                 <input 
                   type="text"
@@ -169,18 +174,18 @@ export function TagManagementModal({
                     else if (activePicker) onUpdateTagColor(activePicker, e.target.value);
                   }}
                   placeholder="#HEX"
-                  className="w-full h-9 px-3 bg-slate-50 dark:bg-zinc-800/50 rounded-lg text-[10px] font-black uppercase text-slate-700 dark:text-white outline-none border border-violet-500/10 focus:border-violet-500/40 transition-all text-center tracking-widest"
+                  className="w-20 h-7 px-2 bg-slate-50 dark:bg-zinc-800/50 rounded-md text-[9px] font-black uppercase text-slate-700 dark:text-white outline-none border border-violet-500/10 focus:border-violet-500/40 transition-all text-center tracking-tighter"
                 />
               </div>
             </div>
           </div>
           
-          <div className="p-5 pt-0 mt-auto">
+          <div className="p-4 pt-0 mt-auto">
             <button 
               onClick={() => setActivePicker(null)}
-              className="w-full p-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-violet-600/20 active:scale-95 border border-white/10"
+              className="w-full p-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-[8px] font-black uppercase tracking-[0.2em] transition-all shadow-md active:scale-95 border border-white/5"
             >
-              OK
+              Uložiť
             </button>
           </div>
         </div>
