@@ -23,13 +23,56 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [isConnected, setIsConnected] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedTab, setSelectedTab] = React.useState<string>("all");
-  const [customTags, setCustomTags] = React.useState<string[]>(["Urgentné", "Dôležité", "Naliehavé"]);
+  const [customTags, setCustomTags] = React.useState<string[]>([
+    "URGENTNÉ", "DO VYBAVENIA", "NA PREČÍTANIE", 
+    "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"
+  ]);
   const [tagColors, setTagColors] = React.useState<Record<string, string>>({
-    "Urgentné": "#f43f5e",
-    "Dôležité": "#f59e0b",
-    "Naliehavé": "#8b5cf6"
+    "URGENTNÉ": "#ef4444",
+    "DO VYBAVENIA": "#eab308",
+    "NA PREČÍTANIE": "#94a3b8",
+    "NOVÝ OBCHOD": "#22c55e",
+    "SERVIS": "#3b82f6",
+    "BACKOFFICE": "#a855f7",
+    "KÁVIČKA": "#f43f5e"
   });
+
   const [messageTags, setMessageTags] = React.useState<Record<string, string[]>>({});
+
+  // Smart Tagging Logic
+  // Smart Tagging Logic
+  const getSmartTags = (classification: any) => {
+    if (!classification) return [];
+    const newTags: string[] = [];
+    
+    // Priority Mapping
+    if (classification.priority === "vysoka") newTags.push("URGENTNÉ");
+    else if (classification.priority === "stredna") newTags.push("DO VYBAVENIA");
+    else if (classification.priority === "nizka") newTags.push("NA PREČÍTANIE");
+    
+    // Intent Mapping
+    if (classification.intent === "dopyt") newTags.push("NOVÝ OBCHOD");
+    else if (classification.intent === "problem") newTags.push("SERVIS");
+    else if (classification.intent === "faktura") newTags.push("BACKOFFICE");
+    else if (classification.intent === "ine") {
+      const summary = (classification.summary || "").toLowerCase();
+      if (summary.includes("kava") || summary.includes("lunch") || summary.includes("stretnutie") || summary.includes("networking")) {
+        newTags.push("KÁVIČKA");
+      }
+    }
+    return newTags;
+  };
+
+  const applySmartTagging = (messageId: string, classification: any) => {
+    const newTags = getSmartTags(classification);
+    if (newTags.length > 0) {
+      setMessageTags(prev => {
+        const existing = prev[messageId] || [];
+        const merged = Array.from(new Set([...existing, ...newTags]));
+        return { ...prev, [messageId]: merged };
+      });
+    }
+  };
   const [selectedEmail, setSelectedEmail] = React.useState<GmailMessage | null>(
     null,
   );
@@ -202,6 +245,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         const gmailData = await gmailRes.json();
         if (gmailData.isConnected && gmailData.messages) {
           setIsConnected(true);
+          const smartTagsBatch: Record<string, string[]> = {};
           setMessages((prev) => {
             return gmailData.messages.map((newMsg: GmailMessage) => {
               const existing = prev.find((p) => p.id === newMsg.id);
@@ -221,11 +265,25 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
               }
 
               if (classification) {
+                const tags = getSmartTags(classification);
+                if (tags.length > 0) smartTagsBatch[newMsg.id] = tags;
                 return { ...newMsg, classification };
               }
               return newMsg;
             });
           });
+
+          // Apply all smart tags in one go
+          if (Object.keys(smartTagsBatch).length > 0) {
+            setMessageTags(prev => {
+              const next = { ...prev };
+              Object.entries(smartTagsBatch).forEach(([id, tags]) => {
+                const existing = next[id] || [];
+                next[id] = Array.from(new Set([...existing, ...tags]));
+              });
+              return next;
+            });
+          }
         } else if (gmailData.isConnected === false) {
           setIsConnected(false);
         }
@@ -656,6 +714,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
                 : m,
             ),
           );
+          // Apply smart tags immediately after analysis
+          applySmartTagging(msg.id, data.classification);
         }
       }
     } catch (error) {
