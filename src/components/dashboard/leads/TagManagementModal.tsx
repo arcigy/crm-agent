@@ -40,12 +40,22 @@ export function TagManagementModal({
 
   const COLORS = [
     { name: "Violet", value: "#8b5cf6" },
-    { name: "Rose", value: "#f43f5e" },
-    { name: "Amber", value: "#f59e0b" },
-    { name: "Emerald", value: "#10b981" },
+    { name: "Indigo", value: "#6366f1" },
     { name: "Blue", value: "#3b82f6" },
+    { name: "Cyan", value: "#06b6d4" },
+    { name: "Teal", value: "#14b8a6" },
+    { name: "Emerald", value: "#10b981" },
+    { name: "Lime", value: "#84cc16" },
+    { name: "Amber", value: "#f59e0b" },
+    { name: "Orange", value: "#f97316" },
+    { name: "Red", value: "#ef4444" },
+    { name: "Rose", value: "#f43f5e" },
+    { name: "Pink", value: "#ec4899" },
+    { name: "Fuchsia", value: "#d946ef" },
     { name: "Slate", value: "#64748b" },
   ];
+
+  const [activePicker, setActivePicker] = React.useState<string | "new" | null>(null);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -54,6 +64,7 @@ export function TagManagementModal({
       setAnimate(false);
       setIsAdding(false);
       setNewTagName("");
+      setActivePicker(null);
     }
   }, [isOpen]);
 
@@ -147,17 +158,35 @@ export function TagManagementModal({
                   onClick={() => !isEditing && email && onToggleTag(email.id, tag)}
                 >
                   <div className="flex items-center gap-3 flex-1">
-                    <div className="relative group/color">
+                    <div className="relative">
                       <div 
-                        className={`w-4 h-4 rounded-full border-2 border-white/20 transition-transform hover:scale-125 cursor-pointer`}
+                        className={`w-4 h-4 rounded-full border-2 border-white/20 transition-transform hover:scale-125 cursor-pointer shadow-sm`}
                         style={{ backgroundColor: tagColor }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          const currentIndex = COLORS.findIndex(c => c.value === tagColor);
-                          const nextIndex = (currentIndex + 1) % COLORS.length;
-                          onUpdateTagColor(tag, COLORS[nextIndex].value);
+                          setActivePicker(activePicker === tag ? null : tag);
                         }}
                       />
+                      
+                      {activePicker === tag && (
+                        <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-violet-500/10 z-[120] animate-in fade-in zoom-in-95 duration-200">
+                          <div className="grid grid-cols-7 gap-1.5 w-[210px]">
+                            {COLORS.map((c) => (
+                              <button
+                                key={c.value}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onUpdateTagColor(tag, c.value);
+                                  setActivePicker(null);
+                                }}
+                                className={`w-6 h-6 rounded-full transition-all hover:scale-110 ${tagColor === c.value ? 'ring-2 ring-violet-500 ring-offset-2 dark:ring-offset-zinc-900 scale-110' : 'opacity-60 hover:opacity-100'}`}
+                                style={{ backgroundColor: c.value }}
+                                title={c.name}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {isEditing ? (
@@ -258,20 +287,41 @@ export function TagManagementModal({
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-center gap-2 px-2">
-                  {COLORS.map((c) => (
+                <div className="flex items-center justify-center gap-2 pt-1">
+                  <div className="relative">
                     <button
-                      key={c.value}
-                      onClick={() => setSelectedColor(c.value)}
-                      className={`w-6 h-6 rounded-full transition-all ${selectedColor === c.value ? 'scale-125 ring-2 ring-violet-500 ring-offset-2 dark:ring-offset-zinc-900' : 'opacity-40 hover:opacity-100 hover:scale-110'}`}
-                      style={{ backgroundColor: c.value }}
-                      title={c.name}
-                    />
-                  ))}
+                      onClick={() => setActivePicker(activePicker === 'new' ? null : 'new')}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-zinc-800 transition-all hover:bg-slate-200 dark:hover:bg-zinc-700"
+                    >
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedColor }} />
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        Vybrať farbu
+                      </span>
+                    </button>
+
+                    {activePicker === 'new' && (
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-violet-500/10 z-[120] animate-in fade-in slide-in-from-bottom-2 duration-200">
+                        <div className="grid grid-cols-7 gap-1.5 w-[210px]">
+                          {COLORS.map((c) => (
+                            <button
+                              key={c.value}
+                              onClick={() => {
+                                setSelectedColor(c.value);
+                                setActivePicker(null);
+                              }}
+                              className={`w-6 h-6 rounded-full transition-all hover:scale-110 ${selectedColor === c.value ? 'ring-2 ring-violet-500 ring-offset-2 dark:ring-offset-zinc-900 scale-110' : 'opacity-60 hover:opacity-100'}`}
+                              style={{ backgroundColor: c.value }}
+                              title={c.name}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center mt-1">
-                  Vyberte farbu a stlačte Enter
+                  Kliknite na farbu a stlačte Enter pre uloženie
                 </p>
               </div>
             ) : (
