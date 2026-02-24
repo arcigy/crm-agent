@@ -114,22 +114,48 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       if (persistedSession) {
         try {
           const state = JSON.parse(persistedSession);
-          // Allowed AI tags — merge user's custom tags with these defaults
-          const aiDefaults = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS"];
-          const existingTags = (state.customTags && Array.isArray(state.customTags)
-            ? state.customTags.filter((t: string) => !["BACKOFFICE", "KÁVIČKA", "DO VYBAVENIA", "NA PREČÍTANIE"].includes(t))
-            : []);
-          const mergedTags = Array.from(new Set([...existingTags, ...aiDefaults])).sort();
-          setCustomTags(mergedTags);
-
-          const defaultColors: Record<string, string> = {
+          // The 3 canonical tags — ALL CAPS only
+          const CANONICAL_TAGS = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS"];
+          const CANONICAL_COLORS: Record<string, string> = {
             "URGENTNÉ": "#ef4444",
             "NOVÝ OBCHOD": "#22c55e",
             "SERVIS": "#3b82f6"
           };
-          const mergedColors = { ...defaultColors, ...(state.tagColors || {}) };
+
+          // Merge user custom tags but force uppercase, filter out removed ones
+          const existingTags = (state.customTags && Array.isArray(state.customTags)
+            ? state.customTags
+                .map((t: string) => t.toUpperCase())
+                .filter((t: string) => ![
+                  "BACKOFFICE", "KÁVIČKA", "DO VYBAVENIA", "NA PREČÍTANIE",
+                  "URGENTNé", "URGENTE", "DÔLEŽITÉ", "NÁLIEHAVÉ"
+                ].includes(t))
+            : []);
+          const mergedTags = Array.from(new Set([...existingTags, ...CANONICAL_TAGS])).sort();
+          setCustomTags(mergedTags);
+
+          // Strip removed tags from messageTags
+          if (state.messageTags && typeof state.messageTags === "object") {
+            const cleanedMsgTags: Record<string, string[]> = {};
+            for (const [msgId, tags] of Object.entries(state.messageTags as Record<string, string[]>)) {
+              const validTags = tags
+                .map((t: string) => t.toUpperCase())
+                .filter((t: string) => CANONICAL_TAGS.includes(t));
+              if (validTags.length > 0) cleanedMsgTags[msgId] = validTags;
+            }
+            setMessageTags(cleanedMsgTags);
+          }
+
+          // Colors: keep defaults, merge only valid user overrides
+          const mergedColors: Record<string, string> = { ...CANONICAL_COLORS };
+          if (state.tagColors && typeof state.tagColors === "object") {
+            for (const key of CANONICAL_TAGS) {
+              if (state.tagColors[key]) mergedColors[key] = state.tagColors[key];
+            }
+          }
           setTagColors(mergedColors);
-          
+
+
           if (state.selectedTab) setSelectedTab(state.selectedTab);
           if (state.searchQuery !== undefined) setSearchQuery(state.searchQuery);
           if (state.isComposeOpen !== undefined) setIsComposeOpen(state.isComposeOpen);
@@ -137,9 +163,6 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
           if (state.draftContent !== undefined) setDraftContent(state.draftContent);
           if (state.draftData) setDraftData(state.draftData);
           if (state.selectedEmail) setSelectedEmail(state.selectedEmail);
-          
-          if (state.messageTags) setMessageTags(state.messageTags);
-          
           if (state.customPrompt !== undefined) setCustomPrompt(state.customPrompt);
           if (state.customCommandMode !== undefined) setCustomCommandMode(state.customCommandMode);
           if (state.activeActionId !== undefined) setActiveActionId(state.activeActionId);
@@ -147,27 +170,48 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
           if (state.selectedIds && Array.isArray(state.selectedIds)) {
             setSelectedIds(new Set(state.selectedIds));
           }
-          if (state.tagColors) setTagColors(state.tagColors);
 
           // Deep sync from DB if possible
           fetch("/api/notes?type=leads_settings")
             .then(res => res.json())
             .then(data => {
+              const CANONICAL_TAGS = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS"];
               if (data.success && data.settings) {
                 if (data.settings.customTags && Array.isArray(data.settings.customTags)) {
-                  const aiDefs = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS"];
-                  const filtered = data.settings.customTags.filter((t: string) =>
-                    !["BACKOFFICE", "KÁVIČKA", "DO VYBAVENIA", "NA PREČÍTANIE"].includes(t)
-                  );
-                  const safelyMergedTags = Array.from(new Set([...filtered, ...aiDefs])).sort();
+                  const filtered = data.settings.customTags
+                    .map((t: string) => t.toUpperCase())
+                    .filter((t: string) => ![
+                        "BACKOFFICE", "KÁVIČKA", "DO VYBAVENIA", "NA PREČÍTANIE",
+                        "URGENTNé", "DÔLEŽITÉ", "NÁLIEHAVÉ"
+                    ].includes(t));
+                  const safelyMergedTags = Array.from(new Set([...filtered, ...CANONICAL_TAGS])).sort();
                   setCustomTags(safelyMergedTags);
                 }
                 if (data.settings.tagColors) {
-                  setTagColors(prev => ({ ...prev, ...data.settings.tagColors }));
+                  setTagColors(prev => ({
+                    ...prev,
+                    ...(Object.fromEntries(
+                      Object.entries(data.settings.tagColors as Record<string, string>)
+                        .filter(([k]) => CANONICAL_TAGS.includes(k))
+                    ) as Record<string, string>)
+                  }));
                 }
-                if (data.settings.messageTags) setMessageTags(prev => ({ ...prev, ...data.settings.messageTags }));
+                if (data.settings.messageTags && typeof data.settings.messageTags === "object") {
+                  setMessageTags(prev => {
+                    const merged = { ...prev };
+                    for (const [msgId, tags] of Object.entries(data.settings.messageTags as Record<string, string[]>)) {
+                      const validTags = (tags as string[])
+                        .map((t: string) => t.toUpperCase())
+                        .filter((t: string) => CANONICAL_TAGS.includes(t));
+                      if (validTags.length > 0) merged[msgId] = validTags;
+                      else delete merged[msgId];
+                    }
+                    return merged;
+                  });
+                }
               }
             }).catch(() => {});
+
         } catch(e) { console.error("Error parsing CRM leads session", e); }
       }
     }
