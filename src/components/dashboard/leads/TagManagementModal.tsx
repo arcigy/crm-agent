@@ -135,14 +135,21 @@ export function TagManagementModal({
             boxShadow: activePicker ? `0 0 30px -10px ${currentColor}30, 0 20px 40px -12px rgba(0,0,0,0.5)` : 'none'
           }}
         >
-          <div className="p-5 border-b border-violet-500/10">
+          <div className="p-5 border-b border-violet-500/10 flex items-center justify-between">
+            <div className="w-6" /> {/* Spacer to center title */}
             <h3 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-[0.25em] text-center">
-              Neon Palette
+              Farebná Paleta
             </h3>
+            <button 
+              onClick={() => setActivePicker(null)}
+              className="p-1 hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-lg transition-all text-slate-400 hover:text-red-500"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
           
-          <div className="p-5 flex-1 overflow-y-auto thin-scrollbar">
-            <div className="grid grid-cols-6 gap-2.5">
+          <div className="p-5 flex-1 overflow-y-auto thin-scrollbar flex flex-col items-center justify-center">
+            <div className="grid grid-cols-6 gap-2.5 mx-auto">
               {COLORS.map((c) => (
                 <button
                   key={c.value}
@@ -157,7 +164,7 @@ export function TagManagementModal({
                   }}
                   title={c.name}
                 >
-                  <div className="absolute inset-0 bg-white/10 opacity-group-hover:opacity-100 transition-opacity rounded-full" />
+                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
                 </button>
               ))}
             </div>
