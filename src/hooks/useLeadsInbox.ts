@@ -24,6 +24,11 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedTab, setSelectedTab] = React.useState<string>("all");
   const [customTags, setCustomTags] = React.useState<string[]>(["Urgentné", "Dôležité", "Naliehavé"]);
+  const [tagColors, setTagColors] = React.useState<Record<string, string>>({
+    "Urgentné": "#f43f5e",
+    "Dôležité": "#f59e0b",
+    "Naliehavé": "#8b5cf6"
+  });
   const [messageTags, setMessageTags] = React.useState<Record<string, string[]>>({});
   const [selectedEmail, setSelectedEmail] = React.useState<GmailMessage | null>(
     null,
@@ -113,6 +118,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
           if (state.selectedIds && Array.isArray(state.selectedIds)) {
             setSelectedIds(new Set(state.selectedIds));
           }
+          if (state.tagColors) setTagColors(state.tagColors);
         } catch(e) { console.error("Error parsing CRM leads session", e); }
       }
     }
@@ -135,10 +141,11 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         currentPage,
         selectedIds: Array.from(selectedIds),
         customTags,
+        tagColors,
         messageTags
       }));
     }
-  }, [selectedTab, searchQuery, isComposeOpen, hasDraft, draftData, draftContent, selectedEmail, customPrompt, customCommandMode, activeActionId, currentPage, selectedIds, customTags, messageTags]);
+  }, [selectedTab, searchQuery, isComposeOpen, hasDraft, draftData, draftContent, selectedEmail, customPrompt, customCommandMode, activeActionId, currentPage, selectedIds, customTags, tagColors, messageTags]);
 
   // Persist messages purely for offline fallback
   React.useEffect(() => {
@@ -985,6 +992,11 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
 
   const handleRemoveCustomTag = React.useCallback((tag: string) => {
     setCustomTags(prev => prev.filter(t => t !== tag));
+    setTagColors(prev => {
+      const next = { ...prev };
+      delete next[tag];
+      return next;
+    });
     setMessageTags(prev => {
       const next = { ...prev };
       Object.keys(next).forEach(id => {
@@ -1001,6 +1013,15 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     setCustomTags(prev => {
       const next = prev.map(t => t === oldTag ? newTag : t);
       return [...new Set(next)].sort();
+    });
+
+    setTagColors(prev => {
+      const next = { ...prev };
+      if (next[oldTag]) {
+        next[newTag] = next[oldTag];
+        delete next[oldTag];
+      }
+      return next;
     });
     
     setMessageTags(prev => {
@@ -1075,6 +1096,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     handleSaveContact,
     customTags,
     setCustomTags,
+    tagColors,
+    setTagColors,
     messageTags,
     setMessageTags,
     isTagModalOpen,

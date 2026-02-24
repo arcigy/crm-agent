@@ -9,11 +9,13 @@ interface TagManagementModalProps {
   onClose: () => void;
   email?: GmailMessage | null;
   customTags: string[];
+  tagColors: Record<string, string>;
   messageTags: Record<string, string[]>;
-  onAddTag: (tag: string) => void;
+  onAddTag: (tag: string, color?: string) => void;
   onToggleTag: (id: string, tag: string) => void;
   onRemoveCustomTag: (tag: string) => void;
   onRenameTag: (oldTag: string, newTag: string) => void;
+  onUpdateTagColor: (tag: string, color: string) => void;
 }
 
 export function TagManagementModal({
@@ -21,17 +23,29 @@ export function TagManagementModal({
   onClose,
   email,
   customTags,
+  tagColors,
   messageTags,
   onAddTag,
   onToggleTag,
   onRemoveCustomTag,
   onRenameTag,
+  onUpdateTagColor,
 }: TagManagementModalProps) {
   const [newTagName, setNewTagName] = React.useState("");
   const [isAdding, setIsAdding] = React.useState(false);
   const [editingTag, setEditingTag] = React.useState<string | null>(null);
   const [editValue, setEditValue] = React.useState("");
+  const [selectedColor, setSelectedColor] = React.useState("#8b5cf6");
   const [animate, setAnimate] = React.useState(false);
+
+  const COLORS = [
+    { name: "Violet", value: "#8b5cf6" },
+    { name: "Rose", value: "#f43f5e" },
+    { name: "Amber", value: "#f59e0b" },
+    { name: "Emerald", value: "#10b981" },
+    { name: "Blue", value: "#3b82f6" },
+    { name: "Slate", value: "#64748b" },
+  ];
 
   React.useEffect(() => {
     if (isOpen) {
@@ -49,9 +63,10 @@ export function TagManagementModal({
 
   const handleAddTag = () => {
     if (newTagName.trim()) {
-      onAddTag(newTagName.trim());
+      onAddTag(newTagName.trim(), selectedColor);
       setNewTagName("");
       setIsAdding(false);
+      setSelectedColor("#8b5cf6");
     }
   };
 
@@ -112,6 +127,7 @@ export function TagManagementModal({
             {customTags.map((tag) => {
               const isActive = currentEmailTags.includes(tag);
               const isEditing = editingTag === tag;
+              const tagColor = tagColors[tag] || "#8b5cf6";
 
               return (
                 <div 
@@ -120,15 +136,30 @@ export function TagManagementModal({
                     email && !isEditing ? 'cursor-pointer' : 'cursor-default'
                   } ${
                     isActive 
-                      ? 'bg-violet-600 border-violet-500 shadow-lg shadow-violet-600/20' 
+                      ? 'shadow-lg' 
                       : 'bg-slate-50 dark:bg-zinc-800/50 border-transparent hover:border-violet-500/30'
                   }`}
+                  style={isActive ? {
+                    backgroundColor: tagColor,
+                    borderColor: tagColor,
+                    boxShadow: `0 10px 15px -3px ${tagColor}40`
+                  } : {}}
                   onClick={() => !isEditing && email && onToggleTag(email.id, tag)}
                 >
                   <div className="flex items-center gap-3 flex-1">
-                    <div className={`p-1.5 rounded-lg transition-colors ${isActive ? 'bg-white/20' : 'bg-violet-100 dark:bg-violet-900/20'}`}>
-                      <Tag className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-violet-600'}`} />
+                    <div className="relative group/color">
+                      <div 
+                        className={`w-4 h-4 rounded-full border-2 border-white/20 transition-transform hover:scale-125 cursor-pointer`}
+                        style={{ backgroundColor: tagColor }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const currentIndex = COLORS.findIndex(c => c.value === tagColor);
+                          const nextIndex = (currentIndex + 1) % COLORS.length;
+                          onUpdateTagColor(tag, COLORS[nextIndex].value);
+                        }}
+                      />
                     </div>
+
                     {isEditing ? (
                       <input
                         autoFocus
@@ -213,7 +244,8 @@ export function TagManagementModal({
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <button 
                       onClick={handleAddTag}
-                      className="p-2 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-all shadow-md active:scale-90"
+                      className="p-2 text-white rounded-xl hover:opacity-90 transition-all shadow-md active:scale-90"
+                      style={{ backgroundColor: selectedColor }}
                     >
                       <Check className="w-4 h-4" />
                     </button>
@@ -225,8 +257,21 @@ export function TagManagementModal({
                     </button>
                   </div>
                 </div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">
-                  Stlač Enter pre uloženie
+                
+                <div className="flex items-center justify-center gap-2 px-2">
+                  {COLORS.map((c) => (
+                    <button
+                      key={c.value}
+                      onClick={() => setSelectedColor(c.value)}
+                      className={`w-6 h-6 rounded-full transition-all ${selectedColor === c.value ? 'scale-125 ring-2 ring-violet-500 ring-offset-2 dark:ring-offset-zinc-900' : 'opacity-40 hover:opacity-100 hover:scale-110'}`}
+                      style={{ backgroundColor: c.value }}
+                      title={c.name}
+                    />
+                  ))}
+                </div>
+
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center mt-1">
+                  Vyberte farbu a stlačte Enter
                 </p>
               </div>
             ) : (

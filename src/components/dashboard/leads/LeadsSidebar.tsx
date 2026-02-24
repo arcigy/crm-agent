@@ -24,10 +24,11 @@ interface LeadsSidebarProps {
   draftCount?: number;
   onCompose: () => void;
   customTags?: string[];
+  tagColors?: Record<string, string>;
   onManageTags?: () => void;
 }
 
-export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftCount = 0, onCompose, customTags = [], onManageTags }: LeadsSidebarProps) {
+export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftCount = 0, onCompose, customTags = [], tagColors = {}, onManageTags }: LeadsSidebarProps) {
   const [isMoreExpanded, setIsMoreExpanded] = React.useState(false);
 
   const mainItems = [
@@ -154,6 +155,7 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
                item={{ id: `tag:${tag}`, label: tag, icon: Tag }}
                isActive={selectedTab === `tag:${tag}`}
                onClick={() => onTabChange(`tag:${tag}`)}
+               color={tagColors[tag]}
              />
           ))}
           {customTags.length === 0 && (
@@ -166,15 +168,21 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
 }
 
 // Helper component for sidebar buttons to avoid repetition
-function SidebarButton({ item, isActive, onClick }: { item: any; isActive: boolean; onClick: () => void }) {
+function SidebarButton({ item, isActive, onClick, color }: { item: any; isActive: boolean; onClick: () => void; color?: string }) {
   return (
     <button
       onClick={onClick}
       className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[13px] transition-all duration-200 group mb-0.5 relative overflow-hidden"
       style={isActive ? {
-        background: "linear-gradient(135deg, rgba(124,58,237,0.3) 0%, rgba(109,40,217,0.2) 100%)",
-        border: "1.5px solid rgba(167,139,250,0.4)",
-        boxShadow: "0 4px 16px rgba(124,58,237,0.2), inset 0 1px 0 rgba(196,181,253,0.2)",
+        background: color 
+          ? `linear-gradient(135deg, ${color}4d 0%, ${color}33 100%)` 
+          : "linear-gradient(135deg, rgba(124,58,237,0.3) 0%, rgba(109,40,217,0.2) 100%)",
+        border: color 
+          ? `1.5px solid ${color}66` 
+          : "1.5px solid rgba(167,139,250,0.4)",
+        boxShadow: color 
+          ? `0 4px 16px ${color}33, inset 0 1px 0 rgba(255,255,255,0.1)` 
+          : "0 4px 16px rgba(124,58,237,0.2), inset 0 1px 0 rgba(196,181,253,0.2)",
         color: "rgba(255,255,255,0.95)"
       } : {
         background: "transparent",
@@ -202,14 +210,14 @@ function SidebarButton({ item, isActive, onClick }: { item: any; isActive: boole
       {isActive && (
         <div
           className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[55%] rounded-r-full"
-          style={{ background: "linear-gradient(180deg, #a78bfa, #7c3aed)" }}
+          style={{ background: color || "linear-gradient(180deg, #a78bfa, #7c3aed)" }}
         />
       )}
 
       <div className="flex items-center gap-3">
         <item.icon
           className={`w-4 h-4 flex-shrink-0 transition-all duration-200 ${!isActive ? 'group-hover:text-violet-400' : ''}`}
-          style={{ color: isActive ? "#c4b5fd" : undefined }}
+          style={{ color: isActive ? (color || "#c4b5fd") : undefined }}
         />
         <span className={`tracking-wide ${isActive ? "font-bold text-white" : "font-medium text-white/40 group-hover:text-violet-300 transition-colors"}`}>
           {item.label}

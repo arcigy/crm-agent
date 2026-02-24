@@ -40,6 +40,7 @@ interface LeadsListItemProps {
   isSelected?: boolean;
   onToggleSelection?: (e: React.MouseEvent, id: string) => void;
   tags?: string[];
+  tagColors?: Record<string, string>;
   onToggleTag?: (e: React.MouseEvent, msg: GmailMessage) => void;
 }
 
@@ -63,6 +64,7 @@ export const LeadsListItem = React.memo(({
   isSelected,
   onToggleSelection,
   tags = [],
+  tagColors = {},
   onToggleTag
 }: LeadsListItemProps) => {
 
@@ -144,14 +146,22 @@ export const LeadsListItem = React.memo(({
               </span>
               {tags.length > 0 && (
                 <div className="flex items-center gap-1.5 ml-3 flex-shrink-0">
-                  {tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-2 py-[2px] rounded-md text-[10px] font-black tracking-widest uppercase border border-violet-500/20 bg-violet-50 dark:bg-violet-900/10 text-violet-600 dark:text-violet-400"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+                  {tags.map((tag) => {
+                    const color = tagColors[tag] || "#8b5cf6";
+                    return (
+                      <span
+                        key={tag}
+                        className="px-2 py-[2px] rounded-md text-[10px] font-black tracking-widest uppercase border"
+                        style={{ 
+                          borderColor: `${color}40`,
+                          backgroundColor: `${color}15`,
+                          color: color
+                        }}
+                      >
+                        {tag}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -85,6 +85,8 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
     handleSaveContact,
     customTags,
     setCustomTags,
+    tagColors,
+    setTagColors,
     messageTags,
     isTagModalOpen,
     setIsTagModalOpen,
@@ -188,11 +190,16 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         onClose={() => setIsTagModalOpen(false)}
         email={tagModalEmail}
         customTags={customTags}
+        tagColors={tagColors}
         messageTags={messageTags}
-        onAddTag={(tag) => setCustomTags(prev => [...new Set([...prev, tag])].sort())}
+        onAddTag={(tag, color) => {
+          setCustomTags(prev => [...new Set([...prev, tag])].sort());
+          setTagColors(prev => ({ ...prev, [tag]: color || "#8b5cf6" }));
+        }}
         onToggleTag={handleToggleTag}
         onRemoveCustomTag={handleRemoveCustomTag}
         onRenameTag={handleRenameCustomTag}
+        onUpdateTagColor={(tag, color) => setTagColors(prev => ({ ...prev, [tag]: color }))}
       />
 
       {/* Sidebar for Navigation */}
@@ -208,6 +215,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
           draftCount={hasDraft ? 1 : 0}
           onCompose={() => setIsComposeOpen(true)}
           customTags={customTags}
+          tagColors={tagColors}
           onManageTags={() => {
             setTagModalEmail(null);
             setIsTagModalOpen(true);
@@ -316,6 +324,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
                           setIsTagModalOpen(true);
                         }}
                         tags={messageTags[(item as any).id] || []}
+                        tagColors={tagColors}
                       />
                     ))}
                   </div>
