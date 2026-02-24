@@ -45,21 +45,28 @@ export function TagManagementModal({
     { name: "Crimson", value: "#dc2626" },
     { name: "Radical Rose", value: "#f43f5e" },
     { name: "Hot Pink", value: "#ff007f" },
+    { name: "Deep Rose", value: "#be123c" },
+    // Violets/Purples
     { name: "Cyber Purple", value: "#d946ef" },
-    // Violets/Indigos
     { name: "Deep Fuchsia", value: "#c026d3" },
     { name: "Neon Violet", value: "#a855f7" },
+    { name: "Deep Violet", value: "#7c3aed" },
     { name: "Electric Indigo", value: "#6366f1" },
-    { name: "Royal Blue", value: "#4338ca" },
+    { name: "Deep Indigo", value: "#4338ca" },
+    // Blues/Cyans
+    { name: "Royal Blue", value: "#312e81" },
     { name: "Neon Blue", value: "#3b82f6" },
     { name: "Electric Cyan", value: "#00f2ff" },
-    // Teals/Greens
     { name: "Ice Teal", value: "#2dd4bf" },
     { name: "Sky Blue", value: "#0ea5e9" },
+    { name: "Marine Blue", value: "#1e40af" },
+    // Teals/Greens
     { name: "Cyan Spark", value: "#22d3ee" },
+    { name: "Deep Teal", value: "#134e4a" },
     { name: "Mint Neon", value: "#00ff9f" },
     { name: "Neon Green", value: "#39ff14" },
     { name: "Lime Shock", value: "#ccff00" },
+    { name: "Forest Green", value: "#166534" },
     // Yellows/Oranges
     { name: "Acid Green", value: "#84cc16" },
     { name: "Neon Yellow", value: "#fff200" },
@@ -121,41 +128,45 @@ export function TagManagementModal({
       />
       
       <div className="flex gap-4 items-stretch max-w-[800px] w-full justify-center relative scale-90 sm:scale-100">
-        {/* Side Panel Color Picker (Left) - Compact Neon Style */}
+        {/* Side Panel Color Picker (Left) - Enhanced Layout */}
         <div 
-          className={`w-[200px] bg-white/95 dark:bg-[#0b0c10]/95 backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-500 transform ${activePicker ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}
+          className={`w-[210px] bg-white/95 dark:bg-[#0b0c10]/95 backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-500 transform ${activePicker ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}
           style={{
             boxShadow: activePicker ? `0 0 30px -10px ${currentColor}30, 0 20px 40px -12px rgba(0,0,0,0.5)` : 'none'
           }}
         >
-          <div className="p-4 border-b border-violet-500/10">
-            <h3 className="text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-[0.25em] text-center">
+          <div className="p-5 border-b border-violet-500/10">
+            <h3 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-[0.25em] text-center">
               Neon Palette
             </h3>
           </div>
           
-          <div className="p-4 overflow-y-auto thin-scrollbar grid grid-cols-6 gap-2.5 auto-rows-max">
-            {COLORS.map((c) => (
-              <button
-                key={c.value}
-                onClick={() => {
-                  if (activePicker === 'new') setSelectedColor(c.value);
-                  else if (activePicker) onUpdateTagColor(activePicker, c.value);
-                }}
-                className={`w-5 h-5 rounded-full transition-all duration-300 hover:scale-125 shadow-sm border relative group flex-shrink-0 ${currentColor === c.value ? 'border-white scale-125 shadow-lg' : 'border-transparent'}`}
-                style={{ 
-                  backgroundColor: c.value,
-                  boxShadow: currentColor === c.value ? `0 0 12px -3px ${c.value}` : 'none'
-                }}
-                title={c.name}
-              >
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
-              </button>
-            ))}
-            
-            {/* Custom Color Mixer */}
-            <div className="col-span-6 mt-3 pt-3 border-t border-violet-500/10 flex flex-col gap-2">
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">Mixer</span>
+          <div className="p-5 flex-1 overflow-y-auto thin-scrollbar">
+            <div className="grid grid-cols-6 gap-2.5">
+              {COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => {
+                    if (activePicker === 'new') setSelectedColor(c.value);
+                    else if (activePicker) onUpdateTagColor(activePicker, c.value);
+                  }}
+                  className={`w-5 h-5 rounded-full transition-all duration-300 hover:scale-125 shadow-sm border relative group flex-shrink-0 ${currentColor === c.value ? 'border-white scale-125 shadow-lg' : 'border-transparent'}`}
+                  style={{ 
+                    backgroundColor: c.value,
+                    boxShadow: currentColor === c.value ? `0 0 12px -3px ${c.value}` : 'none'
+                  }}
+                  title={c.name}
+                >
+                  <div className="absolute inset-0 bg-white/10 opacity-group-hover:opacity-100 transition-opacity rounded-full" />
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="p-5 pt-0 mt-auto flex flex-col gap-4 bg-gradient-to-t from-white/50 dark:from-black/20 to-transparent">
+            {/* Custom Color Mixer - Moved lower */}
+            <div className="pt-4 border-t border-violet-500/10 flex flex-col gap-2">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">Custom Mix</span>
               <div className="flex items-center gap-2 justify-center">
                 <input 
                   type="color" 
@@ -178,12 +189,10 @@ export function TagManagementModal({
                 />
               </div>
             </div>
-          </div>
-          
-          <div className="p-4 pt-0 mt-auto">
+
             <button 
               onClick={() => setActivePicker(null)}
-              className="w-full p-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-[8px] font-black uppercase tracking-[0.2em] transition-all shadow-md active:scale-95 border border-white/5"
+              className="w-full p-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all shadow-lg active:scale-95 border border-white/5"
             >
               Uložiť
             </button>
