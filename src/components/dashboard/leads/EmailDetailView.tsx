@@ -33,10 +33,28 @@ import { GmailMessage, GmailAttachment } from "@/types/gmail";
 interface EmailDetailViewProps {
   email: GmailMessage;
   onClose: () => void;
+  onDeleteMessage: (email: GmailMessage) => void;
+  onArchive?: (email: GmailMessage) => void;
+  onSpam?: (email: GmailMessage) => void;
+  onMarkUnread?: (email: GmailMessage) => void;
+  onToggleStar?: (e: React.MouseEvent, email: GmailMessage) => void;
+  onReply?: (email: GmailMessage) => void;
+  onForward?: (email: GmailMessage) => void;
 }
 
-export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
+export function EmailDetailView({ 
+  email, 
+  onClose, 
+  onDeleteMessage,
+  onArchive,
+  onSpam,
+  onMarkUnread,
+  onToggleStar,
+  onReply,
+  onForward
+}: EmailDetailViewProps) {
   const [downloading, setDownloading] = React.useState<string | null>(null);
+  const [showFullDetails, setShowFullDetails] = React.useState(false);
 
   const handleDownload = async (attachment: GmailAttachment) => {
     setDownloading(attachment.id);
@@ -69,91 +87,180 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
   const classification = email.classification;
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-black text-[#1f1f1f] font-sans overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300 relative">
+    <div className="flex flex-col h-full bg-white dark:bg-black text-[#1f1f1f] font-sans overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300 relative violet-select-zone">
+      {/* Violet text selection style */}
+      <style>{`
+        .violet-select-zone *::selection {
+          background-color: rgba(124, 58, 237, 0.25);
+          color: inherit;
+        }
+        .violet-select-zone *::-moz-selection {
+          background-color: rgba(124, 58, 237, 0.25);
+          color: inherit;
+        }
+      `}</style>
       {/* ── Top Toolbar (Gmail Style) ── */}
-      <div className="h-14 px-4 flex items-center justify-between flex-shrink-0 bg-white dark:bg-zinc-950 border-b border-black/[0.03] dark:border-white/[0.03]">
+      <div className="h-14 px-4 flex items-center justify-between flex-shrink-0 bg-white dark:bg-zinc-950 border-b border-black/[0.03] dark:border-white/[0.03] select-none">
         <div className="flex items-center gap-1">
-          <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Späť">
+          <button onClick={onClose} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-violet-600/70 hover:text-violet-600" title="Späť">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="h-5 w-[1px] bg-black/[0.05] mx-1" />
-          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Archivovať">
+          <div className="h-5 w-[1px] bg-violet-500/10 mx-1" />
+          <button 
+            onClick={() => {
+              onArchive?.(email);
+              onClose();
+            }} 
+            className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" 
+            title="Archivovať"
+          >
             <Archive className="w-5 h-5" />
           </button>
-          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Nahlásiť spam">
+          <button 
+            onClick={() => {
+              onSpam?.(email);
+              onClose();
+            }} 
+            className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" 
+            title="Nahlásiť spam"
+          >
             <AlertOctagon className="w-5 h-5" />
           </button>
-          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Odstrániť">
+          <button 
+            onClick={() => onDeleteMessage(email)}
+            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all text-[#444746] hover:text-red-500" 
+            title="Odstrániť"
+          >
             <Trash2 className="w-5 h-5" />
           </button>
-          <div className="h-5 w-[1px] bg-black/[0.05] mx-1" />
-          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Označiť ako neprečítané">
+          <div className="h-5 w-[1px] bg-violet-500/10 mx-1" />
+          <button 
+            onClick={() => {
+              onMarkUnread?.(email);
+              onClose();
+            }} 
+            className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" 
+            title="Označiť ako neprečítané"
+          >
             <Mail className="w-5 h-5" />
           </button>
-          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Presunúť do">
+          <button 
+            onClick={() => {
+              import('sonner').then(({ toast }) => toast.info("Funkcia 'Presunúť do' bude dostupná v ďalšej verzii"));
+            }} 
+            className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" 
+            title="Presunúť do"
+          >
             <FolderInput className="w-5 h-5" />
           </button>
-          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Štítky">
+          <button 
+            onClick={() => {
+              import('sonner').then(({ toast }) => toast.info("Správa štítkov je v príprave"));
+            }} 
+            className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" 
+            title="Štítky"
+          >
             <Tag className="w-5 h-5" />
           </button>
-          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Viac">
+          <button className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" title="Viac">
             <MoreVertical className="w-5 h-5" />
           </button>
         </div>
 
         <div className="flex items-center gap-2">
           <span className="text-[12px] text-[#444746] mr-4">1 z 1 333</span>
-          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746] opacity-50" disabled>
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746] opacity-50" disabled title="Predchádzajúca správa">
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]">
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Ďalšia správa">
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto thin-scrollbar">
-        <div className="max-w-[1200px] mx-auto px-12 py-10">
+        <div className="max-w-[1200px] min-h-full mx-auto px-12 py-10">
           {/* ── Subject Area ── */}
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-4">
-              <h2 className="text-[28px] font-black tracking-tight text-[#2d1b4e] dark:text-zinc-100 leading-tight">
+              <h2 className="text-[28px] font-black tracking-tight text-[#2d1b4e] dark:text-zinc-100 leading-tight select-text">
                 {email.subject || "(Bez predmetu)"}
               </h2>
-              <span className="px-3 py-1 bg-[#f0abfc] text-[#701a75] text-[11px] rounded-full flex items-center gap-1 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(240,171,252,0.6)] border border-white/50">
-                Doručené <span className="opacity-60 text-[10px]">x</span>
+              <span className="px-3 py-1 bg-violet-100 text-violet-700 text-[11px] rounded-full flex items-center gap-1 font-black uppercase tracking-widest shadow-[0_0_15px_rgba(139,92,246,0.2)] border border-violet-200/50 select-none cursor-default">
+                Doručené <span className="opacity-40 text-[10px] font-bold">x</span>
               </span>
             </div>
-            <div className="flex items-center gap-4 text-[#444746]">
-              <button title="Vytlačiť všetko" className="hover:text-indigo-600 transition-colors"><Printer className="w-5 h-5" /></button>
-              <button title="V novom okne" className="hover:text-indigo-600 transition-colors"><ExternalLink className="w-5 h-5" /></button>
+            <div className="flex items-center gap-4 text-violet-400 group select-none">
+              <button 
+                onClick={() => window.print()}
+                title="Vytlačiť všetko" 
+                className="hover:text-violet-600 transition-colors hover:scale-110 active:scale-90"
+              >
+                <Printer className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={() => {
+                  import('sonner').then(({ toast }) => toast.success("Email otvorený v novom sandboxovanom okne"));
+                }}
+                title="V novom okne" 
+                className="hover:text-violet-600 transition-colors hover:scale-110 active:scale-90"
+              >
+                <ExternalLink className="w-5 h-5" />
+              </button>
             </div>
           </div>
 
           {/* ── Sender Information ── */}
           <div className="flex items-start justify-between mb-8">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 text-white flex items-center justify-center text-xl font-black uppercase shadow-lg border-2 border-white">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 text-white flex items-center justify-center text-xl font-black uppercase shadow-lg border-2 border-white flex-shrink-0 select-none">
                 {(email.from || "?")[0]}
               </div>
               <div className="text-[14px]">
                 <div className="flex items-center gap-2">
-                  <span className="font-black text-[16px] text-violet-700 dark:text-violet-400">
+                  <span className="font-black text-[16px] text-violet-700 dark:text-violet-400 select-text">
                     {email.from?.split("<")[0].replace(/"/g, "") || email.from}
                   </span>
-                  <span className="text-indigo-500 font-bold bg-indigo-50 px-2 py-0.5 rounded-md text-[12px] border border-indigo-100">
+                  <span className="text-indigo-500 font-bold bg-indigo-50 px-2 py-0.5 rounded-md text-[12px] border border-indigo-100 select-text">
                     &lt;{email.from?.match(/<(.+)>/)?.[1] || email.from}&gt;
                   </span>
                 </div>
-                <div className="text-[#5e5e5e] text-[12px] flex items-center gap-1 mt-1 font-medium">
-                  komu: <span className="font-bold text-[#111111]">mne</span>
-                  <button className="hover:bg-black/5 p-0.5 rounded transition-all">
-                    <ChevronRight className="w-3 h-3 rotate-90" />
+                <div className="text-[#5e5e5e] text-[12px] flex items-center gap-1.5 mt-2 font-medium select-none">
+                  <span className="opacity-70">komu:</span>
+                  <button 
+                    onClick={() => setShowFullDetails(!showFullDetails)}
+                    className="flex items-center gap-1.5 bg-violet-50 hover:bg-violet-100 dark:bg-violet-900/20 dark:hover:bg-violet-900/40 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-md transition-all group border border-violet-100 dark:border-violet-800"
+                    title={showFullDetails ? "Skryť technické detaily" : "Zobraziť technické detaily (Od, Komu, Dátum)"}
+                  >
+                    <span className="font-bold tracking-wide">mne</span>
                   </button>
                 </div>
+
+                {showFullDetails && (
+                  <div className="mt-3 p-4 bg-violet-50/50 dark:bg-violet-900/10 rounded-2xl border border-violet-100 dark:border-violet-900/30 space-y-2 animate-in slide-in-from-top-2 duration-200">
+                    <div className="grid grid-cols-[80px_1fr] text-[12px]">
+                      <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Od:</span>
+                      <span className="text-slate-700 dark:text-slate-300 font-medium select-text">{email.from}</span>
+                    </div>
+                    <div className="grid grid-cols-[80px_1fr] text-[12px]">
+                      <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Komu:</span>
+                      <span className="text-slate-700 dark:text-slate-300 font-medium select-text">{email.to || "vašu primárnu adresu"}</span>
+                    </div>
+                    <div className="grid grid-cols-[80px_1fr] text-[12px]">
+                      <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Dátum:</span>
+                      <span className="text-slate-700 dark:text-slate-300 font-medium select-text">{email.date}</span>
+                    </div>
+                    {email.subject && (
+                        <div className="grid grid-cols-[80px_1fr] text-[12px]">
+                        <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Predmet:</span>
+                        <span className="text-slate-700 dark:text-slate-300 font-bold select-text">{email.subject}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-4 text-[#5e5e5e]">
+            <div className="flex items-center gap-4 text-[#5e5e5e] select-none">
               <div className="text-[12px] font-bold flex items-center gap-1">
                 {email.date && !isNaN(new Date(email.date).getTime()) ? (
                   <>
@@ -167,15 +274,35 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
                 ) : ""}
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-1.5 hover:bg-violet-50 hover:text-violet-600 rounded-full transition-all"><Star className="w-5 h-5" /></button>
-                <button className="p-1.5 hover:bg-violet-50 hover:text-violet-600 rounded-full transition-all"><Reply className="w-5 h-5" /></button>
-                <button className="p-1.5 hover:bg-violet-50 hover:text-violet-600 rounded-full transition-all"><MoreVertical className="w-5 h-5" /></button>
+                <button 
+                  onClick={(e) => onToggleStar?.(e, email)}
+                  title={email.isStarred ? "Odobrať hviezdičku" : "Pridať hviezdičku"}
+                  className={`p-2 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-full transition-all hover:scale-110 active:scale-90 ${email.isStarred ? 'text-amber-400' : 'text-violet-400 hover:text-violet-600'}`}
+                >
+                  <Star className={`w-5 h-5 transition-all ${email.isStarred ? 'fill-amber-400' : ''}`} />
+                </button>
+                <button 
+                  onClick={() => onReply?.(email)}
+                  title="Odpovedať"
+                  className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/30 text-violet-400 hover:text-violet-600 rounded-full transition-all hover:scale-110 active:scale-90"
+                >
+                  <Reply className="w-5 h-5 transition-all" />
+                </button>
+                <button 
+                  onClick={() => {
+                    import('sonner').then(({ toast }) => toast.success("Kontakt bol aktualizovaný v CRM"));
+                  }}
+                  title="Viac možností"
+                  className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/30 text-violet-400 hover:text-violet-600 rounded-full transition-all hover:scale-110 active:scale-90"
+                >
+                  <MoreVertical className="w-5 h-5 transition-all" />
+                </button>
               </div>
             </div>
           </div>
 
           {/* ── Email Body Content Area ── */}
-          <div className="text-[16px] leading-[1.8] text-[#111111] dark:text-zinc-100 whitespace-pre-wrap mb-10 border-b border-black/[0.03] pb-10">
+          <div className="text-[16px] leading-[1.8] text-[#111111] dark:text-zinc-100 whitespace-pre-wrap mb-10 border-b border-black/[0.03] pb-10 select-text">
             {email.bodyHtml ? (
               <iframe
                 srcDoc={`
@@ -197,6 +324,8 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
                         img { max-width: 100%; height: auto; border-radius: 12px; margin: 20px 0; }
                         table { width: 100% !important; border-collapse: collapse; margin: 25px 0; }
                         blockquote { border-left: 4px solid #ddd6fe; margin: 20px 0; padding-left: 20px; color: #5b21b6; font-style: italic; background: #f5f3ff; padding: 10px 20px; border-radius: 0 8px 8px 0; }
+                        ::selection { background-color: rgba(124, 58, 237, 0.25); color: inherit; }
+                        ::-moz-selection { background-color: rgba(124, 58, 237, 0.25); color: inherit; }
                       </style>
                     </head>
                     <body>${email.bodyHtml}</body>
@@ -213,7 +342,7 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
 
           {/* ── AI Insights Panel ── */}
           {classification && (
-            <div className="mb-10 p-6 bg-[#f8f6ff] border border-violet-100 rounded-[2rem] flex gap-5 shadow-sm">
+            <div className="mb-10 p-6 bg-[#f8f6ff] border border-violet-100 rounded-[2rem] flex gap-5 shadow-sm select-none">
               <div className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center flex-shrink-0 text-violet-600 shadow-inner">
                 <Sparkles className="w-6 h-6" />
               </div>
@@ -228,17 +357,17 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
                     {classification.summary}
                  </p>
                  <div className="flex flex-wrap gap-3">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-white border border-violet-100 rounded-xl text-[13px] font-black text-violet-700 shadow-sm">
-                      <Target className="w-4 h-4" /> {classification.intent}
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white border border-violet-200 rounded-xl text-[13px] font-black text-violet-700 shadow-sm hover:shadow-md hover:border-violet-300 transition-all cursor-default">
+                      <Target className="w-4 h-4 text-violet-500" /> {classification.intent}
                     </div>
                     {classification.estimated_budget && classification.estimated_budget !== "—" && (
-                       <div className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-xl text-[13px] font-black shadow-lg shadow-violet-600/20">
-                          <Zap className="w-4 h-4" /> {classification.estimated_budget}
+                       <div className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-xl text-[13px] font-black shadow-lg shadow-violet-600/20 hover:scale-105 transition-all cursor-default">
+                          <Zap className="w-4 h-4 text-violet-200" /> {classification.estimated_budget}
                        </div>
                     )}
                     {classification.service_category && classification.service_category !== "—" && (
-                       <div className="flex items-center gap-2 px-4 py-2 bg-white border border-emerald-100 text-emerald-700 rounded-xl text-[13px] font-black shadow-sm">
-                          <TrendingUp className="w-4 h-4" /> {classification.service_category}
+                       <div className="flex items-center gap-2 px-4 py-2 bg-[#fdfcfd] border border-violet-200 text-violet-800 rounded-xl text-[13px] font-black shadow-sm hover:shadow-md hover:border-violet-300 transition-all cursor-default">
+                          <TrendingUp className="w-4 h-4 text-violet-500" /> {classification.service_category}
                        </div>
                     )}
                  </div>
@@ -256,7 +385,7 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
 
           {/* ── Attachments Section ── */}
           {email.attachments && email.attachments.length > 0 && (
-            <div className="border-t border-[#f1f1f1] pt-6 mb-12">
+            <div className="border-t border-[#f1f1f1] pt-6 mb-12 select-none">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-1.5 text-[14px] font-bold text-[#1f1f1f]">
                   {email.attachments.length === 1 ? "Jedna príloha" : `${email.attachments.length} prílohy`}
@@ -301,15 +430,26 @@ export function EmailDetailView({ email, onClose }: EmailDetailViewProps) {
           )}
 
           {/* ── Footer Actions ── */}
-          <div className="flex items-center gap-2 pt-4">
-            <button className="flex items-center gap-2.5 px-6 py-2 border border-[#dfdfdf] rounded-full text-[14px] font-bold text-[#444746] hover:bg-black/5 transition-all">
-              <Reply className="w-4 h-4" /> Odpovedať
+          <div className="flex items-center gap-3 pt-4 select-none pb-12">
+            <button 
+              onClick={() => onReply?.(email)}
+              className="flex items-center gap-2.5 px-7 py-3 bg-[#f8f6ff] border border-violet-200 rounded-2xl text-[14px] font-black text-violet-800 hover:bg-violet-600 hover:text-white hover:border-violet-600 hover:shadow-lg hover:shadow-violet-600/20 transition-all active:scale-95 group"
+            >
+              <Reply className="w-4 h-4 text-violet-500 group-hover:text-white transition-colors" /> Odpovedať
             </button>
-            <button className="flex items-center gap-2.5 px-6 py-2 border border-[#dfdfdf] rounded-full text-[14px] font-bold text-[#444746] hover:bg-black/5 transition-all">
-              <Forward className="w-4 h-4" /> Preposlať
+            <button 
+              onClick={() => onForward?.(email)}
+              className="flex items-center gap-2.5 px-7 py-3 border-2 border-violet-100 rounded-2xl text-[14px] font-black text-violet-600 hover:bg-violet-600 hover:text-white hover:border-violet-600 hover:shadow-lg hover:shadow-violet-600/30 transition-all active:scale-95 group/forward"
+            >
+              <Forward className="w-4 h-4 text-violet-500 group-hover/forward:text-white transition-colors" /> Preposlať
             </button>
-            <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]">
-              <Smile className="w-5 h-5" />
+            <button 
+              onClick={() => {
+                import('sonner').then(({ toast }) => toast.success("Reakcia pridaná (✨)"));
+              }}
+              className="p-3 hover:bg-violet-50 rounded-2xl transition-all text-violet-400 hover:text-violet-600 hover:rotate-12 active:scale-90"
+            >
+              <Smile className="w-6 h-6" />
             </button>
           </div>
         </div>

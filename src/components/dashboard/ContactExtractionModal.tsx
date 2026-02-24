@@ -135,12 +135,12 @@ export function ContactExtractionModal({
             />
             <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
 
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-violet-50/30">
                     <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                        <User className="w-5 h-5 text-indigo-600" />
+                        <User className="w-5 h-5 text-violet-600" />
                         Nájdený Kontakt
                     </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
+                    <button onClick={onClose} className="p-2 hover:bg-violet-100 rounded-full transition-colors text-violet-400">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -215,14 +215,14 @@ export function ContactExtractionModal({
                 <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors text-sm"
+                        className="px-6 py-3 rounded-xl font-bold text-gray-400 hover:bg-violet-50 hover:text-violet-600 transition-colors text-sm"
                     >
                         Zrušiť
                     </button>
                     <button
                         onClick={handleConfirm}
                         disabled={isSaving}
-                        className="px-8 py-3 rounded-xl bg-gray-900 text-white font-bold hover:bg-black transition-all shadow-lg shadow-gray-200 active:scale-95 flex items-center gap-2"
+                        className="px-8 py-3 rounded-xl bg-violet-600 text-white font-black uppercase tracking-widest text-xs hover:bg-violet-700 transition-all shadow-lg shadow-violet-600/30 active:scale-95 flex items-center gap-2 border border-violet-500/50"
                     >
                         {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                         Potvrdiť a pridať kontakt

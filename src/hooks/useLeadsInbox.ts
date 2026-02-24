@@ -23,7 +23,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [isConnected, setIsConnected] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedTab, setSelectedTab] = React.useState<
-    "all" | "unread" | "leads" | "sms" | "calls" | "starred" | "snoozed" | "sent" | "drafts" | "shopping" | "more"
+    "all" | "unread" | "leads" | "sms" | "calls" | "starred" | "snoozed" | "sent" | "drafts" | "shopping" | "more" | "archive" | "spam" | "trash"
   >("all");
   const [selectedEmail, setSelectedEmail] = React.useState<GmailMessage | null>(
     null,
@@ -51,6 +51,13 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [isGeneratingDraft, setIsGeneratingDraft] = React.useState(false);
   const [customCommandMode, setCustomCommandMode] = React.useState(false);
   const [customPrompt, setCustomPrompt] = React.useState("");
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [isComposeOpen, setIsComposeOpen] = React.useState(false);
+  const [hasDraft, setHasDraft] = React.useState(false);
+  const [draftData, setDraftData] = React.useState({ to: "", subject: "", body: "" });
+  const [localSentMessages, setLocalSentMessages] = React.useState<GmailMessage[]>([]);
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const itemsPerPage = 50;
 
   const analyzedIds = React.useRef<Set<string>>(new Set());
 
@@ -85,9 +92,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
                 if (dbMatch) {
                   classification = dbMatch.metadata.classification;
                 } else {
-                  const saved = localStorage.getItem(
-                    `ai_classify_${newMsg.id}`,
-                  );
+                  const saved = typeof window !== 'undefined' ? localStorage.getItem(`ai_classify_${newMsg.id}`) : null;
                   if (saved) classification = JSON.parse(saved);
                 }
               }
@@ -104,14 +109,18 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       }
 
       // Fetch Android Logs
-      if (!isBackground) {
-        const androidRes = await fetch("/api/android-logs");
-        if (androidRes.ok) {
-          const androidData = await androidRes.json();
-          if (androidData.success) {
-            setAndroidLogs(androidData.logs);
+      try {
+        if (!isBackground) {
+          const androidRes = await fetch("/api/android-logs");
+          if (androidRes.ok) {
+            const androidData = await androidRes.json();
+            if (androidData.success) {
+              setAndroidLogs(androidData.logs);
+            }
           }
         }
+      } catch (e) {
+        console.error("Android logs fetch error", e);
       }
 
       // DEVELOPMENT MOCK DATA: Inject fake emails for visualization
@@ -150,7 +159,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
               category: "Administratíva",
               nextStep: "Preveriť záznamy u účtovníčky"
             },
-             {
+            {
               from: "Google Cloud <noreply@google.com>",
               subject: "Monthly Statement: February 2026",
               body: "Your monthly statement for Google Cloud is now available. Your total for this month is $12.45.\n\nYou can view and download your statement in the Cloud Console.",
@@ -172,21 +181,40 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
             }
           ];
 
-          const mocks: GmailMessage[] = Array.from({ length: 40 }).map((_, i) => {
+          const mocks: GmailMessage[] = Array.from({ length: 155 }).map((_, i) => {
             const template = mockTemplates[i % mockTemplates.length];
+            let isRead = false;
+            let isStarred = false;
+            try {
+              if (typeof window !== 'undefined') {
+                isRead = localStorage.getItem(`email_read_mock-${i}`) === "true";
+                isStarred = localStorage.getItem(`email_starred_mock-${i}`) === "true";
+              }
+            } catch (e) {
+              console.warn("localStorage access denied", e);
+            }
+
+            const isUrgent = template.subject.toLowerCase().includes("súrne") || 
+                             template.body.toLowerCase().includes("súrne") ||
+                             template.subject.toLowerCase().includes("urgent") ||
+                             template.subject.includes("⚠️");
+
+            let mockLabels: string[] = ["INBOX"];
+
             return {
               id: `mock-${i}`,
               threadId: `thread-${i}`,
               from: template.from,
-              subject: template.subject,
+              subject: `${template.subject} #${i + 1}`,
               snippet: template.snippet,
-              date: new Date(Date.now() - i * 7200000).toISOString(),
-              isRead: i > 2,
+              date: new Date(Date.now() - i * 1800000).toISOString(), // Spread over time
+              isRead: isRead,
+              isStarred: isStarred,
               body: template.body,
-              labels: [],
+              labels: mockLabels,
               classification: {
                 intent: (template.intent as any),
-                priority: (i % 7 === 0 ? "vysoka" : "stredna") as any,
+                priority: (isUrgent ? "vysoka" : "stredna") as any,
                 estimated_budget: template.budget,
                 summary: template.body.substring(0, 80) + "...",
                 next_step: template.nextStep,
@@ -201,7 +229,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     } catch (error) {
       console.error("Failed to fetch inbox:", error);
     } finally {
-      if (!isBackground) setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -225,8 +253,19 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   };
 
   const handleOpenEmail = async (msg: GmailMessage) => {
+    if (msg.id === "local-draft-1") {
+      setIsComposeOpen(true);
+      window.dispatchEvent(new CustomEvent("unminimize-compose"));
+      return;
+    }
+
     setSelectedEmail(msg);
     if (!msg.isRead) {
+      if (typeof window !== 'undefined' && msg.id.startsWith("mock-")) {
+        const index = msg.id.split("-")[1];
+        localStorage.setItem(`email_read_${index}`, "true");
+      }
+      
       setMessages((prev) =>
         prev.map((m) => (m.id === msg.id ? { ...m, isRead: true } : m)),
       );
@@ -239,6 +278,201 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       } catch (error) {
         console.error("Failed to mark as read:", error);
       }
+    }
+  };
+
+  const handleToggleStar = async (e: React.MouseEvent, msg: GmailMessage) => {
+    e.stopPropagation();
+    
+    const newIsStarred = !msg.isStarred;
+    
+    // Save to localStorage for mock emails
+    if (typeof window !== 'undefined' && msg.id.startsWith("mock-")) {
+      const index = msg.id.split("-")[1];
+      localStorage.setItem(`email_starred_mock-${index}`, newIsStarred.toString());
+    }
+
+    // Optimistic UI update
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msg.id ? { ...m, isStarred: newIsStarred } : m)),
+    );
+
+    if (selectedEmail?.id === msg.id) {
+      setSelectedEmail({ ...selectedEmail, isStarred: newIsStarred });
+    }
+    
+    if (msg.id.startsWith("mock-")) return;
+    
+    try {
+      await fetch("/api/google/gmail", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          messageId: msg.id,
+          action: newIsStarred ? "star" : "unstar" 
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to toggle star:", error);
+      // Revert on failure
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? { ...m, isStarred: !newIsStarred } : m)),
+      );
+      toast.error("Nepodarilo sa zmeniť stav hviezdičky");
+    }
+  };
+
+  const handleDeleteMessage = async (e: React.MouseEvent | null, msg: GmailMessage) => {
+    if (e) e.stopPropagation();
+
+    const toastId = toast.loading("Odstraňujem správu...");
+    
+    // Optimistic UI update
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id === msg.id) {
+          const currentLabels = m.labels || [];
+          return { 
+            ...m, 
+            labels: [...currentLabels.filter(l => l !== "INBOX"), "TRASH"] 
+          };
+        }
+        return m;
+      }),
+    );
+
+    if (selectedEmail?.id === msg.id) {
+      setSelectedEmail(null);
+    }
+
+    if (msg.id.startsWith("mock-") || msg.id.startsWith("local-sent-") || msg.id === "local-draft-1") {
+      toast.success("Správa bola presunutá do koša", { id: toastId });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/google/gmail", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          messageId: msg.id,
+          action: "trash" 
+        }),
+      });
+
+      if (res.ok) {
+        toast.success("Správa bola presunutá do koša", { id: toastId });
+      } else {
+        throw new Error("Failed to trash");
+      }
+    } catch (error) {
+      console.error("Failed to delete message:", error);
+      // Revert on failure
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id === msg.id) {
+            const currentLabels = m.labels || [];
+            return { 
+              ...m, 
+              labels: [...currentLabels.filter(l => l !== "TRASH"), "INBOX"] 
+            };
+          }
+          return m;
+        }),
+      );
+      toast.error("Nepodarilo sa odstrániť správu", { id: toastId });
+    }
+  };
+
+  const handleArchiveMessage = async (msg: GmailMessage) => {
+    const toastId = toast.loading("Archivujem správu...");
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id === msg.id) {
+          const currentLabels = m.labels || [];
+          return { 
+            ...m, 
+            labels: [...currentLabels.filter(l => l !== "INBOX"), "ARCHIVE"] 
+          };
+        }
+        return m;
+      }),
+    );
+    if (selectedEmail?.id === msg.id) setSelectedEmail(null);
+
+    if (msg.id.startsWith("mock-") || msg.id.startsWith("local-sent-") || msg.id === "local-draft-1") {
+      toast.success("Správa bola archivovaná", { id: toastId });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/google/gmail", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId: msg.id, action: "archive" }),
+      });
+      if (res.ok) toast.success("Správa bola archivovaná", { id: toastId });
+      else throw new Error();
+    } catch (e) {
+      toast.error("Chyba pri archivácii", { id: toastId });
+    }
+  };
+
+  const handleSpamMessage = async (msg: GmailMessage) => {
+    const toastId = toast.loading("Nahlasujem spam...");
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id === msg.id) {
+          const currentLabels = m.labels || [];
+          return { 
+            ...m, 
+            labels: [...currentLabels.filter(l => l !== "INBOX"), "SPAM"] 
+          };
+        }
+        return m;
+      }),
+    );
+    if (selectedEmail?.id === msg.id) setSelectedEmail(null);
+
+    // Mock handling
+    if (msg.id.startsWith("mock-")) {
+      toast.success("Nahlásené ako spam", { id: toastId });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/google/gmail", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId: msg.id, action: "spam" }),
+      });
+      if (res.ok) toast.success("Nahlásené ako spam", { id: toastId });
+      else throw new Error();
+    } catch (e) {
+      toast.error("Chyba pri nahlasovaní", { id: toastId });
+    }
+  };
+
+  const handleMarkUnreadMessage = async (msg: GmailMessage) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msg.id ? { ...m, isRead: false } : m)),
+    );
+    if (selectedEmail?.id === msg.id) setSelectedEmail(null);
+
+    if (msg.id.startsWith("mock-")) {
+      toast.success("Označené ako neprečítané");
+      return;
+    }
+
+    try {
+      await fetch("/api/google/gmail", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId: msg.id, action: "unread" }),
+      });
+      toast.success("Označené ako neprečítané");
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -280,10 +514,12 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          localStorage.setItem(
-            `ai_classify_${msg.id}`,
-            JSON.stringify(data.classification),
-          );
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(
+              `ai_classify_${msg.id}`,
+              JSON.stringify(data.classification),
+            );
+          }
           setMessages((prev) =>
             prev.map((m) =>
               m.id === msg.id
@@ -490,10 +726,31 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       (msg.snippet || "").toLowerCase().includes(lowerSearch);
 
     if (selectedTab === "unread") return matchesSearch && !msg.isRead;
+    if (selectedTab === "starred") return matchesSearch && msg.isStarred;
+    if (selectedTab === "sent") return matchesSearch && msg.labels?.includes("SENT");
+    if (selectedTab === "drafts") return matchesSearch && msg.labels?.includes("DRAFT");
+    if (selectedTab === "snoozed") return matchesSearch && msg.labels?.includes("SNOOZED");
+    if (selectedTab === "shopping") return matchesSearch && msg.labels?.includes("CATEGORY_PURCHASES");
+    if (selectedTab === "spam") return matchesSearch && msg.labels?.includes("SPAM");
+    if (selectedTab === "trash") return matchesSearch && msg.labels?.includes("TRASH");
+    if (selectedTab === "all") return matchesSearch && (!msg.labels || msg.labels.includes("INBOX") || msg.labels.length === 0);
+    
     // For now, these tabs are placeholders, so we show all messages
-    if (["all", "leads", "starred", "snoozed", "sent", "drafts", "shopping", "more"].includes(selectedTab)) {
+    if (["leads", "more", "archive"].includes(selectedTab)) {
       return matchesSearch;
     }
+    return false;
+  });
+
+  const filteredLocalSent = localSentMessages.filter((msg) => {
+    const lowerSearch = searchQuery.toLowerCase();
+    const matchesSearch =
+      (msg.subject || "").toLowerCase().includes(lowerSearch) ||
+      (msg.snippet || "").toLowerCase().includes(lowerSearch);
+
+    if (selectedTab === "sent") return matchesSearch && msg.labels?.includes("SENT");
+    if (selectedTab === "all") return matchesSearch;
+    
     return false;
   });
 
@@ -509,7 +766,34 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     return false;
   });
 
+  const shouldShowDraft = hasDraft && selectedTab === "drafts";
+
+  const localDraftItem = shouldShowDraft ? [{
+    id: "local-draft-1",
+    threadId: "draft",
+    from: "Koncept (Nová správa)",
+    subject: (draftData.subject || "Bez predmetu") + " (Rozpísané)",
+    snippet: draftData.body || draftData.to || "Zatiaľ bez textu...",
+    date: new Date().toISOString(),
+    isRead: true,
+    isStarred: false,
+    body: draftData.body,
+    labels: ["DRAFT"],
+    classification: {
+      intent: "notifikácia" as any,
+      priority: "stredna" as any,
+      estimated_budget: "—",
+      summary: "Neodoslaný koncept. Kliknite pre pokračovanie v písaní.",
+      next_step: "Dokončiť a odoslať správu",
+      service_category: "Koncepty",
+      sentiment: "pozitivny" as any
+    },
+    itemType: "email" as const
+  } as any] : [];
+
   const allItems = [
+    ...localDraftItem,
+    ...filteredLocalSent.map((m) => ({ ...m, itemType: "email" as const })),
     ...filteredMessages.map((m) => ({ ...m, itemType: "email" as const })),
     ...filteredLogs.map((l) => ({ ...l, itemType: "android" as const })),
   ].sort((a, b) => {
@@ -521,6 +805,32 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     ).getTime();
     return dateB - dateA;
   });
+
+  const totalPages = Math.ceil(allItems.length / itemsPerPage);
+  const paginatedItems = allItems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const toggleSelection = React.useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAll = React.useCallback((ids: string[]) => {
+    setSelectedIds(prev => {
+      if (prev.size === ids.length) return new Set();
+      return new Set(ids);
+    });
+  }, []);
+
+  const clearSelection = React.useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
 
   return {
     messages,
@@ -547,14 +857,58 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     setCustomCommandMode,
     customPrompt,
     setCustomPrompt,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    paginatedItems,
     fetchMessages,
     handleConnect,
     handleOpenEmail,
+    handleToggleStar,
     handleManualAnalyze,
     handleToggleAction,
     handleDraftReply,
     handleExecuteCustomCommand,
     handleSaveContact,
     analyzeEmail,
+    isComposeOpen,
+    setIsComposeOpen,
+    hasDraft,
+    setHasDraft,
+    draftData,
+    setDraftData,
+    handleDeleteMessage,
+    handleArchiveMessage,
+    handleSpamMessage,
+    handleMarkUnreadMessage,
+    selectedIds,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    handleAddLocalSentMessage: (data: { to: string; subject: string; body: string }) => {
+      const newSentMsg = {
+        id: `local-sent-${Date.now()}`,
+        threadId: `thread-sent-${Date.now()}`,
+        from: "Ja <ja@crm.arcigy.cloud>",
+        to: data.to,
+        subject: data.subject,
+        snippet: data.body.substring(0, 100),
+        date: new Date().toISOString(),
+        isRead: true,
+        isStarred: false,
+        body: data.body,
+        labels: ["SENT"],
+        classification: {
+          intent: "notifikácia" as any,
+          priority: "stredna" as any,
+          estimated_budget: "—",
+          summary: data.body.substring(0, 80) + "...",
+          next_step: "—",
+          service_category: "Odoslané",
+          sentiment: "pozitivny" as any
+        }
+      } as any;
+      setLocalSentMessages(prev => [newSentMsg, ...prev]);
+    }
   };
 }

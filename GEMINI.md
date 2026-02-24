@@ -143,3 +143,7 @@ Kľúčové kľúče v stave:
 
 - namespaced IDs (napr. contact_google_id) riešia kolízie pri misiách s viacerými entitami.
 - isParallelSafe: true umožnuje asynchrónny beh (napr. generovanie textu), false vynucuje sekvenciu pre zápis do DB.
+
+### 🛠️ 12. AUTOMATICKÁ ÚDRŽBA PROSTREDIA
+- **ALWAYS RESTART:** Po každej finálnej úprave kódu MUSÍŠ automaticky reštartovať lokálny vývojový server (`npm run dev`), aby mal užívateľ web vždy dostupný.
+- Ak port 3000 koliduje, použi: `taskkill /F /IM node.exe /T; npm run dev`.

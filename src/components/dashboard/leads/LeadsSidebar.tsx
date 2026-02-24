@@ -9,69 +9,207 @@ import {
   File, 
   Tag, 
   ChevronDown, 
+  ChevronUp,
   Plus,
-  Edit2
+  PenLine,
+  Archive,
+  AlertOctagon,
+  Trash2
 } from "lucide-react";
 
 interface LeadsSidebarProps {
-  selectedTab: "all" | "unread" | "leads" | "sms" | "calls" | "starred" | "snoozed" | "sent" | "drafts" | "shopping" | "more";
+  selectedTab: "all" | "unread" | "leads" | "sms" | "calls" | "starred" | "snoozed" | "sent" | "drafts" | "shopping" | "more" | "archive" | "spam" | "trash";
   onTabChange: (tab: any) => void;
   unreadCount?: number;
+  draftCount?: number;
+  onCompose: () => void;
 }
 
-export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0 }: LeadsSidebarProps) {
-  const menuItems = [
+export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftCount = 0, onCompose }: LeadsSidebarProps) {
+  const [isMoreExpanded, setIsMoreExpanded] = React.useState(false);
+
+  const mainItems = [
     { id: "all", label: "Doručené", icon: Inbox, count: unreadCount > 0 ? unreadCount.toLocaleString() : "" },
     { id: "starred", label: "S hviezdičkou", icon: Star },
     { id: "snoozed", label: "Odložené", icon: Clock },
     { id: "sent", label: "Odoslané", icon: Send },
-    { id: "drafts", label: "Koncepty", icon: File, count: "1" },
+    { id: "drafts", label: "Koncepty", icon: File, count: draftCount > 0 ? draftCount.toString() : "" },
+  ];
+
+  const moreItems = [
     { id: "shopping", label: "Nákupy", icon: Tag },
-    { id: "more", label: "Ďalšie", icon: ChevronDown },
+    { id: "archive", label: "Archív", icon: Archive },
+    { id: "spam", label: "Spam", icon: AlertOctagon },
+    { id: "trash", label: "Kôš", icon: Trash2 },
   ];
 
   return (
-    <div className="w-full flex flex-col pt-4 h-full bg-transparent overflow-y-auto">
-      {/* Compose Button - Gmail Style Pill */}
-      <div className="px-4 mb-4">
-        <button className="flex items-center gap-3 px-6 py-4 bg-[#c2e7ff] dark:bg-indigo-600 hover:shadow-md transition-all rounded-[1rem] text-sm font-bold text-[#001d35] dark:text-white group transition-all duration-200">
-          <Edit2 className="w-5 h-5 text-[#001d35] dark:text-white" />
-          <span className="pr-2">Napísať</span>
+    <div
+      className="w-full flex flex-col h-full overflow-y-auto relative"
+      style={{
+        background: "#000000",
+      }}
+    >
+
+      {/* Compose Button */}
+      <div className="px-3 pt-5 pb-4 relative z-10">
+        <button
+          onClick={onCompose}
+          className="w-full flex items-center gap-3 px-6 py-4 rounded-[1.2rem] text-sm font-black tracking-wider transition-all duration-300 group relative overflow-hidden hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_30px_rgba(139,92,246,0.6)]"
+          style={{
+            background: "linear-gradient(135deg, rgba(124,58,237,0.35) 0%, rgba(109,40,217,0.25) 100%)",
+            border: "1.5px solid rgba(167,139,250,0.5)",
+            boxShadow: "0 8px 30px rgba(124,58,237,0.25), inset 0 1px 0 rgba(196,181,253,0.25)",
+            color: "rgba(255,255,255,0.95)"
+          }}
+        >
+          {/* Hover sweep */}
+          <div
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+            style={{ background: "linear-gradient(135deg, rgba(167,139,250,0.4) 0%, transparent 80%)" }}
+          />
+          <PenLine className="w-5 h-5 flex-shrink-0 relative z-10" style={{ color: "rgba(196,181,253,1)" }} />
+          <span className="uppercase tracking-[0.16em] text-[12px] relative z-10">Napísať</span>
         </button>
       </div>
 
+      {/* Marble divider */}
+      <div
+        className="mx-4 mb-3 h-[1px]"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)" }}
+      />
+
       {/* Main Navigation */}
-      <div className="pr-4">
-        {menuItems.map((item) => (
-          <button
+      <div className="px-2 flex-1 relative z-10">
+        {mainItems.map((item) => (
+          <SidebarButton
             key={item.id}
+            item={item}
+            isActive={selectedTab === item.id}
             onClick={() => onTabChange(item.id)}
-            className={`w-full flex items-center justify-between pl-6 pr-4 py-1.5 rounded-r-full text-[14px] transition-all group ${
-              selectedTab === item.id 
-                ? "bg-[#d3e3fd] dark:bg-zinc-800 text-[#001d35] dark:text-zinc-100 font-bold" 
-                : "text-[#444746] dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <item.icon className={`w-5 h-5 ${selectedTab === item.id ? "text-inherit" : "text-[#444746] dark:text-zinc-400"}`} />
-              <span className="tracking-normal">{item.label}</span>
-            </div>
-            {item.count && (
-              <span className={`text-[12px] ${selectedTab === item.id ? "font-bold text-[#001d35] dark:text-zinc-100" : "text-[#444746] dark:text-zinc-400"}`}>
-                {item.count}
-              </span>
-            )}
-          </button>
+          />
         ))}
+
+        {/* More Toggle */}
+        <button
+          onClick={() => setIsMoreExpanded(!isMoreExpanded)}
+          className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[13px] transition-all duration-200 group mb-0.5 relative overflow-hidden bg-transparent border border-transparent text-white/40"
+        >
+          <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 100%)" }} />
+          <div className="flex items-center gap-3">
+            {isMoreExpanded ? (
+              <ChevronUp className="w-4 h-4 flex-shrink-0 transition-all duration-200 group-hover:text-violet-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 flex-shrink-0 transition-all duration-200 group-hover:text-violet-400" />
+            )}
+            <span className="tracking-wide font-medium text-white/40 group-hover:text-violet-300 transition-colors">
+              {isMoreExpanded ? "Menej" : "Ďalšie"}
+            </span>
+          </div>
+        </button>
+
+        {/* Expanded Items */}
+        {isMoreExpanded && (
+          <div className="mt-1 animate-in slide-in-from-top-2 fade-in duration-200">
+            {moreItems.map((item) => (
+              <SidebarButton
+                key={item.id}
+                item={item}
+                isActive={selectedTab === item.id}
+                onClick={() => onTabChange(item.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Labels Section */}
-      <div className="mt-6 px-6 flex items-center justify-between mb-2">
-        <span className="text-[14px] font-bold text-[#444746] dark:text-zinc-400">Štítky</span>
-        <button className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-all">
-          <Plus className="w-4 h-4 text-[#444746] dark:text-zinc-400" />
-        </button>
+      <div className="px-4 py-4 relative z-10">
+        <div
+          className="h-[1px] mb-4"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)" }}
+        />
+        <div className="flex items-center justify-between mb-2">
+          <span
+            className="text-[10px] font-black uppercase tracking-[0.2em]"
+            style={{ color: "rgba(255,255,255,0.2)" }}
+          >
+            Štítky
+          </span>
+          <button
+            className="p-1 rounded-full transition-all duration-200 hover:bg-white/5 hover:text-violet-400"
+            style={{ color: "rgba(255,255,255,0.2)" }}
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
+  );
+}
+
+// Helper component for sidebar buttons to avoid repetition
+function SidebarButton({ item, isActive, onClick }: { item: any; isActive: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[13px] transition-all duration-200 group mb-0.5 relative overflow-hidden"
+      style={isActive ? {
+        background: "linear-gradient(135deg, rgba(124,58,237,0.3) 0%, rgba(109,40,217,0.2) 100%)",
+        border: "1.5px solid rgba(167,139,250,0.4)",
+        boxShadow: "0 4px 16px rgba(124,58,237,0.2), inset 0 1px 0 rgba(196,181,253,0.2)",
+        color: "rgba(255,255,255,0.95)"
+      } : {
+        background: "transparent",
+        border: "1px solid transparent",
+        color: "rgba(255,255,255,0.4)"
+      }}
+    >
+      {/* Hover gloss */}
+      {!isActive && (
+        <div
+          className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+          style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 100%)" }}
+        />
+      )}
+
+      {/* Active gloss highlight at top */}
+      {isActive && (
+        <div
+          className="absolute top-0 left-0 right-0 h-[1px] pointer-events-none"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)" }}
+        />
+      )}
+
+      {/* Active left indicator */}
+      {isActive && (
+        <div
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[55%] rounded-r-full"
+          style={{ background: "linear-gradient(180deg, #a78bfa, #7c3aed)" }}
+        />
+      )}
+
+      <div className="flex items-center gap-3">
+        <item.icon
+          className={`w-4 h-4 flex-shrink-0 transition-all duration-200 ${!isActive ? 'group-hover:text-violet-400' : ''}`}
+          style={{ color: isActive ? "#c4b5fd" : undefined }}
+        />
+        <span className={`tracking-wide ${isActive ? "font-bold text-white" : "font-medium text-white/40 group-hover:text-violet-300 transition-colors"}`}>
+          {item.label}
+        </span>
+      </div>
+
+      {item.count && (
+        <span
+          className="text-[11px] font-black tabular-nums px-2 py-0.5 rounded-full"
+          style={{
+            background: isActive ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.07)",
+            color: isActive ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.35)",
+          }}
+        >
+          {item.count}
+        </span>
+      )}
+    </button>
   );
 }

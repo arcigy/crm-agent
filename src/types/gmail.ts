@@ -13,11 +13,13 @@ export interface GmailMessage {
     snippet: string;
     subject: string;
     from: string;
+    to?: string;
     date: string;
     body: string;
     bodyHtml?: string;
     attachments?: GmailAttachment[];
     isRead: boolean;
+    isStarred?: boolean;
     labels: string[];
     classification?: EmailClassification;
     isAnalyzing?: boolean;

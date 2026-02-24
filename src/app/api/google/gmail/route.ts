@@ -99,18 +99,20 @@ export async function GET() {
             detail.data.payload,
           );
 
-          return {
-            id: m.id,
-            threadId: m.threadId,
-            subject,
-            from,
-            date: new Date(date).toISOString(),
-            snippet: detail.data.snippet,
-            body: text || detail.data.snippet || "",
-            bodyHtml: html,
-            attachments,
-            isRead: !detail.data.labelIds?.includes("UNREAD"),
-          };
+            return {
+              id: m.id,
+              threadId: m.threadId,
+              subject,
+              from,
+              date: new Date(date).toISOString(),
+              snippet: detail.data.snippet,
+              body: text || detail.data.snippet || "",
+              bodyHtml: html,
+              attachments,
+              isRead: !detail.data.labelIds?.includes("UNREAD"),
+              isStarred: detail.data.labelIds?.includes("STARRED"),
+              labels: detail.data.labelIds || [],
+            };
         } catch (e) {
           return null;
         }
@@ -133,7 +135,8 @@ export async function PATCH(req: Request) {
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { messageId } = await req.json();
+    const body = await req.json();
+    const { messageId, action } = body;
     const userEmail = user.emailAddresses[0]?.emailAddress;
     const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
     const token = await getValidToken(user.id, userEmail);
@@ -142,13 +145,32 @@ export async function PATCH(req: Request) {
 
     const gmail = await getGmailClient(token);
 
-    await gmail.users.messages.batchModify({
-      userId: "me",
-      requestBody: {
-        ids: [messageId],
-        removeLabelIds: ["UNREAD"],
-      },
-    });
+    if (action === "star") {
+      await gmail.users.messages.modify({
+        userId: "me",
+        id: messageId,
+        requestBody: {
+          addLabelIds: ["STARRED"],
+        },
+      });
+    } else if (action === "unstar") {
+      await gmail.users.messages.modify({
+        userId: "me",
+        id: messageId,
+        requestBody: {
+          removeLabelIds: ["STARRED"],
+        },
+      });
+    } else {
+      // Default behavior (mark as read)
+      await gmail.users.messages.modify({
+        userId: "me",
+        id: messageId,
+        requestBody: {
+          removeLabelIds: ["UNREAD"],
+        },
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

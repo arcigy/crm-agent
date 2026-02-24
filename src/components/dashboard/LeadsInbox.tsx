@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ContactExtractionModal } from "@/components/dashboard/ContactExtractionModal";
 import { QuickComposerModal } from "@/components/dashboard/QuickComposerModal";
+import { ComposeModal } from "@/components/dashboard/ComposeModal";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { agentCreateContact } from "@/app/actions/agent";
@@ -48,12 +49,32 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
     fetchMessages,
     handleConnect,
     handleOpenEmail,
+    handleToggleStar,
     handleManualAnalyze,
     handleToggleAction,
     handleDraftReply,
     handleExecuteCustomCommand,
     handleSaveContact,
     analyzeEmail,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    paginatedItems,
+    isComposeOpen,
+    setIsComposeOpen,
+    hasDraft,
+    setHasDraft,
+    draftData,
+    setDraftData,
+    handleAddLocalSentMessage,
+    handleDeleteMessage,
+    handleArchiveMessage,
+    handleSpamMessage,
+    handleMarkUnreadMessage,
+    selectedIds,
+    toggleSelection,
+    selectAll,
+    clearSelection,
   } = useLeadsInbox(initialMessages);
 
   const analyzedIds = React.useRef<Set<string>>(new Set());
@@ -83,7 +104,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
   }, []);
 
   return (
-    <div className="flex h-full bg-white dark:bg-black overflow-hidden relative">
+    <div className="flex h-full bg-[#f8f7ff] dark:bg-black overflow-hidden relative">
       {/* Contact Extraction Modal */}
       {isContactModalOpen && contactModalData && (
         <ContactExtractionModal
@@ -123,21 +144,72 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         />
       )}
 
+      {/* General Compose Modal */}
+      <ComposeModal
+        isOpen={isComposeOpen}
+        initialData={draftData}
+        onClose={() => setIsComposeOpen(false)}
+        onDraftUpdate={(data) => setDraftData(data)}
+        onMinimizeAction={() => setHasDraft(true)}
+        onDraftDelete={() => {
+          setHasDraft(false);
+          setDraftData({ to: "", subject: "", body: "" });
+        }}
+        onSend={(data) => {
+          console.log("Sending composed email:", data);
+          handleAddLocalSentMessage(data);
+          toast.success("Správa bola odoslaná do kategórie Odoslané!");
+          setIsComposeOpen(false);
+          setHasDraft(false);
+          setDraftData({ to: "", subject: "", body: "" });
+          setSelectedTab("sent");
+        }}
+      />
+
       {/* Sidebar for Navigation */}
-      <div className="relative z-10 border-r border-black/[0.02] dark:border-white/[0.02] bg-white dark:bg-zinc-950 w-[240px] flex-shrink-0">
+      <div className="relative z-10 bg-white dark:bg-zinc-950 w-[240px] flex-shrink-0">
         <LeadsSidebar 
           selectedTab={selectedTab} 
-          onTabChange={setSelectedTab} 
+          onTabChange={(tab) => {
+            setSelectedTab(tab);
+            setSelectedEmail(null);
+            setCurrentPage(1);
+          }} 
           unreadCount={messages.filter((m: any) => !m.isRead).length}
+          draftCount={hasDraft ? 1 : 0}
+          onCompose={() => setIsComposeOpen(true)}
         />
       </div>
 
       {/* Main Content Area: Switch between List and Detail */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10 bg-white dark:bg-black min-w-0">
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10 bg-transparent min-w-0">
         {selectedEmail ? (
           <EmailDetailView
             email={selectedEmail}
             onClose={() => setSelectedEmail(null)}
+            onDeleteMessage={(email) => handleDeleteMessage(null, email)}
+            onArchive={handleArchiveMessage}
+            onSpam={handleSpamMessage}
+            onMarkUnread={handleMarkUnreadMessage}
+            onToggleStar={handleToggleStar}
+            onReply={(email) => {
+              const formattedDate = email.date ? new Date(email.date).toLocaleString('sk-SK') : '';
+              setDraftData({
+                to: email.from,
+                subject: email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`,
+                body: `\n\n\nDňa ${formattedDate} ${email.from} napísal(a):\n> ${email.snippet.replace(/\n/g, '\n> ')}`
+              });
+              setIsComposeOpen(true);
+            }}
+            onForward={(email) => {
+              const formattedDate = email.date ? new Date(email.date).toLocaleString('sk-SK') : '';
+              setDraftData({
+                to: "",
+                subject: email.subject.startsWith("Fwd:") ? email.subject : `Fwd: ${email.subject}`,
+                body: `\n\n\n---------- Preposlaná správa ----------\nOd: ${email.from}\nDátum: ${formattedDate}\nPredmet: ${email.subject}\n\n${email.snippet}`
+              });
+              setIsComposeOpen(true);
+            }}
           />
         ) : (
           <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -149,51 +221,63 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
               onRefresh={() => fetchMessages()}
               onConnect={handleConnect}
               totalCount={allItems.length}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              selectedCount={selectedIds.size}
+              totalVisibleCount={paginatedItems.filter(item => item.itemType === "email").length}
+              onToggleSelectAll={() => {
+                const emailsToSelect = paginatedItems.filter(item => item.itemType === "email").map((i: any) => i.id);
+                selectAll(emailsToSelect);
+              }}
+              onClearSelection={clearSelection}
             />
 
-            {/* Message List */}
-            <div className="flex-1 overflow-y-auto thin-scrollbar bg-white dark:bg-transparent">
-              {loading && allItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full gap-4">
-                  <div className="w-10 h-10 border-[3px] border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin"></div>
-                  <p className="text-indigo-500/60 font-black uppercase tracking-[0.2em] text-[10px]">
-                    Synchronizujem...
-                  </p>
-                </div>
-              ) : allItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center p-12">
-                  <div className="w-20 h-20 bg-indigo-500/5 rounded-[2rem] flex items-center justify-center mb-6 border border-indigo-500/10 rotate-3">
-                    <Mail className="w-8 h-8 text-indigo-500/40 -rotate-3" />
+            {/* Message List Floating Container - Full Width Compact */}
+            <div className="flex-1 overflow-y-auto px-4 pb-8 thin-scrollbar relative scroll-smooth bg-transparent dark:bg-black/50 transform-gpu">
+              {/* Sticky Top Fade Mask */}
+              <div className="sticky top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#f8f7ff] dark:from-black via-[#f8f7ff]/80 dark:via-black/80 to-transparent z-20 pointer-events-none" />
+              
+              <div className="bg-[#f4f7fb] dark:bg-zinc-900/50 rounded-[2rem] shadow-[0_20px_40px_-8px_rgba(0,0,0,0.03)] overflow-hidden transition-all duration-700 relative">
+                {loading && allItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-4">
+                    <div className="w-10 h-10 border-[3px] border-violet-500/10 border-t-violet-500 rounded-full animate-spin"></div>
                   </div>
-                  <h3 className="text-xl font-black text-foreground italic tracking-tight uppercase">
-                    Všetko vybavené
-                  </h3>
-                  <p className="text-muted-foreground/60 text-sm font-bold mt-2">
-                    Vaša schránka je momentálne prázdna.
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
-                  {allItems.map((item) => (
-                    <LeadsListItem
-                      key={(item as any).id}
-                      item={item}
-                      isActionOpen={activeActionId === (item as any).id}
-                      isGeneratingDraft={isGeneratingDraft}
-                      customCommandMode={customCommandMode}
-                      customPrompt={customPrompt}
-                      setCustomPrompt={setCustomPrompt}
-                      setCustomCommandMode={setCustomCommandMode}
-                      onOpenEmail={handleOpenEmail}
-                      onToggleAction={handleToggleAction}
-                      onManualAnalyze={handleManualAnalyze}
-                      onSaveContact={handleSaveContact}
-                      onDraftReply={handleDraftReply}
-                      onExecuteCustomCommand={handleExecuteCustomCommand}
-                    />
-                  ))}
-                </div>
-              )}
+                ) : allItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center px-12">
+                    <div className="w-16 h-16 bg-violet-500/5 rounded-2xl flex items-center justify-center mb-6 border border-violet-500/10 rotate-3">
+                      <Mail className="w-6 h-6 text-violet-500/40 -rotate-3" />
+                    </div>
+                    <h3 className="text-lg font-black text-foreground italic uppercase">Všetko vybavené</h3>
+                    <p className="text-muted-foreground/60 text-sm font-bold mt-2">Pusti si kávu, dnes už nič neprišlo.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-black/[0.02] dark:divide-white/[0.02]">
+                    {paginatedItems.map((item) => (
+                      <LeadsListItem
+                        key={(item as any).id}
+                        item={item}
+                        isActionOpen={activeActionId === (item as any).id}
+                        isGeneratingDraft={isGeneratingDraft}
+                        customCommandMode={customCommandMode}
+                        customPrompt={customPrompt}
+                        setCustomPrompt={setCustomPrompt}
+                        setCustomCommandMode={setCustomCommandMode}
+                        onOpenEmail={handleOpenEmail}
+                        onToggleStar={handleToggleStar}
+                        onToggleAction={handleToggleAction}
+                        onManualAnalyze={handleManualAnalyze}
+                        onSaveContact={handleSaveContact}
+                        onDraftReply={handleDraftReply}
+                        onExecuteCustomCommand={handleExecuteCustomCommand}
+                        onDeleteMessage={handleDeleteMessage}
+                        isSelected={selectedIds.has((item as any).id)}
+                        onToggleSelection={(e, id) => toggleSelection(id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
