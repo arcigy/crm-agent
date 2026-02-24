@@ -115,24 +115,21 @@ export function TagManagementModal({
         onClick={onClose}
       />
       
-      <div className="flex gap-6 items-stretch max-w-[1000px] w-full justify-center relative">
-        {/* Side Panel Color Picker (Left) - Enhanced to Neon Cyber Style */}
+      <div className="flex gap-4 items-stretch max-w-[800px] w-full justify-center relative scale-90 sm:scale-100">
+        {/* Side Panel Color Picker (Left) - Compact Neon Style */}
         <div 
-          className={`w-[300px] bg-white/95 dark:bg-[#0b0c10]/95 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-500 transform ${activePicker ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12 pointer-events-none'}`}
+          className={`w-[220px] bg-white/95 dark:bg-[#0b0c10]/95 backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-500 transform ${activePicker ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}
           style={{
-            boxShadow: activePicker ? `0 0 40px -10px ${currentColor}40, 0 25px 50px -12px rgba(0,0,0,0.5)` : 'none'
+            boxShadow: activePicker ? `0 0 30px -10px ${currentColor}30, 0 20px 40px -12px rgba(0,0,0,0.5)` : 'none'
           }}
         >
-          <div className="p-7 border-b border-violet-500/10">
-            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">
+          <div className="p-5 border-b border-violet-500/10">
+            <h3 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">
               Neon Palette
             </h3>
-            <p className="text-[9px] font-bold text-violet-500 uppercase tracking-widest mt-1 opacity-60">
-              Select your signature vibe
-            </p>
           </div>
           
-          <div className="p-7 overflow-y-auto thin-scrollbar grid grid-cols-3 gap-4 auto-rows-max">
+          <div className="p-5 overflow-y-auto thin-scrollbar grid grid-cols-5 gap-3 auto-rows-max">
             {COLORS.map((c) => (
               <button
                 key={c.value}
@@ -140,21 +137,21 @@ export function TagManagementModal({
                   if (activePicker === 'new') setSelectedColor(c.value);
                   else if (activePicker) onUpdateTagColor(activePicker, c.value);
                 }}
-                className={`aspect-square rounded-2xl transition-all duration-300 hover:scale-110 shadow-sm border-2 relative group overflow-hidden ${currentColor === c.value ? 'border-white scale-110 shadow-xl' : 'border-transparent'}`}
+                className={`w-6 h-6 rounded-full transition-all duration-300 hover:scale-125 shadow-sm border-2 relative group flex-shrink-0 ${currentColor === c.value ? 'border-white scale-125 shadow-lg' : 'border-transparent'}`}
                 style={{ 
                   backgroundColor: c.value,
-                  boxShadow: currentColor === c.value ? `0 0 20px -5px ${c.value}` : 'none'
+                  boxShadow: currentColor === c.value ? `0 0 15px -5px ${c.value}` : 'none'
                 }}
                 title={c.name}
               >
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
               </button>
             ))}
             
             {/* Custom Color Mixer */}
-            <div className="col-span-3 mt-6 pt-6 border-t border-violet-500/10 flex flex-col gap-4">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">Custom Mix</span>
-              <div className="flex items-center gap-4">
+            <div className="col-span-5 mt-4 pt-4 border-t border-violet-500/10 flex flex-col gap-3">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em]">Mixer</span>
+              <div className="flex items-center gap-3">
                 <input 
                   type="color" 
                   value={currentColor || "#8b5cf6"}
@@ -162,37 +159,35 @@ export function TagManagementModal({
                     if (activePicker === 'new') setSelectedColor(e.target.value);
                     else if (activePicker) onUpdateTagColor(activePicker, e.target.value);
                   }}
-                  className="w-14 h-14 rounded-2xl cursor-pointer bg-transparent border-none appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-2xl [&::-webkit-color-swatch]:border-none shadow-xl hover:scale-105 transition-transform"
+                  className="w-10 h-10 rounded-xl cursor-pointer bg-transparent border-none appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-xl [&::-webkit-color-swatch]:border-none shadow-lg hover:scale-105 transition-transform"
                 />
-                <div className="flex-1 flex flex-col gap-1">
-                  <input 
-                    type="text"
-                    value={currentColor || ""}
-                    onChange={(e) => {
-                      if (activePicker === 'new') setSelectedColor(e.target.value);
-                      else if (activePicker) onUpdateTagColor(activePicker, e.target.value);
-                    }}
-                    placeholder="#HEX"
-                    className="w-full h-11 px-4 bg-slate-50 dark:bg-zinc-800/50 rounded-xl text-[11px] font-black uppercase text-slate-700 dark:text-white outline-none border border-violet-500/10 focus:border-violet-500/40 transition-all text-center tracking-widest"
-                  />
-                </div>
+                <input 
+                  type="text"
+                  value={currentColor || ""}
+                  onChange={(e) => {
+                    if (activePicker === 'new') setSelectedColor(e.target.value);
+                    else if (activePicker) onUpdateTagColor(activePicker, e.target.value);
+                  }}
+                  placeholder="#HEX"
+                  className="w-full h-9 px-3 bg-slate-50 dark:bg-zinc-800/50 rounded-lg text-[10px] font-black uppercase text-slate-700 dark:text-white outline-none border border-violet-500/10 focus:border-violet-500/40 transition-all text-center tracking-widest"
+                />
               </div>
             </div>
           </div>
           
-          <div className="p-7 pt-0 mt-auto">
+          <div className="p-5 pt-0 mt-auto">
             <button 
               onClick={() => setActivePicker(null)}
-              className="w-full p-4 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-violet-600/20 active:scale-95 border border-white/10"
+              className="w-full p-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-violet-600/20 active:scale-95 border border-white/10"
             >
-              Confirm Vibe
+              OK
             </button>
           </div>
         </div>
 
         {/* Main Modal */}
         <div 
-          className={`relative w-full max-w-md bg-white dark:bg-[#0b0c10] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col transition-all duration-300 transform ${animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+          className={`relative w-full max-w-sm bg-white dark:bg-[#0b0c10] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col transition-all duration-300 transform ${animate ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
           style={{
             border: '1px solid rgba(139, 92, 246, 0.2)',
             boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.25)'
