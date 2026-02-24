@@ -154,9 +154,9 @@ export const LeadsListItem = React.memo(({
             )}
           </div>
 
-          {/* Tags - fade out on hover to reveal action buttons without layout shift */}
+          {/* Tags - always visible, no layout shift */}
           {tags.length > 0 && (
-            <div className="flex items-center gap-1.5 ml-4 flex-shrink-0 justify-end group-hover:opacity-0 transition-opacity duration-150 pointer-events-none">
+            <div className="flex items-center gap-1.5 ml-4 flex-shrink-0 justify-end">
               {tags.slice(0, 2).map((tag) => {
                 const color = tagColors[tag] || "#8b5cf6";
                 return (
@@ -180,13 +180,15 @@ export const LeadsListItem = React.memo(({
             </div>
           )}
 
-          {/* Date and Hover Actions - fixed width so nothing shifts */}
-          <div className="flex-shrink-0 ml-2 flex items-center justify-end" style={{ width: "90px" }}>
-            <span className={`text-[11px] font-black group-hover:hidden tabular-nums tracking-tighter ${!isRead ? "text-violet-800 dark:text-violet-300" : "text-zinc-600 dark:text-zinc-500"}`}>
+          {/* Date + floating action buttons on hover - fixed width, no shift */}
+          <div className="relative flex-shrink-0 ml-2 flex items-center justify-end" style={{ width: "68px" }}>
+            {/* Date - hidden when hovering */}
+            <span className={`text-[11px] font-black group-hover:opacity-0 tabular-nums tracking-tighter transition-opacity duration-150 ${!isRead ? "text-violet-800 dark:text-violet-300" : "text-zinc-600 dark:text-zinc-500"}`}>
               {formattedDate}
             </span>
 
-            <div className="hidden group-hover:flex items-center gap-1 animate-in fade-in slide-in-from-right-2 duration-200">
+            {/* Action buttons - absolute, float over the date area */}
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 animate-in fade-in duration-150">
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleAction(e, msg.id); }}
                 className="p-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg transition-all text-white shadow-lg shadow-violet-600/30 hover:scale-110 active:scale-95"
