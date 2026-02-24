@@ -27,10 +27,9 @@ export function ChatBubble({ role, content, createdAt, isStreaming }: ChatBubble
       </div>
 
       <div className={`
-        max-w-[80%] rounded-2xl px-4 py-3
         ${isUser 
-          ? 'bg-emerald-600 text-white rounded-tr-sm' 
-          : 'bg-gray-800 text-gray-100 rounded-tl-sm border border-gray-700'
+          ? 'max-w-[80%] rounded-2xl px-4 py-3 bg-emerald-600 text-white rounded-tr-sm' 
+          : 'flex-1 text-gray-100 mt-1 overflow-x-auto custom-scrollbar'
         }
       `}>
         <MarkdownRenderer content={content} role={role} />
