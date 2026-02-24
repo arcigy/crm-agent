@@ -311,62 +311,41 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
           
           const mockTemplates = [
             {
-              from: "Miroslav Horský <miro.horsky@reality-ba.sk>",
-              subject: "Zameranie hraníc pozemku - Stupava",
-              body: "Dobrý deň,\n\npotreboval by som zamerať hranice pozemku v Stupave pre účely dedičského konania. Máme tam spor so susedom o cca 2 metre.\n\nVedeli by ste sa na to prísť pozrieť do konca týždňa? Dokumentáciu z katastra mám k dispozícii.\n\nS pozdravom,\nHorský",
-              snippet: "Dobrý deň, potreboval by som zamerat hranice pozemku v Stupave pre účely dedičského konania...",
-              budget: "1 500 €",
-              intent: "dopyt",
-              category: "Geodézia",
-              nextStep: "Zavolať klientovi a dohodnúť obhliadku",
-              priority: "stredna"
-            },
-            {
-              from: "Lucia Nováková <lucia@fashion-web.sk>",
-              subject: "Dopyt: Redizajn e-shopu na mieru",
-              body: "Zdravím tím Arcigy,\n\nnaša značka rastie a náš aktuálny e-shop už nestíha. Potrebujeme niečo moderné, rýchle a hlavne Mobile-First.\n\nMáte skúsenosti s prepojením na Shoptet alebo radšej staviate na vlastnom jadre? Radi by sme začali s prácami čo najskôr.\n\nVďaka, Lucia",
-              snippet: "Zdravím tím Arcigy, naša značka rastie a náš aktuálny e-shop už nestíha. Potrebujeme niečo moderné...",
-              budget: "4 000 €",
-              intent: "dopyt",
-              category: "Web Development",
-              nextStep: "Poslať dotazník na špecifikáciu",
-              priority: "stredna"
-            },
-            {
-              from: "Peter Kováč <peter.kovac@gmail.com>",
-              subject: "Otázka k faktúre č. 2024015",
-              body: "Dobrý deň, v poslednej faktúre vidím položku 'Dodatočné merania', o ktorých sme nehovorili. Môžete mi k tomu poslať viac informácií?\n\nĎakujem,\nKováč",
-              snippet: "Dobrý deň, v poslednej faktúre vidím položku 'Dodatočné merania', o ktorých sme nehovorili...",
+              from: "Marek Urgentný <marek@servis-web.sk>",
+              subject: "KRÍZA: Celý systém spadol!",
+              body: "SÚRNE! Nefunguje nám webová stránka, klienti sa nevedia prihlásiť. Potrebujem to vyriešiť do hodiny, inak prichádzame o peniaze. Prosím, volajte mi hneď!",
+              snippet: "SÚRNE! Nefunguje nám webová stránka, klienti sa nevedia prihlásiť. Potrebujem to vyriešiť...",
               budget: "—",
-              intent: "podpora",
+              intent: "problem",
+              category: "Technická podpora",
+              nextStep: "Okamžite nahodiť server a volať klientovi",
+              priority: "vysoka"
+            },
+            {
+              from: "Andrej Networking <andrej@biznis-klub.sk>",
+              subject: "Dajme kávu / Lunch?",
+              body: "Ahoj, sledoval som tvoj posledný projekt a fakt super práca. Nechceš skočiť niekedy budúci týždeň na kávu alebo spoločný lunch? Rád by som prebral možnosti spolupráce a networking.",
+              snippet: "Ahoj, sledoval som tvoj posledný projekt a fakt super práca. Nechceš skočiť niekedy...",
+              budget: "—",
+              intent: "ine",
+              category: "Networking",
+              nextStep: "Navrhnúť termín na stretnutie",
+              priority: "nizka"
+            },
+            {
+              from: "Účtovníctvo <faktury@ucto-plus.sk>",
+              subject: "Faktúra za február 2026",
+              body: "Dobrý deň, v prílohe vám posielam faktúru za služby za mesiac február. Prosím o úhradu v lehote splatnosti. V prípade otázok ma neváhajte kontaktovať.",
+              snippet: "Dobrý deň, v prílohe vám posielam faktúru za služby za mesiac február. Prosím o úhradu...",
+              budget: "250 €",
+              intent: "faktura",
               category: "Administratíva",
-              nextStep: "Preveriť záznamy u účtovníčky",
-              priority: "stredna"
-            },
-            {
-              from: "Google Cloud <noreply@google.com>",
-              subject: "Monthly Statement: February 2026",
-              body: "Your monthly statement for Google Cloud is now available. Your total for this month is $12.45.\n\nYou can view and download your statement in the Cloud Console.",
-              snippet: "Your monthly statement for Google Cloud is now available. Your total for this month is $12.45...",
-              budget: "—",
-              intent: "notifikácia",
-              category: "IT / Infraštruktúra",
-              nextStep: "Archivovať faktúru",
-              priority: "stredna"
-            },
-            {
-              from: "Zuzana Trénerka <zuzi@fit-studio.sk>",
-              subject: "Rezervácia termínu - Geodetické práce",
-              body: "Ahojte, chcem sa opýtať na voľné termíny na vytýčenie stavby rodinného domu v Senci. Základy by sme chceli kopať o 2 týždne, tak by bolo super to stihnúť v predstihu.\n\nTelefón na mňa: 0903 123 456.\n\nDajte vedieť!",
-              snippet: "Ahojte, chcem sa opýtať na voľné termíny na vytýčenie stavby rodinného domu v Senci...",
-              budget: "800 €",
-              intent: "dopyt",
-              category: "Lokalizácia stavby",
-              nextStep: "Preveriť dostupnosť v kalendári",
+              nextStep: "Uhradiť faktúru do 14 dní",
               priority: "stredna"
             }
           ];
 
+          const smartTagsBatch: Record<string, string[]> = {};
           const mocks: GmailMessage[] = Array.from({ length: 155 }).map((_, i) => {
             const template = mockTemplates[i % mockTemplates.length];
             let isRead = false;
@@ -381,11 +360,24 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
             }
 
             const isUrgent = template.priority === "vysoka";
+            const id = `mock-${i}`;
 
-            let mockLabels: string[] = ["INBOX"];
+            const classification = {
+              intent: (template.intent as any),
+              priority: (template.priority as any),
+              estimated_budget: template.budget,
+              summary: template.body.substring(0, 80) + "...",
+              next_step: template.nextStep,
+              service_category: template.category,
+              sentiment: "pozitivny" as any
+            };
+
+            // Pre-calculate smart tags for mocks
+            const tags = getSmartTags(classification);
+            if (tags.length > 0) smartTagsBatch[id] = tags;
 
             return {
-              id: `mock-${i}`,
+              id,
               threadId: `thread-${i}`,
               from: template.from,
               subject: `${template.subject} #${i + 1}`,
@@ -394,18 +386,15 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
               isRead: isRead,
               isStarred: isStarred,
               body: template.body,
-              labels: mockLabels,
-              classification: {
-                intent: (template.intent as any),
-                priority: (isUrgent ? "vysoka" : "stredna") as any,
-                estimated_budget: template.budget,
-                summary: template.body.substring(0, 80) + "...",
-                next_step: template.nextStep,
-                service_category: template.category,
-                sentiment: "pozitivny" as any
-              }
+              labels: ["INBOX"],
+              classification
             };
           });
+
+          if (Object.keys(smartTagsBatch).length > 0) {
+            setMessageTags(prev => ({ ...prev, ...smartTagsBatch }));
+          }
+
           return mocks;
         });
       }
