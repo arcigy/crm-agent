@@ -217,8 +217,15 @@ function SidebarButton({ item, isActive, onClick, color }: { item: any; isActive
 
       <div className="flex items-center gap-3">
         <item.icon
-          className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${!isActive ? 'group-hover:scale-110' : ''}`}
-          style={{ color: color || (isActive ? "#c4b5fd" : "rgba(255,255,255,0.4)") }}
+          className={`w-4 h-4 flex-shrink-0 transition-all duration-200 ${!isActive ? 'group-hover:scale-110' : 'scale-110'}`}
+          style={{
+            color: color || (isActive ? "#c4b5fd" : "rgba(255,255,255,0.35)"),
+            filter: color
+              ? isActive
+                ? `drop-shadow(0 0 6px ${color}) drop-shadow(0 0 12px ${color}80)`
+                : `drop-shadow(0 0 4px ${color}90)`
+              : undefined
+          }}
         />
         <span className={`tracking-wide ${isActive ? "font-bold text-white" : "font-semibold text-white/50 group-hover:text-white/80 transition-colors"}`}>
           {item.label}

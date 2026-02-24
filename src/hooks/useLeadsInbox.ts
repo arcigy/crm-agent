@@ -24,12 +24,13 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedTab, setSelectedTab] = React.useState<string>("all");
   const [customTags, setCustomTags] = React.useState<string[]>([
-    "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS"
+    "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"
   ]);
   const [tagColors, setTagColors] = React.useState<Record<string, string>>({
-    "URGENTNÉ": "#ef4444",
-    "NOVÝ OBCHOD": "#22c55e",
-    "SERVIS": "#3b82f6"
+    "URGENTNÉ": "#ff2040",
+    "NOVÝ OBCHOD": "#00e676",
+    "SERVIS": "#00b0ff",
+    "VYBAVOVAČKY": "#ffab00"
   });
 
   const [messageTags, setMessageTags] = React.useState<Record<string, string[]>>({});
@@ -41,10 +42,12 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     
     // Priority: only flag high priority
     if (classification.priority === "vysoka") newTags.push("URGENTNÉ");
+    else if (classification.priority === "stredna") newTags.push("VYBAVOVAČKY");
     
     // Intent Mapping
     if (classification.intent === "dopyt") newTags.push("NOVÝ OBCHOD");
     else if (classification.intent === "problem") newTags.push("SERVIS");
+    else if (classification.intent === "faktura") newTags.push("VYBAVOVAČKY");
     
     return newTags;
   };
@@ -114,12 +117,13 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       if (persistedSession) {
         try {
           const state = JSON.parse(persistedSession);
-          // The 3 canonical tags — ALL CAPS only
-          const CANONICAL_TAGS = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS"];
+          // The canonical tags — ALL CAPS only
+          const CANONICAL_TAGS = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"];
           const CANONICAL_COLORS: Record<string, string> = {
-            "URGENTNÉ": "#ef4444",
-            "NOVÝ OBCHOD": "#22c55e",
-            "SERVIS": "#3b82f6"
+            "URGENTNÉ": "#ff2040",
+            "NOVÝ OBCHOD": "#00e676",
+            "SERVIS": "#00b0ff",
+            "VYBAVOVAČKY": "#ffab00"
           };
 
           // Merge user custom tags but force uppercase, filter out removed ones
@@ -175,7 +179,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
           fetch("/api/notes?type=leads_settings")
             .then(res => res.json())
             .then(data => {
-              const CANONICAL_TAGS = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS"];
+              const CANONICAL_TAGS = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"];
               if (data.success && data.settings) {
                 if (data.settings.customTags && Array.isArray(data.settings.customTags)) {
                   const filtered = data.settings.customTags
