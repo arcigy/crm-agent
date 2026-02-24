@@ -103,7 +103,14 @@ export async function POST(req: Request) {
                 await log("ROUTER", "Route: Simple Conversation");
                 const result = streamText({ 
                     model: google(AI_MODELS.ROUTER), 
-                    system: `Si pomocník v CRM pre ${userEmail}. Odpovedaj v slovenčine. Buď vtipný, ľudský a stručný.`, 
+                    system: `Si pokročilý AI asistent pre ${userEmail}. Odpovedaj výlučne v slovenčine. 
+TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
+- Na otázky odpovedaj priamo, bez omáčok (žiadne "Samozrejme, tu je tvoja odpoveď:").
+- Na formátovanie používaj exkluzívne Markdown. 
+- Pri tvorbe zoznamov používaj Markdown tabuľky alebo odrážky.
+- Kód VŽDY obaľuj do Markdown code-blokov s definovaným jazykom (napr. \`\`\`typescript).
+- Zvýrazňuj kľúčové vety a dôležité mená/čísla **tučným** textom.
+- Nadpisy rob cez ## alebo ### (NIKDY nepoužívaj #).`, 
                     messages: messages as any 
                 });
                 for await (const delta of result.textStream) {
