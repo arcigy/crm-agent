@@ -24,9 +24,10 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedTab, setSelectedTab] = React.useState<string>("all");
   const [customTags, setCustomTags] = React.useState<string[]>([
-    "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"
+    "NALIEHAVÉ", "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"
   ]);
   const [tagColors, setTagColors] = React.useState<Record<string, string>>({
+    "NALIEHAVÉ": "#ff6d00",
     "URGENTNÉ": "#ff2040",
     "NOVÝ OBCHOD": "#00e676",
     "SERVIS": "#00b0ff",
@@ -36,20 +37,74 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [messageTags, setMessageTags] = React.useState<Record<string, string[]>>({});
 
   // Smart Tagging Logic
-  const getSmartTags = (classification: any) => {
+  // Maps AI classification (intent + priority + sentiment + keywords) → one of 5 tags
+  const getSmartTags = (classification: any): string[] => {
     if (!classification) return [];
-    const newTags: string[] = [];
-    
-    // Priority: only flag high priority
-    if (classification.priority === "vysoka") newTags.push("URGENTNÉ");
-    else if (classification.priority === "stredna") newTags.push("VYBAVOVAČKY");
-    
-    // Intent Mapping
-    if (classification.intent === "dopyt") newTags.push("NOVÝ OBCHOD");
-    else if (classification.intent === "problem") newTags.push("SERVIS");
-    else if (classification.intent === "faktura") newTags.push("VYBAVOVAČKY");
-    
-    return newTags;
+    const tags: string[] = [];
+
+    const intent    = (classification.intent || "").toLowerCase();
+    const priority  = (classification.priority || "").toLowerCase();
+    const sentiment = (classification.sentiment || "").toLowerCase();
+    const summary   = (classification.summary || "").toLowerCase();
+    const category  = (classification.service_category || "").toLowerCase();
+    const combined  = summary + " " + category;
+
+    // Keywords for NALIEHAVÉ (technical/operational crisis)
+    const krisisKeywords = [
+      "zastavil", "stopka", "chyba", "záloha", "kataster vrátil",
+      "opravte", "súdny", "predvolanie", "povinná", "zajtra",
+      "ráno", "betón", "termín", "vytýčenie", "blokovaný"
+    ];
+    const isKrisisKeyword = krisisKeywords.some(k => combined.includes(k));
+
+    // Keywords for URGENTNÉ (financial/legal pressure)
+    const financialKeywords = [
+      "faktúra", "upomienka", "splatnosť", "hypotéka", "banka",
+      "reklamácia", "doplňte", "výzva", "48 hod", "po splatnosti",
+      "zmen", "pozor"
+    ];
+    const isFinancialKeyword = financialKeywords.some(k => combined.includes(k));
+
+    // Keywords for SERVIS (documents, access, supporting materials)
+    const servisKeywords = [
+      "posielam", "príloha", "dwg", "mapy", "kľúče", "prístup",
+      "súhlas", "podpísal", "sken", "rodné číslo", "vlastník",
+      "podklady", "dokumenty", "doplnenie"
+    ];
+    const isServisKeyword = servisKeywords.some(k => combined.includes(k));
+
+    // ─── Decision Tree ───────────────────────────────────────────
+
+    // 1. NALIEHAVÉ: high priority technical/operational crisis
+    if (priority === "vysoka" && (isKrisisKeyword || (intent === "problem" && sentiment === "negativny"))) {
+      tags.push("NALIEHAVÉ");
+    }
+    // 2. URGENTNÉ: high priority financial/legal pressure
+    else if (priority === "vysoka" && (intent === "faktura" || isFinancialKeyword || sentiment === "negativny")) {
+      tags.push("URGENTNÉ");
+    }
+    // 3. URGENTNÉ fallback: any high priority that's not technical
+    else if (priority === "vysoka") {
+      tags.push("URGENTNÉ");
+    }
+
+    // 4. NOVÝ OBCHOD: new business inquiry
+    if (intent === "dopyt") {
+      tags.push("NOVÝ OBCHOD");
+    }
+    // 5. SERVIS: ongoing work, documents, access
+    else if (intent === "problem" && !tags.includes("NALIEHAVÉ")) {
+      tags.push("SERVIS");
+    } else if (isServisKeyword && !tags.some(t => ["NALIEHAVÉ", "URGENTNÉ"].includes(t))) {
+      tags.push("SERVIS");
+    }
+    // 6. VYBAVOVAČKY: admin/overhead (non-urgent invoices, confirmations, ads)
+    else if ((intent === "faktura" && priority !== "vysoka") || priority === "nizka") {
+      if (!tags.length) tags.push("VYBAVOVAČKY");
+    }
+
+    // De-duplicate
+    return Array.from(new Set(tags));
   };
 
   const applySmartTagging = (messageId: string, classification: any) => {
@@ -118,8 +173,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         try {
           const state = JSON.parse(persistedSession);
           // The canonical tags — ALL CAPS only
-          const CANONICAL_TAGS = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"];
+          const CANONICAL_TAGS = ["NALIEHAVÉ", "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"];
           const CANONICAL_COLORS: Record<string, string> = {
+            "NALIEHAVÉ": "#ff6d00",
             "URGENTNÉ": "#ff2040",
             "NOVÝ OBCHOD": "#00e676",
             "SERVIS": "#00b0ff",
@@ -179,7 +235,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
           fetch("/api/notes?type=leads_settings")
             .then(res => res.json())
             .then(data => {
-              const CANONICAL_TAGS = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"];
+              const CANONICAL_TAGS = ["NALIEHAVÉ", "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"];
               if (data.success && data.settings) {
                 if (data.settings.customTags && Array.isArray(data.settings.customTags)) {
                   const filtered = data.settings.customTags
