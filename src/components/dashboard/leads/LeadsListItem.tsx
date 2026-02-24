@@ -110,7 +110,7 @@ export const LeadsListItem = React.memo(({
     // Status bar color: unread = vivid, read = darker solid
     const barColor  = baseColor
       ? (!isRead ? baseColor : darkenHex(baseColor, 0.35))
-      : (!isRead ? '#FFFFFF' : '#d946ef');
+      : (!isRead ? '#FFFFFF' : '#ffffff22');
     const barGlow   = `0 0 8px ${barColor}, 2px 0 15px ${hexToRgba(barColor.slice(0,7), 0.6)}, 4px 0 25px ${hexToRgba(barColor.slice(0,7), 0.25)}`;
 
     // Row background tint
