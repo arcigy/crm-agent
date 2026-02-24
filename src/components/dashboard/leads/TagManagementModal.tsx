@@ -46,6 +46,7 @@ export function TagManagementModal({
     { name: "Radical Rose", value: "#f43f5e" },
     { name: "Hot Pink", value: "#ff007f" },
     { name: "Deep Rose", value: "#be123c" },
+    { name: "Wild Blush", value: "#fda4af" },
     // Violets/Purples
     { name: "Cyber Purple", value: "#d946ef" },
     { name: "Deep Fuchsia", value: "#c026d3" },
@@ -53,6 +54,7 @@ export function TagManagementModal({
     { name: "Deep Violet", value: "#7c3aed" },
     { name: "Electric Indigo", value: "#6366f1" },
     { name: "Deep Indigo", value: "#4338ca" },
+    { name: "Soft Lavender", value: "#ddd6fe" },
     // Blues/Cyans
     { name: "Royal Blue", value: "#312e81" },
     { name: "Neon Blue", value: "#3b82f6" },
@@ -60,6 +62,7 @@ export function TagManagementModal({
     { name: "Ice Teal", value: "#2dd4bf" },
     { name: "Sky Blue", value: "#0ea5e9" },
     { name: "Marine Blue", value: "#1e40af" },
+    { name: "Deep Ocean", value: "#1e3a8a" },
     // Teals/Greens
     { name: "Cyan Spark", value: "#22d3ee" },
     { name: "Deep Teal", value: "#134e4a" },
@@ -67,6 +70,7 @@ export function TagManagementModal({
     { name: "Neon Green", value: "#39ff14" },
     { name: "Lime Shock", value: "#ccff00" },
     { name: "Forest Green", value: "#166534" },
+    { name: "Emerald Dream", value: "#10b981" },
     // Yellows/Oranges
     { name: "Acid Green", value: "#84cc16" },
     { name: "Neon Yellow", value: "#fff200" },
@@ -74,7 +78,8 @@ export function TagManagementModal({
     { name: "Electric Amber", value: "#f59e0b" },
     { name: "Safety Orange", value: "#ff9100" },
     { name: "Neon Orange", value: "#ff5e00" },
-    // Neutrals
+    { name: "Burnt Sunset", value: "#ea580c" },
+    // Neutrals / Metals
     { name: "Pure White", value: "#ffffff" },
     { name: "Silver", value: "#e2e8f0" },
     { name: "Titanium", value: "#94a3b8" },
@@ -130,7 +135,7 @@ export function TagManagementModal({
       <div className="relative scale-90 sm:scale-100 flex items-center justify-center">
         {/* Side Panel Color Picker (Left) - Absolute positioned to keep main modal centered */}
         <div 
-          className={`absolute right-full mr-6 w-[210px] h-full bg-white/95 dark:bg-[#0b0c10]/95 backdrop-blur-3xl rounded-[2rem] shadow-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-500 transform ${activePicker ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12 pointer-events-none'}`}
+          className={`absolute left-full ml-6 w-[230px] h-full bg-white/95 dark:bg-[#0b0c10]/95 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-500 transform ${activePicker ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12 pointer-events-none'}`}
           style={{
             boxShadow: activePicker ? `0 0 30px -10px ${currentColor}30, 0 20px 40px -12px rgba(0,0,0,0.5)` : 'none'
           }}
@@ -149,7 +154,7 @@ export function TagManagementModal({
           </div>
           
           <div className="p-5 flex-1 overflow-y-auto thin-scrollbar flex flex-col items-center justify-center">
-            <div className="grid grid-cols-6 gap-2.5 mx-auto">
+            <div className="grid grid-cols-5 gap-3 mx-auto">
               {COLORS.map((c) => (
                 <button
                   key={c.value}
@@ -157,10 +162,10 @@ export function TagManagementModal({
                     if (activePicker === 'new') setSelectedColor(c.value);
                     else if (activePicker) onUpdateTagColor(activePicker, c.value);
                   }}
-                  className={`w-5 h-5 rounded-full transition-all duration-300 hover:scale-125 shadow-sm border relative group flex-shrink-0 ${currentColor === c.value ? 'border-white scale-125 shadow-lg' : 'border-transparent'}`}
+                  className={`w-6 h-6 rounded-full transition-all duration-300 hover:scale-125 shadow-sm border-2 relative group flex-shrink-0 ${currentColor === c.value ? 'border-white scale-125 shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'border-transparent'}`}
                   style={{ 
                     backgroundColor: c.value,
-                    boxShadow: currentColor === c.value ? `0 0 12px -3px ${c.value}` : 'none'
+                    boxShadow: currentColor === c.value ? `0 0 15px -2px ${c.value}` : 'none'
                   }}
                   title={c.name}
                 >
@@ -170,38 +175,48 @@ export function TagManagementModal({
             </div>
           </div>
           
-          <div className="p-5 pt-0 mt-auto flex flex-col gap-4 bg-gradient-to-t from-white/50 dark:from-black/20 to-transparent">
-            {/* Custom Color Mixer - Moved lower */}
-            <div className="pt-4 border-t border-violet-500/10 flex flex-col gap-2">
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center">Custom Mix</span>
-              <div className="flex items-center gap-2 justify-center">
-                <input 
-                  type="color" 
-                  value={currentColor || "#8b5cf6"}
-                  onChange={(e) => {
-                    if (activePicker === 'new') setSelectedColor(e.target.value);
-                    else if (activePicker) onUpdateTagColor(activePicker, e.target.value);
-                  }}
-                  className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-none appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-none shadow-md hover:scale-110 transition-transform"
-                />
-                <input 
-                  type="text"
-                  value={currentColor || ""}
-                  onChange={(e) => {
-                    if (activePicker === 'new') setSelectedColor(e.target.value);
-                    else if (activePicker) onUpdateTagColor(activePicker, e.target.value);
-                  }}
-                  placeholder="#HEX"
-                  className="w-20 h-7 px-2 bg-slate-50 dark:bg-zinc-800/50 rounded-md text-[9px] font-black uppercase text-slate-700 dark:text-white outline-none border border-violet-500/10 focus:border-violet-500/40 transition-all text-center tracking-tighter"
-                />
+          <div className="p-6 pt-2 mt-auto flex flex-col gap-6 bg-gradient-to-t from-white/80 dark:from-black/40 to-transparent">
+            {/* Custom Color Mixer - Positioned Lower and Refined */}
+            <div className="pt-4 border-t border-violet-500/10">
+              <div className="flex flex-col gap-3">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Vlastná Farba (Mixér)</span>
+                <div className="flex items-center gap-3 justify-center">
+                  <div className="relative group/picker">
+                    <input 
+                      type="color" 
+                      value={currentColor || "#8b5cf6"}
+                      onChange={(e) => {
+                        if (activePicker === 'new') setSelectedColor(e.target.value);
+                        else if (activePicker) onUpdateTagColor(activePicker, e.target.value);
+                      }}
+                      className="w-10 h-10 rounded-2xl cursor-pointer bg-transparent border-none appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-2xl [&::-webkit-color-swatch]:border-none shadow-xl hover:scale-105 transition-transform"
+                    />
+                    <div className="absolute inset-0 rounded-2xl ring-2 ring-white/20 pointer-events-none group-hover/picker:ring-white/40 transition-all" />
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={currentColor || ""}
+                        onChange={(e) => {
+                          if (activePicker === 'new') setSelectedColor(e.target.value);
+                          else if (activePicker) onUpdateTagColor(activePicker, e.target.value);
+                        }}
+                        placeholder="#HEX"
+                        className="w-24 h-9 px-3 bg-slate-50 dark:bg-zinc-800/80 rounded-xl text-[10px] font-black uppercase text-slate-700 dark:text-white outline-none border border-violet-500/10 focus:border-violet-500/40 transition-all text-center tracking-wider"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
             <button 
               onClick={() => setActivePicker(null)}
-              className="w-full p-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all shadow-lg active:scale-95 border border-white/5"
+              className="w-full py-4 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.25em] transition-all shadow-xl shadow-violet-600/20 active:scale-95 border border-white/10 group"
             >
-              Uložiť
+              <span className="group-hover:tracking-[0.3em] transition-all">Potvrdiť Výber</span>
             </button>
           </div>
         </div>
