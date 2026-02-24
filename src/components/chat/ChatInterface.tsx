@@ -22,6 +22,7 @@ export function ChatInterface({
   maxChats
 }: ChatInterfaceProps) {
   const router = useRouter();
+  const [activeConvId, setActiveConvId] = useState<string | undefined>(conversationId);
   const [messages, setMessages] = useState(initialMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -57,14 +58,15 @@ export function ChatInterface({
       const res = await fetch('/api/ai/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage.content, conversationId }),
+        body: JSON.stringify({ message: userMessage.content, conversationId: activeConvId }),
       });
 
       if (!res.ok) throw new Error(await res.text());
 
       const activeId = res.headers.get('x-conversation-id');
-      if (!conversationId && activeId) {
+      if (!activeConvId && activeId) {
         window.history.replaceState(null, '', `/chat/${activeId}`);
+        setActiveConvId(activeId);
         router.refresh(); // so sidebar picks up the new chat
       }
 
