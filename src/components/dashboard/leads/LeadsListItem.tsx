@@ -44,6 +44,24 @@ interface LeadsListItemProps {
   onToggleTag?: (e: React.MouseEvent, msg: GmailMessage) => void;
 }
 
+// Darken a hex color by multiplying each channel by `factor` (0 = black, 1 = unchanged)
+function darkenHex(hex: string, factor: number): string {
+  const h = hex.replace('#', '');
+  const r = Math.round(parseInt(h.slice(0, 2), 16) * factor);
+  const g = Math.round(parseInt(h.slice(2, 4), 16) * factor);
+  const b = Math.round(parseInt(h.slice(4, 6), 16) * factor);
+  return `#${[r, g, b].map(v => Math.min(255, v).toString(16).padStart(2, '0')).join('')}`;
+}
+
+// Hex color to rgba string with alpha
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 // Optimization: Use memo to prevent re-renders when scrolling other parts of the UI
 export const LeadsListItem = React.memo(({
   item,
@@ -83,47 +101,51 @@ export const LeadsListItem = React.memo(({
     const msg = item as unknown as GmailMessage;
     const isSpam = msg.classification?.intent === "spam";
     const isRead = msg.isRead;
-    const isUrgentne = tags.includes("URGENTNÉ");
-    const isNaliehave = tags.includes("NALIEHAVÉ");
+
+    // Priority order: NALIEHAVÉ > URGENTNÉ > any other tag
+    const PRIORITY_TAGS = ["NALIEHAVÉ", "URGENTNÉ"];
+    const priorityTag = PRIORITY_TAGS.find(t => tags.includes(t)) ?? null;
+    const baseColor = priorityTag ? (tagColors[priorityTag] || null) : null;
+
+    // Status bar color: unread = vivid, read = darker solid
+    const barColor  = baseColor
+      ? (!isRead ? baseColor : darkenHex(baseColor, 0.35))
+      : (!isRead ? '#FFFFFF' : '#d946ef');
+    const barGlow   = `0 0 8px ${barColor}, 2px 0 15px ${hexToRgba(barColor.slice(0,7), 0.6)}, 4px 0 25px ${hexToRgba(barColor.slice(0,7), 0.25)}`;
+
+    // Row background tint
+    const rowBg = baseColor
+      ? (!isRead ? hexToRgba(baseColor, 0.12) : hexToRgba(baseColor, 0.04))
+      : undefined;
+    const rowBgHover = baseColor
+      ? (!isRead ? hexToRgba(baseColor, 0.18) : hexToRgba(baseColor, 0.07))
+      : undefined;
+    const rowBorderColor = baseColor ? hexToRgba(baseColor, 0.25) : undefined;
 
     return (
       <React.Fragment>
         <div
           onClick={() => onOpenEmail(msg)}
           className={`group flex items-center min-h-[52px] py-1 px-10 border-b cursor-pointer relative transition-all duration-200 hover:z-20 hover:shadow-sm ${
-            isNaliehave && !isRead
-              ? "bg-orange-100/90 dark:bg-orange-900/30 border-orange-400/30 hover:bg-orange-100 dark:hover:bg-orange-900/40"
-              : isNaliehave && isRead
-              ? "bg-orange-50/50 dark:bg-orange-950/15 border-orange-400/15 hover:bg-orange-50/70 dark:hover:bg-orange-950/25"
-              : isUrgentne && !isRead
-              ? "bg-red-100/90 dark:bg-red-900/30 border-red-400/30 hover:bg-red-100 dark:hover:bg-red-900/40"
-              : isUrgentne && isRead
-              ? "bg-red-50/50 dark:bg-red-950/15 border-red-400/15 hover:bg-red-50/70 dark:hover:bg-red-950/25"
-              : !isRead
-              ? "bg-[#fdfdfe] dark:bg-zinc-700 border-violet-500/[0.06] dark:border-violet-400/[0.08] z-10 shadow-sm hover:bg-violet-50/60 dark:hover:bg-violet-900/10"
-              : "bg-transparent dark:bg-transparent text-zinc-500/80 dark:text-zinc-500 border-violet-500/[0.06] dark:border-violet-400/[0.08] hover:bg-violet-50/60 dark:hover:bg-violet-900/10"
+            !baseColor
+              ? (!isRead
+                ? "bg-[#fdfdfe] dark:bg-zinc-700 border-violet-500/[0.06] dark:border-violet-400/[0.08] z-10 shadow-sm hover:bg-violet-50/60 dark:hover:bg-violet-900/10"
+                : "bg-transparent dark:bg-transparent text-zinc-500/80 dark:text-zinc-500 border-violet-500/[0.06] dark:border-violet-400/[0.08] hover:bg-violet-50/60 dark:hover:bg-violet-900/10")
+              : ""
           }`}
+          style={baseColor ? {
+            backgroundColor: rowBg,
+            borderColor: rowBorderColor
+          } : undefined}
         >
-          {/* Status Bar Indicator — color matches tag */}
+          {/* Status Bar Indicator — dynamic color from tagColors */}
           <div 
             className="absolute left-0 top-0 bottom-0 w-[6px] transition-all duration-300 z-30"
-            style={(() => {
-              // Pick color based on tag + read state
-              let color: string;
-              if (isNaliehave)      color = !isRead ? '#ff6d00' : '#c2410c';
-              else if (isUrgentne) color = !isRead ? '#ff2040' : '#991b1b';
-              else                  color = !isRead ? '#FFFFFF'  : '#d946ef';
-
-              const glow = !isRead
-                ? `0 0 8px ${color}, 2px 0 15px ${color}99, 4px 0 25px ${color}44`
-                : `0 0 6px ${color}, 2px 0 10px ${color}66`;
-
-              return {
-                backgroundColor: color,
-                boxShadow: glow,
-                borderRight: `1px solid ${color}80`
-              };
-            })()}
+            style={{ 
+              backgroundColor: barColor,
+              boxShadow: barGlow,
+              borderRight: `1px solid ${hexToRgba(barColor.slice(0,7), 0.5)}`
+            }}
           />
 
           {/* Controls */}
