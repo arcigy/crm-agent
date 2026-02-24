@@ -268,6 +268,12 @@ export function TagManagementModal({
                       boxShadow: `0 10px 15px -3px ${tagColor}40`
                     } : {}}
                     onClick={() => !isEditing && email && onToggleTag(email.id, tag)}
+                    onDoubleClick={() => {
+                      if (!isEditing && email) {
+                        if (!isActive) onToggleTag(email.id, tag);
+                        onClose();
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-3 flex-1">
                       <div className="relative">
@@ -417,7 +423,7 @@ export function TagManagementModal({
           {email && (
             <div className="p-6 bg-slate-50 dark:bg-zinc-900/50 border-t border-violet-500/10 text-center">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Kliknutím na štítok ho priradíte k mailu
+                Kliknutím priradíte, dvojklikom priradíte a zavriete
               </p>
             </div>
           )}
