@@ -24,37 +24,28 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedTab, setSelectedTab] = React.useState<string>("all");
   const [customTags, setCustomTags] = React.useState<string[]>([
-    "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"
+    "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS"
   ]);
   const [tagColors, setTagColors] = React.useState<Record<string, string>>({
     "URGENTNÉ": "#ef4444",
     "NOVÝ OBCHOD": "#22c55e",
-    "SERVIS": "#3b82f6",
-    "BACKOFFICE": "#a855f7",
-    "KÁVIČKA": "#f43f5e"
+    "SERVIS": "#3b82f6"
   });
 
   const [messageTags, setMessageTags] = React.useState<Record<string, string[]>>({});
 
   // Smart Tagging Logic
-  // Smart Tagging Logic
   const getSmartTags = (classification: any) => {
     if (!classification) return [];
     const newTags: string[] = [];
     
-    // Priority Mapping
+    // Priority: only flag high priority
     if (classification.priority === "vysoka") newTags.push("URGENTNÉ");
     
     // Intent Mapping
     if (classification.intent === "dopyt") newTags.push("NOVÝ OBCHOD");
     else if (classification.intent === "problem") newTags.push("SERVIS");
-    else if (classification.intent === "faktura") newTags.push("BACKOFFICE");
-    else if (classification.intent === "ine") {
-      const summary = (classification.summary || "").toLowerCase();
-      if (summary.includes("kava") || summary.includes("lunch") || summary.includes("stretnutie") || summary.includes("networking")) {
-        newTags.push("KÁVIČKA");
-      }
-    }
+    
     return newTags;
   };
 
@@ -123,18 +114,18 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       if (persistedSession) {
         try {
           const state = JSON.parse(persistedSession);
-          // ALWAYS merge defaults to ensure they are visible even in old sessions
-          const aiDefaults = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"];
-          const existingTags = state.customTags && Array.isArray(state.customTags) ? state.customTags : [];
+          // Allowed AI tags — merge user's custom tags with these defaults
+          const aiDefaults = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS"];
+          const existingTags = (state.customTags && Array.isArray(state.customTags)
+            ? state.customTags.filter((t: string) => !["BACKOFFICE", "KÁVIČKA", "DO VYBAVENIA", "NA PREČÍTANIE"].includes(t))
+            : []);
           const mergedTags = Array.from(new Set([...existingTags, ...aiDefaults])).sort();
           setCustomTags(mergedTags);
-          
+
           const defaultColors: Record<string, string> = {
             "URGENTNÉ": "#ef4444",
             "NOVÝ OBCHOD": "#22c55e",
-            "SERVIS": "#3b82f6",
-            "BACKOFFICE": "#a855f7",
-            "KÁVIČKA": "#f43f5e"
+            "SERVIS": "#3b82f6"
           };
           const mergedColors = { ...defaultColors, ...(state.tagColors || {}) };
           setTagColors(mergedColors);
@@ -164,8 +155,11 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
             .then(data => {
               if (data.success && data.settings) {
                 if (data.settings.customTags && Array.isArray(data.settings.customTags)) {
-                  const aiDefs = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"];
-                  const safelyMergedTags = Array.from(new Set([...data.settings.customTags, ...aiDefs])).sort();
+                  const aiDefs = ["URGENTNÉ", "NOVÝ OBCHOD", "SERVIS"];
+                  const filtered = data.settings.customTags.filter((t: string) =>
+                    !["BACKOFFICE", "KÁVIČKA", "DO VYBAVENIA", "NA PREČÍTANIE"].includes(t)
+                  );
+                  const safelyMergedTags = Array.from(new Set([...filtered, ...aiDefs])).sort();
                   setCustomTags(safelyMergedTags);
                 }
                 if (data.settings.tagColors) {
