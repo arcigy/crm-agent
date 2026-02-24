@@ -83,16 +83,22 @@ export const LeadsListItem = React.memo(({
     const msg = item as unknown as GmailMessage;
     const isSpam = msg.classification?.intent === "spam";
     const isRead = msg.isRead;
+    const isUrgentne = tags.includes("URGENTNÉ");
+    const isNaliehave = tags.includes("NALIEHAVÉ");
 
     return (
       <React.Fragment>
         <div
           onClick={() => onOpenEmail(msg)}
-          className={`group flex items-center min-h-[52px] py-1 px-10 border-b border-violet-500/[0.06] dark:border-violet-400/[0.08] cursor-pointer relative transition-all duration-200 ${
-            !isRead 
-              ? "bg-[#fdfdfe] dark:bg-zinc-700 z-10 shadow-sm" 
-              : "bg-transparent dark:bg-transparent text-zinc-500/80 dark:text-zinc-500"
-          } hover:bg-violet-50/60 dark:hover:bg-violet-900/10 hover:z-20 hover:shadow-sm`}
+          className={`group flex items-center min-h-[52px] py-1 px-10 border-b cursor-pointer relative transition-all duration-200 hover:z-20 hover:shadow-sm ${
+            isNaliehave
+              ? "bg-orange-50/70 dark:bg-orange-950/20 border-orange-400/20 hover:bg-orange-50 dark:hover:bg-orange-950/30"
+              : isUrgentne
+              ? "bg-red-50/70 dark:bg-red-950/20 border-red-400/20 hover:bg-red-50 dark:hover:bg-red-950/30"
+              : !isRead
+              ? "bg-[#fdfdfe] dark:bg-zinc-700 border-violet-500/[0.06] dark:border-violet-400/[0.08] z-10 shadow-sm hover:bg-violet-50/60 dark:hover:bg-violet-900/10"
+              : "bg-transparent dark:bg-transparent text-zinc-500/80 dark:text-zinc-500 border-violet-500/[0.06] dark:border-violet-400/[0.08] hover:bg-violet-50/60 dark:hover:bg-violet-900/10"
+          }`}
         >
           {/* Status Bar Indicator - Neon Violet & White */}
           <div 
