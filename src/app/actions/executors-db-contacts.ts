@@ -159,7 +159,9 @@ export async function executeDbContactTool(
           const exactMatch = res.find(c => 
             (c.first_name?.toLowerCase() === rawQuery.toLowerCase()) ||
             (`${c.first_name} ${c.last_name}`.toLowerCase() === rawQuery.toLowerCase()) ||
-            (c.last_name?.toLowerCase() === rawQuery.toLowerCase())
+            (c.last_name?.toLowerCase() === rawQuery.toLowerCase()) ||
+            (c.company?.toLowerCase() === rawQuery.toLowerCase()) ||
+            (c.email?.toLowerCase() === rawQuery.toLowerCase())
           );
 
           if (exactMatch) {

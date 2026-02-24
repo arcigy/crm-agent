@@ -18,10 +18,14 @@ import { AI_MODELS } from '@/lib/ai-providers';
 import { buildExecutionManifest } from '@/app/actions/agent-manifest-builder';
 import { selfReflect } from '@/app/actions/agent-self-reflector';
 import { extractAndStoreIds } from '@/app/actions/agent-self-corrector';
+import { saveUserMessage, saveAssistantMessage, loadChatHistory } from '@/lib/message-store';
+import { generateAndSaveChatTitle } from '@/lib/chat-title-generator';
+import directus from '@/lib/directus';
+import { readItems, createItem } from '@directus/sdk';
 import { MissionState, ToolResult } from '@/app/actions/agent-types';
 
 export async function POST(req: Request) {
-    const { messages, debug = false } = await req.json();
+    const { message, conversationId, debug = false, messages: reqMessages } = await req.json();
     const host = req.headers.get("host") || "";
     const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
     let user = await currentUser();
@@ -34,7 +38,50 @@ export async function POST(req: Request) {
 
     const userEmail = user.emailAddresses[0].emailAddress;
     startCostSession(userEmail);
-    const lastUserMsg = messages[messages.length - 1].content;
+
+    let activeConversationId = conversationId;
+    let history: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+
+    // Použijeme buď prenesené messagy alebo si ich stiahneme, ak máme conversationId
+    if (activeConversationId) {
+        history = await loadChatHistory(activeConversationId);
+    } else {
+        // Skontroluj limit a vytvor novu konverzaciu
+        try {
+            const existing = await directus.request(readItems('conversations', {
+                filter: { user_id: { _eq: user.id }, deleted_at: { _null: true } },
+                aggregate: { count: ['id'] },
+            }));
+            const count = Number((existing[0]?.count as any)?.id ?? 0);
+            if (count >= 20) {
+                 return Response.json({ error: 'CHAT_LIMIT_REACHED', message: 'Dosiahol si limit 20 konverzácií.' }, { status: 429 });
+            }
+            const newConv = await directus.request(createItem('conversations', {
+                user_id: user.id,
+                title: 'Nová konverzácia',
+                message_count: 0,
+            }));
+            activeConversationId = newConv.id;
+        } catch (e) {
+            console.error("Failed to create conversation:", e);
+        }
+    }
+
+    const isFirstMessage = history.length === 0;
+    const lastUserMsg = message || (reqMessages ? reqMessages[reqMessages.length - 1].content : '');
+    const messages = [...history, { role: 'user' as const, content: lastUserMsg }];
+
+    // SAVE USER MESSAGE IMMEDIATELY TO PREVENT RACE CONDITION
+    if (activeConversationId) {
+        try {
+            await saveUserMessage(activeConversationId, lastUserMsg);
+        } catch (e) {
+            console.error("Failed to save user message", e);
+        }
+    }
+
+    let fullAgentResponse = ''; // Bude akumulovať odpoveď pre zápis do histórie
+
 
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
@@ -49,7 +96,7 @@ export async function POST(req: Request) {
     (async () => {
         try {
             await log("ROUTER", "Analyzing intent...");
-            const routing = await routeIntent(lastUserMsg, messages);
+            const routing = await routeIntent(lastUserMsg, messages as any);
             await log("ROUTER", "Result", routing);
 
             if (routing.type === 'CONVERSATION') {
@@ -57,9 +104,12 @@ export async function POST(req: Request) {
                 const result = streamText({ 
                     model: google(AI_MODELS.ROUTER), 
                     system: `Si pomocník v CRM pre ${userEmail}. Odpovedaj v slovenčine. Buď vtipný, ľudský a stručný.`, 
-                    messages 
+                    messages: messages as any 
                 });
-                for await (const delta of result.textStream) await writer.write(encoder.encode(delta));
+                for await (const delta of result.textStream) {
+        fullAgentResponse += delta;
+        await writer.write(encoder.encode(delta));
+    }
                 return;
             }
 
@@ -86,7 +136,9 @@ export async function POST(req: Request) {
                 lastToolResult: null,
                 allResults: [],
                 correctionAttempts: 0,
-                toolCallCounts: {}
+                toolCallCounts: {},
+                checklist: [],
+                checklistComplete: false
             };
 
             const goal = routing.orchestrator_brief_structured?.goal || lastUserMsg;
@@ -98,7 +150,7 @@ export async function POST(req: Request) {
                 await log("ORCHESTRATOR", "Planning...");
                 
                 const taskPlan = await orchestrateParams(
-                  messages, 
+                  messages as any, 
                   missionHistory,
                   state,
                   routing.orchestrator_brief,
@@ -170,18 +222,30 @@ export async function POST(req: Request) {
                 system: `Si priateľský CRM asistent. Tvojou úlohou je doručiť užívateľovi finálnu správu o výsledku jeho požiadavky. Odpovedaj v slovenčine. ${reflection.reflectionNote ? `Poznámka pre teba: ${reflection.reflectionNote}` : ''}`,
                 prompt: `Sformuluj finálnu odpoveď na základe tejto analýzy: "${verification.analysis}"` 
             });
-            for await (const delta of reportResult.textStream) await writer.write(encoder.encode(delta));
+            for await (const delta of reportResult.textStream) {
+        fullAgentResponse += delta;
+        await writer.write(encoder.encode(delta));
+    }
 
             const sessionSummary = endCostSession();
             if (sessionSummary) await log("COST", `Celková cena dopytu: ${(sessionSummary.totalCost * 100).toFixed(3)} centov`);
-
         } catch (error: any) {
             await log("ERROR", "Global Pipeline Error", error.message);
             await writer.write(encoder.encode("Prepáč, nastala neočakávaná chyba."));
         } finally {
+            if (activeConversationId && fullAgentResponse) {
+                try {
+                    await saveAssistantMessage(activeConversationId, fullAgentResponse);
+                    if (isFirstMessage) {
+                        generateAndSaveChatTitle(activeConversationId, lastUserMsg, fullAgentResponse).catch(console.error);
+                    }
+                } catch(e) {
+                    console.error("Failed to save assistant message", e);
+                }
+            }
             await writer.close();
         }
     })();
 
-    return new Response(readable, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+    return new Response(readable, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Conversation-Id': activeConversationId || '' } });
 }

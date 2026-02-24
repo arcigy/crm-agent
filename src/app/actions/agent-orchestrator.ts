@@ -443,6 +443,7 @@ RULES:
 4. SLOVAK ARGS: All text arguments (title, content, comment, subject, body) must be in Slovak.
 5. STRICT PARAMS: Always use exact parameter names from the TOOL DEFINITIONS.
 6. HARD CONSTRAINTS: The HARD CONSTRAINTS block above is absolute — never plan a blocked tool.
+7. DEPENDENT ACTIONS PROOFING: If creating a project/deal/email depends on web research, and the search yielded empty, null, or irrelevant data, DO NOT proceed with creating it! Stop the mission and inform the user using sys_show_info or note that the research failed.
 
 TOOL CHAINING ORDER (never skip):
 - CONTACTS always first if entity unknown → db_search_contacts → db_create_contact
