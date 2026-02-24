@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { X, Plus, Tag, Trash2, Check, Loader2 } from "lucide-react";
+import { X, Plus, Tag, Trash2, Check, Loader2, Pencil } from "lucide-react";
 import { GmailMessage } from "@/types/gmail";
 
 interface TagManagementModalProps {
@@ -13,6 +13,7 @@ interface TagManagementModalProps {
   onAddTag: (tag: string) => void;
   onToggleTag: (id: string, tag: string) => void;
   onRemoveCustomTag: (tag: string) => void;
+  onRenameTag: (oldTag: string, newTag: string) => void;
 }
 
 export function TagManagementModal({
@@ -24,9 +25,12 @@ export function TagManagementModal({
   onAddTag,
   onToggleTag,
   onRemoveCustomTag,
+  onRenameTag,
 }: TagManagementModalProps) {
   const [newTagName, setNewTagName] = React.useState("");
   const [isAdding, setIsAdding] = React.useState(false);
+  const [editingTag, setEditingTag] = React.useState<string | null>(null);
+  const [editValue, setEditValue] = React.useState("");
   const [animate, setAnimate] = React.useState(false);
 
   React.useEffect(() => {
@@ -49,6 +53,14 @@ export function TagManagementModal({
       setNewTagName("");
       setIsAdding(false);
     }
+  };
+
+  const handleSaveEdit = () => {
+    if (editingTag && editValue.trim() && editingTag !== editValue.trim()) {
+      onRenameTag(editingTag, editValue.trim());
+    }
+    setEditingTag(null);
+    setEditValue("");
   };
 
   return (
@@ -99,44 +111,82 @@ export function TagManagementModal({
 
             {customTags.map((tag) => {
               const isActive = currentEmailTags.includes(tag);
+              const isEditing = editingTag === tag;
+
               return (
                 <div 
                   key={tag}
                   className={`group flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 ${
-                    email ? 'cursor-pointer' : 'cursor-default'
+                    email && !isEditing ? 'cursor-pointer' : 'cursor-default'
                   } ${
                     isActive 
                       ? 'bg-violet-600 border-violet-500 shadow-lg shadow-violet-600/20' 
                       : 'bg-slate-50 dark:bg-zinc-800/50 border-transparent hover:border-violet-500/30'
                   }`}
-                  onClick={() => email && onToggleTag(email.id, tag)}
+                  onClick={() => !isEditing && email && onToggleTag(email.id, tag)}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1">
                     <div className={`p-1.5 rounded-lg transition-colors ${isActive ? 'bg-white/20' : 'bg-violet-100 dark:bg-violet-900/20'}`}>
                       <Tag className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-violet-600'}`} />
                     </div>
-                    <span className={`text-sm font-black tracking-tight ${isActive ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
-                      {tag}
-                    </span>
+                    {isEditing ? (
+                      <input
+                        autoFocus
+                        type="text"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={handleSaveEdit}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveEdit();
+                          if (e.key === 'Escape') {
+                            setEditingTag(null);
+                            setEditValue("");
+                          }
+                        }}
+                        className="bg-transparent border-b border-white/50 text-white outline-none w-full text-sm font-black"
+                      />
+                    ) : (
+                      <span className={`text-sm font-black tracking-tight ${isActive ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                        {tag}
+                      </span>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {isActive && <Check className="w-4 h-4 text-white" />}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm(`Naozaj chcete vymazať štítok "${tag}" zo systému?`)) {
-                          onRemoveCustomTag(tag);
-                        }
-                      }}
-                      className={`p-2 rounded-xl transition-all opacity-0 group-hover:opacity-100 ${
-                        isActive 
-                          ? 'hover:bg-white/20 text-white/60 hover:text-white' 
-                          : 'hover:bg-red-50 text-slate-300 hover:text-red-500'
-                      }`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isActive && !isEditing && <Check className="w-4 h-4 text-white" />}
+                    {!isEditing && (
+                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingTag(tag);
+                            setEditValue(tag);
+                          }}
+                          className={`p-2 rounded-xl transition-all ${
+                            isActive 
+                              ? 'hover:bg-white/20 text-white/60 hover:text-white' 
+                              : 'hover:bg-violet-100 text-slate-300 hover:text-violet-600'
+                          }`}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Naozaj chcete vymazať štítok "${tag}" zo systému?`)) {
+                              onRemoveCustomTag(tag);
+                            }
+                          }}
+                          className={`p-2 rounded-xl transition-all ${
+                            isActive 
+                              ? 'hover:bg-white/20 text-white/60 hover:text-white' 
+                              : 'hover:bg-red-50 text-slate-300 hover:text-red-500'
+                          }`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

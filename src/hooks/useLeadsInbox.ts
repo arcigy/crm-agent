@@ -995,6 +995,25 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     import('sonner').then(({ toast }) => toast.success(`Štítok '${tag}' bol odstránený`));
   }, []);
 
+  const handleRenameCustomTag = React.useCallback((oldTag: string, newTag: string) => {
+    if (!newTag.trim() || oldTag === newTag) return;
+    
+    setCustomTags(prev => {
+      const next = prev.map(t => t === oldTag ? newTag : t);
+      return [...new Set(next)].sort();
+    });
+    
+    setMessageTags(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(id => {
+        next[id] = next[id].map(t => t === oldTag ? newTag : t);
+      });
+      return next;
+    });
+    
+    import('sonner').then(({ toast }) => toast.success(`Štítok '${oldTag}' premenovaný na '${newTag}'`));
+  }, []);
+
   return {
     messages,
     isConnected,
@@ -1044,6 +1063,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     handleBulkTag,
     handleToggleTag,
     handleRemoveCustomTag,
+    handleRenameCustomTag,
     handleEmptyTrash,
     analyzeEmail,
     handleOpenEmail,

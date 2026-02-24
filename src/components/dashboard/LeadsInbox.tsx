@@ -73,6 +73,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
     handleBulkTag,
     handleToggleTag,
     handleRemoveCustomTag,
+    handleRenameCustomTag,
     handleEmptyTrash,
     analyzeEmail,
     handleOpenEmail,
@@ -191,6 +192,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         onAddTag={(tag) => setCustomTags(prev => [...new Set([...prev, tag])].sort())}
         onToggleTag={handleToggleTag}
         onRemoveCustomTag={handleRemoveCustomTag}
+        onRenameTag={handleRenameCustomTag}
       />
 
       {/* Sidebar for Navigation */}
