@@ -128,27 +128,23 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       if (persistedSession) {
         try {
           const state = JSON.parse(persistedSession);
-          if (state.customTags && Array.isArray(state.customTags)) {
-            // Merge existing tags with our new AI defaults to ensure they show up
-            const aiDefaults = ["URGENTNÉ", "DO VYBAVENIA", "NA PREČÍTANIE", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"];
-            const mergedTags = Array.from(new Set([...state.customTags, ...aiDefaults])).sort();
-            setCustomTags(mergedTags);
-            
-            // Ensure new tags have their default colors if missing
-            const defaultColors: Record<string, string> = {
-              "URGENTNÉ": "#ef4444",
-              "DO VYBAVENIA": "#eab308",
-              "NA PREČÍTANIE": "#94a3b8",
-              "NOVÝ OBCHOD": "#22c55e",
-              "SERVIS": "#3b82f6",
-              "BACKOFFICE": "#a855f7",
-              "KÁVIČKA": "#f43f5e"
-            };
-            const mergedColors = { ...defaultColors, ...(state.tagColors || {}) };
-            setTagColors(mergedColors);
-          } else {
-            setCustomTags(["URGENTNÉ", "DO VYBAVENIA", "NA PREČÍTANIE", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"]);
-          }
+          // ALWAYS merge defaults to ensure they are visible even in old sessions
+          const aiDefaults = ["URGENTNÉ", "DO VYBAVENIA", "NA PREČÍTANIE", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"];
+          const existingTags = state.customTags && Array.isArray(state.customTags) ? state.customTags : [];
+          const mergedTags = Array.from(new Set([...existingTags, ...aiDefaults])).sort();
+          setCustomTags(mergedTags);
+          
+          const defaultColors: Record<string, string> = {
+            "URGENTNÉ": "#ef4444",
+            "DO VYBAVENIA": "#eab308",
+            "NA PREČÍTANIE": "#94a3b8",
+            "NOVÝ OBCHOD": "#22c55e",
+            "SERVIS": "#3b82f6",
+            "BACKOFFICE": "#a855f7",
+            "KÁVIČKA": "#f43f5e"
+          };
+          const mergedColors = { ...defaultColors, ...(state.tagColors || {}) };
+          setTagColors(mergedColors);
           
           if (state.selectedTab) setSelectedTab(state.selectedTab);
           if (state.searchQuery !== undefined) setSearchQuery(state.searchQuery);
@@ -174,9 +170,15 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
             .then(res => res.json())
             .then(data => {
               if (data.success && data.settings) {
-                if (data.settings.customTags) setCustomTags(data.settings.customTags);
-                if (data.settings.tagColors) setTagColors(data.settings.tagColors);
-                if (data.settings.messageTags) setMessageTags(data.settings.messageTags);
+                if (data.settings.customTags && Array.isArray(data.settings.customTags)) {
+                  const aiDefs = ["URGENTNÉ", "DO VYBAVENIA", "NA PREČÍTANIE", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"];
+                  const safelyMergedTags = Array.from(new Set([...data.settings.customTags, ...aiDefs])).sort();
+                  setCustomTags(safelyMergedTags);
+                }
+                if (data.settings.tagColors) {
+                  setTagColors(prev => ({ ...prev, ...data.settings.tagColors }));
+                }
+                if (data.settings.messageTags) setMessageTags(prev => ({ ...prev, ...data.settings.messageTags }));
               }
             }).catch(() => {});
         } catch(e) { console.error("Error parsing CRM leads session", e); }
