@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ConversationSidebar, Conversation } from './ConversationSidebar';
 import { ChatBubble } from './ChatBubble';
-import { SendHorizontal, MessageSquare } from 'lucide-react';
+import { SendHorizontal, MessageSquare, Copy, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface ChatInterfaceProps {
@@ -25,7 +25,15 @@ export function ChatInterface({
   const [messages, setMessages] = useState(initialMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const handleCopyChat = () => {
+    const textToCopy = messages.map(m => `[${m.role.toUpperCase()}]\n${m.content}`).join('\n\n------------------\n\n');
+    navigator.clipboard.writeText(textToCopy);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -108,8 +116,18 @@ export function ChatInterface({
         maxChats={maxChats} 
       />
 
-      <main className="flex-1 flex flex-col min-w-0">
-        <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 custom-scrollbar">
+      <main className="flex-1 flex flex-col min-w-0 relative">
+        {messages.length > 0 && (
+          <button
+            onClick={handleCopyChat}
+            className="absolute top-4 right-6 z-10 flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full text-xs transition-colors border border-gray-700 shadow-md"
+            title="Kopírovať celý chat pre debugovanie"
+          >
+            {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            {isCopied ? 'Skopírované' : 'Kopírovať (Debug)'}
+          </button>
+        )}
+        <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 custom-scrollbar md:pt-14">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 space-y-4">
               <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center shadow-inner">
