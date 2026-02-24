@@ -144,26 +144,6 @@ export const LeadsListItem = React.memo(({
               <span className={`text-[12px] truncate font-semibold ${!isRead ? "text-zinc-800 dark:text-zinc-200" : "text-zinc-500 dark:text-zinc-500"}`}>
                 {msg.snippet}
               </span>
-              {tags.length > 0 && (
-                <div className="flex items-center gap-1.5 ml-3 flex-shrink-0">
-                  {tags.map((tag) => {
-                    const color = tagColors[tag] || "#8b5cf6";
-                    return (
-                      <span
-                        key={tag}
-                        className="px-2 py-[2px] rounded-md text-[10px] font-black tracking-widest uppercase border"
-                        style={{ 
-                          borderColor: `${color}40`,
-                          backgroundColor: `${color}15`,
-                          color: color
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
             </div>
 
             {/* AI Badges */}
@@ -173,6 +153,28 @@ export const LeadsListItem = React.memo(({
               </div>
             )}
           </div>
+
+          {/* Tags - Moved to the end before the date */}
+          {tags.length > 0 && (
+            <div className="flex items-center gap-1.5 ml-4 flex-shrink-0">
+              {tags.map((tag) => {
+                const color = tagColors[tag] || "#8b5cf6";
+                return (
+                  <span
+                    key={tag}
+                    className="px-2 py-[2px] rounded-md text-[10px] font-black tracking-widest uppercase border whitespace-nowrap"
+                    style={{ 
+                      borderColor: `${color}40`,
+                      backgroundColor: `${color}15`,
+                      color: color
+                    }}
+                  >
+                    {tag}
+                  </span>
+                );
+              })}
+            </div>
+          )}
 
           {/* Date and Hover Actions */}
           <div className="flex-shrink-0 ml-2 flex items-center gap-3 min-w-[70px] justify-end">
