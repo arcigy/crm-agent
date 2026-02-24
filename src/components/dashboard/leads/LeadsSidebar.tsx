@@ -132,20 +132,21 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
           className="h-[1px] mb-4"
           style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)" }}
         />
-        <div className="flex items-center justify-between mb-2">
-          <span
-            className="text-[10px] font-black uppercase tracking-[0.2em]"
-            style={{ color: "rgba(255,255,255,0.2)" }}
-          >
-            Štítky
-          </span>
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+            <span
+              className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40"
+            >
+              Moje Štítky
+            </span>
+          </div>
           <button
             onClick={onManageTags}
             title="Spravovať štítky"
-            className="p-1 rounded-full transition-all duration-200 hover:bg-white/10 hover:text-violet-400"
-            style={{ color: "rgba(255,255,255,0.4)" }}
+            className="p-1.5 rounded-xl transition-all duration-300 hover:bg-violet-500/10 text-white/30 hover:text-violet-400 group"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
           </button>
         </div>
         <div className="mt-2 -mx-2">
@@ -215,11 +216,18 @@ function SidebarButton({ item, isActive, onClick, color }: { item: any; isActive
       )}
 
       <div className="flex items-center gap-3">
-        <item.icon
-          className={`w-4 h-4 flex-shrink-0 transition-all duration-200 ${!isActive ? 'group-hover:text-violet-400' : ''}`}
-          style={{ color: isActive ? (color || "#c4b5fd") : undefined }}
-        />
-        <span className={`tracking-wide ${isActive ? "font-bold text-white" : "font-medium text-white/40 group-hover:text-violet-300 transition-colors"}`}>
+        {color && !isActive ? (
+          <div 
+            className="w-2.5 h-2.5 rounded-full shadow-sm ml-0.5 mr-0.5" 
+            style={{ backgroundColor: color }} 
+          />
+        ) : (
+          <item.icon
+            className={`w-4 h-4 flex-shrink-0 transition-all duration-200 ${!isActive ? 'group-hover:text-violet-400' : ''}`}
+            style={{ color: isActive ? (color || "#c4b5fd") : undefined }}
+          />
+        )}
+        <span className={`tracking-wide ${isActive ? "font-bold text-white" : "font-semibold text-white/50 group-hover:text-violet-300 transition-colors"}`}>
           {item.label}
         </span>
       </div>

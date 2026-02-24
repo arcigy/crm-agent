@@ -119,20 +119,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         try {
           const parsedMessages = JSON.parse(persistedMessages);
           if (Array.isArray(parsedMessages)) {
-            // Definitívny scrub starých 'súrne' mailov
-            const sanitized = parsedMessages
-              .filter(m => {
-                const s = (m.subject || "").toLowerCase();
-                const b = (m.body || "").toLowerCase();
-                return !(s.includes("súrne") || s.includes("⚠️") || b.includes("súrne"));
-              })
-              .map(m => ({
-                ...m,
-                subject: (m.subject || "").replace(/⚠️|SÚRNE:|súrne/gi, "").trim(),
-                body: (m.body || "").replace(/súrne/gi, "").trim()
-              }));
-            setMessages(sanitized);
-            localStorage.setItem("crm_leads_messages", JSON.stringify(sanitized));
+            setMessages(parsedMessages);
+            localStorage.setItem("crm_leads_messages", JSON.stringify(parsedMessages));
           }
         } catch(e) {}
       }
@@ -140,8 +128,27 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       if (persistedSession) {
         try {
           const state = JSON.parse(persistedSession);
-          if (state.customTags) setCustomTags(state.customTags);
-          else setCustomTags(["Urgentné", "Dôležité", "Naliehavé"]);
+          if (state.customTags && Array.isArray(state.customTags)) {
+            // Merge existing tags with our new AI defaults to ensure they show up
+            const aiDefaults = ["URGENTNÉ", "DO VYBAVENIA", "NA PREČÍTANIE", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"];
+            const mergedTags = Array.from(new Set([...state.customTags, ...aiDefaults])).sort();
+            setCustomTags(mergedTags);
+            
+            // Ensure new tags have their default colors if missing
+            const defaultColors: Record<string, string> = {
+              "URGENTNÉ": "#ef4444",
+              "DO VYBAVENIA": "#eab308",
+              "NA PREČÍTANIE": "#94a3b8",
+              "NOVÝ OBCHOD": "#22c55e",
+              "SERVIS": "#3b82f6",
+              "BACKOFFICE": "#a855f7",
+              "KÁVIČKA": "#f43f5e"
+            };
+            const mergedColors = { ...defaultColors, ...(state.tagColors || {}) };
+            setTagColors(mergedColors);
+          } else {
+            setCustomTags(["URGENTNÉ", "DO VYBAVENIA", "NA PREČÍTANIE", "NOVÝ OBCHOD", "SERVIS", "BACKOFFICE", "KÁVIČKA"]);
+          }
           
           if (state.selectedTab) setSelectedTab(state.selectedTab);
           if (state.searchQuery !== undefined) setSearchQuery(state.searchQuery);
@@ -901,10 +908,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       normalizeSearchText(msg.from).includes(lowerSearch) ||
       normalizeSearchText(msg.snippet).includes(lowerSearch);
 
-    // Globálny filter na odstránenie nežiaducich výrazov
-    const sub = (msg.subject || "").toLowerCase();
-    const snip = (msg.snippet || "").toLowerCase();
-    if (sub.includes("súrne") || sub.includes("⚠️") || snip.includes("súrne")) return false;
+
 
     if (selectedTab === "unread") return matchesSearch && !msg.isRead;
     if (selectedTab === "starred") return matchesSearch && msg.isStarred;
