@@ -200,7 +200,7 @@ export const LeadsListItem = React.memo(({
 
           {/* Tags - always visible, no layout shift */}
           {tags.length > 0 && (
-            <div className="flex items-center gap-1.5 ml-4 flex-shrink-0 justify-end">
+            <div className="flex items-center gap-1.5 ml-4 mr-6 flex-shrink-0 justify-end">
               {tags.slice(0, 2).map((tag) => {
                 const color = tagColors[tag] || "#8b5cf6";
                 return (
