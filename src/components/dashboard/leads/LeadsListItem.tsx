@@ -110,8 +110,8 @@ export const LeadsListItem = React.memo(({
             style={(() => {
               // Pick color based on tag + read state
               let color: string;
-              if (isNaliehave)      color = !isRead ? '#ff6d00' : '#ff6d0060';
-              else if (isUrgentne) color = !isRead ? '#ff2040' : '#ff204060';
+              if (isNaliehave)      color = !isRead ? '#ff6d00' : '#c2410c';
+              else if (isUrgentne) color = !isRead ? '#ff2040' : '#991b1b';
               else                  color = !isRead ? '#FFFFFF'  : '#d946ef';
 
               const glow = !isRead
