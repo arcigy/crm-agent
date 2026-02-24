@@ -97,9 +97,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       if (persistedSession) {
         try {
           const state = JSON.parse(persistedSession);
-          // Vynútenie nových štítkov aj v uloženej relácii
-          const mandatoryTags = ["Urgentné", "Dôležité", "Naliehavé"];
-          setCustomTags(mandatoryTags);
+          if (state.customTags) setCustomTags(state.customTags);
+          else setCustomTags(["Urgentné", "Dôležité", "Naliehavé"]);
           
           if (state.selectedTab) setSelectedTab(state.selectedTab);
           if (state.searchQuery !== undefined) setSearchQuery(state.searchQuery);
@@ -119,6 +118,17 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
             setSelectedIds(new Set(state.selectedIds));
           }
           if (state.tagColors) setTagColors(state.tagColors);
+
+          // Deep sync from DB if possible
+          fetch("/api/notes?type=leads_settings")
+            .then(res => res.json())
+            .then(data => {
+              if (data.success && data.settings) {
+                if (data.settings.customTags) setCustomTags(data.settings.customTags);
+                if (data.settings.tagColors) setTagColors(data.settings.tagColors);
+                if (data.settings.messageTags) setMessageTags(data.settings.messageTags);
+              }
+            }).catch(() => {});
         } catch(e) { console.error("Error parsing CRM leads session", e); }
       }
     }
@@ -127,7 +137,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   // Persist State continuously
   React.useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("crm_leads_session", JSON.stringify({
+      const settings = {
         selectedTab,
         searchQuery,
         isComposeOpen,
@@ -143,7 +153,25 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         customTags,
         tagColors,
         messageTags
-      }));
+      };
+      localStorage.setItem("crm_leads_session", JSON.stringify(settings));
+
+      // Sync specific settings (tags & colors) to DB
+      const syncToDB = async () => {
+        try {
+          await fetch("/api/notes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: "LEADS_INBOX_SETTINGS",
+              content: JSON.stringify({ customTags, tagColors, messageTags })
+            })
+          });
+        } catch (e) { console.error("Failed to sync settings to DB", e); }
+      };
+      
+      const timer = setTimeout(syncToDB, 5000); // 5s debounce
+      return () => clearTimeout(timer);
     }
   }, [selectedTab, searchQuery, isComposeOpen, hasDraft, draftData, draftContent, selectedEmail, customPrompt, customCommandMode, activeActionId, currentPage, selectedIds, customTags, tagColors, messageTags]);
 

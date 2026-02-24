@@ -14,6 +14,30 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
 
+    if (type === "leads_settings") {
+      // @ts-expect-error - Directus SDK types
+      const settingsNote = await directus.request(
+        readItems("crm_notes", {
+          filter: {
+            _and: [
+              { title: { _eq: "LEADS_INBOX_SETTINGS" } },
+              { user_email: { _eq: userEmail } },
+            ],
+          },
+          limit: 1,
+        })
+      );
+      if (settingsNote && (settingsNote as any[]).length > 0) {
+        try {
+          const settings = JSON.parse((settingsNote as any[])[0].content);
+          return NextResponse.json({ success: true, settings });
+        } catch (e) {
+          return NextResponse.json({ success: false });
+        }
+      }
+      return NextResponse.json({ success: false });
+    }
+
     if (type === "ai_analysis") {
         // AI analysis is stored in activities with type 'ai_analysis'
         // @ts-expect-error - Directus SDK types
@@ -59,6 +83,33 @@ export async function POST(req: Request) {
 
     const { title, content, contact_id, project_id, task_id, file_link } =
       await req.json();
+
+    if (title === "LEADS_INBOX_SETTINGS") {
+      // Upsert logic for leads settings
+      // @ts-expect-error - Directus SDK types
+      const existing = await directus.request(
+        readItems("crm_notes", {
+          filter: {
+            _and: [
+              { title: { _eq: "LEADS_INBOX_SETTINGS" } },
+              { user_email: { _eq: userEmail } },
+            ],
+          },
+          limit: 1,
+        })
+      );
+
+      if (existing && (existing as any[]).length > 0) {
+        // Update existing
+        // @ts-expect-error - Directus SDK types
+        const res = await directus.request(
+          updateItem("crm_notes", (existing as any[])[0].id, {
+            content,
+          })
+        );
+        return NextResponse.json(res);
+      }
+    }
 
     // @ts-expect-error - Directus SDK types
     const res = await directus.request(
