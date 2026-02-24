@@ -25,7 +25,7 @@ export default async function ChatPage({ params }: { params: { id: string } }) {
   try {
     messagesResult = await directus.request(readItems('messages', {
       filter: { conversation_id: { _eq: params.id } },
-      sort: ['created_at'],
+      sort: ['id'],
       limit: 100,
       fields: ['id', 'role', 'content', 'created_at'],
     }));

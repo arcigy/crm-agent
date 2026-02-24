@@ -9,6 +9,7 @@ export async function saveUserMessage(
     conversation_id: conversationId,
     role: 'user',
     content: userMessage,
+    created_at: new Date().toISOString()
   }));
 
   const conv = await directus.request(readItems('conversations', {
@@ -31,6 +32,7 @@ export async function saveAssistantMessage(
     conversation_id: conversationId,
     role: 'assistant',
     content: assistantResponse,
+    created_at: new Date().toISOString()
   }));
 
   const conv = await directus.request(readItems('conversations', {
@@ -52,7 +54,7 @@ export async function loadChatHistory(
 ): Promise<Array<{ role: 'user' | 'assistant'; content: string }>> {
   const result = await directus.request(readItems('messages', {
     filter: { conversation_id: { _eq: conversationId } },
-    sort: ['-created_at'],  // Zoradiť od najnovšej
+    sort: ['-id'],  // Zoradiť od najnovšej (ID je garantovane rastúce)
     limit,
     fields: ['role', 'content'],
   }));
