@@ -154,10 +154,10 @@ export const LeadsListItem = React.memo(({
             )}
           </div>
 
-          {/* Tags - Moved to the end before the date */}
+          {/* Tags - fade out on hover to reveal action buttons without layout shift */}
           {tags.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 ml-4 flex-shrink min-w-[60px] justify-end relative">
-              {tags.map((tag) => {
+            <div className="flex items-center gap-1.5 ml-4 flex-shrink-0 justify-end group-hover:opacity-0 transition-opacity duration-150 pointer-events-none">
+              {tags.slice(0, 2).map((tag) => {
                 const color = tagColors[tag] || "#8b5cf6";
                 return (
                   <span
@@ -166,19 +166,23 @@ export const LeadsListItem = React.memo(({
                     style={{ 
                       borderColor: `${color}40`,
                       backgroundColor: `${color}15`,
-                      color: color
+                      color: color,
+                      textShadow: `0 0 8px ${color}60`
                     }}
                   >
                     {tag}
                   </span>
                 );
               })}
+              {tags.length > 2 && (
+                <span className="text-[9px] font-black text-white/30">+{tags.length - 2}</span>
+              )}
             </div>
           )}
 
-          {/* Date and Hover Actions */}
-          <div className="flex-shrink-0 ml-2 flex items-center gap-3 min-w-[70px] justify-end">
-            <span className={`text-[11px] font-black group-hover:hidden transition-all tabular-nums tracking-tighter ${!isRead ? "text-violet-800 dark:text-violet-300" : "text-zinc-600 dark:text-zinc-500"}`}>
+          {/* Date and Hover Actions - fixed width so nothing shifts */}
+          <div className="flex-shrink-0 ml-2 flex items-center justify-end" style={{ width: "90px" }}>
+            <span className={`text-[11px] font-black group-hover:hidden tabular-nums tracking-tighter ${!isRead ? "text-violet-800 dark:text-violet-300" : "text-zinc-600 dark:text-zinc-500"}`}>
               {formattedDate}
             </span>
 
