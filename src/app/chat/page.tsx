@@ -8,12 +8,17 @@ export default async function NewChatPage() {
   const user = await currentUser();
   if (!user) redirect('/'); // Sign In fallback
 
-  const conversationsResult = await directus.request(readItems('conversations', {
-    filter: { user_id: { _eq: user.id }, deleted_at: { _null: true } },
-    sort: ['-updated_at'],
-    limit: 20,
-    fields: ['id', 'title', 'updated_at', 'message_count'],
-  }));
+  let conversationsResult: any = [];
+  try {
+    conversationsResult = await directus.request(readItems('conversations', {
+      filter: { user_id: { _eq: user.id }, deleted_at: { _null: true } },
+      sort: ['-updated_at'],
+      limit: 20,
+      fields: ['id', 'title', 'updated_at', 'message_count'],
+    }));
+  } catch (error) {
+    console.error("Failed to load conversations:", error);
+  }
 
   return (
     <div className="flex h-screen bg-gray-950">

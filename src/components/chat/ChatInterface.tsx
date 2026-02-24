@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ConversationSidebar, Conversation } from './ConversationSidebar';
 import { ChatBubble } from './ChatBubble';
-import { SendHorizontal } from 'lucide-react';
+import { SendHorizontal, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface ChatInterfaceProps {
@@ -159,5 +159,3 @@ export function ChatInterface({
   );
 }
 
-// Just to make sure we have icon
-import { MessageSquare } from 'lucide-react';

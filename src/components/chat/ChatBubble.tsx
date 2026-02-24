@@ -35,7 +35,7 @@ export function ChatBubble({ role, content, createdAt, isStreaming }: ChatBubble
       `}>
         <MarkdownRenderer content={content} role={role} />
         
-        {createdAt && (
+        {createdAt && !isNaN(new Date(createdAt).getTime()) && (
           <div className={`text-xs mt-1.5 ${isUser ? 'text-emerald-200' : 'text-gray-500'}`}>
             {formatDistanceToNow(new Date(createdAt), { addSuffix: true, locale: sk })}
           </div>

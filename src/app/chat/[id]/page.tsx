@@ -21,21 +21,29 @@ export default async function ChatPage({ params }: { params: { id: string } }) {
       redirect('/chat');
   }
 
-  // Load messages
-  const messagesResult = await directus.request(readItems('messages', {
-    filter: { conversation_id: { _eq: params.id } },
-    sort: ['created_at'],
-    limit: 100,
-    fields: ['id', 'role', 'content', 'created_at'],
-  }));
+  let messagesResult: any = [];
+  try {
+    messagesResult = await directus.request(readItems('messages', {
+      filter: { conversation_id: { _eq: params.id } },
+      sort: ['created_at'],
+      limit: 100,
+      fields: ['id', 'role', 'content', 'created_at'],
+    }));
+  } catch (error) {
+    console.error("Failed to load messages:", error);
+  }
 
-  // Load all conversations for sidebar
-  const conversationsResult = await directus.request(readItems('conversations', {
-    filter: { user_id: { _eq: user.id }, deleted_at: { _null: true } },
-    sort: ['-updated_at'],
-    limit: 20,
-    fields: ['id', 'title', 'updated_at', 'message_count'],
-  }));
+  let conversationsResult: any = [];
+  try {
+    conversationsResult = await directus.request(readItems('conversations', {
+      filter: { user_id: { _eq: user.id }, deleted_at: { _null: true } },
+      sort: ['-updated_at'],
+      limit: 20,
+      fields: ['id', 'title', 'updated_at', 'message_count'],
+    }));
+  } catch (error) {
+    console.error("Failed to load conversations:", error);
+  }
 
   return (
     <div className="flex h-screen bg-gray-950">
