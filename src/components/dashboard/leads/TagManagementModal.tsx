@@ -39,40 +39,36 @@ export function TagManagementModal({
   const [animate, setAnimate] = React.useState(false);
 
   const COLORS = [
-    // Purples/Violets
-    { name: "Violet", value: "#8b5cf6" },
-    { name: "Indigo", value: "#6366f1" },
-    { name: "Purple", value: "#a855f7" },
-    { name: "Fuchsia", value: "#d946ef" },
-    // Blues
-    { name: "Blue", value: "#3b82f6" },
-    { name: "Sky", value: "#0ea5e9" },
-    { name: "Cyan", value: "#06b6d4" },
-    { name: "Teal", value: "#14b8a6" },
-    // Greens
-    { name: "Emerald", value: "#10b981" },
-    { name: "Green", value: "#22c55e" },
-    { name: "Lime", value: "#84cc16" },
-    { name: "Forest", value: "#166534" },
-    // Yellows/Oranges
-    { name: "Yellow", value: "#eab308" },
-    { name: "Amber", value: "#f59e0b" },
-    { name: "Orange", value: "#f97316" },
-    { name: "Bronze", value: "#92400e" },
-    // Reds/Pinks
-    { name: "Red", value: "#ef4444" },
-    { name: "Rose", value: "#f43f5e" },
-    { name: "Pink", value: "#ec4899" },
-    { name: "Crimson", value: "#991b1b" },
-    // Neutrals/Dark/Light
-    { name: "Slate", value: "#64748b" },
-    { name: "Zinc", value: "#71717a" },
-    { name: "Stone", value: "#78716c" },
-    { name: "Dark", value: "#0f172a" },
-    { name: "Silver", value: "#e2e8f0" },
-    { name: "Gold", value: "#fbbf24" },
-    { name: "Brown", value: "#78350f" },
-    { name: "Maroon", value: "#7f1d1d" },
+    // Neon Purples/Violets
+    { name: "Neon Violet", value: "#a855f7" },
+    { name: "Electric Indigo", value: "#6366f1" },
+    { name: "Cyber Purple", value: "#d946ef" },
+    { name: "Hot Pink", value: "#ff007f" },
+    // Neon Blues
+    { name: "Neon Blue", value: "#3b82f6" },
+    { name: "Electric Cyan", value: "#00f2ff" },
+    { name: "Sky Blue", value: "#0ea5e9" },
+    { name: "Ice Teal", value: "#2dd4bf" },
+    // Neon Greens
+    { name: "Neon Green", value: "#39ff14" },
+    { name: "Lime Shock", value: "#ccff00" },
+    { name: "Acid Green", value: "#84cc16" },
+    { name: "Mint Neon", value: "#00ff9f" },
+    // Neon Yellows/Oranges
+    { name: "Neon Yellow", value: "#fff200" },
+    { name: "Electric Amber", value: "#f59e0b" },
+    { name: "Neon Orange", value: "#ff5e00" },
+    { name: "Safety Orange", value: "#ff9100" },
+    // Neon Reds
+    { name: "Neon Red", value: "#ff0000" },
+    { name: "Radical Rose", value: "#f43f5e" },
+    { name: "Plasma Red", value: "#ef4444" },
+    { name: "Infrared", value: "#7f1d1d" },
+    // Modern Cyber Neutrals
+    { name: "Cyber Slate", value: "#475569" },
+    { name: "Obsidian", value: "#0f172a" },
+    { name: "Holographic Silver", value: "#cbd5e1" },
+    { name: "Titanium", value: "#71717a" },
   ];
 
   const [activePicker, setActivePicker] = React.useState<string | "new" | null>(null);
@@ -119,24 +115,24 @@ export function TagManagementModal({
         onClick={onClose}
       />
       
-      <div className="flex gap-4 items-stretch max-w-[900px] w-full justify-center relative">
-        {/* Side Panel Color Picker (Left) */}
+      <div className="flex gap-6 items-stretch max-w-[1000px] w-full justify-center relative">
+        {/* Side Panel Color Picker (Left) - Enhanced to Neon Cyber Style */}
         <div 
-          className={`w-[260px] bg-white/95 dark:bg-[#0b0c10]/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-500 transform ${activePicker ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12 pointer-events-none'}`}
+          className={`w-[300px] bg-white/95 dark:bg-[#0b0c10]/95 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-500 transform ${activePicker ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12 pointer-events-none'}`}
           style={{
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+            boxShadow: activePicker ? `0 0 40px -10px ${currentColor}40, 0 25px 50px -12px rgba(0,0,0,0.5)` : 'none'
           }}
         >
-          <div className="p-6 border-b border-violet-500/10">
-            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">
-              Paleta Farieb
+          <div className="p-7 border-b border-violet-500/10">
+            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">
+              Neon Palette
             </h3>
             <p className="text-[9px] font-bold text-violet-500 uppercase tracking-widest mt-1 opacity-60">
-              Vyberte si zo širokej škály
+              Select your signature vibe
             </p>
           </div>
           
-          <div className="p-6 overflow-y-auto thin-scrollbar grid grid-cols-4 gap-3">
+          <div className="p-7 overflow-y-auto thin-scrollbar grid grid-cols-3 gap-4 auto-rows-max">
             {COLORS.map((c) => (
               <button
                 key={c.value}
@@ -144,16 +140,21 @@ export function TagManagementModal({
                   if (activePicker === 'new') setSelectedColor(c.value);
                   else if (activePicker) onUpdateTagColor(activePicker, c.value);
                 }}
-                className={`w-10 h-10 rounded-2xl transition-all hover:scale-110 shadow-sm border-2 ${currentColor === c.value ? 'border-violet-500 scale-110 shadow-lg' : 'border-transparent'}`}
-                style={{ backgroundColor: c.value }}
+                className={`aspect-square rounded-2xl transition-all duration-300 hover:scale-110 shadow-sm border-2 relative group overflow-hidden ${currentColor === c.value ? 'border-white scale-110 shadow-xl' : 'border-transparent'}`}
+                style={{ 
+                  backgroundColor: c.value,
+                  boxShadow: currentColor === c.value ? `0 0 20px -5px ${c.value}` : 'none'
+                }}
                 title={c.name}
-              />
+              >
+                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
             ))}
             
             {/* Custom Color Mixer */}
-            <div className="col-span-4 mt-4 pt-4 border-t border-violet-500/10 flex flex-col gap-3">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Vlastná farba</span>
-              <div className="flex items-center gap-3">
+            <div className="col-span-3 mt-6 pt-6 border-t border-violet-500/10 flex flex-col gap-4">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">Custom Mix</span>
+              <div className="flex items-center gap-4">
                 <input 
                   type="color" 
                   value={currentColor || "#8b5cf6"}
@@ -161,28 +162,32 @@ export function TagManagementModal({
                     if (activePicker === 'new') setSelectedColor(e.target.value);
                     else if (activePicker) onUpdateTagColor(activePicker, e.target.value);
                   }}
-                  className="w-10 h-10 rounded-2xl cursor-pointer bg-transparent border-none appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-2xl [&::-webkit-color-swatch]:border-none shadow-lg"
+                  className="w-14 h-14 rounded-2xl cursor-pointer bg-transparent border-none appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-2xl [&::-webkit-color-swatch]:border-none shadow-xl hover:scale-105 transition-transform"
                 />
-                <input 
-                  type="text"
-                  value={currentColor || ""}
-                  onChange={(e) => {
-                    if (activePicker === 'new') setSelectedColor(e.target.value);
-                    else if (activePicker) onUpdateTagColor(activePicker, e.target.value);
-                  }}
-                  placeholder="#HEX CODE"
-                  className="flex-1 h-10 px-3 bg-slate-50 dark:bg-zinc-800/50 rounded-xl text-[10px] font-black uppercase text-slate-700 dark:text-white outline-none border border-violet-500/10 focus:border-violet-500/40 transition-all"
-                />
+                <div className="flex-1 flex flex-col gap-1">
+                  <input 
+                    type="text"
+                    value={currentColor || ""}
+                    onChange={(e) => {
+                      if (activePicker === 'new') setSelectedColor(e.target.value);
+                      else if (activePicker) onUpdateTagColor(activePicker, e.target.value);
+                    }}
+                    placeholder="#HEX"
+                    className="w-full h-11 px-4 bg-slate-50 dark:bg-zinc-800/50 rounded-xl text-[11px] font-black uppercase text-slate-700 dark:text-white outline-none border border-violet-500/10 focus:border-violet-500/40 transition-all text-center tracking-widest"
+                  />
+                </div>
               </div>
             </div>
           </div>
           
-          <button 
-            onClick={() => setActivePicker(null)}
-            className="m-6 p-3 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-violet-600/20 active:scale-95"
-          >
-            Hotovo
-          </button>
+          <div className="p-7 pt-0 mt-auto">
+            <button 
+              onClick={() => setActivePicker(null)}
+              className="w-full p-4 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-violet-600/20 active:scale-95 border border-white/10"
+            >
+              Confirm Vibe
+            </button>
+          </div>
         </div>
 
         {/* Main Modal */}
