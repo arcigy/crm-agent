@@ -1,4 +1,4 @@
-import { createDirectus, rest, staticToken, readItems } from '@directus/sdk';
+import { createDirectus, rest, staticToken, createItem } from '@directus/sdk';
 
 const DIRECTUS_URL = "https://directus-buk1-production.up.railway.app";
 const DIRECTUS_TOKEN = "3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE";
@@ -7,7 +7,11 @@ const directus = createDirectus(DIRECTUS_URL).with(staticToken(DIRECTUS_TOKEN)).
 
 async function test() {
   try {
-    const res = await directus.request(readItems('messages', { limit: 1 }));
+    const res = await directus.request(createItem('messages', {
+        conversation_id: 2,
+        role: 'user',
+        content: "Test message"
+    }));
     console.log("Success:", res);
   } catch (e: any) {
     if (e.errors) {
