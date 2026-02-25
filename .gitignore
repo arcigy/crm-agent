@@ -49,3 +49,17 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# Agent Rules & Memory Files
+/*.md
+!/README.md
+/.agent/
+/.agents/
+/mission_*.txt
+/test-*.js
+/test-*.ts
+/test_*.js
+/test_*.ts
+/temp_*.html
+/test_*.html
+*.csv
