@@ -24,8 +24,11 @@ import directus from '@/lib/directus';
 import { readItems, createItem } from '@directus/sdk';
 import { MissionState, ToolResult } from '@/app/actions/agent-types';
 
+import { sanitizeUserInput } from '@/lib/entity-tags';
+
 export async function POST(req: Request) {
-    const { message, conversationId, debug = false, messages: reqMessages } = await req.json();
+    const { message: rawMessage, conversationId, debug = false, messages: reqMessages } = await req.json();
+    const message = sanitizeUserInput(rawMessage || "");
     const host = req.headers.get("host") || "";
     const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
     let user = await currentUser();

@@ -1,14 +1,59 @@
 'use client';
 
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github-dark.css';
 import { ComponentProps } from 'react';
 
+import { splitIntoSegments } from '@/lib/entity-tags';
+import { EntityTag } from './EntityTag';
+import { Fragment } from 'react';
+
 interface MarkdownRendererProps {
   content: string;
   role: 'user' | 'assistant';
+}
+
+// Transformácia textu s tagmi → React elementy
+function renderTextWithTags(text: string): React.ReactNode {
+  const segments = splitIntoSegments(text);
+
+  // Ak žiadne tagy — vráť čistý text
+  if (segments.length === 1 && segments[0].type === 'text') {
+    return text;
+  }
+
+  return (
+    <Fragment>
+      {segments.map((segment, i) => {
+        if (segment.type === 'text') {
+          return <Fragment key={i}>{segment.content}</Fragment>;
+        }
+        return (
+          <EntityTag
+            key={i}
+            type={segment.tag.type}
+            id={segment.tag.id}
+            label={segment.tag.label}
+          />
+        );
+      })}
+    </Fragment>
+  );
+}
+
+// Helper — spracuj children React nodes a nájdi text nodes na transformáciu
+function processChildren(children: React.ReactNode): React.ReactNode {
+  if (!children) return children;
+
+  return React.Children.map(children, (child) => {
+    if (typeof child === 'string') {
+      return renderTextWithTags(child);
+    }
+    return child;
+  });
 }
 
 export function MarkdownRenderer({ content, role }: MarkdownRendererProps) {
@@ -61,6 +106,11 @@ export function MarkdownRenderer({ content, role }: MarkdownRendererProps) {
               className="mr-2 accent-emerald-500"
             />
           ),
+          // Every text container node passes through tag processor
+          p: ({ children }) => <p>{processChildren(children)}</p>,
+          li: ({ children }) => <li>{processChildren(children)}</li>,
+          td: ({ children }) => <td>{processChildren(children)}</td>,
+          span: ({ children }) => <span>{processChildren(children)}</span>,
         }}
       >
         {content}

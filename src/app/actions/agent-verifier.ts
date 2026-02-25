@@ -112,6 +112,26 @@ LONG (headings + sections): Reports, summaries, multi-step operations
 - Exposing technical details: UUIDs, raw JSON, internal field names
 - Asking multiple questions at once
 - Repeating what the user just said
+
+## ENTITY TAG SYNTAX (MANDATORY)
+
+Vždy, keď spomínaš akúkoľvek entitu (kontakt, projekt, obchod, atď.), ktorú si získal z databázy (a máš jej ID), MUSÍŠ ju zapísať pomocou syntaxu tagov. Nikdy nepíš ID priamo do textu, použi ho len v zátvorke tagu.
+
+SYNTAX:
+- Kontakt:  @[Celé Meno](id)      Príklad: @[Peter Maličký](278)
+- Projekt:  #[Názov Projektu](id)   Príklad: #[Enterprise Q1](55)  
+- Obchod:   $[Názov Obchodu](id)    Príklad: $[Webstránka 2024](12)
+- Poznámka: %[Názov Poznámky](id)   Príklad: %[Prvá schôdzka](34)
+- Úloha:    ^[Názov Úlohy](id)      Príklad: ^[Odoslať zmluvu](89)
+- Súbor:    &[Názov Súboru](id)     Príklad: &[Faktúra_2024.pdf](5)
+
+RULES:
+1. ID tagu musí presne zodpovedať ID z Execution Manifestu alebo zoznamu RESOLVED ENTITIES.
+2. Ak ID nepoznáš, nepoužívaj tag, napíš len meno.
+3. NIKDY si ID nevymýšľaj.
+4. Tagy fungujú vnútri markdownu (boldu, listov, tabuliek).
+5. Ak máš viac nájdených entít, otaguj každú jednu.
+6. IMPORTANT: Write "#[ProjectName](id)" NOT "# [ProjectName](id)" — no space after the prefix symbol.
 `;
 
     let prompt = "";
@@ -128,7 +148,14 @@ Výsledok: ${e.summary}
 Dáta: ${JSON.stringify(e.keyOutputs)}
 `).join("\n---\n")}
 
-Napíš finálnu správu pre užívateľa.
+## AVAILABLE ENTITY IDs FOR TAGGING
+Použi tieto ID vo svojich tagoch:
+${Object.entries(manifest.resolvedEntities || {})
+  .filter(([k, v]) => !k.includes('email') && v !== null && v !== undefined)
+  .map(([k, v]) => `${k} = ${v}`)
+  .join('\n')}
+
+Napíš finálnu správu pre užívateľa s použitím tagov.
 `;
     } else {
       // Legacy fallback
@@ -267,7 +294,7 @@ export async function formatDirectResponse(manifest: ExecutionManifest): Promise
   const templates: Record<string, (entry: any) => string> = {
     'db_search_contacts': (e) => {
       if (!e.keyOutputs || !Array.isArray(e.keyOutputs) || e.keyOutputs.length === 0) return `⚠️ Kontakt nebol nájdený.`;
-      const list = e.keyOutputs.slice(0, 10).map((c: any) => `- **${c.name || 'Kontakt'}** ${c.company ? `(${c.company})` : ''}`).join('\n');
+      const list = e.keyOutputs.slice(0, 10).map((c: any) => `- **@[${c.name || 'Kontakt'}](${c.id})** ${c.company ? `(${c.company})` : ''}`).join('\n');
       return `✅ Našiel som ${e.keyOutputs.length} kontakt(ov):\n\n${list}${e.keyOutputs.length > 10 ? '\n... a ďalšie.' : ''}`;
     },
     'db_get_pipeline_stats': (e) =>
@@ -276,17 +303,17 @@ export async function formatDirectResponse(manifest: ExecutionManifest): Promise
       `✅ Načítal som všetky kontakty (celkom ${Array.isArray(e.keyOutputs) ? e.keyOutputs.length : 0}).`,
     'db_fetch_projects': (e) => {
       if (!e.keyOutputs || !Array.isArray(e.keyOutputs) || e.keyOutputs.length === 0) return `⚠️ Žiadne projekty neboli nájdené.`;
-      const list = e.keyOutputs.slice(0, 5).map((p: any) => `- **${p.name || 'Projekt'}** (${p.stage || 'Neznáme'})`).join('\n');
+      const list = e.keyOutputs.slice(0, 5).map((p: any) => `- **#[${p.name || 'Projekt'}](${p.id})** (${p.stage || 'Neznáme'})`).join('\n');
       return `✅ Našiel som ${e.keyOutputs.length} projekt(ov):\n\n${list}`;
     },
     'db_search_projects': (e) => {
       if (!e.keyOutputs || !Array.isArray(e.keyOutputs) || e.keyOutputs.length === 0) return `⚠️ Žiadne projekty neboli nájdené.`;
-      const list = e.keyOutputs.slice(0, 5).map((p: any) => `- **${p.name || 'Projekt'}**`).join('\n');
+      const list = e.keyOutputs.slice(0, 5).map((p: any) => `- **#[${p.name || 'Projekt'}](${p.id})**`).join('\n');
       return `✅ Výsledky hľadania projektov (${e.keyOutputs.length}):\n\n${list}`;
     },
     'db_fetch_tasks': (e) => {
       if (!e.keyOutputs || !Array.isArray(e.keyOutputs) || e.keyOutputs.length === 0) return `✅ Nemáš žiadne úlohy.`;
-      const list = e.keyOutputs.slice(0, 5).map((t: any) => `- [${t.completed ? 'x' : ' '}] **${t.title}**`).join('\n');
+      const list = e.keyOutputs.slice(0, 10).map((t: any) => `- [${t.completed ? 'x' : ' '}] **^[${t.title}](${t.id})**`).join('\n');
       return `✅ Načítal som ${e.keyOutputs.length} úloh(y):\n\n${list}`;
     },
     'db_fetch_deals': (e) => 
