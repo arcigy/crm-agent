@@ -267,7 +267,7 @@ export async function formatDirectResponse(manifest: ExecutionManifest): Promise
   const templates: Record<string, (entry: any) => string> = {
     'db_search_contacts': (e) => {
       if (!e.keyOutputs || !Array.isArray(e.keyOutputs) || e.keyOutputs.length === 0) return `⚠️ Kontakt nebol nájdený.`;
-      const list = e.keyOutputs.slice(0, 10).map((c: any) => `- **${c.first_name || ''} ${c.last_name || ''}** ${c.company ? `(${c.company})` : ''}`).join('\n');
+      const list = e.keyOutputs.slice(0, 10).map((c: any) => `- **${c.name || 'Kontakt'}** ${c.company ? `(${c.company})` : ''}`).join('\n');
       return `✅ Našiel som ${e.keyOutputs.length} kontakt(ov):\n\n${list}${e.keyOutputs.length > 10 ? '\n... a ďalšie.' : ''}`;
     },
     'db_get_pipeline_stats': (e) =>

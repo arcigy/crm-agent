@@ -106,7 +106,14 @@ export async function executeDbContactTool(
       };
 
     case "db_search_contacts":
-      const rawQuery = (args.query as string || "").trim();
+      const rawQuery = (args.query as string || args.name as string || "").trim();
+      if (!rawQuery) {
+        return {
+          success: false,
+          error: "Prázdny vyhľadávací dopyt. Prosím zadaj meno, firmu alebo email.",
+          retryable: true
+        };
+      }
 
       // FIX #4: Try all query variants in one request
       const queryVariants = buildSearchQueryVariants(rawQuery);

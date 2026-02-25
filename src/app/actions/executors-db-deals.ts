@@ -81,6 +81,11 @@ export async function executeDbDealTool(
       };
 
     case "db_search_deals":
+      const dealQuery = (args.query as string || args.name as string || "").trim();
+      if (!dealQuery) {
+        return { success: false, error: "Prázdny vyhľadávací dopyt pre obchody.", retryable: true };
+      }
+
       const sdealsRes = (await directus.request(
         readItems("deals", {
           filter: {
@@ -89,8 +94,8 @@ export async function executeDbDealTool(
               { deleted_at: { _null: true } },
               {
                 _or: [
-                   { name: { _icontains: args.query as string } },
-                   { description: { _icontains: args.query as string } }
+                   { name: { _icontains: dealQuery } },
+                   { description: { _icontains: dealQuery } }
                 ]
               }
             ],
@@ -101,7 +106,7 @@ export async function executeDbDealTool(
       return {
         success: true,
         data: sdealsRes,
-        message: `Nájdených obchodov pre "${args.query}": ${sdealsRes.length}.`,
+        message: `Nájdených obchodov pre "${dealQuery}": ${sdealsRes.length}.`,
       };
 
     case "db_create_invoice":
