@@ -102,8 +102,10 @@ export async function POST(req: Request) {
             if (routing.type === 'CONVERSATION') {
                 await log("ROUTER", "Route: Simple Conversation");
                 const result = streamText({ 
-                    model: google(AI_MODELS.ROUTER), 
+                    model: google(AI_MODELS.ROUTER),
                     system: `Si pokročilý AI asistent pre ${userEmail}. Odpovedaj výlučne v slovenčine. 
+Aktuálny dátum a čas, podľa ktorého sa musíš VŽDY orientovať: **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**.
+
 TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
 - Na otázky odpovedaj priamo, bez omáčok (žiadne "Samozrejme, tu je tvoja odpoveď:").
 - Na formátovanie používaj exkluzívne Markdown. 
@@ -226,7 +228,8 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
             // 5. FINAL REPORT
             const reportResult = streamText({ 
                 model: google(AI_MODELS.REPORT), 
-                system: `Si priateľský CRM asistent. Tvojou úlohou je doručiť užívateľovi finálnu správu o výsledku jeho požiadavky. Odpovedaj v slovenčine. ${reflection.reflectionNote ? `Poznámka pre teba: ${reflection.reflectionNote}` : ''}`,
+                system: `Si priateľský CRM asistent. Tvojou úlohou je doručiť užívateľovi finálnu správu o výsledku jeho požiadavky. Odpovedaj v slovenčine. 
+Aktuálny reálny dátum a čas: **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**.  ${reflection.reflectionNote ? `\nPoznámka pre teba: ${reflection.reflectionNote}` : ''}`,
                 prompt: `Sformuluj finálnu odpoveď na základe tejto analýzy: "${verification.analysis}"` 
             });
             for await (const delta of reportResult.textStream) {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { MessageSquare, Plus, Trash2, Pin } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, Pin, Menu } from 'lucide-react';
 
 export interface Conversation {
   id: string;
@@ -16,6 +16,7 @@ interface ConversationSidebarProps {
   onDelete: (id: string) => Promise<void>;
   chatCount: number;
   maxChats: number;
+  onClose?: () => void;
 }
 
 export function ConversationSidebar({
@@ -23,6 +24,7 @@ export function ConversationSidebar({
   onDelete,
   chatCount,
   maxChats,
+  onClose
 }: ConversationSidebarProps) {
   const router = useRouter();
   const params = useParams();
@@ -44,8 +46,21 @@ export function ConversationSidebar({
   const isAtLimit = chatCount >= maxChats;
 
   return (
-    <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col h-full">
+    <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col h-full flex-shrink-0 transition-all duration-300">
       <div className="p-3">
+        <div className="flex justify-between items-center mb-4 px-1">
+          <span className="text-sm font-semibold text-gray-300">Konverzácie</span>
+          {onClose && (
+            <button 
+              onClick={onClose} 
+              className="p-1.5 hover:bg-gray-800 text-gray-400 hover:text-white rounded-lg transition-colors"
+              title="Skryť panel"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
         <button
           onClick={() => router.push('/chat')}
           disabled={isAtLimit}

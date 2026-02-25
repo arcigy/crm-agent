@@ -1,1 +1,0 @@
-Vygeneruj mi komplexný report o stave mojich projektov a ich finančnej hodnote. Potom mi tento report exportuj do CSV súboru.

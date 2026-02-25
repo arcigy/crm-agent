@@ -1,1 +1,0 @@
-Pozri si môj Gmail inbox a nájdi emaily od firmy ESET za posledný mesiac. Z prvého emailu extrahuj meno kontaktu a vytvor ho v CRM ak ešte neexistuje. Potom mu vytvor projekt pomenovaný podľa predmetu emailu.
