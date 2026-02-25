@@ -65,7 +65,7 @@ const menuGroups: MenuSection[] = [
     items: [
       { name: "Cold Outreach", href: "/dashboard/outreach", icon: Zap },
       { name: "Maps Scraper", href: "/dashboard/outreach/google-maps", icon: MapPin },
-      { name: "Agent AI", href: "/dashboard/agent", icon: Bot },
+      { name: "Agent AI", href: "/chat", icon: Bot },
     ],
   },
 ];
