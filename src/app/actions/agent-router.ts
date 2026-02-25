@@ -39,6 +39,9 @@ export async function routeIntent(
     const systemPrompt = `
 Si Router (Triedič) v CRM systéme. Tvojou úlohou je rozhodnúť, či správa vyžaduje akciu (TASK), alebo je to bežná konverzácia (CONVERSATION).
 
+Aktuálny reálny dátum a čas je: **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**. 
+Zohľadni to, ak užívateľ hovorí "dnes", "včera" alebo "tento týždeň".
+
 ## KLASIFIKAČNÉ PRAVIDLÁ (STRICT):
 
 | Signál | → Typ |
