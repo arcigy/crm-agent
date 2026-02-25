@@ -10,7 +10,7 @@ interface DraggableRowProps {
   row: Row<Lead>;
 }
 
-export function DraggableRow({ row }: DraggableRowProps) {
+export const DraggableRow = React.memo(({ row }: DraggableRowProps) => {
   const {
     attributes,
     listeners,
@@ -38,10 +38,10 @@ export function DraggableRow({ row }: DraggableRowProps) {
       ref={setNodeRef}
       style={style}
       key={row.id}
-      className={`group bg-card hover:bg-indigo-500/5 transition-all duration-150 relative ${isDragging ? "shadow-2xl ring-2 ring-indigo-500/30 bg-card scale-[1.01]" : ""}`}
+      className={`group bg-transparent hover:bg-violet-900/10 transition-all duration-150 relative ${isDragging ? "shadow-2xl ring-2 ring-violet-500/30 bg-zinc-900/90 scale-[1.01]" : ""}`}
     >
       {/* Unified Control Gutter */}
-      <td style={{ width: "72px" }} className="p-0 border-r border-border z-10 bg-inherit group/gutter">
+      <td style={{ width: "72px" }} className="p-0 border-r border-white/5 z-10 bg-inherit group/gutter">
         <div className="flex items-center justify-between px-2 h-full">
           {/* Selection */}
           <button
@@ -49,10 +49,10 @@ export function DraggableRow({ row }: DraggableRowProps) {
               e.stopPropagation();
               row.toggleSelected();
             }}
-            className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
+            className={`w-4 h-4 rounded-md border transition-all flex items-center justify-center ${
               row.getIsSelected()
-                ? "bg-blue-600 border-blue-600"
-                : "border-muted-foreground/30 hover:border-blue-500"
+                ? "bg-violet-600 border-violet-600 shadow-[0_0_10px_rgba(124,58,237,0.4)]"
+                : "border-white/20 hover:border-violet-400/50"
             }`}
           >
             {row.getIsSelected() && (
@@ -73,7 +73,7 @@ export function DraggableRow({ row }: DraggableRowProps) {
           <div
             {...attributes}
             {...listeners}
-            className="opacity-0 group-hover/gutter:opacity-100 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-blue-500 transition-all p-1 hover:bg-blue-600/10 rounded"
+            className="opacity-0 group-hover/gutter:opacity-100 cursor-grab active:cursor-grabbing text-white/30 hover:text-violet-400 transition-all p-1 hover:bg-violet-500/20 rounded"
           >
             ⠿
           </div>
@@ -82,18 +82,17 @@ export function DraggableRow({ row }: DraggableRowProps) {
       {row.getVisibleCells().map((cell) => (
         <td
           key={cell.id}
-          style={{ width: cell.column.getSize() }}
-          className="px-3 py-1 border-r border-border last:border-0 text-xs text-foreground/90 relative"
+          className="px-3 py-1 border-r border-white/5 last:border-0 text-xs text-white/80 relative overflow-hidden"
         >
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
         </td>
       ))}
       {/* Add Column Button Placeholder */}
-      <td style={{ width: "40px" }} className="p-2 border-l border-border text-center">
-        <div className="w-6 h-6 rounded-full hover:bg-muted flex items-center justify-center cursor-pointer transition-colors mx-auto group-hover:scale-110">
-          <span className="text-muted-foreground text-xs">+</span>
+      <td style={{ width: "40px" }} className="p-2 border-l border-white/5 text-center">
+        <div className="w-6 h-6 rounded-md hover:bg-violet-900/30 flex items-center justify-center cursor-pointer transition-colors mx-auto group-hover:scale-110">
+          <span className="text-violet-400/50 hover:text-violet-400 font-bold text-xs">+</span>
         </div>
       </td>
     </tr>
   );
-}
+});

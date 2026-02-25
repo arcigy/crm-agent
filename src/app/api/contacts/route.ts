@@ -1,7 +1,39 @@
 import { NextResponse } from 'next/server';
 import directus from '@/lib/directus';
-import { createItem } from '@directus/sdk';
+import { createItem, readItems } from '@directus/sdk';
 import { getUserEmail } from '@/lib/auth';
+
+export async function GET(req: Request) {
+  try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const q = (searchParams.get('q') || '').trim();
+    if (q.length < 2) return NextResponse.json({ contacts: [] });
+
+    // @ts-ignore
+    const results = await directus.request(readItems('contacts', {
+      filter: {
+        _or: [
+          { email: { _icontains: q } },
+          { first_name: { _icontains: q } },
+          { last_name: { _icontains: q } },
+        ],
+        deleted_at: { _null: true }
+      },
+      fields: ['id', 'first_name', 'last_name', 'email'],
+      limit: 8,
+      sort: ['first_name']
+    }));
+
+    return NextResponse.json({ contacts: results });
+  } catch (error: any) {
+    return NextResponse.json({ contacts: [] });
+  }
+}
+
+
 
 export async function POST(req: Request) {
     try {

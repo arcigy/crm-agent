@@ -21,7 +21,7 @@ export const contactColumns = [
       const labels = (info.row.original as any).labels || [];
       return (
         <div
-          className="flex items-center gap-2 cursor-pointer group/name"
+          className="flex items-center gap-3 cursor-pointer group/name p-1 -ml-1 rounded-lg transition-all hover:bg-white/5"
           onClick={() => {
             window.dispatchEvent(
               new CustomEvent("open-contact-detail", {
@@ -30,11 +30,11 @@ export const contactColumns = [
             );
           }}
         >
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300 shadow-sm transition-transform group-hover/name:scale-110">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 border border-violet-500/30 flex items-center justify-center text-[12px] font-black text-white shadow-lg shadow-violet-900/20 transition-transform duration-300 group-hover/name:scale-110 group-hover/name:shadow-violet-600/30">
             {initials.toUpperCase()}
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-foreground group-hover/name:text-blue-600 transition-colors leading-none text-xs">
+            <span className="font-bold text-zinc-100 group-hover/name:text-violet-400 transition-colors leading-none text-sm tracking-tight">
               {fn} {ln}
             </span>
             <ContactLabelsDisplay labels={labels} />
@@ -49,7 +49,7 @@ export const contactColumns = [
     cell: (info) => (
       <a
         href={`mailto:${info.getValue()}`}
-        className="text-blue-600 hover:underline text-xs leading-none"
+        className="text-violet-400 hover:text-violet-300 hover:underline font-medium text-[13px] tracking-wide transition-colors"
       >
         {info.getValue()}
       </a>
@@ -65,40 +65,44 @@ export const contactColumns = [
           onClick={() =>
             window.dispatchEvent(new CustomEvent("open-qr", { detail: phone }))
           }
-          className="flex items-center gap-2 group hover:bg-gray-50 px-2 py-1 rounded-md transition-all border border-transparent hover:border-gray-200"
+          className="flex items-center gap-2 group hover:bg-white/5 px-2 py-1 -ml-2 rounded-lg transition-all border border-transparent hover:border-white/10"
         >
           <FlagBadge phone={phone} />
-          <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600">
+          <span className="text-[13px] font-medium text-zinc-300 group-hover:text-violet-400 tracking-wide transition-colors">
             {phone}
           </span>
         </button>
       ) : (
-        <span className="text-gray-400 text-xs">-</span>
+        <span className="text-white/20 text-xs font-bold">-</span>
       );
     },
   }),
   columnHelper.accessor("company", {
     id: "company",
-    header: "Account",
+    header: "Spoločnosť",
     cell: (info) =>
-      info.getValue() || <span className="text-gray-400 text-xs">-</span>,
+      info.getValue() ? (
+        <span className="font-bold text-[13px] text-zinc-200 tracking-tight">{info.getValue()}</span>
+      ) : (
+        <span className="text-white/20 text-xs font-bold">-</span>
+      ),
   }),
   columnHelper.accessor("status", {
     id: "status",
     header: "Status",
     cell: (info) => (
       <StatusBadge 
-        contactId={info.row.original.id} 
-        currentStatus={info.getValue()} 
+        contactId={Number(info.row.original.id)} 
+        currentStatus={info.getValue() || ""} 
       />
     ),
   }),
   columnHelper.accessor("comments", {
     id: "comments",
-    header: "Comments",
+    header: "Poznámky",
     cell: (info) => (
       <EditableComment
-        id={info.row.original.id}
+        id={Number(info.row.original.id)}
         initialValue={info.getValue() || ""}
       />
     ),

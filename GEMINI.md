@@ -117,7 +117,11 @@ Supabase kód treba postupne odstrániť a nahradiť Directus volaniami.
 
 🚀 10. GITHUB & DEPLOYMENT
 GitHub repo: https://github.com/arcigy/crm-agent
-Po KAŽDEJ zmene v kóde MUSÍŠ pushnúť na GitHub:
+
+⚠️ AKTUÁLNY REŽIM: LOKÁLNE TESTOVANIE
+- Testujeme VÝHRADNE lokálne (npm run dev).
+- NEPUSHUJ na GitHub ani nedeployuj na Railway, pokiaľ to užívateľ výslovne nevyžiada (napr. napíše "push" alebo "deploy").
+- Keď dostaneš pokyn na push, použiješ:
 
 ```powershell
 git add .
@@ -125,8 +129,7 @@ git commit -m "popis zmeny"
 git push origin main
 ```
 
-Railway automaticky deployuje z main branch.
-NIKDY netestuj len lokálne - vždy deploy na produkciu!
+Railway automaticky deployuje z main branch po pushu.
 
 🤖 11. AGENT ARCHITECTURE (7-LAYER PIPELINE)
 Systém beží na robustnej pipeline, ktorá zabezpečuje >97% spoľahlivosť:

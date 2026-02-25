@@ -174,8 +174,21 @@ export const LeadsListItem = React.memo(({
           </div>
 
           {/* Sender */}
-          <div className={`w-[180px] flex-shrink-0 truncate text-[13px] mr-4 tracking-tight ${!isRead ? "font-black text-black dark:text-white" : "font-bold text-zinc-500 dark:text-zinc-500"}`}>
-            {msg.from?.split("<")[0].replace(/"/g, "") || "Neznámy"}
+          <div className={`w-[220px] flex-shrink-0 truncate text-[13px] mr-4 tracking-tight ${!isRead ? "font-black text-black dark:text-white" : "font-bold text-zinc-500 dark:text-zinc-500"}`}>
+            {(() => {
+              const name = msg.from?.split("<")[0].replace(/"/g, "").trim() || "Neznámy";
+              const email = msg.from?.match(/<(.+)>/)?.[1] || (msg.from?.includes('@') ? msg.from : '');
+              return (
+                <>
+                  <span>{name}</span>
+                  {email && email !== name && (
+                    <span className="ml-2 text-[10px] font-medium text-zinc-400/60 dark:text-zinc-500/50 lowercase">
+                      {email}
+                    </span>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           {/* Subject and Snippet */}

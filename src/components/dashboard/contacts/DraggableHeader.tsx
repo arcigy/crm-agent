@@ -24,7 +24,6 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
     transition: isDragging ? undefined : 'none', // No animation when dropping
-    width: header.getSize(),
     opacity: isDragging ? 0.7 : 1,
     zIndex: isDragging ? 100 : 1,
     position: "relative",
@@ -34,7 +33,11 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
     <th
       ref={setNodeRef}
       style={style}
-      className={`group relative px-3 py-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-wider border-r border-border last:border-0 hover:bg-muted/50 transition-colors select-none ${isDragging ? "bg-muted shadow-lg" : ""}`}
+      className={`group relative px-3 py-2 text-[10px] font-bold text-white/50 uppercase tracking-wider border-r border-white/5 last:border-0 transition-colors select-none ${
+        isDragging 
+          ? "bg-zinc-900 shadow-xl ring-1 ring-violet-500/30" 
+          : "hover:bg-white/5"
+      }`}
     >
       <div className="flex items-center gap-2">
         <div
@@ -42,7 +45,7 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
           {...listeners}
           className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
         >
-          <GripHorizontal className="w-3 h-3 text-muted-foreground/50" />
+          <GripHorizontal className="w-3 h-3 text-white/30 hover:text-white/60" />
         </div>
         <div className="flex-1 truncate">
           {header.isPlaceholder
@@ -72,10 +75,19 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
               [column.id]: newSize,
             }));
           }}
-          className={`resizer absolute -right-2 top-0 h-full w-4 cursor-col-resize select-none touch-none z-30 ${
-            header.column.getIsResizing() ? "bg-indigo-500/30" : ""
+          className={`resizer absolute -right-2 top-0 h-full w-4 cursor-col-resize select-none touch-none z-[100] flex items-center justify-center group/resizer ${
+            header.column.getIsResizing() ? "bg-violet-900/10" : ""
           }`}
-        />
+        >
+          {/* Thin line for resizing instead of thick purple rectangle */}
+          <div 
+            className={`w-[2px] h-full transition-colors duration-200 rounded-full ${
+              header.column.getIsResizing() 
+                ? "bg-violet-400 shadow-[0_0_12px_rgba(167,139,250,0.8)] opacity-100" 
+                : "bg-transparent group-hover/resizer:bg-white/30"
+            }`}
+          />
+        </div>
       )}
     </th>
   );

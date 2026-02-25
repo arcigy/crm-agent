@@ -121,6 +121,32 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
     return () => clearInterval(interval);
   }, []);
 
+  // Compute known emails for autocomplete from messages
+  const recentEmails = React.useMemo(() => {
+    const emailMap = new Map<string, string>();
+    messages.forEach(m => {
+      if (!m.from) return;
+      
+      // Try to parse "Name <email@example.com>"
+      const match = m.from.match(/^(.*?)\s*<(.+?)>$/);
+      if (match) {
+        const name = match[1].replace(/"/g, '').trim();
+        const email = match[2].toLowerCase().trim();
+        // Keep the most descriptive name if multiple exist for same email
+        if (!emailMap.has(email) || (name && !emailMap.get(email))) {
+          emailMap.set(email, name);
+        }
+      } else if (m.from.includes('@')) {
+        const email = m.from.toLowerCase().trim();
+        if (!emailMap.has(email)) {
+          emailMap.set(email, '');
+        }
+      }
+    });
+
+    return Array.from(emailMap.entries()).map(([email, name]) => ({ email, name }));
+  }, [messages]);
+
   return (
     <div className="flex h-full bg-[#f8f7ff] dark:bg-black overflow-hidden relative">
       {/* Contact Extraction Modal */}
@@ -182,6 +208,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
           setDraftData({ to: "", subject: "", body: "" });
           setSelectedTab("sent");
         }}
+        recentEmails={recentEmails}
       />
 
       {/* Tag Management Modal */}

@@ -235,14 +235,15 @@ export function ContactsTable({
       />
 
       {data.length === 0 ? (
-        <div className="h-full flex flex-col items-center justify-center bg-transparent rounded-[2rem] border border-white/10 dark:border-white/5 p-24 text-center relative overflow-hidden group transition-all">
-          <h3 className="text-3xl font-black text-foreground mb-4 uppercase italic tracking-tight">
+        <div className="h-full flex flex-col items-center justify-center bg-zinc-950 rounded-[2rem] border border-violet-900/30 shadow-xl shadow-violet-900/10 p-24 text-center relative overflow-hidden group transition-all">
+          <div className="absolute inset-0 bg-gradient-to-b from-violet-900/5 to-transparent pointer-events-none" />
+          <h3 className="text-3xl font-black text-white mb-4 uppercase italic tracking-tight relative z-10">
             V databáze nie sú žiadne kontakty
           </h3>
-          <EmptyStateActions />
+          <div className="relative z-10"><EmptyStateActions /></div>
         </div>
       ) : (
-        <div className="flex flex-col h-full bg-transparent rounded-2xl border border-white/10 dark:border-white/5 overflow-hidden transition-all duration-300">
+        <div className="flex flex-col h-full bg-zinc-950/80 backdrop-blur-md rounded-2xl border border-violet-900/30 overflow-hidden transition-all duration-300 shadow-xl shadow-violet-900/10">
           <ContactsTableToolbar
             globalFilter={globalFilter}
             setGlobalFilter={setGlobalFilter}
@@ -259,18 +260,25 @@ export function ContactsTable({
                 minWidth: "100%"
               }}
             >
+              <colgroup>
+                <col style={{ width: "72px" }} />
+                {table.getVisibleLeafColumns().map(col => (
+                  <col key={col.id} style={{ width: col.getSize() }} />
+                ))}
+                <col style={{ width: "40px" }} />
+              </colgroup>
               <thead className="bg-muted/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {/* Gutter: Consolidated Selection, Strip, Drag */}
-                    <th style={{ width: "72px" }} className="p-0 bg-muted/80 backdrop-blur-sm z-20 border-r border-border">
+                    <th style={{ width: "72px" }} className="p-0 bg-transparent z-20 border-r border-white/5">
                       <div className="flex items-center justify-between px-2 h-full">
                         <button
                           onClick={() => table.toggleAllRowsSelected()}
-                          className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
+                          className={`w-4 h-4 rounded-md border transition-all flex items-center justify-center ${
                             table.getIsAllRowsSelected()
-                              ? "bg-blue-600 border-blue-600"
-                              : "border-muted-foreground/30 hover:border-blue-500"
+                              ? "bg-violet-600 border-violet-600 shadow-[0_0_10px_rgba(124,58,237,0.4)]"
+                              : "border-white/20 hover:border-violet-400/50"
                           }`}
                         >
                           {table.getIsAllRowsSelected() && (
@@ -289,8 +297,8 @@ export function ContactsTable({
                         <DraggableHeader key={header.id} header={header} />
                       ))}
                     </SortableContext>
-                    <th style={{ width: "40px" }} className="p-2 border-l border-border text-center bg-muted/80 backdrop-blur-sm">
-                      <Plus className="w-4 h-4 text-muted-foreground mx-auto" />
+                    <th style={{ width: "40px" }} className="p-2 border-l border-white/5 text-center bg-transparent">
+                      <Plus className="w-4 h-4 text-violet-400/50 hover:text-violet-400 transition-colors mx-auto" />
                     </th>
                   </tr>
                 ))}
