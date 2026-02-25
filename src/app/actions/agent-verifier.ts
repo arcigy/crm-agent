@@ -132,6 +132,7 @@ RULES:
 4. Tagy fungujú vnútri markdownu (boldu, listov, tabuliek).
 5. Ak máš viac nájdených entít, otaguj každú jednu.
 6. IMPORTANT: Write "#[ProjectName](id)" NOT "# [ProjectName](id)" — no space after the prefix symbol.
+7. Ak nástroj vráti prepojenú entitu (napr. projekt má contact_id a contact_name), VŽDY ju spomeň a otaguj ako samostatnú entitu.
 `;
 
     let prompt = "";
@@ -303,12 +304,16 @@ export async function formatDirectResponse(manifest: ExecutionManifest): Promise
       `✅ Načítal som všetky kontakty (celkom ${Array.isArray(e.keyOutputs) ? e.keyOutputs.length : 0}).`,
     'db_fetch_projects': (e) => {
       if (!e.keyOutputs || !Array.isArray(e.keyOutputs) || e.keyOutputs.length === 0) return `⚠️ Žiadne projekty neboli nájdené.`;
-      const list = e.keyOutputs.slice(0, 5).map((p: any) => `- **#[${p.name || 'Projekt'}](${p.id})** (${p.stage || 'Neznáme'})`).join('\n');
+      const list = e.keyOutputs.slice(0, 5).map((p: any) => 
+        `- **#[${p.name || 'Projekt'}](${p.id})** (${p.stage || 'Neznáme'})${p.contact_id ? ` — Kontakt: @[${p.contact_name || 'Kontakt'}](${p.contact_id})` : ''}`
+      ).join('\n');
       return `✅ Našiel som ${e.keyOutputs.length} projekt(ov):\n\n${list}`;
     },
     'db_search_projects': (e) => {
       if (!e.keyOutputs || !Array.isArray(e.keyOutputs) || e.keyOutputs.length === 0) return `⚠️ Žiadne projekty neboli nájdené.`;
-      const list = e.keyOutputs.slice(0, 5).map((p: any) => `- **#[${p.name || 'Projekt'}](${p.id})**`).join('\n');
+      const list = e.keyOutputs.slice(0, 5).map((p: any) => 
+        `- **#[${p.name || 'Projekt'}](${p.id})**${p.contact_id ? ` (Kontakt: @[${p.contact_name || 'Kontakt'}](${p.contact_id}))` : ''}`
+      ).join('\n');
       return `✅ Výsledky hľadania projektov (${e.keyOutputs.length}):\n\n${list}`;
     },
     'db_fetch_tasks': (e) => {

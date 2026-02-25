@@ -65,6 +65,10 @@ export function MarkdownRenderer({ content, role }: MarkdownRendererProps) {
     );
   }
 
+  // PRE-PROCESS: Escape the brackets in our entity tags so ReactMarkdown doesn't see them as links
+  // e.g. @[Name](77) -> @\[Name](77)
+  const escapedContent = content.replace(/([@#$%^&])\s?\[/g, '$1\\[');
+
   return (
     <div className="prose prose-sm prose-invert max-w-none
       prose-headings:font-semibold prose-headings:text-white
@@ -110,10 +114,19 @@ export function MarkdownRenderer({ content, role }: MarkdownRendererProps) {
           p: ({ children }) => <p>{processChildren(children)}</p>,
           li: ({ children }) => <li>{processChildren(children)}</li>,
           td: ({ children }) => <td>{processChildren(children)}</td>,
+          th: ({ children }) => <th>{processChildren(children)}</th>,
           span: ({ children }) => <span>{processChildren(children)}</span>,
+          strong: ({ children }) => <strong>{processChildren(children)}</strong>,
+          em: ({ children }) => <em>{processChildren(children)}</em>,
+          h1: ({ children }) => <h1>{processChildren(children)}</h1>,
+          h2: ({ children }) => <h2>{processChildren(children)}</h2>,
+          h3: ({ children }) => <h3>{processChildren(children)}</h3>,
+          h4: ({ children }) => <h4>{processChildren(children)}</h4>,
+          h5: ({ children }) => <h5>{processChildren(children)}</h5>,
+          h6: ({ children }) => <h6>{processChildren(children)}</h6>,
         }}
       >
-        {content}
+        {escapedContent}
       </ReactMarkdown>
     </div>
   );

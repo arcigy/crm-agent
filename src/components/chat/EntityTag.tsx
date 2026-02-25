@@ -60,11 +60,19 @@ export function EntityTag({ type, id, label }: EntityTagProps) {
       onClick={handleClick}
       data-entity-type={type}
       data-entity-id={id}
-      className={`mention-tag ${mentionClass} ${!mentionClass ? `${config.color} ${config.textColor} ${config.borderColor}` : ''}`}
-      title={`Otvoriť ${type}: ${label}`}
+      className={`
+        inline-flex items-center gap-1.5 px-3 py-1
+        rounded-full text-[11px] font-black tracking-tight transition-all cursor-pointer
+        border select-none my-0.5 mx-0.5
+        ${config.color} ${config.textColor} ${config.borderColor}
+        hover:brightness-125 hover:scale-105 hover:shadow-lg hover:shadow-violet-900/20
+        active:scale-95 duration-200
+        backdrop-blur-sm
+      `}
+      title={`Zobraziť detail: ${label}`}
     >
-      <span className="text-[10px]">{config.icon}</span>
-      <span>{config.prefix}{label}</span>
+      <span className="text-[12px] filter drop-shadow-sm">{config.icon}</span>
+      <span className="uppercase tracking-wider">{label}</span>
     </span>
   );
 }

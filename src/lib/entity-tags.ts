@@ -1,12 +1,12 @@
 // lib/entity-tags.ts
 
 export const TAG_PATTERNS = {
-  contact: /@\s?\[([^\]]+)\]\((\d+)\)/g,   // @ [Meno](ID)
-  project: /#\s?\[([^\]]+)\]\((\d+)\)/g,   // # [Názov](ID)
-  deal:    /\$\s?\[([^\]]+)\]\((\d+)\)/g,  // $ [Názov](ID)
-  note:    /%\s?\[([^\]]+)\]\((\d+)\)/g,   // % [Názov](ID)
-  task:    /\^\s?\[([^\]]+)\]\((\d+)\)/g,  // ^ [Názov](ID)
-  file:    /&\s?\[([^\]]+)\]\((\d+)\)/g,   // & [Názov](ID)
+  contact: /@\s?\\?\[([^\]]+)\]\((\d+)\)/g,   // @ [Meno](ID)
+  project: /#\s?\\?\[([^\]]+)\]\((\d+)\)/g,   // # [Názov](ID)
+  deal:    /\$\s?\\?\[([^\]]+)\]\((\d+)\)/g,  // $ [Názov](ID)
+  note:    /%\s?\\?\[([^\]]+)\]\((\d+)\)/g,   // % [Názov](ID)
+  task:    /\^\s?\\?\[([^\]]+)\]\((\d+)\)/g,  // ^ [Názov](ID)
+  file:    /&\s?\\?\[([^\]]+)\]\((\d+)\)/g,   // & [Názov](ID)
 } as const;
 
 export type EntityType = keyof typeof TAG_PATTERNS;
@@ -97,8 +97,8 @@ export type TextSegment =
 export function splitIntoSegments(text: string): TextSegment[] {
   const segments: TextSegment[] = [];
 
-  // Kombinovaný pattern pre všetky entity typy (s voliteľnou medzerou)
-  const combinedPattern = /([@#$%^&])\s?\[([^\]]+)\]\((\d+)\)/g;
+  // Kombinovaný pattern pre všetky entity typy (s voliteľnou medzerou a možným escapovaním)
+  const combinedPattern = /([@#$%^&])\s?\\?\[([^\]]+)\]\((\d+)\)/g;
 
   let lastIndex = 0;
   let match;
@@ -140,10 +140,10 @@ export function splitIntoSegments(text: string): TextSegment[] {
 export function sanitizeUserInput(text: string): string {
   // Odstrániť tag syntax z USER správ — user nesmie injectovať tagy
   return text
-    .replace(/@\s?\[([^\]]+)\]\((\d+)\)/g, "$1")
-    .replace(/#\s?\[([^\]]+)\]\((\d+)\)/g, "$1")
-    .replace(/\$\s?\[([^\]]+)\]\((\d+)\)/g, "$1")
-    .replace(/%\s?\[([^\]]+)\]\((\d+)\)/g, "$1")
-    .replace(/\^\s?\[([^\]]+)\]\((\d+)\)/g, "$1")
-    .replace(/&\s?\[([^\]]+)\]\((\d+)\)/g, "$1");
+    .replace(/@\s?\\?\[([^\]]+)\]\((\d+)\)/g, "$1")
+    .replace(/#\s?\\?\[([^\]]+)\]\((\d+)\)/g, "$1")
+    .replace(/\$\s?\\?\[([^\]]+)\]\((\d+)\)/g, "$1")
+    .replace(/%\s?\\?\[([^\]]+)\]\((\d+)\)/g, "$1")
+    .replace(/\^\s?\\?\[([^\]]+)\]\((\d+)\)/g, "$1")
+    .replace(/&\s?\\?\[([^\]]+)\]\((\d+)\)/g, "$1");
 }

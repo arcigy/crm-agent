@@ -4,6 +4,9 @@ import directus from '@/lib/directus';
 import { readItems } from '@directus/sdk';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 
+import { ContactPreviewProvider } from '@/components/providers/ContactPreviewProvider';
+import { ProjectPreviewProvider } from '@/components/providers/ProjectPreviewProvider';
+
 export default async function NewChatPage() {
   const user = await currentUser();
   if (!user) redirect('/'); // Sign In fallback
@@ -21,12 +24,16 @@ export default async function NewChatPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-950">
-      <ChatInterface
-        conversations={(conversationsResult as any) ?? []}
-        chatCount={conversationsResult?.length ?? 0}
-        maxChats={20}
-      />
-    </div>
+    <ContactPreviewProvider>
+      <ProjectPreviewProvider>
+        <div className="flex h-screen bg-gray-950">
+          <ChatInterface
+            conversations={(conversationsResult as any) ?? []}
+            chatCount={conversationsResult?.length ?? 0}
+            maxChats={20}
+          />
+        </div>
+      </ProjectPreviewProvider>
+    </ContactPreviewProvider>
   );
 }

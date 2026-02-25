@@ -136,7 +136,9 @@ function extractKeyOutputs(result: ToolResult): any {
       from: item.from,
       subject: item.subject,
       title: item.title,
-      completed: item.completed
+      completed: item.completed,
+      contact_id: item.contact_id,
+      contact_name: item.contact_name
     }));
   }
 

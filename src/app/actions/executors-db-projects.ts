@@ -41,6 +41,7 @@ export async function executeDbProjectTool(
           filter: {
             _and: filters,
           },
+          fields: ["*"],
           sort: ["-date_created"],
           limit: (args.limit as number) || 20,
         }),
@@ -121,6 +122,7 @@ export async function executeDbProjectTool(
               { name: { _icontains: projQuery } },
             ],
           },
+          fields: ["*"],
           limit: 10,
         }),
       )) as Record<string, unknown>[];
