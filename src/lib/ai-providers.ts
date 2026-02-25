@@ -2,7 +2,7 @@
  * Multi-Provider AI Abstraction Layer
  *
  * Konfigurácia modelov:
- * - Všetky fázy: Gemini Flash Latest (maximum speed & reliability)
+ * - Všetky fázy: Gemini 2.5 Flash (maximum speed & reliability)
  * 
  * Deployment Trigger: 2026-02-21 14:22
  */
@@ -26,13 +26,13 @@ const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "missing-gem
 // === MODEL CONFIGURATION ===
 
 export const AI_MODELS = {
-  GATEKEEPER: process.env.AI_MODEL_GATEKEEPER || "gemini-flash-latest",
-  ORCHESTRATOR: process.env.AI_MODEL_ORCHESTRATOR || "gemini-flash-latest",
-  VERIFIER: process.env.AI_MODEL_VERIFIER || "gemini-flash-latest",
-  REPORT: process.env.AI_MODEL_REPORT || "gemini-flash-latest",
-  EMAIL_CLASSIFIER: process.env.AI_MODEL_CLASSIFIER || "gemini-flash-latest",
-  ROUTER: process.env.AI_MODEL_ROUTER || "gemini-flash-latest",
-  PREPARER: process.env.AI_MODEL_PREPARER || "gemini-flash-latest",
+  GATEKEEPER: process.env.AI_MODEL_GATEKEEPER || "gemini-2.5-flash",
+  ORCHESTRATOR: process.env.AI_MODEL_ORCHESTRATOR || "gemini-2.5-flash",
+  VERIFIER: process.env.AI_MODEL_VERIFIER || "gemini-2.5-flash",
+  REPORT: process.env.AI_MODEL_REPORT || "gemini-2.5-flash",
+  EMAIL_CLASSIFIER: process.env.AI_MODEL_CLASSIFIER || "gemini-2.5-flash",
+  ROUTER: process.env.AI_MODEL_ROUTER || "gemini-2.5-flash",
+  PREPARER: process.env.AI_MODEL_PREPARER || "gemini-2.5-flash",
 } as const;
 
 // === UNIFIED RESPONSE TYPE ===
@@ -99,7 +99,7 @@ export async function callOrchestrator(
   return { plan: [], readable_plan: [] };
 }
 
-// === VERIFIER (Gemini 1.5 Flash) ===
+// === VERIFIER (Gemini 2.5 Flash) ===
 
 export async function callVerifier(
   toolResults: Record<string, unknown>[],
@@ -125,7 +125,7 @@ Odpovedaj LEN v JSON formáte:
   return { success: false, analysis: "Nemožno analyzovať" };
 }
 
-// === FINAL REPORT (Gemini 1.5 Flash) ===
+// === FINAL REPORT (Gemini 2.5 Flash) ===
 
 export async function callFinalReport(
   messages: { role: string; content: string }[],
@@ -199,7 +199,7 @@ export async function callEmailClassifier(
   return null;
 }
 
-// === GENERIC CALL (Gemini Flash) ===
+// === GENERIC CALL (Gemini 2.5 Flash) ===
 
 export async function callModel(
   prompt: string,

@@ -480,7 +480,7 @@ export async function generatePersonalization(lead: ColdLeadItem, scrapedContent
         console.log(`[AI] Requesting Gemini 3 Flash for: ${businessName}`);
         
         // As requested: Using Gemini 3 Flash (Latest 2026 Model)
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -543,7 +543,7 @@ export async function identifyIndustry(
 
     try {
         console.log(`[AI-INDUSTRY] Identifying for: ${personalization.slice(0, 50)}...`);
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContent(prompt);
         const text = result.response.text().trim();
         
@@ -600,7 +600,7 @@ export async function classifyLeadCategory(
     `;
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContent(prompt);
         const textResponse = result.response.text().trim().replace(/[*_]/g, "");
 

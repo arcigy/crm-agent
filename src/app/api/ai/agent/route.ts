@@ -36,6 +36,7 @@ export async function POST(req: Request) {
 
     if (!user || !user.emailAddresses?.[0]?.emailAddress) return new Response('Unauthorized', { status: 401 });
 
+    const startTime = Date.now();
     const userEmail = user.emailAddresses[0].emailAddress;
     startCostSession(userEmail);
 
@@ -93,10 +94,20 @@ export async function POST(req: Request) {
         console.log(` [${stage}] ${message}`, detail ? JSON.stringify(detail, null, 2) : '');
     };
 
+    const sendStatus = async (message: string) => {
+        await writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'status', message })}\n\n`));
+    };
+
+    const sendResponseChunk = async (chunk: string) => {
+        await writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'response', message: chunk })}\n\n`));
+    };
+
     (async () => {
         try {
+            await sendStatus("🔍 Analyzujem zadanie...");
             await log("ROUTER", "Analyzing intent...");
             const routing = await routeIntent(lastUserMsg, messages as any);
+            console.log('[TIMING] After router:', Date.now() - startTime, 'ms');
             await log("ROUTER", "Result", routing);
 
             if (routing.type === 'CONVERSATION') {
@@ -116,9 +127,9 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
                     messages: messages as any 
                 });
                 for await (const delta of result.textStream) {
-        fullAgentResponse += delta;
-        await writer.write(encoder.encode(delta));
-    }
+                    fullAgentResponse += delta;
+                    await sendResponseChunk(delta);
+                }
                 return;
             }
 
@@ -131,7 +142,8 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
                 const clarification = ambiguities.length > 0
                     ? `Pred tým, ako začnem, potrebujem vedieť: ${ambiguities.join(", ")}`
                     : `Môžeš mi upresnit, čo presnne chceš spravit? Napríklad pre koho alebo čo?`;
-                await writer.write(encoder.encode(clarification));
+                await sendResponseChunk(clarification);
+                fullAgentResponse = clarification;
                 return;
             }
 
@@ -155,6 +167,7 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
             while (iter < 10) {
                 iter++;
                 state.iteration = iter;
+                await sendStatus(`🧠 Plánujem kroky (Iterácia ${iter})...`);
                 await log("LOOP", `Iteration ${iter}/10`);
                 await log("ORCHESTRATOR", "Planning...");
                 
@@ -165,6 +178,7 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
                   routing.orchestrator_brief,
                   routing.negative_constraints
                 );
+                console.log(`[TIMING] After orchestrator iter ${iter}:`, Date.now() - startTime, 'ms');
                 await log("ORCHESTRATOR", "Plan", taskPlan.steps);
 
                 if (!taskPlan.steps?.length) {
@@ -174,6 +188,7 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
 
                 const step = taskPlan.steps[0];
                 const validation = await validateActionPlan(taskPlan.intent, [step], messages, missionHistory);
+                console.log(`[TIMING] After preparer iter ${iter}:`, Date.now() - startTime, 'ms');
                 await log("PREPARER", "Validation", { valid: validation.valid, questions: validation.questions });
 
                 if (!validation.valid) {
@@ -186,6 +201,7 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
                 try {
                     await log("EXECUTOR", `Executing ${stepToRun.tool}...`, stepToRun.args);
                     const res = await executeAtomicTool(stepToRun.tool, stepToRun.args, user!);
+                    console.log(`[TIMING] After DB/Executor iter ${iter}:`, Date.now() - startTime, 'ms');
                     await log("EXECUTOR", "Result", res);
                     
                     const toolResult: ToolResult = {
@@ -273,23 +289,28 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
             if (canSkipVerifier) {
                 await log("VERIFIER", "Skipping for trivial read-only mission, fast generation...");
                 const directResponse = await formatDirectResponse(manifest);
+                console.log('[TIMING] After verifier (fast-path):', Date.now() - startTime, 'ms');
                 fullAgentResponse = directResponse;
-                await writer.write(encoder.encode(directResponse));
+                await sendResponseChunk(directResponse);
             } else {
+                await sendStatus("✅ Spracovávam výsledky...");
                 await log("VERIFIER", "Analyzing and streaming results...");
                 const reportStream = await verifyAndStream(lastUserMsg, finalResults, manifest, reflection.reflectionNote);
+                console.log('[TIMING] After verifier (stream start):', Date.now() - startTime, 'ms');
                 
                 for await (const delta of reportStream.textStream) {
                     fullAgentResponse += delta;
-                    await writer.write(encoder.encode(delta));
+                    await sendResponseChunk(delta);
                 }
+                console.log('[TIMING] After verifier (stream end):', Date.now() - startTime, 'ms');
             }
 
             const sessionSummary = endCostSession();
             if (sessionSummary) await log("COST", `Celková cena dopytu: ${(sessionSummary.totalCost * 100).toFixed(3)} centov`);
         } catch (error: any) {
             await log("ERROR", "Global Pipeline Error", error.message);
-            await writer.write(encoder.encode("Prepáč, nastala neočakávaná chyba."));
+            await sendResponseChunk("Prepáč, nastala neočakávaná chyba.");
+            fullAgentResponse = "Prepáč, nastala neočakávaná chyba.";
         } finally {
             if (activeConversationId && fullAgentResponse) {
                 try {
@@ -301,6 +322,7 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
                     console.error("Failed to save assistant message", e);
                 }
             }
+            console.log(`[TEST] Total pipeline time: ${Date.now() - startTime}ms`);
             await writer.close();
         }
     })();

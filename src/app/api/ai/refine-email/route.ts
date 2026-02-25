@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     if (!body) return NextResponse.json({ error: 'Body is required' }, { status: 400 });
 
     const { text } = await generateText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-2.5-flash'),
       prompt: `Translate or rewrite the following email content to be professional, polite, and clear in Slovak language. Keep the length similar. Respond ONLY with the refined text, no extra commentary.\n\nContent:\n${body}`,
     });
 

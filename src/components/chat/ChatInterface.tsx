@@ -28,6 +28,7 @@ export function ChatInterface({
   const [isTyping, setIsTyping] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const handleCopyChat = () => {
@@ -75,31 +76,67 @@ export function ChatInterface({
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
       let assistantMsg = '';
+      let buffer = '';
 
       setMessages(prev => [
         ...prev,
-        { id: Date.now().toString(), role: 'assistant', content: '', created_at: new Date().toISOString() }
+        { id: 'streaming-id', role: 'assistant', content: '', created_at: new Date().toISOString() }
       ]);
 
       while (true) {
         const { value, done } = await reader!.read();
         if (done) break;
-        assistantMsg += decoder.decode(value, { stream: true });
-
-        // Mierne osekajme pre LOG prefixes v debug mode, ale predpokladame no debug
         
-        setMessages(prev => {
-          const newMsg = [...prev];
-          newMsg[newMsg.length - 1].content = assistantMsg;
-          return newMsg;
-        });
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Split by the double newline to get individual data chunks
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || ''; // Keep the last partial chunk in the buffer
+
+        for (const part of parts) {
+            if (!part.startsWith('data: ')) continue;
+            try {
+                const data = JSON.parse(part.substring(6));
+                
+                if (data.type === 'status') {
+                    setStatusMessage(data.message);
+                } else if (data.type === 'response') {
+                    assistantMsg += data.message;
+                    setMessages(prev => {
+                        const newMsgs = [...prev];
+                        const lastMsg = newMsgs[newMsgs.length - 1];
+                        if (lastMsg.id === 'streaming-id') {
+                            lastMsg.content = assistantMsg;
+                        }
+                        return newMsgs;
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to parse stream chunk", e, part);
+            }
+        }
       }
+      
+      // Cleanup ID
+      setMessages(prev => {
+          const newMsgs = [...prev];
+          const lastMsg = newMsgs[newMsgs.length - 1];
+          if (lastMsg.id === 'streaming-id') {
+              lastMsg.id = Date.now().toString();
+          }
+          return newMsgs;
+      });
+      setStatusMessage(null);
 
     } catch (err) {
       console.error(err);
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: 'Prepáč, vyskytla sa chyba.', created_at: new Date().toISOString() }]);
+      setMessages(prev => {
+          const filtered = prev.filter(m => m.id !== 'streaming-id');
+          return [...filtered, { id: Date.now().toString(), role: 'assistant', content: 'Prepáč, vyskytla sa chyba.', created_at: new Date().toISOString() }];
+      });
     } finally {
       setIsTyping(false);
+      setStatusMessage(null);
     }
   };
 
@@ -172,6 +209,12 @@ export function ChatInterface({
 
         <div className="p-4 md:p-6 bg-gray-950/80 backdrop-blur border-t border-gray-800">
           <div className="max-w-4xl mx-auto relative">
+            {statusMessage && (
+              <div className="absolute -top-10 left-0 flex items-center gap-2 px-4 py-2 text-sm text-gray-400 bg-gray-900/50 rounded-t-xl border-x border-t border-gray-800 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                <span className="font-medium tracking-wide">{statusMessage}</span>
+              </div>
+            )}
             <textarea
               value={input}
               onChange={e => setInput(e.target.value)}

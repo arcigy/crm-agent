@@ -12,7 +12,7 @@ export interface ManifestEntry {
   humanName: string;
   status: "SUCCESS" | "FAILED" | "SKIPPED";
   summary: string;
-  keyOutputs: Record<string, string>;
+  keyOutputs: any;
 }
 
 export interface ExecutionManifest {
@@ -120,22 +120,35 @@ function buildResultSummary(result: ToolResult): string {
 /**
  * Extracts only critical IDs and names for the verifier context.
  */
-function extractKeyOutputs(result: ToolResult): Record<string, string> {
-  const outputs: Record<string, string> = {};
+function extractKeyOutputs(result: ToolResult): any {
   const data = result.data as any;
-  if (!data) return outputs;
+  if (!data) return {};
 
-  const item = Array.isArray(data) ? data[0] : data;
-  if (!item) return outputs;
+  if (Array.isArray(data)) {
+    return data.map(item => ({
+      id: item.id || item.contact_id || item.project_id || item.task_id,
+      name: (item.first_name || item.last_name) 
+        ? `${item.first_name || ""} ${item.last_name || ""}`.trim() 
+        : (item.name || item.title || item.subject || item.label),
+      email: item.email,
+      company: item.company,
+      stage: item.stage,
+      from: item.from,
+      subject: item.subject,
+      title: item.title,
+      completed: item.completed
+    }));
+  }
 
-  const id = item.id || item.contact_id || item.project_id || item.task_id;
+  const outputs: Record<string, string> = {};
+  const id = data.id || data.contact_id || data.project_id || data.task_id;
   if (id) outputs["id"] = String(id);
   
-  if (item.email) outputs["email"] = String(item.email);
-  if (item.first_name) outputs["name"] = `${item.first_name} ${item.last_name || ""}`.trim();
-  else if (item.name) outputs["name"] = String(item.name);
-  if (item.title) outputs["title"] = String(item.title);
-  if (item.subject) outputs["subject"] = String(item.subject);
+  if (data.email) outputs["email"] = String(data.email);
+  if (data.first_name || data.last_name) outputs["name"] = `${data.first_name || ""} ${data.last_name || ""}`.trim();
+  else if (data.name) outputs["name"] = String(data.name);
+  if (data.title) outputs["title"] = String(data.title);
+  if (data.subject) outputs["subject"] = String(data.subject);
 
   if (result.tool === "sys_show_info") {
     outputs["report_title"] = data.title;
