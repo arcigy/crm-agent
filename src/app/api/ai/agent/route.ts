@@ -209,14 +209,32 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
                     break;
                 }
 
-                // ── NOVÝ EXIT CHECK (FIX #1) ─────────────────
+                // ── NOVÝ EXIT CHECK (FIX #1 - Refined) ────────
                 if (state.checklist.length > 0 && state.checklistComplete) {
-                   await log("LOOP", "Checklist complete after execution. Exiting...");
+                   await log("LOOP", "Checklist complete. Exiting...");
                    break;
                 }
+                
                 if (state.checklist.length === 0 && state.lastToolResult?.success) {
-                   await log("LOOP", "Simple mission tools succeeded. Exiting...");
-                   break;
+                   const TERMINAL_TOOLS = new Set([
+                     'db_get_pipeline_stats', 'db_fetch_projects', 'db_fetch_tasks', 
+                     'db_fetch_deals', 'db_fetch_notes', 'gmail_fetch_list', 
+                     'sys_show_info', 'db_get_all_contacts'
+                   ]);
+                   
+                   if (TERMINAL_TOOLS.has(stepToRun.tool)) {
+                      await log("LOOP", "Terminal tool executed. Exiting...");
+                      break;
+                   }
+                   
+                   // Skip extra LLM call for purely retrieval search intents
+                   const writeVerbs = ["vytvor", "pridaj", "pošli", "zmaž", "uprav", "zlúč", "prirad", "vyrieš", "naplánuj", "zmeň", "nastav", "create", "add", "send", "delete", "update", "change"];
+                   const isWriteIntent = writeVerbs.some(v => goal.toLowerCase().includes(v));
+                   
+                   if (stepToRun.tool === 'db_search_contacts' && !isWriteIntent) {
+                      await log("LOOP", "Search complete for read intent. Exiting...");
+                      break;
+                   }
                 }
             }
 

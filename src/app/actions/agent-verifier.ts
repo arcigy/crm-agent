@@ -265,26 +265,40 @@ export async function formatDirectResponse(manifest: ExecutionManifest): Promise
   if (!entry) return "Akcia prebehla.";
   
   const templates: Record<string, (entry: any) => string> = {
-    'db_search_contacts': (e) =>
-      e.keyOutputs?.length > 0
-        ? `✅ Našiel som ${e.keyOutputs.length} kontakt(ov).`
-        : `⚠️ Kontakt nebol nájdený.`,
+    'db_search_contacts': (e) => {
+      if (!e.keyOutputs || e.keyOutputs.length === 0) return `⚠️ Kontakt nebol nájdený.`;
+      const list = e.keyOutputs.slice(0, 10).map((c: any) => `- **${c.first_name || ''} ${c.last_name || ''}** ${c.company ? `(${c.company})` : ''}`).join('\n');
+      return `✅ Našiel som ${e.keyOutputs.length} kontakt(ov):\n\n${list}${e.keyOutputs.length > 10 ? '\n... a ďalšie.' : ''}`;
+    },
     'db_get_pipeline_stats': (e) =>
-      `📋 **Pipeline prehľad:**\nCelková hodnota: ${e.keyOutputs?.total_pipeline_value || 0} €`,
+      `📋 **Pipeline prehľad:**\n- Celková hodnota: **${e.keyOutputs?.total_pipeline_value || 0} €**\n- Počet projektov: ${e.keyOutputs?.total_projects || 0}`,
     'db_get_all_contacts': (e) => 
-      `✅ Načítal som všetky kontakty. Celkový počet: ${e.keyOutputs?.length || 0}.`,
-    'db_fetch_projects': (e) => 
-      `✅ Našiel som ${e.keyOutputs?.length || 0} projekt(ov).`,
-    'db_search_projects': (e) => 
-      `✅ Výsledky hľadania projektov: bolo nájdených ${e.keyOutputs?.length || 0} projekt(ov).`,
-    'db_fetch_tasks': (e) => 
-      `✅ Načítal som ${e.keyOutputs?.length || 0} úloh(y).`,
+      `✅ Načítal som všetky kontakty (celkom ${e.keyOutputs?.length || 0}).`,
+    'db_fetch_projects': (e) => {
+      if (!e.keyOutputs || e.keyOutputs.length === 0) return `⚠️ Žiadne projekty neboli nájdené.`;
+      const list = e.keyOutputs.slice(0, 5).map((p: any) => `- **${p.name || 'Projekt'}** (${p.stage || 'Neznáme'})`).join('\n');
+      return `✅ Našiel som ${e.keyOutputs.length} projekt(ov):\n\n${list}`;
+    },
+    'db_search_projects': (e) => {
+      if (!e.keyOutputs || e.keyOutputs.length === 0) return `⚠️ Žiadne projekty neboli nájdené.`;
+      const list = e.keyOutputs.slice(0, 5).map((p: any) => `- **${p.name || 'Projekt'}**`).join('\n');
+      return `✅ Výsledky hľadania projektov (${e.keyOutputs.length}):\n\n${list}`;
+    },
+    'db_fetch_tasks': (e) => {
+      if (!e.keyOutputs || e.keyOutputs.length === 0) return `✅ Nemáš žiadne úlohy.`;
+      const list = e.keyOutputs.slice(0, 5).map((t: any) => `- [${t.completed ? 'x' : ' '}] **${t.title}**`).join('\n');
+      return `✅ Načítal som ${e.keyOutputs.length} úloh(y):\n\n${list}`;
+    },
     'db_fetch_deals': (e) => 
-      `✅ Nájdených ${e.keyOutputs?.length || 0} obchodov.`,
+      `✅ Nájdených **${e.keyOutputs?.length || 0}** obchodov.`,
     'db_fetch_notes': (e) => 
-      `✅ Nájdených ${e.keyOutputs?.length || 0} poznámok.`,
-    'gmail_fetch_list': (e) => 
-      `✅ Zoznam e-mailov úspešne načítaný (počet e-mailov: ${e.keyOutputs?.length || 0}).`,
+      `✅ Nájdených **${e.keyOutputs?.length || 0}** poznámok.`,
+    'gmail_fetch_list': (e) => {
+      if (!e.keyOutputs || e.keyOutputs.length === 0) return `✅ Žiadne nové e-maily.`;
+      const list = e.keyOutputs.slice(0, 5).map((m: any) => `- **${m.subject}** (${m.from})`).join('\n');
+      return `✅ Zoznam e-mailov (${e.keyOutputs.length}):\n\n${list}`;
+    },
+
   };
 
   const template = templates[entry.tool];
