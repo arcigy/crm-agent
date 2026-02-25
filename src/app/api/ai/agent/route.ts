@@ -11,7 +11,7 @@ const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY || 
 import { routeIntent } from '@/app/actions/agent-router';
 import { orchestrateParams } from '@/app/actions/agent-orchestrator';
 import { validateActionPlan } from '@/app/actions/agent-preparer';
-import { verifyExecutionResults } from '@/app/actions/agent-verifier';
+import { verifyAndStream, verifyExecutionResults, formatDirectResponse } from '@/app/actions/agent-verifier';
 import { executeAtomicTool } from '@/app/actions/agent-executors';
 import { startCostSession, endCostSession } from '@/lib/ai-cost-tracker';
 import { AI_MODELS } from '@/lib/ai-providers';
@@ -208,6 +208,16 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
                     await log("EXECUTOR", "Error", e.message);
                     break;
                 }
+
+                // ── NOVÝ EXIT CHECK (FIX #1) ─────────────────
+                if (state.checklist.length > 0 && state.checklistComplete) {
+                   await log("LOOP", "Checklist complete after execution. Exiting...");
+                   break;
+                }
+                if (state.checklist.length === 0 && state.lastToolResult?.success) {
+                   await log("LOOP", "Simple mission tools succeeded. Exiting...");
+                   break;
+                }
             }
 
             // 4. MANIFEST & REFLECTION
@@ -221,21 +231,30 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
                 await log("REFLECTION", "Note", reflection.reflectionNote);
             }
 
-            await log("VERIFIER", "Analyzing results...");
-            const verification = await verifyExecutionResults(lastUserMsg, finalResults, manifest);
-            await log("VERIFIER", "Analysis", verification.analysis);
+            // 5. VERIFIER & FINAL REPORT (FIX #2 merged, FIX #6 skip)
             
-            // 5. FINAL REPORT
-            const reportResult = streamText({ 
-                model: google(AI_MODELS.REPORT), 
-                system: `Si priateľský CRM asistent. Tvojou úlohou je doručiť užívateľovi finálnu správu o výsledku jeho požiadavky. Odpovedaj v slovenčine. 
-Aktuálny reálny dátum a čas: **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**.  ${reflection.reflectionNote ? `\nPoznámka pre teba: ${reflection.reflectionNote}` : ''}`,
-                prompt: `Sformuluj finálnu odpoveď na základe tejto analýzy: "${verification.analysis}"` 
-            });
-            for await (const delta of reportResult.textStream) {
-        fullAgentResponse += delta;
-        await writer.write(encoder.encode(delta));
-    }
+            // Check for trivial fast-path
+            const VERIFIER_SKIP_TOOLS = new Set([
+              'db_search_contacts', 'db_fetch_projects', 'db_get_pipeline_stats', 
+              'db_fetch_tasks', 'gmail_fetch_list', 'calendar_check_availability'
+            ]);
+            
+            const canSkipVerifier = manifest.totalSteps === 1 && manifest.failCount === 0 && manifest.successCount === 1 && VERIFIER_SKIP_TOOLS.has(manifest.entries[0]?.tool);
+
+            if (canSkipVerifier) {
+                await log("VERIFIER", "Skipping for trivial read-only mission, fast generation...");
+                const directResponse = await formatDirectResponse(manifest);
+                fullAgentResponse = directResponse;
+                await writer.write(encoder.encode(directResponse));
+            } else {
+                await log("VERIFIER", "Analyzing and streaming results...");
+                const reportStream = await verifyAndStream(lastUserMsg, finalResults, manifest, reflection.reflectionNote);
+                
+                for await (const delta of reportStream.textStream) {
+                    fullAgentResponse += delta;
+                    await writer.write(encoder.encode(delta));
+                }
+            }
 
             const sessionSummary = endCostSession();
             if (sessionSummary) await log("COST", `Celková cena dopytu: ${(sessionSummary.totalCost * 100).toFixed(3)} centov`);

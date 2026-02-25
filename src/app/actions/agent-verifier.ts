@@ -1,7 +1,7 @@
 "use server";
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { generateText } from "ai";
+import { generateText, streamText } from "ai";
 import { trackAICall } from "@/lib/ai-cost-tracker";
 import { AI_MODELS } from "@/lib/ai-providers";
 
@@ -23,13 +23,14 @@ const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
 import { ExecutionManifest } from "./agent-manifest-builder";
 
-export async function verifyExecutionResults(
+export async function verifyAndStream(
   originalIntent: string,
   results: any[],
-  manifest?: ExecutionManifest
+  manifest?: ExecutionManifest,
+  reflectionNote?: string
 ) {
   const start = Date.now();
-  const tag = "[VERIFIER]";
+  const tag = "[VERIFIER_STREAM]";
 
   try {
     const successCount = manifest ? manifest.successCount : results.filter(
@@ -38,6 +39,7 @@ export async function verifyExecutionResults(
     const failCount = manifest ? manifest.failCount : results.length - successCount;
 
     console.log(`${tag} Results: ${results.length} total, ${successCount} success, ${failCount} failed`);
+
     
     const systemPrompt = `
 Si asistent v CRM systéme (komunikuješ výlučne za seba v 1. osobe jednotného čísla - "vytvoril som", "našiel som", "zlúčil som").
@@ -137,19 +139,77 @@ Napíš finálnu správu.
 `;
     }
 
+    const finalSystemPrompt = reflectionNote 
+      ? systemPrompt + `\n\nPoznámka zo sebareflexie pre teba (zakomponuj do odpovede priroszene): ${reflectionNote}`
+      : systemPrompt;
+
+    const stream = await streamText({
+      model: google(AI_MODELS.VERIFIER),
+      system: finalSystemPrompt,
+      prompt: prompt,
+      temperature: 0.3,
+    });
+    console.log(`${tag} AI stream started in ${Date.now() - start}ms`);
+
+    return stream;
+  } catch (error: any) {
+    console.error(`${tag} Error: ${error.message}`);
+    throw error;
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// ZACHOVANÉ PRE ZPÄTNÚ KOMPATIBILITU
+export async function verifyExecutionResults(
+  originalIntent: string,
+  results: any[],
+  manifest?: ExecutionManifest
+) {
+  const start = Date.now();
+  const tag = "[VERIFIER]";
+
+  try {
+    const successCount = manifest ? manifest.successCount : results.filter(
+      (r) => r.status === "done" || r.result?.success === true || r.success === true
+    ).length;
+    const failCount = manifest ? manifest.failCount : results.length - successCount;
+
+    let prompt = "";
+    if (manifest) {
+      prompt = `
+PÔVODNÝ ZÁMER: ${manifest.goal}
+STAV: ${manifest.successCount} úspechov, ${manifest.failCount} zlyhaní
+
+DETAILNÉ VÝSLEDKY:
+${manifest.entries.map(e => `
+Krok ${e.step}: ${e.humanName}
+Stav: ${e.status}
+Výsledok: ${e.summary}
+Dáta: ${JSON.stringify(e.keyOutputs)}
+`).join("\n---\n")}
+
+Napíš finálnu správu pre užívateľa.
+`;
+    } else {
+      prompt = `
+PÔVODNÝ ZÁMER: ${originalIntent}
+VÝSLEDKY: ${JSON.stringify(results.map(r => ({ tool: r.tool, summary: summarizeResult(r) })))}
+Napíš finálnu správu.
+`;
+    }
+
     const aiStart = Date.now();
     const response = await generateText({
       model: google(AI_MODELS.VERIFIER),
-      system: systemPrompt,
+      system: "Si asistent v CRM systéme. Odpovedaj v slovenčine a bez zbytočných formalít.", // Zjednodušený prompt pre kompatibilitu
       prompt: prompt,
     });
-    console.log(`${tag} AI call finished in ${Date.now() - aiStart}ms`);
 
     trackAICall(
       "verifier",
       "gemini",
       AI_MODELS.VERIFIER,
-      systemPrompt + prompt,
+      prompt,
       response.text,
       Date.now() - start,
       (response.usage as any).inputTokens || 0,
@@ -169,6 +229,7 @@ Napíš finálnu správu.
     };
   }
 }
+
 
 // Strip internal UUIDs/IDs from result data — never expose to user
 function summarizeResult(r: any): string {
@@ -197,3 +258,36 @@ function summarizeResult(r: any): string {
     return "";
   }
 }
+
+// FORMATOVANIE PRE FAST-PATH SKIP VERIFICATION
+export async function formatDirectResponse(manifest: ExecutionManifest): Promise<string> {
+  const entry = manifest.entries[0];
+  if (!entry) return "Akcia prebehla.";
+  
+  const templates: Record<string, (entry: any) => string> = {
+    'db_search_contacts': (e) =>
+      e.keyOutputs?.length > 0
+        ? `✅ Našiel som ${e.keyOutputs.length} kontakt(ov).`
+        : `⚠️ Kontakt nebol nájdený.`,
+    'db_get_pipeline_stats': (e) =>
+      `📋 **Pipeline prehľad:**\nCelková hodnota: ${e.keyOutputs?.total_pipeline_value || 0} €`,
+    'db_get_all_contacts': (e) => 
+      `✅ Načítal som všetky kontakty. Celkový počet: ${e.keyOutputs?.length || 0}.`,
+    'db_fetch_projects': (e) => 
+      `✅ Našiel som ${e.keyOutputs?.length || 0} projekt(ov).`,
+    'db_search_projects': (e) => 
+      `✅ Výsledky hľadania projektov: bolo nájdených ${e.keyOutputs?.length || 0} projekt(ov).`,
+    'db_fetch_tasks': (e) => 
+      `✅ Načítal som ${e.keyOutputs?.length || 0} úloh(y).`,
+    'db_fetch_deals': (e) => 
+      `✅ Nájdených ${e.keyOutputs?.length || 0} obchodov.`,
+    'db_fetch_notes': (e) => 
+      `✅ Nájdených ${e.keyOutputs?.length || 0} poznámok.`,
+    'gmail_fetch_list': (e) => 
+      `✅ Zoznam e-mailov úspešne načítaný (počet e-mailov: ${e.keyOutputs?.length || 0}).`,
+  };
+
+  const template = templates[entry.tool];
+  return template ? template(entry) : (entry.summary || "Operácia bola úspešne dokončená.");
+}
+

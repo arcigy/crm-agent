@@ -108,74 +108,69 @@ export async function executeDbContactTool(
     case "db_search_contacts":
       const rawQuery = (args.query as string || "").trim();
 
-      // H1 FIX: Try each query variant, return first non-empty result
+      // FIX #4: Try all query variants in one request
       const queryVariants = buildSearchQueryVariants(rawQuery);
       let searchRes: Record<string, unknown>[] = [];
       let usedQuery = rawQuery;
 
-      for (const q of queryVariants) {
+      const orVariants: any[] = queryVariants.flatMap((q): any[] => {
         const qParts = q.split(/\s+/);
-        const filter: any = {
-          _and: [
-            {
-              _or: [
-                { user_email: { _eq: userEmail } },
-                { user_email: { _null: true } },
-              ],
-            },
-            { status: { _neq: "archived" } },
-          ]
-        };
-
         if (qParts.length > 1) {
-          filter._and.push({
-            _or: [
-              { _and: [{ first_name: { _icontains: qParts[0] } }, { last_name: { _icontains: qParts.slice(1).join(" ") } }] },
-              { _and: [{ last_name: { _icontains: qParts[0] } }, { first_name: { _icontains: qParts.slice(1).join(" ") } }] },
-              { first_name: { _icontains: q } },
-              { last_name: { _icontains: q } },
-              { company: { _icontains: q } },
-            ]
-          });
+          return [
+            { _and: [{ first_name: { _icontains: qParts[0] } }, { last_name: { _icontains: qParts.slice(1).join(" ") } }] },
+            { _and: [{ last_name: { _icontains: qParts[0] } }, { first_name: { _icontains: qParts.slice(1).join(" ") } }] },
+            { first_name: { _icontains: q } },
+            { last_name: { _icontains: q } },
+            { company: { _icontains: q } },
+          ];
         } else {
-          filter._and.push({
-            _or: [
-              { first_name: { _icontains: q } },
-              { last_name: { _icontains: q } },
-              { email: { _icontains: q } },
-              { company: { _icontains: q } },
-            ]
-          });
+          return [
+            { first_name: { _icontains: q } },
+            { last_name: { _icontains: q } },
+            { email: { _icontains: q } },
+            { company: { _icontains: q } },
+          ];
         }
+      });
 
-        const res = (await directus.request(readItems("contacts", { 
-          filter, 
-          limit: 20,
-          sort: ["-date_created"] 
-        }))) as Record<string, any>[];
-        
-        if (res.length > 0) {
-          // C1/H1 FIX: Strict similarity verification to prevent Novák -> Nováková auto-matches
-          const exactMatch = res.find(c => 
-            (c.first_name?.toLowerCase() === rawQuery.toLowerCase()) ||
-            (`${c.first_name} ${c.last_name}`.toLowerCase() === rawQuery.toLowerCase()) ||
-            (c.last_name?.toLowerCase() === rawQuery.toLowerCase()) ||
-            (c.company?.toLowerCase() === rawQuery.toLowerCase()) ||
-            (c.email?.toLowerCase() === rawQuery.toLowerCase())
-          );
+      const filter: any = {
+        _and: [
+          {
+            _or: [
+              { user_email: { _eq: userEmail } },
+              { user_email: { _null: true } },
+            ],
+          },
+          { status: { _neq: "archived" } },
+          { _or: orVariants }
+        ]
+      };
 
-          if (exactMatch) {
-            searchRes = [exactMatch];
-            usedQuery = rawQuery;
-            break;
-          }
+      const res = (await directus.request(readItems("contacts", { 
+        filter, 
+        limit: 20,
+        sort: ["-date_created"] 
+      }))) as Record<string, any>[];
+      
+      if (res.length > 0) {
+        // C1/H1 FIX: Strict similarity verification to prevent Novák -> Nováková auto-matches
+        const exactMatch = res.find(c => 
+          (c.first_name?.toLowerCase() === rawQuery.toLowerCase()) ||
+          (`${c.first_name} ${c.last_name}`.toLowerCase() === rawQuery.toLowerCase()) ||
+          (c.last_name?.toLowerCase() === rawQuery.toLowerCase()) ||
+          (c.company?.toLowerCase() === rawQuery.toLowerCase()) ||
+          (c.email?.toLowerCase() === rawQuery.toLowerCase())
+        );
 
+        if (exactMatch) {
+          searchRes = [exactMatch];
+          usedQuery = rawQuery;
+        } else {
           // If no exact match, but results found, we return them all as potential candidates.
           // This forces the Orchestrator/Preparer to trigger a CLARIFY in the next step.
           searchRes = res;
-          usedQuery = q;
+          usedQuery = rawQuery; // Just keep raw query for message
           console.log(`[SEARCH][H1] Fuzzy match detected for "${rawQuery}", returning ${res.length} candidates for clarification.`);
-          break;
         }
       }
 

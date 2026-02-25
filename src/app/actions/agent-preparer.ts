@@ -68,6 +68,28 @@ function compressField(key: string, value: string): string {
   return value.length > limit ? value.slice(0, limit) + "…" : value;
 }
 
+const READ_ONLY_TOOLS = new Set([
+  'db_search_contacts',
+  'db_fetch_contacts', 
+  'db_get_all_contacts',
+  'db_fetch_projects',
+  'db_search_projects',
+  'db_fetch_tasks',
+  'db_fetch_deals',
+  'db_fetch_notes',
+  'db_get_pipeline_stats',
+  'verify_contact_exists',
+  'verify_contact_by_email',
+  'verify_contact_by_name',
+  'verify_recent_contacts',
+  'verify_project_exists',
+  'verify_database_health',
+  'calendar_check_availability',
+  'gmail_fetch_list',
+  'gmail_get_details',
+  'sys_show_info',
+]);
+
 export async function validateActionPlan(
   intent: string,
   steps: any[],
@@ -77,6 +99,23 @@ export async function validateActionPlan(
 ) {
   const start = Date.now();
   try {
+    // FAST PATH — skipt LLM for simple 1-step read-only missions
+    const isSimpleReadOnly =
+      steps.length === 1 &&
+      READ_ONLY_TOOLS.has(steps[0].tool);
+
+    if (isSimpleReadOnly) {
+      const step = steps[0];
+      const toolDef = ALL_ATOMS.find(t => t.function.name === step.tool);
+      const required = toolDef?.function.parameters?.required || [];
+      const hasAllRequired = required.every((reqKey: string) => step.args[reqKey] !== undefined && step.args[reqKey] !== null);
+      
+      if (hasAllRequired) {
+        console.log(`[PREPARER] Fast-path: skipping LLM validation for simple read-only tool: ${step.tool}`);
+        return { valid: true, questions: [], validated_steps: steps };
+      }
+    }
+
     // ── C1: Code-level prerequisite check (runs BEFORE AI call) ──────────────
     if (state) {
       for (const step of steps) {
