@@ -216,6 +216,11 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
                 }
                 
                 if (state.checklist.length === 0 && state.lastToolResult?.success) {
+                   // Ak LLM už v tomto kroku navrhlo viacero paralelných krokov, určite nekončíme predčasne
+                   if (taskPlan.steps && taskPlan.steps.length > 1) {
+                      continue;
+                   }
+
                    const TERMINAL_TOOLS = new Set([
                      'db_get_pipeline_stats', 'db_fetch_projects', 'db_fetch_tasks', 
                      'db_fetch_deals', 'db_fetch_notes', 'gmail_fetch_list', 
@@ -228,7 +233,13 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
                    }
                    
                    // Skip extra LLM call for purely retrieval search intents
-                   const writeVerbs = ["vytvor", "pridaj", "pošli", "zmaž", "uprav", "zlúč", "prirad", "vyrieš", "naplánuj", "zmeň", "nastav", "create", "add", "send", "delete", "update", "change"];
+                   // Pridané: fakturuj, priprav, generuj, archivuj, exportuj, analyzuj, napíš
+                   const writeVerbs = [
+                     "vytvor", "pridaj", "pošli", "zmaž", "uprav", "zlúč", "prirad", "vyrieš", 
+                     "naplánuj", "zmeň", "nastav", "fakturuj", "priprav", "generuj", "archivuj", 
+                     "exportuj", "analyzuj", "napíš", "napiš", "odstráň", "create", "add", 
+                     "send", "delete", "update", "change", "archive", "generate", "prepare"
+                   ];
                    const isWriteIntent = writeVerbs.some(v => goal.toLowerCase().includes(v));
                    
                    if (stepToRun.tool === 'db_search_contacts' && !isWriteIntent) {
