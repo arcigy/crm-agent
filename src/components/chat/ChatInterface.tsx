@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ConversationSidebar, Conversation } from './ConversationSidebar';
 import { ChatBubble } from './ChatBubble';
-import { SendHorizontal, MessageSquare, Copy, Check } from 'lucide-react';
+import { SendHorizontal, MessageSquare, Copy, Check, Menu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface ChatInterfaceProps {
@@ -27,6 +27,7 @@ export function ChatInterface({
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const handleCopyChat = () => {
@@ -111,14 +112,29 @@ export function ChatInterface({
 
   return (
     <div className="flex h-screen w-full bg-gray-950 text-white overflow-hidden font-sans">
-      <ConversationSidebar 
-        conversations={conversations} 
-        onDelete={handleDelete} 
-        chatCount={chatCount} 
-        maxChats={maxChats} 
-      />
+      {isSidebarOpen && (
+        <ConversationSidebar 
+          conversations={conversations} 
+          onDelete={handleDelete} 
+          chatCount={chatCount} 
+          maxChats={maxChats} 
+          onClose={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       <main className="flex-1 flex flex-col min-w-0 relative">
+        <div className="absolute top-4 left-4 xl:left-6 z-10 flex items-center gap-2">
+          {!isSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl transition-colors border border-gray-700 shadow-md"
+              title="Zobraziť panel konverzácií"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+        
         {messages.length > 0 && (
           <button
             onClick={handleCopyChat}

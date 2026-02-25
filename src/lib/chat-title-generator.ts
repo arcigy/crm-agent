@@ -1,6 +1,10 @@
-import { callModel } from './ai-providers';
+import { generateText } from 'ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import directus from './directus';
 import { updateItem } from '@directus/sdk';
+import { AI_MODELS } from './ai-providers';
+
+const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 export async function generateAndSaveChatTitle(
   conversationId: string,
@@ -8,38 +12,31 @@ export async function generateAndSaveChatTitle(
   firstAgentResponse: string
 ): Promise<void> {
 
-  const prompt = `
-Na základe tejto konverzácie vygeneruj krátky, výstižný názov v slovenčine.
+  const systemPrompt = `
+Si expert na zhrnutie textu do jedného veľmi krátkeho (max 5 slov) zmysluplného názvu.
+Tvojim jediným cieľom je prečítať prompt používateľa a odpoveď agenta a vrátiť výstižný názov.
 
-Správa užívateľa: "${firstUserMessage.slice(0, 300)}"
-Odpoveď asistenta: "${firstAgentResponse.slice(0, 200)}"
-
-Pravidlá:
-1. Maximálne 6 slov
-2. Bez úvodzoviek, bodiek, otáznikov na konci
-3. Slovenčina, prirodzený jazyk
-4. Zachyť hlavnú tému (nie "Nová konverzácia")
-
-Príklady dobrých názvov:
-- "Vytvorenie projektu pre Google"
-- "Analýza pipeline dealov"  
-- "Merge duplicitných kontaktov"
-- "Ranný briefing pre Petra"
-
-Odpovedz LEN názvom, nič iné:
+PRAVIDLÁ:
+- Názov musí mať MAXIMÁLNE 5 slov.
+- NEPOUŽÍVAJ úvodzovky, bodky, výkričníky, ani predpony typu "Názov: ".
+- Píš čisto v slovenskom jazyku.
+- Iba zmysluplný text. Ak užívateľ napísal "ahoj", odpovedz napríklad "Zoznámenie" alebo "Pozdrav".
 `;
 
   try {
-    const title = await callModel(prompt, {
-      temperature: 0.3,
-      maxTokens: 30,
+    const response = await generateText({
+      model: google(AI_MODELS.ROUTER),
+      system: systemPrompt,
+      prompt: `Užívateľ: ${firstUserMessage.slice(0, 150)}\nAgent: ${firstAgentResponse.slice(0, 150)}`,
+      temperature: 0.2,
     });
+
+    const title = response.text || "";
 
     const cleanTitle = title
       .trim()
-      .replace(/^["']|["']$/g, '')  // Odstrániť úvodzovky
-      .replace(/[.!?]$/, '')        // Odstrániť interpunkciu na konci
-      .slice(0, 60);                // Hard limit
+      .replace(/^[\s"']+|[\s"']+$|[.!?]$/g, '') // Odstrániť úvodzovky, whitespace a bodky
+      .slice(0, 50);
 
     await directus.request(updateItem('conversations', conversationId, {
       title: cleanTitle,
