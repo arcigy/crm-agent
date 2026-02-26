@@ -275,21 +275,6 @@ PRAVIDLÁ:
                       await log("LOOP", "Terminal tool executed. Exiting...");
                       break;
                    }
-                   
-                   // Skip extra LLM call for purely retrieval search intents
-                   // Pridané: fakturuj, priprav, generuj, archivuj, exportuj, analyzuj, napíš
-                   const writeVerbs = [
-                     "vytvor", "pridaj", "pošli", "zmaž", "uprav", "zlúč", "prirad", "vyrieš", 
-                     "naplánuj", "zmeň", "nastav", "fakturuj", "priprav", "generuj", "archivuj", 
-                     "exportuj", "analyzuj", "napíš", "napiš", "odstráň", "create", "add", 
-                     "send", "delete", "update", "change", "archive", "generate", "prepare"
-                   ];
-                   const isWriteIntent = writeVerbs.some(v => goal.toLowerCase().includes(v));
-                   
-                   if (stepToRun.tool === 'db_search_contacts' && !isWriteIntent) {
-                      await log("LOOP", "Search complete for read intent. Exiting...");
-                      break;
-                   }
                 }
             }
 
@@ -304,34 +289,17 @@ PRAVIDLÁ:
                 await log("REFLECTION", "Note", reflection.reflectionNote);
             }
 
-            // 5. VERIFIER & FINAL REPORT (FIX #2 merged, FIX #6 skip)
+            // 5. VERIFIER & FINAL REPORT
+            await sendStatus("✅ Spracovávam výsledky...");
+            await log("VERIFIER", "Analyzing and streaming results...");
+            const reportStream = await verifyAndStream(lastUserMsg, finalResults, manifest, reflection.reflectionNote, userName, userFullName);
+            console.log('[TIMING] After verifier (stream start):', Date.now() - startTime, 'ms');
             
-            // Check for trivial fast-path
-            const VERIFIER_SKIP_TOOLS = new Set([
-              'db_search_contacts', 'db_fetch_projects', 'db_get_pipeline_stats', 
-              'db_fetch_tasks', 'gmail_fetch_list', 'calendar_check_availability'
-            ]);
-            
-            const canSkipVerifier = manifest.totalSteps === 1 && manifest.failCount === 0 && manifest.successCount === 1 && VERIFIER_SKIP_TOOLS.has(manifest.entries[0]?.tool);
-
-            if (canSkipVerifier) {
-                await log("VERIFIER", "Skipping for trivial read-only mission, fast generation...");
-                const directResponse = await formatDirectResponse(manifest);
-                console.log('[TIMING] After verifier (fast-path):', Date.now() - startTime, 'ms');
-                fullAgentResponse = directResponse;
-                await sendResponseChunk(directResponse);
-            } else {
-                await sendStatus("✅ Spracovávam výsledky...");
-                await log("VERIFIER", "Analyzing and streaming results...");
-                const reportStream = await verifyAndStream(lastUserMsg, finalResults, manifest, reflection.reflectionNote, userName, userFullName);
-                console.log('[TIMING] After verifier (stream start):', Date.now() - startTime, 'ms');
-                
-                for await (const delta of reportStream.textStream) {
-                    fullAgentResponse += delta;
-                    await sendResponseChunk(delta);
-                }
-                console.log('[TIMING] After verifier (stream end):', Date.now() - startTime, 'ms');
+            for await (const delta of reportStream.textStream) {
+                fullAgentResponse += delta;
+                await sendResponseChunk(delta);
             }
+            console.log('[TIMING] After verifier (stream end):', Date.now() - startTime, 'ms');
 
             const sessionSummary = endCostSession();
             if (sessionSummary) await log("COST", `Celková cena dopytu: ${(sessionSummary.totalCost * 100).toFixed(3)} centov`);
