@@ -234,7 +234,7 @@ JAZYK (VÝSTUP PRE UŽÍVATEĽA): Všetky vygenerované texty v JSON objekte (na
  */
 export async function transcribeAudio(audioBase64: string): Promise<string> {
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash", // Using 2.0 Flash for ultra-fast and accurate STT
+    model: "gemini-2.5-pro-tts", // As requested by user
   });
 
   const prompt = "Prepíš túto nahrávku do textu. Vráť iba samotný prepísaný text v slovenčine (ak je v slovenčine) bez akýchkoľvek ďalších komentárov.";
