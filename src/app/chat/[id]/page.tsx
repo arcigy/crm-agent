@@ -49,18 +49,12 @@ export default async function ChatPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <ContactPreviewProvider>
-      <ProjectPreviewProvider>
-        <div className="flex h-screen bg-gray-950">
-          <ChatInterface
-            conversationId={params.id}
-            initialMessages={(messagesResult as any) ?? []}
-            conversations={(conversationsResult as any) ?? []}
-            chatCount={conversationsResult?.length ?? 0}
-            maxChats={20}
-          />
-        </div>
-      </ProjectPreviewProvider>
-    </ContactPreviewProvider>
+    <ChatInterface
+      conversationId={params.id}
+      initialMessages={(messagesResult as any) ?? []}
+      conversations={(conversationsResult as any) ?? []}
+      chatCount={conversationsResult?.length ?? 0}
+      maxChats={20}
+    />
   );
 }

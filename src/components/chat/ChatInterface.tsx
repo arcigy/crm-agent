@@ -29,10 +29,21 @@ export function ChatInterface({
   const [isCopied, setIsCopied] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [debugLogs, setDebugLogs] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const handleCopyChat = () => {
-    const textToCopy = messages.map(m => `[${m.role.toUpperCase()}]\n${m.content}`).join('\n\n------------------\n\n');
+    let textToCopy = messages.map(m => `[${m.role.toUpperCase()}]\n${m.content}`).join('\n\n------------------\n\n');
+    
+    if (debugLogs.length > 0) {
+      textToCopy += '\n\n\n========================================\n';
+      textToCopy += '           FULL DEBUG LOGS\n';
+      textToCopy += '========================================\n\n';
+      textToCopy += debugLogs.map(log => 
+        `[${log.timestamp}] [${log.stage}] ${log.message}${log.data ? `\nData: ${JSON.stringify(log.data, null, 2)}` : ''}`
+      ).join('\n\n---\n\n');
+    }
+
     navigator.clipboard.writeText(textToCopy);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
@@ -53,6 +64,7 @@ export function ChatInterface({
 
     const userMessage = { id: Date.now().toString(), role: 'user' as const, content: input, created_at: new Date().toISOString() };
     setMessages(prev => [...prev, userMessage]);
+    setDebugLogs([]); // Reset debug logs on new message
     setInput('');
     setIsTyping(true);
 
@@ -60,7 +72,11 @@ export function ChatInterface({
       const res = await fetch('/api/ai/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage.content, conversationId: activeConvId }),
+        body: JSON.stringify({ 
+          message: userMessage.content, 
+          conversationId: activeConvId,
+          debug: true // Request full debug
+        }),
       });
 
       if (!res.ok) throw new Error(await res.text());
@@ -100,6 +116,8 @@ export function ChatInterface({
                 
                 if (data.type === 'status') {
                     setStatusMessage(data.message);
+                } else if (data.type === 'debug') {
+                    setDebugLogs(prev => [...prev, data]);
                 } else if (data.type === 'response') {
                     assistantMsg += data.message;
                     setMessages(prev => {
@@ -148,7 +166,7 @@ export function ChatInterface({
   };
 
   return (
-    <div className="flex h-screen w-full bg-gray-950 text-white overflow-hidden font-sans">
+    <div className="flex h-full w-full bg-gray-950 text-white overflow-hidden font-sans border border-gray-800 rounded-3xl">
       {isSidebarOpen && (
         <ConversationSidebar 
           conversations={conversations} 
@@ -176,10 +194,10 @@ export function ChatInterface({
           <button
             onClick={handleCopyChat}
             className="absolute top-4 right-6 z-10 flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-full text-xs transition-colors border border-gray-700 shadow-md"
-            title="Kopírovať celý chat pre debugovanie"
+            title="Kopírovať celý chat s kompletným debug logom"
           >
             {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            {isCopied ? 'Skopírované' : 'Kopírovať (Debug)'}
+            {isCopied ? 'Skopírované' : 'Kopírovať (Full Debug)'}
           </button>
         )}
         <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 custom-scrollbar md:pt-14">

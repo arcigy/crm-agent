@@ -109,8 +109,17 @@ export async function POST(req: Request) {
     const encoder = new TextEncoder();
 
     const log = async (stage: string, message: string, detail?: any) => {
-        const logEntry = { stage, message, data: detail, timestamp: new Date().toISOString(), isLog: true };
-        if (debug) await writer.write(encoder.encode(`LOG:${JSON.stringify(logEntry)}\n`));
+        const logEntry = { 
+            type: 'debug', 
+            stage, 
+            message, 
+            data: detail, 
+            timestamp: new Date().toISOString() 
+        };
+        // Always send debug info in development or if debug flag is on
+        if (debug || isLocal) {
+            await writer.write(encoder.encode(`data: ${JSON.stringify(logEntry)}\n\n`));
+        }
         console.log(` [${stage}] ${message}`, detail ? JSON.stringify(detail, null, 2) : '');
     };
 

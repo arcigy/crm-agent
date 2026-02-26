@@ -24,16 +24,10 @@ export default async function NewChatPage() {
   }
 
   return (
-    <ContactPreviewProvider>
-      <ProjectPreviewProvider>
-        <div className="flex h-screen bg-gray-950">
-          <ChatInterface
-            conversations={(conversationsResult as any) ?? []}
-            chatCount={conversationsResult?.length ?? 0}
-            maxChats={20}
-          />
-        </div>
-      </ProjectPreviewProvider>
-    </ContactPreviewProvider>
+    <ChatInterface
+      conversations={(conversationsResult as any) ?? []}
+      chatCount={conversationsResult?.length ?? 0}
+      maxChats={20}
+    />
   );
 }
