@@ -230,14 +230,88 @@ JAZYK (VÝSTUP PRE UŽÍVATEĽA): Všetky vygenerované texty v JSON objekte (na
 }
 
 /**
- * Transcribes audio from base64 string using Gemini 1.5/2.0 multimodal capabilities.
+ * Fetches relevant CRM context to improve STT accuracy.
+ */
+async function getCRMContext() {
+  try {
+    const directus = (await import("@/lib/directus")).default;
+    const { readItems } = await import("@directus/sdk");
+
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    const dateLimit = twoMonthsAgo.toISOString();
+
+    const [contacts, projects, tasks] = await Promise.all([
+      directus.request(readItems("contacts" as any, { 
+        fields: ["first_name", "last_name", "company"], 
+        limit: 100 
+      })),
+      directus.request(readItems("projects" as any, { 
+        fields: ["name", "stage", "date_updated"], 
+        filter: {
+          _or: [
+            { stage: { _neq: "completed" } },
+            { 
+              _and: [
+                { stage: { _eq: "completed" } },
+                { date_updated: { _gte: dateLimit } }
+              ]
+            }
+          ]
+        },
+        limit: 50 
+      })),
+      directus.request(readItems("crm_tasks" as any, { 
+        fields: ["title"], 
+        filter: { completed: { _eq: false } },
+        limit: 50 
+      }))
+    ]);
+
+    const contactList = (contacts as any[]).map(c => `${c.first_name} ${c.last_name}${c.company ? ` (${c.company})` : ""}`).join(", ");
+    const projectList = (projects as any[]).map(p => p.name).join(", ");
+    const taskList = (tasks as any[]).map(t => t.title).join(", ");
+
+    return { contactList, projectList, taskList };
+  } catch (e) {
+    console.error("Failed to fetch CRM context for STT:", e);
+    return { contactList: "", projectList: "", taskList: "" };
+  }
+}
+
+/**
+ * Transcribes audio from base64 string using Gemini 2.5 native audio capabilities.
  */
 export async function transcribeAudio(audioBase64: string): Promise<string> {
+  const context = await getCRMContext();
+  
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash-native-audio-latest", // Using latest native audio model
+    model: "gemini-2.5-flash-native-audio-latest",
   });
 
-  const prompt = "Prepíš túto nahrávku do textu. Vráť iba samotný prepísaný text v slovenčine (ak je v slovenčine) bez akýchkoľvek ďalších komentárov.";
+  const prompt = `
+Si inteligentný asistent pre prepis reči v CRM systéme ArciGy. Tvojou úlohou je verne prepísať hovorené slovo do textu.
+
+JAZYK: Vždy prepisuj do slovenčiny.
+KONTEXT: Nachádzaš sa v profesionálnom CRM softvéri. Používateľ ti môže diktovať mená klientov, názvy projektov alebo nové úlohy.
+
+ZNÁME SUBJEKTY (DÔLEŽITÉ):
+Vždy skontroluj, či sa meno alebo názov, ktorý počuješ, foneticky nepodobá na niečo z tohto zoznamu. Ak áno, použi presný názov zo zoznamu. Ak sa však zvuk jasne líši od známych subjektov, prepíš ho presne tak, ako ho počuješ (nevymýšľaj si zhodu za každú cenu).
+
+KONTAKTY: ${context.contactList || "Žiadne aktuálne kontakty"}
+PROJEKTY: ${context.projectList || "Žiadne aktuálne projekty"}
+ÚLOHY: ${context.taskList || "Žiadne aktuálne úlohy"}
+
+ŠPECIÁLNE PRAVIDLÁ PRE DIKTOVANIE:
+1. TELEFÓNNE ČÍSLA: Prepisuj ich v medzinárodnom formáte (napr. +421 905 123 456).
+2. EMAILOVÉ ADRESY: Buď mimoriadne pozorný.
+   - Ak počuješ "bodka" v kontexte emailu, napíš "."
+   - Ak počuješ "zavináč" v kontexte emailu, napíš "@"
+   - Bežné domény: gmail.com, outlook.com, arcigy.group, arcigy.cloud, azet.sk, seznam.cz.
+   - Príklad: "jan bodka novak zavinac gmail bodka com" -> "jan.novak@gmail.com"
+3. FORMÁTOVANIE: Zachovaj prirodzenú interpunkciu (bodky, čiarky, otázniky). Začni veľkým písmenom.
+4. ŽIADNE KOMENTÁRE: Vráť čistý prepísaný text bez tvojich vlastných poznámok, vysvetlení alebo úvodov.
+`.trim();
 
   try {
     const result = await model.generateContent([
@@ -252,7 +326,7 @@ export async function transcribeAudio(audioBase64: string): Promise<string> {
     return result.response.text().trim();
   } catch (error: any) {
     console.error("Transcription Error:", error);
-    // Fallback to 1.5 if 2.0 fails
+    // Fallback to 1.5 if 2.0/2.5 fails
     try {
       const fallbackModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const fallbackRes = await fallbackModel.generateContent([prompt, { inlineData: { mimeType: "audio/webm", data: audioBase64 } }]);
