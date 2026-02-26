@@ -36,10 +36,11 @@ export function EditableComment({ id, initialValue }: { id: number; initialValue
 
     if (isEditing) {
         return (
-            <div className="flex items-center gap-2 max-w-[200px]">
+            <div className="flex items-center min-h-[32px] w-full max-w-[250px] -ml-3 px-3">
                 <input
                     autoFocus
-                    className="text-xs border border-blue-200 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500 w-full"
+                    className="text-[11px] font-[900] uppercase tracking-wider bg-white/5 border-b border-violet-500 text-white outline-none w-full py-1 placeholder:text-zinc-600 transition-all caret-violet-500"
+                    placeholder="NAPÍŠTE POZNÁMKU..."
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     onBlur={handleSave}
@@ -57,16 +58,16 @@ export function EditableComment({ id, initialValue }: { id: number; initialValue
 
     return (
         <div
-            className="group/comment flex items-center gap-2 cursor-pointer min-h-[24px]"
+            className="group/comment flex items-center gap-2 cursor-pointer min-h-[32px] px-3 py-1 -ml-3 rounded-xl hover:bg-white/5 transition-all w-full max-w-[250px]"
             onClick={() => setIsEditing(true)}
         >
-            <span className={`text-xs truncate max-w-[150px] ${value ? 'text-gray-600 font-medium' : 'text-gray-300 italic'}`}>
-                {value || 'Pridať komentár...'}
+            <span className={`text-[11px] font-[900] uppercase tracking-wider truncate transition-colors ${value ? 'text-zinc-400 group-hover/comment:text-white' : 'text-zinc-500 italic opacity-50'}`}>
+                {value || 'Pridať poznámku...'}
             </span>
-            {status === 'saving' && <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />}
-            {status === 'saved' && <Check className="w-3 h-3 text-green-500" />}
-            {(!status || status === 'idle') && (
-                <Plus className="w-3 h-3 text-gray-300 opacity-0 group-hover/comment:opacity-100" />
+            {status === 'saving' && <Loader2 className="w-3.5 h-3.5 text-violet-500 animate-spin" />}
+            {status === 'saved' && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+            {status === 'idle' && (
+                <Plus className="w-3.5 h-3.5 text-violet-400 opacity-0 group-hover/comment:opacity-100 transform scale-0 group-hover/comment:scale-100 transition-all" />
             )}
         </div>
     );

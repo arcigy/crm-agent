@@ -35,6 +35,8 @@ export function ContactImportModal({
   const [googleStatus, setGoogleStatus] = useState<"idle" | "loading">("idle");
   const [headers, setHeaders] = useState<string[]>([]);
   const [previewRows, setPreviewRows] = useState<any[]>([]);
+  const [showAllRows, setShowAllRows] = useState(false);
+  const [showAllPreview, setShowAllPreview] = useState(false);
   const [mapping, setMapping] = useState<Record<string, string>>({
     first_name: "",
     last_name: "",
@@ -203,38 +205,27 @@ export function ContactImportModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/20 backdrop-blur-sm p-4 animate-in fade-in duration-300">
       <div className="absolute inset-0" onClick={onClose}></div>
-      <div
-        className={`bg-white w-full ${step === "map" ? "max-w-4xl" : "max-w-xl"} rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative transform transition-all animate-in zoom-in-95 duration-500 border border-gray-100`}
+        <div
+        className={`bg-[#0a0a0c] w-full ${step === "map" ? "max-w-4xl" : "max-w-xl"} rounded-[2.5rem] shadow-2xl shadow-black overflow-hidden flex flex-col relative transform transition-all animate-in zoom-in-95 duration-500 border border-white/10`}
       >
         {/* Header */}
-        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+        <div className="px-10 py-10 border-b border-white/5 flex items-center justify-between bg-black/40">
           <div>
-            <h3 className="font-black text-xl text-gray-900 tracking-tight">
+            <h3 className="font-[900] text-3xl text-white tracking-tighter uppercase italic leading-none">
               {step === "upload"
                 ? "Import kontaktov"
                 : step === "map"
                   ? "Priradenie stĺpcov"
                   : "Potvrdenie importu"}
             </h3>
-            <div className="flex gap-2 mt-1">
-              <div
-                className={`h-1 w-8 rounded-full ${step === "upload" ? "bg-blue-600" : "bg-green-500"}`}
-              />
-              <div
-                className={`h-1 w-8 rounded-full ${step === "map" ? "bg-blue-600" : step === "confirm" ? "bg-green-500" : "bg-gray-200"}`}
-              />
-              <div
-                className={`h-1 w-8 rounded-full ${step === "confirm" ? "bg-blue-600" : "bg-gray-200"}`}
-              />
-            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white rounded-xl shadow-sm border border-gray-100 transition-colors"
+            className="p-3 bg-white/5 hover:bg-white text-white/40 hover:text-black transition-all rounded-full border border-white/10 shadow-2xl"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -242,39 +233,41 @@ export function ContactImportModal({
           {step === "upload" && (
             <div className="p-8 space-y-8">
               {/* Google Option */}
-              <button
+            <button
                 onClick={handleGoogleImport}
                 disabled={googleStatus === "loading"}
-                className="w-full p-6 rounded-[2rem] bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-100/50 hover:border-blue-300 transition-all group relative overflow-hidden text-left"
+                className="w-full p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-white/30 hover:bg-white/10 hover:shadow-2xl hover:shadow-black transition-all group relative overflow-hidden text-left"
               >
                 <div className="relative z-10 flex items-center gap-6">
-                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-lg group-hover:scale-110 transition-transform">
+                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-black group-hover:scale-105 transition-all shadow-lg">
                     <Cloud className="w-8 h-8" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-black text-blue-900 text-lg">
+                    <h4 className="font-[900] text-white text-2xl tracking-tighter uppercase italic leading-none">
                       Google Sync
                     </h4>
-                    <p className="text-blue-600/60 text-xs font-bold uppercase tracking-widest">
-                      Automatický import z účtu
+                    <p className="text-white/40 text-[11px] font-[900] uppercase tracking-[0.2em] mt-2">
+                      Automatický import z vášho účtu
                     </p>
                   </div>
-                  <ChevronRight className="w-6 h-6 text-blue-300 group-hover:translate-x-1 transition-transform" />
+                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white transition-colors">
+                    <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-black group-hover:translate-x-0.5 transition-all" />
+                  </div>
                 </div>
               </button>
 
               <div className="relative flex justify-center py-2">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-100"></div>
+                  <div className="w-full border-t border-white/10"></div>
                 </div>
-                <span className="px-4 bg-white text-[10px] font-black text-gray-300 uppercase tracking-[0.3em] relative z-10">
+                <span className="px-4 bg-[#0a0a0c] text-[11px] font-[900] text-white/20 uppercase tracking-[0.4em] relative z-10">
                   alebo nahrajte súbor
                 </span>
               </div>
 
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-4 border-dashed border-gray-100 rounded-[3rem] p-12 flex flex-col items-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all group"
+                className="border-2 border-dashed border-white/10 rounded-3xl p-12 flex flex-col items-center text-center cursor-pointer hover:border-white/40 hover:bg-white/5 transition-all group relative"
               >
                 <input
                   type="file"
@@ -285,14 +278,14 @@ export function ContactImportModal({
                     e.target.files?.[0] && processFile(e.target.files[0])
                   }
                 />
-                <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center text-gray-300 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-white mb-6 group-hover:bg-white group-hover:text-black transition-all shadow-sm">
                   <Upload className="w-10 h-10" />
                 </div>
-                <p className="text-xl font-black text-gray-900 mb-2">
-                  Kliknite sem
-                </p>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  Podporujeme vCard, CSV a Excel
+                <h4 className="text-3xl font-[900] text-white mb-2 tracking-tighter uppercase italic leading-none">
+                  Nahrať súbor
+                </h4>
+                <p className="text-[12px] font-[900] text-white/30 uppercase tracking-[0.25em]">
+                  vCard, CSV alebo XLSX
                 </p>
               </div>
             </div>
@@ -303,26 +296,26 @@ export function ContactImportModal({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div className="space-y-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">
+                    <h4 className="text-xs font-[900] uppercase tracking-[0.3em] text-violet-400/50">
                       Priradenie polí
                     </h4>
-                    <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-2xl border border-gray-100">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">
+                    <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/10">
+                      <span className="text-[10px] font-[900] uppercase tracking-widest text-white/30 ml-2">
                         Importovať ako:
                       </span>
                       <select
                         value={globalStatus}
                         onChange={(e) => setGlobalStatus(e.target.value as any)}
-                        className="bg-white border-2 border-gray-100 rounded-xl px-3 py-1 text-[10px] font-black uppercase tracking-widest outline-none focus:border-blue-500"
+                        className="bg-transparent border-none text-[10px] font-[900] uppercase tracking-widest outline-none text-white cursor-pointer"
                       >
-                        <option value="published">🟢 Active</option>
-                        <option value="draft">🟡 Inactive</option>
+                        <option value="published" className="bg-[#0a0a0c]">🟢 Aktívne</option>
+                        <option value="draft" className="bg-[#0a0a0c]">🟡 Draft</option>
                       </select>
                     </div>
                   </div>
                   {Object.keys(mapping).map((field) => (
                     <div key={field} className="space-y-2">
-                      <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400 ml-1">
+                      <label className="block text-[11px] font-[900] uppercase tracking-widest text-white/30 ml-1">
                         {field.replace("_", " ")}
                       </label>
                       <select
@@ -330,11 +323,11 @@ export function ContactImportModal({
                         onChange={(e) =>
                           setMapping({ ...mapping, [field]: e.target.value })
                         }
-                        className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 font-bold text-sm focus:border-blue-500 focus:bg-white transition-all outline-none"
+                        className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-5 font-[900] text-sm focus:border-violet-500 transition-all outline-none text-white appearance-none cursor-pointer"
                       >
-                        <option value="">-- Vynechať --</option>
+                        <option value="" className="bg-[#0a0a0c]">-- Vynechať --</option>
                         {headers.map((h) => (
-                          <option key={h} value={h}>
+                          <option key={h} value={h} className="bg-[#0a0a0c]">
                             {h}
                           </option>
                         ))}
@@ -345,7 +338,7 @@ export function ContactImportModal({
 
                 <div className="space-y-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">
+                    <h4 className="text-xs font-[900] uppercase tracking-[0.3em] text-violet-400/50">
                       Výber a náhľad ({selectedRows.size}/{processedRows.length}
                       )
                     </h4>
@@ -358,23 +351,23 @@ export function ContactImportModal({
                             new Set(processedRows.map((_, i) => i)),
                           );
                       }}
-                      className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-800"
+                      className="text-[10px] font-[900] uppercase tracking-widest text-violet-400 hover:text-white transition-colors"
                     >
                       {selectedRows.size === processedRows.length
                         ? "Odznačiť všetko"
                         : "Označiť všetko"}
                     </button>
                   </div>
-                  <div className="bg-gray-900 rounded-[2.5rem] p-6 shadow-2xl overflow-hidden border border-white/10">
+                  <div className="bg-white/5 rounded-3xl p-6 shadow-2xl border border-white/5 overflow-hidden">
                     <div className="overflow-x-auto max-h-[400px]">
                       <table className="w-full text-left">
-                        <thead className="sticky top-0 bg-gray-900 z-10">
+                        <thead className="sticky top-0 bg-[#0d0d0f] backdrop-blur-md z-10 border-b border-white/5">
                           <tr>
-                            <th className="pb-4 w-10"></th>
+                            <th className="pb-3 w-10"></th>
                             {headers.slice(0, 4).map((h) => (
                               <th
                                 key={h}
-                                className="pb-4 text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/5"
+                                className="pb-3 text-[10px] font-[900] text-white/30 uppercase tracking-widest"
                               >
                                 {h}
                               </th>
@@ -382,10 +375,10 @@ export function ContactImportModal({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                          {processedRows.slice(0, 50).map((row, i) => (
+                          {(showAllRows ? processedRows : processedRows.slice(0, 50)).map((row, i) => (
                             <tr
                               key={i}
-                              className={`group hover:bg-white/5 transition-colors cursor-pointer ${selectedRows.has(i) ? "bg-blue-500/5" : ""}`}
+                              className={`group hover:bg-white/5 transition-colors cursor-pointer ${selectedRows.has(i) ? "bg-violet-500/10" : ""}`}
                               onClick={() => {
                                 const newSet = new Set(selectedRows);
                                 if (newSet.has(i)) newSet.delete(i);
@@ -393,9 +386,9 @@ export function ContactImportModal({
                                 setSelectedRows(newSet);
                               }}
                             >
-                              <td className="py-3 pr-2">
+                              <td className="py-2.5 pr-2">
                                 <div
-                                  className={`w-4 h-4 rounded-md border-2 transition-all flex items-center justify-center ${selectedRows.has(i) ? "bg-blue-500 border-blue-500" : "border-white/10 group-hover:border-white/30"}`}
+                                  className={`w-4 h-4 rounded-md border transition-all flex items-center justify-center ${selectedRows.has(i) ? "bg-violet-600 border-violet-600 shadow-[0_0_10px_rgba(139,92,246,0.3)]" : "border-white/10 group-hover:border-violet-500"}`}
                                 >
                                   {selectedRows.has(i) && (
                                     <Check className="w-3 h-3 text-white" />
@@ -405,7 +398,7 @@ export function ContactImportModal({
                               {headers.slice(0, 4).map((h) => (
                                 <td
                                   key={h}
-                                  className="py-3 text-[10px] text-gray-300 font-mono truncate max-w-[120px]"
+                                  className="py-2.5 text-[11px] text-white/70 font-medium truncate max-w-[120px]"
                                 >
                                   {row[h]}
                                 </td>
@@ -415,13 +408,16 @@ export function ContactImportModal({
                         </tbody>
                       </table>
                     </div>
-                    {processedRows.length > 50 && (
-                      <p className="mt-4 text-[9px] text-center font-bold text-gray-500 uppercase tracking-widest italic">
+                    {processedRows.length > 50 && !showAllRows && (
+                      <button 
+                        onClick={() => setShowAllRows(true)}
+                        className="w-full mt-4 py-3 text-[10px] text-center font-[900] text-white/40 hover:text-white uppercase tracking-[0.2em] italic border-t border-white/5 transition-colors"
+                      >
                         + {processedRows.length - 50} ďalších riadkov...
-                      </p>
+                      </button>
                     )}
                     <div className="mt-4 pt-4 border-t border-white/5 text-center">
-                      <p className="text-[9px] font-bold text-blue-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                      <p className="text-[10px] font-[900] text-violet-400/40 uppercase tracking-widest flex items-center justify-center gap-2">
                         {file?.name} • {(file?.size || 0 / 1024).toFixed(1)} KB
                       </p>
                     </div>
@@ -432,43 +428,47 @@ export function ContactImportModal({
           )}
 
           {step === "confirm" && (
-            <div className="p-12 text-center">
-              <div className="w-24 h-24 bg-green-50 rounded-[2rem] flex items-center justify-center text-green-600 mx-auto mb-8 shadow-sm">
-                <Check className="w-12 h-12" />
+            <div className="p-10 text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-8 shadow-lg shadow-green-900/20 border border-white/10">
+                <Check className="w-8 h-8" />
               </div>
-              <h4 className="text-3xl font-black text-gray-900 mb-4 tracking-tight uppercase italic">
-                Pripravené na import
+              <h4 className="text-3xl font-[900] text-white mb-3 tracking-tighter uppercase italic leading-none">
+                Súbor overený
               </h4>
-              <p className="text-gray-400 font-bold uppercase tracking-[0.2em] text-[11px] mb-8 leading-relaxed">
-                Našli sme{" "}
-                <span className="text-blue-600">{previewRows.length}</span>{" "}
-                kontaktov v súbore{" "}
-                <span className="text-gray-900">"{file?.name}"</span>.
-              </p>
+              
+              <div className="inline-flex items-center gap-3 px-6 py-3 bg-violet-600/10 border border-violet-500/30 rounded-2xl mb-10 shadow-[0_0_20px_rgba(139,92,246,0.1)]">
+                <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
+                <p className="text-[11px] font-[900] text-violet-300 uppercase tracking-[0.2em] leading-none">
+                  Identifikovaných <span className="text-white text-sm ml-1">{previewRows.length}</span> záznamov
+                </p>
+              </div>
 
-              <div className="max-w-xs mx-auto space-y-3">
-                {previewRows.slice(0, 3).map((c, i) => (
+              <div className="max-w-sm mx-auto grid grid-cols-1 gap-3">
+                {(showAllPreview ? previewRows : previewRows.slice(0, 3)).map((c, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100"
+                    className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 shadow-sm"
                   >
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[10px] font-black shadow-sm shrink-0">
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-xs font-[900] text-white shadow-lg shadow-violet-900/20">
                       {(c.first_name?.[0] || "?") + (c.last_name?.[0] || "")}
                     </div>
                     <div className="text-left overflow-hidden">
-                      <p className="text-xs font-black text-gray-900 truncate leading-none mb-1">
+                      <p className="text-[14px] font-[900] text-white truncate uppercase tracking-tight italic leading-none mb-1.5">
                         {c.first_name} {c.last_name}
                       </p>
-                      <p className="text-[9px] text-gray-400 truncate tracking-widest uppercase font-bold">
-                        {c.email}
+                      <p className="text-[10px] text-white/40 truncate tracking-widest uppercase font-[900]">
+                        {c.email || c.phone || "Bez kontaktu"}
                       </p>
                     </div>
                   </div>
                 ))}
-                {previewRows.length > 3 && (
-                  <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mt-4">
-                    A ďalších {previewRows.length - 3}...
-                  </p>
+                {previewRows.length > 3 && !showAllPreview && (
+                  <button 
+                    onClick={() => setShowAllPreview(true)}
+                    className="py-3 text-[10px] font-[900] text-white/20 hover:text-white uppercase tracking-[0.3em] transition-colors"
+                  >
+                    + ďalších {previewRows.length - 3} kontaktov...
+                  </button>
                 )}
               </div>
             </div>
@@ -476,10 +476,10 @@ export function ContactImportModal({
         </div>
 
         {/* Footer */}
-        <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-4">
+        <div className="p-10 border-t border-white/5 bg-black/40 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-6 py-3 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
+            className="px-8 py-4 text-[11px] font-[900] uppercase tracking-widest text-white/40 hover:text-white transition-all rounded-2xl hover:bg-white/5"
           >
             Zrušiť
           </button>
@@ -487,12 +487,12 @@ export function ContactImportModal({
             <button
               onClick={handleImport}
               disabled={isUploading}
-              className="px-10 py-4 bg-gray-900 hover:bg-black text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-gray-200 transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
+              className="px-10 py-4 bg-white text-black hover:bg-white/90 rounded-2xl text-[11px] font-[900] uppercase tracking-widest shadow-2xl transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
             >
               {isUploading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Spracúvam
+                  Spracúvam...
                 </>
               ) : (
                 <>

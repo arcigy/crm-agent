@@ -7,13 +7,10 @@ import {
   Calendar,
   CheckCircle2,
   FileText,
-  CreditCard,
-  Mail,
-  Download,
   ShieldCheck,
+  Loader2,
 } from "lucide-react";
-import { format, addDays } from "date-fns";
-import { sk } from "date-fns/locale";
+import { addDays } from "date-fns";
 import { toast } from "sonner";
 import { Project } from "@/types/project";
 
@@ -59,56 +56,44 @@ export function InvoiceModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-[#020617]/80 backdrop-blur-xl transition-all"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-all"
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-2xl bg-card border border-border rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300">
+      <div className="relative w-full max-w-xl bg-zinc-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
         {/* Header */}
-        <div className="p-8 border-b border-border bg-gradient-to-r from-blue-600/5 to-transparent flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-600 rounded-2xl shadow-xl shadow-blue-600/20">
-              <Receipt className="w-6 h-6 text-white" />
+        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center">
+              <Receipt className="w-5 h-5 text-violet-400" />
             </div>
             <div>
-              <h2 className="text-2xl font-black tracking-tighter text-foreground uppercase italic">
-                Generovať <span className="text-blue-500">Faktúru</span>
+              <h2 className="text-xl font-black text-white uppercase italic tracking-tight leading-none">
+                Generovať Faktúru
               </h2>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                Príprava fakturačných údajov pre projekt
-              </p>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Príprava dokumentu pre klienta</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-muted rounded-xl transition-colors text-muted-foreground"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 text-zinc-500 hover:text-white transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-8 overflow-y-auto custom-scrollbar space-y-8">
-          {/* Project Summary */}
-          <div className="bg-muted/30 border border-border p-6 rounded-3xl flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                Projekt
-              </span>
-              <span className="text-lg font-black text-foreground italic uppercase tracking-tighter">
-                {project.name}
-              </span>
-              <span className="text-xs font-bold text-blue-500 opacity-70">
-                {project.project_type}
-              </span>
+        <div className="p-6 space-y-6">
+          <div className="bg-white/5 border border-white/5 p-5 rounded-2xl flex items-center justify-between">
+            <div>
+              <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Projekt</span>
+              <span className="text-sm font-bold text-white uppercase italic">{project.name}</span>
             </div>
-            <div className="text-right flex flex-col gap-1">
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                Suma
-              </span>
-              <span className="text-3xl font-black text-foreground italic tracking-tighter tabular-nums">
+            <div className="text-right">
+              <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Suma</span>
+              <span className="text-lg font-black text-white tabular-nums">
                 {new Intl.NumberFormat("sk-SK", {
                   style: "currency",
                   currency: "EUR",
@@ -117,87 +102,61 @@ export function InvoiceModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left Column: Dates */}
-            <div className="space-y-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">
-                  Dátum vystavenia
-                </label>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Dátum vystavenia</label>
                 <div className="relative">
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500 opacity-50" />
-                  <input
-                    type="date"
-                    value={invoiceDate}
-                    onChange={(e) => setInvoiceDate(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-2xl text-sm font-bold focus:border-blue-500 outline-none transition-all text-foreground"
-                  />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                    <input
+                        type="date"
+                        value={invoiceDate}
+                        onChange={(e) => setInvoiceDate(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/5 rounded-xl text-xs font-bold text-white focus:border-violet-500/30 outline-none transition-all"
+                    />
                 </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">
-                  Dátum splatnosti
-                </label>
+            </div>
+            <div className="space-y-2">
+                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Termín splatnosti</label>
                 <div className="relative">
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500 opacity-50" />
-                  <input
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-2xl text-sm font-bold focus:border-blue-500 outline-none transition-all text-foreground"
-                  />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                    <input
+                        type="date"
+                        value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/5 rounded-xl text-xs font-bold text-white focus:border-violet-500/30 outline-none transition-all"
+                    />
                 </div>
-              </div>
             </div>
+          </div>
 
-            {/* Right Column: Actions Preview */}
-            <div className="space-y-4">
-              <div className="bg-blue-500/5 border border-blue-500/10 p-5 rounded-3xl flex flex-col gap-3">
-                <div className="flex items-center gap-2 text-blue-500">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">
-                    Automatické akcie
-                  </span>
-                </div>
-                <div className="space-y-2 opacity-70">
-                  <div className="flex items-center gap-3 text-xs font-bold text-foreground">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                    Zápis fakturácie do systému
-                  </div>
-                  <div className="flex items-center gap-3 text-xs font-bold text-foreground">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                    Sledovanie splatnosti
-                  </div>
-                  <div className="flex items-center gap-3 text-xs font-bold text-foreground opacity-30">
-                    <Mail className="w-3.5 h-3.5" />
-                    Odoslanie faktúry e-mailom (čoskoro)
-                  </div>
-                </div>
+          <div className="bg-violet-600/5 border border-violet-500/10 p-4 rounded-xl flex items-start gap-3">
+              <ShieldCheck className="w-4 h-4 text-violet-400 mt-0.5" />
+              <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-violet-300 uppercase tracking-widest">Systémová automatizácia</p>
+                  <p className="text-[9px] text-zinc-500 leading-relaxed uppercase font-medium">Po potvrdení sa vygeneruje záznam v účtovnom systéme a projekt sa označí ako vyfakturovaný.</p>
               </div>
-            </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-8 border-t border-border bg-muted/20 flex items-center justify-end gap-4">
+        <div className="p-6 border-t border-white/5 bg-white/[0.02] flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-6 py-3 bg-transparent text-muted-foreground font-black uppercase tracking-widest text-[10px] hover:text-foreground transition-colors"
+            className="px-4 py-2 text-zinc-500 font-bold uppercase tracking-widest text-[10px] hover:text-white transition-colors"
           >
             Zrušiť
           </button>
           <button
             disabled={loading}
             onClick={handleConfirm}
-            className="px-8 py-3 bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-xl shadow-blue-600/20 hover:bg-blue-700 active:scale-95 transition-all flex items-center gap-2"
+            className="px-6 py-2.5 bg-violet-600 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-violet-600/20 hover:bg-violet-500 transition-all flex items-center gap-2"
           >
             {loading ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <FileText className="w-4 h-4" />
+              <FileText className="w-3.5 h-3.5" />
             )}
-            Potvrdiť a Vyfakturovať
+            Potvrdiť Fakturáciu
           </button>
         </div>
       </div>

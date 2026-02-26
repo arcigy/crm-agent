@@ -32,8 +32,8 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
   return (
     <th
       ref={setNodeRef}
-      style={style}
-      className={`group relative px-3 py-2 text-[10px] font-bold text-white/50 uppercase tracking-wider border-r border-white/5 last:border-0 transition-colors select-none ${
+      style={{ ...style, width: header.getSize() }}
+      className={`group relative px-3 py-2 text-[10px] font-bold text-white/50 uppercase tracking-wider border-r border-white/5 last:border-0 transition-colors select-none overflow-hidden whitespace-nowrap ${
         isDragging 
           ? "bg-zinc-900 shadow-xl ring-1 ring-violet-500/30" 
           : "hover:bg-white/5"

@@ -35,7 +35,6 @@ export function StatusBadge({ contactId, currentStatus }: StatusBadgeProps) {
       const res = await updateContact(contactId, { status: newStatus });
       if (res.success) {
         toast.success(`Status zmenený na ${newStatus}`);
-        // We reload to reflect the change in grouping
         window.location.reload();
       } else {
         toast.error(res.error || "Chyba pri zmene statusu");
@@ -77,7 +76,7 @@ export function StatusBadge({ contactId, currentStatus }: StatusBadgeProps) {
             className="fixed inset-0 z-[100]" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute top-full left-0 mt-1 z-[101] bg-white dark:bg-slate-900 border border-border rounded-xl shadow-2xl p-1 min-w-[120px] animate-in fade-in zoom-in-95 duration-200">
+          <div className="absolute top-full left-0 mt-2 z-[200] bg-[#0a0a0c] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-1.5 min-w-[140px] animate-in fade-in zoom-in-95 duration-200">
             {statuses.map((s) => (
               <button
                 key={s.value}
@@ -86,11 +85,11 @@ export function StatusBadge({ contactId, currentStatus }: StatusBadgeProps) {
                   handleStatusChange(s.value);
                 }}
                 className={`
-                  w-full flex items-center px-3 py-2 rounded-lg text-xs font-bold transition-colors
-                  ${currentStatus === s.value ? 'bg-muted text-blue-600' : 'text-gray-500 hover:bg-muted hover:text-foreground'}
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                  ${currentStatus === s.value ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' : 'text-white/40 hover:bg-white/5 hover:text-white'}
                 `}
               >
-                <div className={`w-1.5 h-1.5 rounded-full mr-2 ${s.color.split(' ')[0].replace('text-', 'bg-')}`} />
+                <div className={`w-1.5 h-1.5 rounded-full ${s.value === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : s.value === 'lead' ? 'bg-blue-500' : 'bg-zinc-500'}`} />
                 {s.label}
               </button>
             ))}

@@ -7,7 +7,7 @@ export function ContactLabelsDisplay({ labels }: { labels: any[] }) {
   if (!labels || labels.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-1 mt-1">
+    <div className="flex flex-wrap gap-1">
       {labels.map((junction: any) => {
         const label = junction.contact_labels_id;
         if (!label) return null;

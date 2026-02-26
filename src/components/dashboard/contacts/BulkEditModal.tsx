@@ -74,16 +74,11 @@ export function BulkEditModal({
     
     setLoading(true);
     try {
-      // 1. Bulk update basic fields
-      const updateData: any = {};
-      if (formData.company) updateData.company = formData.company;
-      if (formData.status) updateData.status = formData.status;
-      if (formData.comments) updateData.comments = formData.comments;
-
-      if (Object.keys(updateData).length > 0) {
-        const res = await bulkUpdateContacts(selectedIds, updateData);
+      // 1. Bulk update status if selected
+      if (formData.status) {
+        const res = await bulkUpdateContacts(selectedIds, { status: formData.status });
         if (!res.success) {
-          toast.error("Nepodarilo sa aktualizovať základné údaje");
+          toast.error("Nepodarilo sa aktualizovať status");
         }
       }
 
@@ -96,7 +91,7 @@ export function BulkEditModal({
          }
       }
 
-      toast.success(`Aktualizovaných ${selectedIds.length} kontaktov`);
+      toast.success(`Úspešne upravených ${selectedIds.length} kontaktov`);
       onSuccess();
       onClose();
       window.location.reload();
@@ -109,52 +104,71 @@ export function BulkEditModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-card w-full max-w-xl rounded-[3rem] border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
-        <div className="bg-black p-8 text-white flex items-center justify-between shrink-0">
+    <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="bg-[#0a0a0e] w-full max-w-lg rounded-[2.5rem] border border-violet-900/30 shadow-[0_0_50px_rgba(139,92,246,0.1)] overflow-hidden animate-in zoom-in-95 duration-500 flex flex-col relative max-h-[80vh]">
+        <div className="px-10 py-8 border-b border-white/5 bg-black/20 flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-blue-500">Hromadná Úprava</h2>
-            <p className="text-white/60 text-xs font-bold uppercase tracking-widest mt-1">
-              {selectedIds.length} KONTAKTOV • REŽIM BATCH
-            </p>
+            <h2 className="text-[24px] font-[900] uppercase italic tracking-tighter text-white leading-tight">Batch Update</h2>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[10px] font-black text-violet-400 uppercase tracking-[0.2em]">
+                {selectedIds.length} KONTAKTOV SELECTED
+              </span>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-            <X className="w-6 h-6" />
+          <button 
+            onClick={onClose} 
+            className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white hover:text-black border border-white/10 rounded-xl transition-all"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto">
-          <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-r-2xl flex gap-3 text-blue-800 mb-4">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <p className="text-xs font-bold leading-relaxed">
-              Zmeny sa aplikujú na VŠETKY označené kontakty. Prázdne polia zostanú pôvodné.
-            </p>
-          </div>
+        <form onSubmit={handleSubmit} className="p-10 space-y-8 overflow-y-auto thin-scrollbar">
+          <div className="space-y-8">
+            {/* Status Section */}
+            <div className="space-y-4">
+              <label className="text-[10px] font-black uppercase italic tracking-[0.3em] text-white/40">Zmeniť Status Na</label>
+              <div className="relative">
+                <select
+                  className="w-full bg-white/5 border border-white/5 hover:border-violet-500/30 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:ring-1 focus:ring-violet-500/60 outline-none transition-all appearance-none"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                >
+                  <option value="" className="bg-[#0a0a0e]">Ponechať nezmenené...</option>
+                  <option value="lead" className="bg-[#0a0a0e]">Lead / Záujemca</option>
+                  <option value="active" className="bg-[#0a0a0e]">Aktívny Klient</option>
+                  <option value="archived" className="bg-[#0a0a0e]">Archivované</option>
+                </select>
+                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-white/20">
+                  <div className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,1)]" />
+                </div>
+              </div>
+            </div>
 
-          <div className="space-y-4">
+            <div className="h-px bg-white/5" />
+
             {/* Labels Section */}
-            <div>
-              <label className="block text-[10px] font-black uppercase italic tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-                <Tag className="w-3 h-3" /> Priradiť Labels
+            <div className="space-y-4">
+              <label className="text-[10px] font-black uppercase italic tracking-[0.3em] text-white/40 flex items-center gap-2">
+                 Priradiť Štítky (Batch)
               </label>
               
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-wrap gap-2">
                 {fetchingLabels ? (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Načítavam labels...
+                  <div className="flex items-center gap-2 text-xs text-white/30 animate-pulse font-bold uppercase tracking-widest">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Načítavam...
                   </div>
-                ) : availableLabels.length === 0 ? (
-                  <span className="text-xs text-muted-foreground italic">Žiadne labels. Vytvorte prvý nižšie.</span>
                 ) : (
                   availableLabels.map(label => (
                     <button
                       type="button"
                       key={label.id}
                       onClick={() => toggleLabel(label.id)}
-                      className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase transition-all border ${
+                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
                         selectedLabelIds.includes(label.id)
-                          ? "bg-blue-600 text-white border-blue-600 scale-105 shadow-lg shadow-blue-500/20"
-                          : "bg-muted text-muted-foreground border-border hover:border-blue-500/50"
+                          ? "bg-violet-600 border-violet-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]"
+                          : "bg-white/5 text-white/40 border-white/5 hover:border-violet-500/30 hover:text-white"
                       }`}
                     >
                       {label.name}
@@ -163,11 +177,11 @@ export function BulkEditModal({
                 )}
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 p-1 bg-white/5 border border-white/5 rounded-xl group focus-within:border-violet-500/30 transition-all">
                 <input
                   type="text"
-                  placeholder="Názov nového labelu..."
-                  className="flex-1 bg-muted/30 border border-border rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-1 focus:ring-blue-600"
+                  placeholder="Nový štítok..."
+                  className="flex-1 bg-transparent border-none px-4 py-2 text-xs font-bold text-white placeholder:text-white/10 outline-none"
                   value={newLabelName}
                   onChange={(e) => setNewLabelName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleCreateLabel())}
@@ -176,66 +190,35 @@ export function BulkEditModal({
                   type="button"
                   onClick={handleCreateLabel}
                   disabled={isCreatingLabel || !newLabelName.trim()}
-                  className="bg-black text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase italic tracking-widest hover:bg-zinc-800 transition-all flex items-center gap-2"
+                  className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-30"
                 >
-                  {isCreatingLabel ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-                  Vytvoriť
+                  {isCreatingLabel ? <Loader2 className="w-3 animate-spin" /> : "Pridať"}
                 </button>
               </div>
             </div>
-
-            <div className="h-px bg-border my-6" />
-
-            <div>
-              <label className="block text-[10px] font-black uppercase italic tracking-widest text-muted-foreground mb-2">Firma / Account</label>
-              <input
-                type="text"
-                placeholder="Ponechať pôvodné..."
-                className="w-full bg-muted/30 border border-border rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-600 outline-none transition-all"
-                value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-black uppercase italic tracking-widest text-muted-foreground mb-2">Status</label>
-              <select
-                className="w-full bg-muted/30 border border-border rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-600 outline-none transition-all appearance-none"
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              >
-                <option value="">Ponechať pôvodné...</option>
-                <option value="lead">Lead</option>
-                <option value="active">Active</option>
-                <option value="archived">Archived</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-black uppercase italic tracking-widest text-muted-foreground mb-2">Poznámky (Prepíše pôvodné)</label>
-              <textarea
-                placeholder="Ponechať pôvodné..."
-                className="w-full bg-muted/30 border border-border rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-600 outline-none transition-all min-h-[120px]"
-                value={formData.comments}
-                onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
-              />
-            </div>
           </div>
 
-          <div className="pt-4 flex gap-3 shrink-0">
+          <div className="pt-6 flex gap-4 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-8 py-4 bg-muted text-foreground rounded-2xl font-black uppercase italic tracking-widest hover:bg-muted/80 transition-all"
+              className="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
             >
               Zrušiť
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-[2] px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase italic tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-2 "
+              className="flex-[2] relative px-6 py-4 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-[0_0_20px_rgba(139,92,246,0.2)] transition-all flex items-center justify-center gap-3 active:scale-95 transition-all"
             >
-              {loading ? "Ukladám..." : <><Save className="w-5 h-5" /> Uložiť zmeny</>}
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Potvrdiť Batch
+                </>
+              )}
             </button>
           </div>
         </form>

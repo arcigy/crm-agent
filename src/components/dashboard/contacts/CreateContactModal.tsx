@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, X, Loader2 } from 'lucide-react';
+import { UserPlus, X, Loader2 } from 'lucide-react';
 import { Lead } from '@/types/contact';
 import { normalizeSlovakPhone } from '@/lib/phone';
 
@@ -71,10 +71,12 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'f
                 <div className="flex items-center justify-between mb-10 pr-12">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-violet-900/40 relative">
-                            <Plus className="w-6 h-6 relative z-10" />
+                            <UserPlus className="w-6 h-6 relative z-10" />
+                            <div className="absolute inset-0 bg-white/20 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <div>
-                            <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">Nový kontakt</h2>
+                            <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic leading-none">Nový kontakt</h2>
+                            <p className="text-[9px] font-black text-violet-400 uppercase tracking-widest mt-1">Identity Creation</p>
                         </div>
                     </div>
                 </div>
@@ -148,25 +150,13 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, initialMode = 'f
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-white/50 ml-1">Status kontaktu</label>
-                                <select
-                                    className="w-full h-14 bg-black/40 border border-white/10 rounded-xl px-5 text-[14px] text-white font-bold focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/60 transition-all outline-none appearance-none"
-                                    value={formData.status}
-                                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                >
-                                    <option value="active">🟢 Známy Kontakt</option>
-                                    <option value="lead">🟡 Nový Lead</option>
-                                </select>
-                            </div>
-
                     <div className="pt-6">
                         <button
                             type="submit"
                             disabled={loading}
                             className="w-full h-16 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl text-[13px] font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-violet-900/40 hover:from-violet-500 hover:to-indigo-500 transition-all active:scale-95 disabled:opacity-50"
                         >
-                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Uložiť Záznam'}
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Pridať kontakt'}
                         </button>
                     </div>
                 </form>

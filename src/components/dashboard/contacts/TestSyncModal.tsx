@@ -52,60 +52,80 @@ export function TestSyncModal({
     };
 
     return (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 animate-in fade-in duration-300">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="bg-background w-full max-w-md rounded-[2rem] shadow-2xl relative flex flex-col overflow-hidden border border-border">
-                <div className="p-6 border-b border-border flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <FlaskConical className="w-5 h-5 text-amber-500" />
-                        <h2 className="text-xl font-bold">Test Sync Update</h2>
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-300">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+            <div className="bg-[#0a0a0c]/90 backdrop-blur-2xl w-full max-w-md rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative flex flex-col overflow-hidden border border-white/10">
+                {/* Header */}
+                <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                            <FlaskConical className="w-5 h-5 text-amber-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-[900] uppercase italic tracking-tight text-white leading-none">Diagnostic Test</h2>
+                            <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest mt-1">Sync Verification</p>
+                        </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
-                        <X className="w-5 h-5" />
+                    <button 
+                        onClick={onClose} 
+                        className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white hover:text-black border border-white/10 rounded-xl transition-all group"
+                    >
+                        <X className="w-5 h-5 transition-transform group-hover:rotate-90" />
                     </button>
                 </div>
                 
-                <div className="p-6 space-y-4">
-                    <p className="text-sm text-muted-foreground">
+                <div className="p-8 space-y-6">
+                    <p className="text-[11px] font-bold text-white/40 uppercase tracking-widest leading-relaxed">
                         Vyberte kontakt pre test synchronizácie. 
-                        Meno zostane zachované, ale e-mail, telefón, firma a poznámka sa zaktualizujú testovacími dátami do Google Contacts.
+                        Do Google Contacts sa odošlú testovacie dáta pre overenie prepojenia.
                     </p>
                     
-                    <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <div className="relative group">
+                        <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-amber-400 transition-colors" />
                         <input
                             type="text"
-                            placeholder="Hľadať kontakt (meno, email, firma)..."
+                            placeholder="Meno, email alebo firma..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 bg-muted border border-border rounded-2xl text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all"
+                            className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/5 focus:border-amber-500/50 rounded-2xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all font-bold placeholder:text-white/10 tracking-wider"
                         />
                     </div>
                     
-                    <div className="space-y-2 max-h-[300px] overflow-y-auto thin-scrollbar pt-2">
+                    <div className="space-y-2 max-h-[320px] overflow-y-auto pr-2 thin-scrollbar pt-2">
                         {filtered.length === 0 && search && (
-                            <p className="text-center text-xs text-muted-foreground py-10">Žiadne výsledky pre hľadanie</p>
+                            <div className="py-12 text-center">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20 italic">Žiadne výsledky</p>
+                            </div>
                         )}
                         {filtered.map(contact => (
                             <button
                                 key={contact.id}
                                 onClick={() => handleTest(contact.id)}
                                 disabled={isUpdating}
-                                className="w-full p-4 rounded-2xl border border-border hover:bg-amber-50 dark:hover:bg-amber-900/10 hover:border-amber-200 transition-all flex items-center justify-between text-left group disabled:opacity-50"
+                                className="w-full p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-amber-500/10 hover:border-amber-500/30 transition-all flex items-center justify-between text-left group disabled:opacity-50"
                             >
-                                <div>
-                                    <p className="text-sm font-bold text-foreground">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-black text-white group-hover:text-amber-400 transition-colors truncate">
                                         {contact.first_name} {contact.last_name || ''}
                                     </p>
-                                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-0.5">
+                                    <p className="text-[9px] text-white/30 uppercase font-black tracking-widest mt-1 truncate">
                                         {contact.company || 'Súkromný kontakt'}
                                     </p>
                                 </div>
-                                <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-600 transition-all group-hover:scale-110">
+                                <div className="ml-4 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 transition-all group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-black">
                                     {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
                                 </div>
                             </button>
                         ))}
+                    </div>
+                </div>
+
+                {/* Footer status */}
+                <div className="px-8 py-4 bg-white/5 border-t border-white/5 flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white/20 italic">Diagnostic Mode</span>
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-amber-500">System Ready</span>
                     </div>
                 </div>
             </div>

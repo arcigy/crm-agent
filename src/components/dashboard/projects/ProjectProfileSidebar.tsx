@@ -2,13 +2,12 @@
 
 import * as React from "react";
 import {
-  FolderKanban,
   Calendar,
-  ExternalLink,
   Clock,
   DollarSign,
-  X,
   User,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 
 import { Project, PROJECT_STAGES } from "@/types/project";
@@ -40,139 +39,117 @@ export function ProjectProfileSidebar({
   };
 
   return (
-    <div className="w-80 lg:w-96 bg-sidebar border-r border-border flex flex-col shrink-0 overflow-y-auto transition-all duration-300 select-none">
-      <div className="h-32 bg-gradient-to-br from-purple-800 to-indigo-900 relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 left-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full sm:hidden"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div className="w-80 lg:w-96 bg-[#0a0a0c] border-r border-white/5 flex flex-col shrink-0 overflow-y-auto thin-scrollbar select-none relative">
+      <div className="h-40 bg-gradient-to-br from-violet-600/20 via-indigo-600/5 to-transparent relative overflow-hidden">
+         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_2px_2px,rgba(255,255,255,0.05)_1px,transparent_0)] bg-[size:24px_24px]" />
       </div>
 
-      <div className="px-6 relative">
-        <div className="-mt-12 mb-4 w-24 h-24 rounded-3xl bg-card p-1.5 shadow-xl transition-colors">
-          <div className="w-full h-full rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center text-white font-black text-3xl uppercase">
+      <div className="px-8 relative">
+        <div className="-mt-16 mb-8 w-32 h-32 rounded-[2.5rem] bg-[#0a0a0c] p-2 shadow-2xl relative group">
+          <div 
+            className="w-full h-full rounded-[2rem] flex items-center justify-center text-white font-black text-4xl uppercase italic tracking-tighter"
+            style={{
+                background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",
+                boxShadow: "0 10px 40px rgba(124,58,237,0.3)"
+            }}
+          >
             {initials}
           </div>
         </div>
 
-        <div className="mb-6">
-          <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
-            Projekt #{project.id}
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[10px] font-black text-violet-500 uppercase tracking-[0.3em]">Projekt #{project.id}</span>
           </div>
-          <h2 className="text-2xl font-bold text-foreground leading-tight mb-2">
+          <h2 className="text-3xl font-black text-white leading-tight mb-6 italic tracking-tighter uppercase whitespace-pre-wrap">
             {project.project_type || project.name}
           </h2>
-          <div
-            className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border inline-flex items-center gap-1.5 ${stageInfo?.color || "bg-zinc-100 dark:bg-zinc-800"}`}
+          
+          <div 
+            className="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl border transition-all duration-300"
+            style={{
+                background: "rgba(139,92,246,0.1)",
+                borderColor: "rgba(139,92,246,0.3)",
+                color: "#a78bfa"
+            }}
           >
-            <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
-            {stageInfo?.label || project.stage}
+            <div className={`w-2 h-2 rounded-full ${project.stage === 'in_progress' ? 'animate-pulse' : ''}`} style={{ background: "#a78bfa", boxShadow: "0 0 10px #a78bfa" }} />
+            <span className="text-[11px] font-black uppercase tracking-[0.2em] leading-none">
+               {stageInfo?.label || project.stage}
+            </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-8 relative">
-          <button
-            onClick={() => onTabChange?.("documents")}
-            className="flex items-center justify-center gap-2 p-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl shadow-sm transition-all active:scale-95"
-          >
-            <FolderKanban className="w-4 h-4" />{" "}
-            <span className="text-xs font-bold">Súbory</span>
-          </button>
-          <button
-            onClick={() => onTabChange?.("tasks")}
-            className="flex items-center justify-center gap-2 p-2.5 bg-card border border-border hover:bg-zinc-50 dark:hover:bg-zinc-800 text-foreground rounded-xl shadow-sm transition-colors"
-          >
-            <Calendar className="w-4 h-4" />{" "}
-            <span className="text-xs font-bold">Úlohy</span>
-          </button>
-        </div>
-
-        <div className="space-y-4 mb-8">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-            Projektové detaily
-          </h3>
-          <InfoRow
-            icon={<User />}
-            label="Zodpovedný kontakt"
-            value={project.contact_name || "Nezadaný kontakt"}
-            valueClass={
-              project.contact_name
-                ? "text-blue-600 dark:text-blue-400 group-hover:underline"
-                : "text-zinc-400 font-medium"
-            }
-            onClick={project.contact_id ? handleContactClick : undefined}
-          />
-          <InfoRow
-            icon={<Clock />}
-            label="Termín dokončenia"
-            value={
-              project.end_date && !isNaN(new Date(project.end_date).getTime())
-                ? new Date(project.end_date).toLocaleDateString("sk-SK")
-                : "Termín neurčený"
-            }
-          />
-          <InfoRow
-            icon={<DollarSign />}
-            label="Rozpočet / Hodnota"
-            value={project.value ? `${project.value} €` : "Bez hodnoty"}
-            valueClass={project.value ? "text-emerald-600 font-bold" : ""}
-          />
-          <div className="w-full h-px bg-zinc-100 dark:bg-zinc-800 my-2" />
-          <InfoRow
-            icon={<Calendar />}
-            label="Vytvorené"
-            value={
-              !isNaN(new Date(project.date_created).getTime())
-                ? new Date(project.date_created).toLocaleDateString("sk-SK")
-                : "Dátum neznámy"
-            }
-          />
-          {project.updated_at &&
-            !isNaN(new Date(project.updated_at).getTime()) && (
-              <InfoRow
-                icon={<ExternalLink />}
-                label="Posledná úprava"
-                value={new Date(project.updated_at).toLocaleDateString("sk-SK")}
-              />
-            )}
+        <div className="space-y-8 mb-10">
+          <div className="flex items-center gap-3">
+             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Informácie</span>
+             <div className="h-[1px] flex-1 bg-white/5" />
+          </div>
+          
+          <div className="space-y-2">
+            <NeonRow
+                icon={<User className="w-4 h-4" />}
+                label="Kontakt"
+                value={project.contact_name || "Nezadaný"}
+                onClick={handleContactClick}
+                isActive={!!project.contact_id}
+                neonColor="blue"
+            />
+            <NeonRow
+                icon={<DollarSign className="w-4 h-4" />}
+                label="Budget"
+                value={project.value ? `${new Intl.NumberFormat('sk-SK').format(project.value)} €` : "Dohodou"}
+                neonColor="emerald"
+            />
+            <NeonRow
+                icon={<Calendar className="w-4 h-4" />}
+                label="Deadline"
+                value={
+                project.end_date && !isNaN(new Date(project.end_date).getTime())
+                    ? new Date(project.end_date).toLocaleDateString("sk-SK")
+                    : "Not Set"
+                }
+                neonColor="violet"
+            />
+            <NeonRow
+                icon={<Clock className="w-4 h-4" />}
+                label="Vytvorený"
+                value={new Date(project.date_created).toLocaleDateString("sk-SK")}
+                neonColor="zinc"
+            />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function InfoRow({ icon, label, value, copyable, valueClass, onClick }: any) {
+function NeonRow({ icon, label, value, onClick, isActive, neonColor }: any) {
+  const colors: any = {
+    blue: "text-blue-500 bg-blue-500/10 border-blue-500/20 shadow-blue-500/20",
+    emerald: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20 shadow-emerald-500/20",
+    violet: "text-violet-500 bg-violet-500/10 border-violet-500/20 shadow-violet-500/20",
+    zinc: "text-zinc-500 bg-zinc-500/10 border-zinc-500/20 shadow-zinc-500/20"
+  };
+
+  const selectedColor = colors[neonColor] || colors.zinc;
+
   return (
-    <div
-      onClick={onClick}
-      className={`flex items-center gap-3 group select-none ${onClick ? "cursor-pointer active:opacity-70" : ""}`}
+    <div 
+        className={`flex items-center gap-5 p-4 rounded-2xl group transition-all duration-300 border border-transparent ${onClick ? 'cursor-pointer hover:bg-white/5 hover:border-white/5' : ''}`}
+        onClick={onClick}
     >
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 bg-card border border-border shadow-sm shrink-0 transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-500">
-        {React.cloneElement(icon, { className: "w-3.5 h-3.5" })}
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 border group-hover:scale-110 ${selectedColor}`}>
+        {React.cloneElement(icon, { className: "w-5 h-5" })}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">
+        <p className="text-[9px] text-zinc-600 font-black uppercase tracking-widest mb-1 group-hover:text-zinc-400 transition-colors">
           {label}
         </p>
-        <p
-          className={`text-xs font-semibold text-foreground truncate ${valueClass || ""}`}
-        >
-          {value || "—"}
+        <p className={`text-sm font-black italic tracking-tight truncate ${isActive ? 'text-violet-400' : 'text-zinc-200'}`}>
+          {value}
         </p>
       </div>
-      {copyable && value && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            navigator.clipboard.writeText(value);
-          }}
-          className="opacity-0 group-hover:opacity-100 p-1.5 text-xs text-zinc-400 hover:text-foreground transition-all"
-        >
-          Copy
-        </button>
-      )}
     </div>
   );
 }

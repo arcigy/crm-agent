@@ -1,20 +1,17 @@
 "use client";
 
 import * as React from "react";
-
 import {
   Wallet,
-  Briefcase,
-  Layers,
+  Activity,
   Clock,
-  Edit2,
-  Trash2,
-  X,
-  FileText,
+  Zap,
   Receipt,
   CheckCircle,
   Calendar,
-  Zap,
+  FileText,
+  History,
+  TrendingUp,
 } from "lucide-react";
 import { Project } from "@/types/project";
 
@@ -24,7 +21,6 @@ interface ProjectOverviewProps {
 }
 
 export function ProjectOverview({ project, onClose }: ProjectOverviewProps) {
-  // Simple age calculation
   const createdDate = new Date(project.date_created);
   const isValidCreated = !isNaN(createdDate.getTime());
   const ageDays = isValidCreated
@@ -34,170 +30,143 @@ export function ProjectOverview({ project, onClose }: ProjectOverviewProps) {
     : 0;
 
   return (
-    <div className="overflow-y-auto p-8 bg-zinc-50/30 dark:bg-zinc-900/10 transition-colors custom-scrollbar h-full select-none">
-      <div className="grid grid-cols-12 gap-6">
-        {/* KPI Row */}
-        <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
-          <KpiCard
-            label="Hodnota projektu"
-            value={project.value ? `${project.value} €` : "—"}
-            icon={<Wallet className="w-4 h-4 text-emerald-600" />}
-            trend={project.paid ? "Plne uhradené" : "Čaká na úhradu"}
-            trendClass={project.paid ? "text-emerald-500" : "text-amber-500"}
-          />
-          <KpiCard
-            label="Aktuálne Štádium"
+    <div className="p-10 space-y-12">
+      {/* KPI Cards with Neon Accents */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <NeonKpi 
+            label="Rozpočet"
+            value={project.value ? `${new Intl.NumberFormat('sk-SK').format(project.value)} €` : "Dohodou"}
+            subValue={project.paid ? "Plne uhradené" : "Čaká na platbu"}
+            subColor={project.paid ? "text-emerald-500" : "text-amber-500"}
+            icon={<Wallet />}
+            neonColor="emerald"
+        />
+        <NeonKpi 
+            label="Štádium"
             value={project.stage}
-            icon={<Layers className="w-4 h-4 text-blue-600" />}
-            trend="Aktívne"
-          />
-          <KpiCard
+            subValue="Status_Pipeline"
+            icon={<Activity />}
+            neonColor="violet"
+        />
+        <NeonKpi 
             label="Vek Projektu"
             value={`${ageDays} dní`}
-            icon={<Clock className="w-4 h-4 text-purple-600" />}
-            trend={
-              isValidCreated
-                ? `Vytvorené ${createdDate.toLocaleDateString("sk-SK")}`
-                : "Dátum neznámy"
-            }
-          />
-          <KpiCard
-            label="Identifikátor"
-            value={`ID-${project.id}`}
-            icon={<Zap className="w-4 h-4 text-amber-600" />}
-            trend="Pridelené systémom"
-          />
+            subValue={`Od ${isValidCreated ? createdDate.toLocaleDateString("sk-SK") : '—'}`}
+            icon={<Clock />}
+            neonColor="blue"
+        />
+        <NeonKpi 
+            label="Systémové ID"
+            value={`#${project.id}`}
+            subValue="Auto_Generated"
+            icon={<Zap />}
+            neonColor="amber"
+        />
+      </div>
+
+      <div className="grid grid-cols-12 gap-10">
+        <div className="col-span-12 lg:col-span-8 space-y-10">
+            <section className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-10 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-colors" />
+                
+                <div className="flex items-center gap-4 mb-10">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                        <Receipt className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-xl font-black uppercase text-white italic tracking-tighter">Finančný Report</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
+                    <VerticalInfo 
+                        label="Status Platby"
+                        value={project.paid ? "Uhradené" : "Neuhradené"}
+                        icon={project.paid ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : <Clock className="w-5 h-5 text-amber-500" />}
+                        color={project.paid ? "text-emerald-400" : "text-amber-400"}
+                    />
+                    <VerticalInfo 
+                        label="Dátum Faktúry"
+                        value={project.invoice_date ? new Date(project.invoice_date).toLocaleDateString("sk-SK") : "Zatiaľ nie"}
+                        icon={<Calendar className="w-5 h-5 text-zinc-500" />}
+                    />
+                    <VerticalInfo 
+                        label="Dátum Splatnosti"
+                        value={project.due_date ? new Date(project.due_date).toLocaleDateString("sk-SK") : "Okamžitá"}
+                        icon={<TrendingUp className="w-5 h-5 text-zinc-500" />}
+                    />
+                </div>
+            </section>
+
+            <div className="p-20 flex flex-col items-center justify-center border border-dashed border-white/5 rounded-[3rem] opacity-20 hover:opacity-30 transition-opacity duration-500 group">
+                <History className="w-12 h-12 text-zinc-700 mb-6 group-hover:scale-110 transition-transform" />
+                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-zinc-500 italic">Feed aktivít projektu je prázdny</p>
+            </div>
         </div>
 
-        {/* Main Content Sections */}
-        <div className="col-span-12 lg:col-span-8 space-y-6">
-          {/* Financial Details Card */}
-          <div className="bg-card p-6 rounded-3xl border border-border shadow-sm">
-            <h3 className="text-xs font-black uppercase text-zinc-400 mb-6 flex items-center gap-2 tracking-widest">
-              <Receipt className="w-4 h-4" /> Finančné detaily
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <DetailBox
-                label="Stav platby"
-                value={project.paid ? "Uhradené" : "Neuhradené"}
-                icon={
-                  project.paid ? (
-                    <CheckCircle className="text-emerald-500" />
-                  ) : (
-                    <Clock className="text-amber-500" />
-                  )
-                }
-              />
-              <DetailBox
-                label="Dátum fakturácie"
-                value={
-                  project.invoice_date &&
-                  !isNaN(new Date(project.invoice_date).getTime())
-                    ? new Date(project.invoice_date).toLocaleDateString("sk-SK")
-                    : "—"
-                }
-                icon={<Calendar className="text-zinc-400" />}
-              />
-              <DetailBox
-                label="Splatnosť faktúry"
-                value={
-                  project.due_date &&
-                  !isNaN(new Date(project.due_date).getTime())
-                    ? new Date(project.due_date).toLocaleDateString("sk-SK")
-                    : "—"
-                }
-                icon={<Clock className="text-zinc-400" />}
-              />
+        <div className="col-span-12 lg:col-span-4 space-y-10">
+            <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
+                <div className="flex items-center gap-4 mb-8">
+                    <div className="w-10 h-10 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+                        <FileText className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-sm font-black uppercase text-white tracking-[0.2em] italic">Interné Poznámky</h3>
+                </div>
+                <textarea
+                    className="w-full h-48 bg-black/40 border border-white/5 rounded-3xl p-6 text-sm text-zinc-200 placeholder:text-zinc-800 focus:outline-none focus:border-violet-500/30 transition-all resize-none thin-scrollbar mb-6 font-medium leading-relaxed"
+                    placeholder="Sem zapíšte dôležité interné informácie..."
+                />
+                <button 
+                  className="w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] transition-all duration-300 relative overflow-hidden active:scale-95 group shadow-2xl shadow-violet-600/20"
+                  style={{ 
+                      background: "linear-gradient(135deg, rgba(124,58,237,0.3) 0%, rgba(109,40,217,0.2) 100%)",
+                      border: "1.5px solid rgba(167,139,250,0.4)",
+                      color: "white"
+                  }}
+                >
+                    Uložiť Záznam
+                </button>
             </div>
-          </div>
-
-          <div className="bg-card p-6 rounded-3xl border border-border shadow-sm min-h-[300px]">
-            <h3 className="text-xs font-black uppercase text-zinc-400 mb-4 tracking-widest">
-              Projektová aktivita
-            </h3>
-            <div className="flex flex-col items-center justify-center h-48 text-zinc-400 space-y-2 opacity-30">
-              <Clock className="w-8 h-8" />
-              <p className="text-[10px] font-black uppercase tracking-tight">
-                História zmien je prázdna
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar Sections within Overview */}
-        <div className="col-span-12 lg:col-span-4 space-y-6">
-          <div className="bg-card p-6 rounded-3xl border border-border shadow-sm">
-            <h3 className="text-xs font-black uppercase text-zinc-400 mb-4 tracking-widest">
-              Interné poznámky
-            </h3>
-            <div className="space-y-4">
-              <textarea
-                className="w-full h-32 bg-zinc-50 dark:bg-zinc-900 border-2 border-zinc-100 dark:border-zinc-800 rounded-2xl p-4 text-xs focus:outline-none focus:border-blue-500 transition-all resize-none shadow-inner"
-                placeholder="Sem napíšte súkromné poznámky k projektu..."
-              />
-              <button className="w-full py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-md">
-                Uložiť poznámku
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-3xl text-white shadow-xl shadow-blue-500/20">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-white/20 rounded-xl">
-                <FileText className="w-5 h-5" />
-              </div>
-              <h3 className="text-xs font-black uppercase tracking-widest">
-                Rýchly prehľad
-              </h3>
-            </div>
-            <p className="text-xs opacity-90 leading-relaxed font-medium">
-              Tento projekt bol vytvorený pred {ageDays} dňami. Všetky dokumenty
-              a úlohy nájdete v príslušných záložkách vyššie.
-            </p>
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function DetailBox({ label, value, icon }: any) {
+function NeonKpi({ label, value, subValue, subColor, icon, neonColor }: any) {
+  const colors: any = {
+    emerald: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20 shadow-emerald-500/20",
+    violet: "text-violet-500 bg-violet-500/10 border-violet-500/20 shadow-violet-500/20",
+    blue: "text-blue-500 bg-blue-500/10 border-blue-500/20 shadow-blue-500/20",
+    amber: "text-amber-500 bg-amber-500/10 border-amber-500/20 shadow-amber-500/20"
+  };
+
+  const selectedColor = colors[neonColor] || colors.violet;
+
   return (
-    <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-700/50">
-      <div className="flex items-center gap-2 mb-2">
-        {React.cloneElement(icon, { className: "w-3 h-3" })}
-        <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">
-          {label}
-        </span>
-      </div>
-      <p className="text-xs font-bold text-foreground">{value}</p>
+    <div className="bg-white/[0.02] border border-white/10 rounded-[2.5rem] p-8 group hover:bg-white/[0.04] transition-all duration-500 relative overflow-hidden active:scale-[0.98]">
+        <div className="flex items-center justify-between mb-8">
+            <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em]">{label}</span>
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110 ${selectedColor}`}>
+                {React.cloneElement(icon, { className: "w-5 h-5" })}
+            </div>
+        </div>
+        <div>
+            <h4 className="text-2xl font-black text-white italic tracking-tighter uppercase truncate mb-1">{value}</h4>
+            <p className={`text-[10px] font-bold uppercase tracking-widest ${subColor || 'text-zinc-600'}`}>{subValue}</p>
+        </div>
     </div>
-  );
+  )
 }
 
-function KpiCard({ label, value, icon, trend, trendClass }: any) {
-  return (
-    <div className="bg-card p-4 rounded-3xl border border-border shadow-sm flex flex-col justify-between hover:shadow-md transition-all group">
-      <div className="flex items-start justify-between mb-3">
-        <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">
-          {label}
-        </span>
-        <div className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-xl transition-colors group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30">
-          {icon}
+function VerticalInfo({ label, value, icon, color }: any) {
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center">
+                    {icon}
+                </div>
+                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{label}</p>
+            </div>
+            <p className={`text-xl font-black italic tracking-tight ${color || 'text-zinc-100'}`}>{value}</p>
         </div>
-      </div>
-      <div>
-        <span className="text-xl font-black text-foreground tracking-tight transition-colors truncate block">
-          {value}
-        </span>
-        {trend && (
-          <p
-            className={`text-[9px] font-black uppercase tracking-tighter mt-1 ${trendClass || "text-zinc-400"}`}
-          >
-            {trend}
-          </p>
-        )}
-      </div>
-    </div>
-  );
+    )
 }

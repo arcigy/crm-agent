@@ -25,6 +25,7 @@ import {
 } from "@dnd-kit/sortable";
 import { restrictToFirstScrollableAncestor } from "@dnd-kit/modifiers";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 import { Lead } from "@/types/contact";
 import { CreateContactModal } from "./contacts/CreateContactModal";
@@ -46,6 +47,9 @@ import { contactColumns } from "./contacts/ContactColumns";
 import { TestSyncModal } from "./contacts/TestSyncModal";
 import { AddToSmartLeadModal } from "./contacts/AddToSmartLeadModal";
 
+import { useRouter } from "next/navigation";
+import { exportToCSV } from "@/lib/export";
+
 export function ContactsTable({
   data,
   onCreate,
@@ -53,6 +57,7 @@ export function ContactsTable({
   data: Lead[];
   onCreate?: (data: any) => Promise<any>;
 }) {
+  const router = useRouter();
   const [isTestModalOpen, setIsTestModalOpen] = React.useState(false);
   const {
     sorting,
@@ -120,7 +125,7 @@ export function ContactsTable({
     },
     columnResizeMode: "onChange",
     defaultColumn: {
-      minSize: 40,
+      minSize: 60,
       maxSize: 1000,
       size: 150,
     },
@@ -131,6 +136,27 @@ export function ContactsTable({
     getFilteredRowModel: getFilteredRowModel(),
     initialState: { expanded: true },
   });
+
+  const handleExport = () => {
+    const visibleData = table.getFilteredRowModel().rows.map(row => row.original);
+    if (visibleData.length === 0) {
+      toast.error("Žiadne dáta na export");
+      return;
+    }
+    toast.success(`Exportujem ${visibleData.length} kontaktov...`);
+    exportToCSV(visibleData, `kontakty_export_${new Date().toISOString().split('T')[0]}`);
+  };
+
+  const handleRefresh = () => {
+    toast.promise(new Promise(resolve => {
+        router.refresh();
+        setTimeout(resolve, 800);
+    }), {
+        loading: "Aktualizujem dáta...",
+        success: "Dáta boli aktualizované",
+        error: "Chyba pri aktualizácii"
+    });
+  };
 
   const onDragEnd = (event: any) => {
     const { active, over } = event;
@@ -178,6 +204,7 @@ export function ContactsTable({
     >
       <BulkActions
         selectedIds={selectedIds}
+        selectedNames={selectedRows.map(r => `${r.original.first_name || ''} ${r.original.last_name || ''}`.trim())}
         onClear={() => setRowSelection({})}
         onEdit={() => setIsBulkEditOpen(true)}
         onSelectAllVisible={() => table.toggleAllRowsSelected(true)}
@@ -250,6 +277,8 @@ export function ContactsTable({
             totalCount={data.length}
             onNewClick={() => setIsModalOpen(true)}
             onImportClick={() => setIsImportModalOpen(true)}
+            onExport={handleExport}
+            onRefresh={handleRefresh}
             onTestClick={() => setIsTestModalOpen(true)}
           />
           <div className="overflow-auto flex-1 thin-scrollbar relative">
@@ -261,7 +290,7 @@ export function ContactsTable({
               }}
             >
               <colgroup>
-                <col style={{ width: "72px" }} />
+                <col style={{ width: "54px" }} />
                 {table.getVisibleLeafColumns().map(col => (
                   <col key={col.id} style={{ width: col.getSize() }} />
                 ))}
@@ -271,8 +300,8 @@ export function ContactsTable({
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {/* Gutter: Consolidated Selection, Strip, Drag */}
-                    <th style={{ width: "72px" }} className="p-0 bg-transparent z-20 border-r border-white/5">
-                      <div className="flex items-center justify-between px-2 h-full">
+                    <th style={{ width: "54px" }} className="p-0 bg-transparent z-20 border-r border-white/5">
+                      <div className="flex items-center justify-center h-full">
                         <button
                           onClick={() => table.toggleAllRowsSelected()}
                           className={`w-4 h-4 rounded-md border transition-all flex items-center justify-center ${
@@ -285,7 +314,6 @@ export function ContactsTable({
                             <div className="w-1.5 h-1.5 bg-white rounded-full" />
                           )}
                         </button>
-                        <div className="w-4" /> {/* Space for strip and handle alignment */}
                       </div>
                     </th>
                     

@@ -16,15 +16,20 @@ import {
   MoreHorizontal,
   Banknote,
   FileText,
-  HardDrive,
   RotateCcw,
+  FolderArchive,
+  Trash2,
+  ExternalLink,
+  Settings,
+  Zap,
 } from "lucide-react";
-import { format, isBefore } from "date-fns";
-import { sk } from "date-fns/locale";
+import { isBefore } from "date-fns";
+import { toast } from "sonner";
 
 import { InvoiceModal } from "./deals/InvoiceModal";
 import { PaymentModal } from "./deals/PaymentModal";
 import { DealsFilters } from "./deals/DealsFilters";
+import { PriceModal } from "./deals/PriceModal";
 import { useDealsTable } from "@/hooks/useDealsTable";
 
 import { ContactDetailModal } from "./ContactDetailModal";
@@ -46,94 +51,6 @@ export function DealsTable({
   projects: Project[];
   contacts: Lead[];
 }) {
-  // Dummy data
-  const dummyDeals: Deal[] = [
-    {
-      id: 9991,
-      name: "E-shop Redesign",
-      value: 5400,
-      contact_id: 991,
-      project_id: 9991,
-      paid: false,
-      invoice_date: "2024-02-01",
-      due_date: "2024-02-15",
-      date_created: new Date().toISOString(),
-      contact_name: "TechCorp s.r.o.",
-    },
-    {
-      id: 9992,
-      name: "Q1 Marketing Campaign",
-      value: 2800,
-      contact_id: 992,
-      project_id: 9992,
-      paid: true,
-      invoice_date: "2024-01-10",
-      date_created: new Date().toISOString(),
-      contact_name: "Local Bakery",
-    },
-    {
-      id: 9993,
-      name: "Mobile App MVP",
-      value: 12500,
-      contact_id: 993,
-      project_id: 9993,
-      paid: false,
-      date_created: new Date().toISOString(),
-      contact_name: "Startup Inc.",
-    },
-  ];
-
-  const dummyProjects: Project[] = [
-    {
-      id: 9991,
-      name: "E-shop Redesign",
-      project_type: "E-commerce",
-      contact_id: 991,
-      contact_name: "TechCorp s.r.o.",
-      stage: "in_progress",
-      value: 5400,
-      paid: false,
-      invoice_date: "2024-02-01",
-      due_date: "2024-02-15",
-      date_created: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      end_date: null,
-      deleted_at: null,
-    },
-    {
-      id: 9992,
-      name: "Q1 Marketing Campaign",
-      project_type: "Marketing Campaign",
-      contact_id: 992,
-      contact_name: "Local Bakery",
-      stage: "completed",
-      value: 2800,
-      paid: true,
-      invoice_date: "2024-01-10",
-      date_created: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      end_date: null,
-      deleted_at: null,
-    },
-    {
-      id: 9993,
-      name: "Mobile App MVP",
-      project_type: "Mobile App",
-      contact_id: 993,
-      contact_name: "Startup Inc.",
-      stage: "planning",
-      value: 12500,
-      paid: false,
-      date_created: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      end_date: null,
-      deleted_at: null,
-    },
-  ];
-
   const {
     tableData,
     sorting,
@@ -161,14 +78,17 @@ export function DealsTable({
     handleTogglePaidStatus,
     handleInvoiceProject,
     resetFilters,
-  } = useDealsTable([...deals, ...dummyDeals], [...projects, ...dummyProjects], contacts);
+  } = useDealsTable(deals, projects, contacts);
+
+  const [activeMenu, setActiveMenu] = React.useState<number | null>(null);
+  const [editingPriceProject, setEditingPriceProject] = React.useState<Project | null>(null);
 
   const columns = [
-    columnHelper.accessor("name", {
-      header: "Projekt / Obchod",
+    columnHelper.accessor("project.name", {
+      header: "Projekt / Klient",
       cell: (info) => (
         <div
-          className="flex flex-col cursor-pointer group/name"
+          className="flex items-center gap-4 cursor-pointer group/name py-1"
           onClick={() => {
             const p = info.row.original.project;
             if (p) {
@@ -177,53 +97,35 @@ export function DealsTable({
             }
           }}
         >
-          <span className="font-bold text-foreground text-[11px] group-hover/name:text-blue-600 transition-colors">
-            {info.row.original.project?.name || info.getValue()}
-          </span>
-          <div className="flex items-center gap-1 opacity-50">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-              {info.row.original.project?.project_type || "Obchod"}
+          <div className="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center group-hover:bg-violet-600/20 transition-all shadow-lg shrink-0">
+            <FolderArchive className="w-5 h-5 text-violet-400" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="font-bold text-white text-[13px] group-hover:text-violet-400 transition-colors truncate">
+                {info.row.original.project?.name || "Projekt"}
+            </span>
+            <span className="text-[11px] text-zinc-500 truncate font-medium">
+                {info.row.original.project?.contact_name || "Neznámy klient"}
             </span>
           </div>
         </div>
       ),
     }),
-    columnHelper.accessor("contact_id", {
-      header: "Kontakt",
-      cell: (info) => {
-        const p = info.row.original.project;
-        return (
-          <div
-            className="flex items-center gap-2 cursor-pointer group/contact"
-            onClick={() => {
-              const c = contacts.find(
-                (c) => String(c.id) === String(p?.contact_id),
-              );
-              if (c) setDetailContact(c);
-            }}
-          >
-            <div className="w-6 h-6 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[9px] font-black text-blue-500 group-hover/contact:scale-110 transition-transform">
-              {p?.contact_name?.substring(0, 2).toUpperCase() || "??"}
-            </div>
-            <span className="font-medium text-xs text-foreground/80 group-hover/contact:text-blue-600 transition-colors">
-              {p?.contact_name || "Neznámy"}
-            </span>
-          </div>
-        );
-      },
-    }),
     columnHelper.accessor("project.stage", {
-      header: "Štádium",
+      id: "project_stage",
+      header: "Status Pipeline",
       cell: (info) => (
-        <StageBadge
-          projectId={info.row.original.project?.id || 0}
-          stage={(info.getValue() as any) || "planning"}
-          onStageChange={handleUpdateProjectStage}
-        />
+        <div className="flex items-center py-1">
+            <StageBadge
+            projectId={info.row.original.project?.id || 0}
+            stage={(info.getValue() as any) || "planning"}
+            onStageChange={handleUpdateProjectStage}
+            />
+        </div>
       ),
     }),
     columnHelper.accessor("value", {
-      header: "Suma",
+      header: "Hodnota",
       cell: (info) => {
         const value = info.getValue();
         const project = info.row.original.project;
@@ -231,87 +133,60 @@ export function DealsTable({
         if (!value || value === 0) {
           return (
             <button
-              onClick={async () => {
-                const val = prompt("Zadajte sumu projektu v EUR:");
-                if (val && !isNaN(Number(val))) {
-                  handleUpdateProjectValue(project.id, Number(val));
-                }
+              onClick={async (e) => {
+                e.stopPropagation();
+                setEditingPriceProject(project);
               }}
-              className="text-[10px] font-black uppercase text-blue-500 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20 hover:bg-blue-500/20 transition-all font-mono"
+              className="text-[11px] font-bold text-violet-400 hover:text-white transition-colors flex items-center gap-1.5"
             >
-              + Nastaviť sumu
+              <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+              Zadať cenu
             </button>
           );
         }
 
         return (
-          <span className="font-black text-blue-500 text-sm tabular-nums tracking-tighter">
-            {new Intl.NumberFormat("sk-SK", {
-              style: "currency",
-              currency: "EUR",
-            }).format(value)}
-          </span>
+          <div className="flex flex-col py-1">
+            <span className="font-black text-white text-[15px] tabular-nums tracking-tighter italic">
+                {new Intl.NumberFormat("sk-SK", {
+                style: "currency",
+                currency: "EUR",
+                }).format(value)}
+            </span>
+            <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest leading-none">Net_Revenue</span>
+          </div>
         );
       },
     }),
     columnHelper.accessor("paid", {
-      header: "Stav Fakturácie",
+      header: "Stav Platby",
       cell: (info) => {
         const deal = info.row.original;
-        if (!deal.value || deal.value === 0)
-          return (
-            <span className="text-muted-foreground/30 text-[10px] font-black uppercase italic">
-              Nefakturované
-            </span>
-          );
+        if (!deal.value || deal.value === 0) return null;
 
         if (deal.paid) {
           return (
-            <div className="flex items-center gap-1.5 text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20 w-fit">
-              <CheckCircle2 className="w-3 h-3" />
-              <span className="text-[9px] font-black uppercase tracking-wider">
-                Zaplatené
-              </span>
+            <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Uhradené</span>
             </div>
           );
         }
 
         if (deal.invoice_date) {
-          const isOverdue = deal.due_date
-            ? isBefore(new Date(deal.due_date), new Date())
-            : false;
-          return (
-            <div
-              className={`flex flex-col gap-0.5 ${isOverdue ? "text-red-500" : "text-amber-500"}`}
-            >
-              <div
-                className={`flex items-center gap-1.5 ${isOverdue ? "bg-red-500/10 border-red-500/20" : "bg-amber-500/10 border-amber-500/20"} px-2 py-1 rounded-lg border w-fit`}
-              >
-                {isOverdue ? (
-                  <AlertCircle className="w-3 h-3" />
-                ) : (
-                  <Clock className="w-3 h-3 text-amber-500" />
-                )}
-                <span className="text-[9px] font-black uppercase tracking-wider">
-                  {isOverdue ? "Po splatnosti" : "Čaká na platbu"}
-                </span>
+            const isOverdue = deal.due_date ? isBefore(new Date(deal.due_date), new Date()) : false;
+            return (
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border w-fit ${isOverdue ? "text-rose-400 bg-rose-500/10 border-rose-500/20" : "text-amber-400 bg-amber-500/10 border-amber-500/20"}`}>
+                {isOverdue ? <AlertCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5 animate-pulse" />}
+                <span className="text-[10px] font-black uppercase tracking-widest">{isOverdue ? "Po Termíne" : "Čaká"}</span>
               </div>
-              {deal.due_date && !isNaN(new Date(deal.due_date).getTime()) && (
-                <span className="text-[9px] font-bold opacity-60 ml-1 italic">
-                  Splatnosť:{" "}
-                  {format(new Date(deal.due_date), "d. MMM", { locale: sk })}
-                </span>
-              )}
-            </div>
-          );
+            );
         }
 
         return (
-          <div className="flex items-center gap-1.5 text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg border border-border w-fit">
-            <FileText className="w-3 h-3 opacity-40" />
-            <span className="text-[9px] font-black uppercase tracking-wider">
-              Pripravené na faktúru
-            </span>
+          <div className="flex items-center gap-2 text-violet-400 bg-violet-500/10 px-3 py-1.5 rounded-xl border border-violet-500/20 w-fit">
+            <Receipt className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Pripravené</span>
           </div>
         );
       },
@@ -322,84 +197,91 @@ export function DealsTable({
       cell: (info) => {
         const deal = info.row.original;
         return (
-          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {!deal.invoice_date && deal.value > 0 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (deal.project) setInvoicingProject(deal.project);
-                }}
-                className="p-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-1 text-[9px] font-black uppercase px-3"
-              >
-                <Receipt className="w-3 h-3" /> Fakturovať
-              </button>
-            )}
-            {deal.invoice_date && !deal.paid && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (deal.project) setPayingProject(deal.project);
-                }}
-                className="p-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 flex items-center gap-1 text-[9px] font-black uppercase px-3"
-              >
-                <Banknote className="w-3 h-3" /> Označiť ako zaplatené
-              </button>
-            )}
-            {deal.paid && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (
-                    deal.project &&
-                    confirm("Naozaj chcete vrátiť stav na 'Čaká na platbu'?")
-                  ) {
-                    handleTogglePaidStatus(deal.project.id, false);
-                  }
-                }}
-                className="p-1.5 rounded-lg border border-amber-500/20 text-amber-500 hover:bg-amber-500/10 transition-all"
-                title="Vrátiť na nezaplatené"
-              >
-                <RotateCcw className="w-3 h-3" />
-              </button>
-            )}
-            {!deal.paid && deal.invoice_date && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (
-                    deal.project &&
-                    confirm("Naozaj chcete stornovať túto faktúru?")
-                  ) {
-                    handleInvoiceProject(deal.project.id, {
-                      invoice_date: null,
-                      due_date: null,
-                      paid: false,
-                    });
-                  }
-                }}
-                className="p-1.5 rounded-lg border border-red-500/20 text-red-500 hover:bg-red-500/10 transition-all"
-                title="Stornovať faktúru"
-              >
-                <RotateCcw className="w-3 h-3" />
-              </button>
-            )}
-            <button className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
-              <MoreHorizontal className="w-3 h-3" />
-            </button>
-            {deal.project?.drive_folder_id && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (deal.project) {
-                    setFullDetailTab("documents");
-                    setFullDetailProject(deal.project);
-                  }
-                }}
-                className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500 transition-all hover:text-white shadow-lg shadow-blue-500/5 group"
-              >
-                <HardDrive className="w-3 h-3 group-hover:scale-110 transition-transform" />
-              </button>
-            )}
+          <div className="flex items-center justify-end gap-3 opacity-100 transition-all duration-300 relative">
+            <div className="flex items-center gap-1.5">
+                {!deal.invoice_date && deal.value > 0 ? (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (deal.project) setInvoicingProject(deal.project);
+                        }}
+                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 hover:bg-violet-600 hover:text-white transition-all shadow-lg active:scale-95 group/inv"
+                        title="Vystaviť faktúru"
+                    >
+                        <FileText className="w-4.5 h-4.5 group-hover:rotate-12 transition-transform" />
+                    </button>
+                ) : deal.invoice_date && !deal.paid ? (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (deal.project) setPayingProject(deal.project);
+                        }}
+                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all shadow-lg active:scale-95 group/pay"
+                        title="Prijať platbu"
+                    >
+                        <Banknote className="w-4.5 h-4.5 group-hover:scale-110 transition-transform" />
+                    </button>
+                ) : (
+                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-800/10 border border-zinc-800/20 text-zinc-700 opacity-20 pointer-events-none">
+                        <FileText className="w-4.5 h-4.5" />
+                    </div>
+                )}
+            </div>
+            
+            <div className="relative">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenu(activeMenu === deal.project?.id ? null : deal.project?.id);
+                  }}
+                  className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors text-zinc-600 hover:text-white hover:bg-white/10 ${activeMenu === deal.project?.id ? 'bg-white/10 text-white' : ''}`}
+                >
+                    <MoreHorizontal className="w-5 h-5" />
+                </button>
+
+                {activeMenu === deal.project?.id && (
+                    <>
+                        <div 
+                          className="fixed inset-0 z-[100]" 
+                          onClick={() => setActiveMenu(null)}
+                        />
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl p-1.5 z-[101] animate-in fade-in zoom-in-95 duration-200">
+                            <button 
+                              onClick={() => {
+                                setFullDetailTab("overview");
+                                setFullDetailProject(deal.project);
+                                setActiveMenu(null);
+                              }}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-white/5 transition-all"
+                            >
+                                <ExternalLink className="w-4 h-4 text-violet-400" />
+                                Detail Projektu
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setEditingPriceProject(deal.project);
+                                setActiveMenu(null);
+                              }}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-white hover:bg-emerald-500/10 transition-all"
+                            >
+                                <Settings className="w-4 h-4 text-emerald-400" />
+                                Upraviť Cenu
+                            </button>
+                            <div className="h-px bg-white/5 my-1" />
+                            <button 
+                              onClick={() => {
+                                toast.error("Funkcia vymazania momentálne nie je dostupná.");
+                                setActiveMenu(null);
+                              }}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-rose-500/60 hover:text-rose-500 hover:bg-rose-500/5 transition-all"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Vymazať
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
           </div>
         );
       },
@@ -417,43 +299,60 @@ export function DealsTable({
 
   return (
     <>
-      <ProjectDetailModal
-        key={fullDetailProject?.id}
-        project={fullDetailProject}
-        isOpen={!!fullDetailProject}
-        onClose={() => setFullDetailProject(null)}
-        initialTab={fullDetailTab}
-      />
+      <div className="contents">
+        {fullDetailProject && (
+          <ProjectDetailModal
+            project={fullDetailProject}
+            isOpen={!!fullDetailProject}
+            onClose={() => setFullDetailProject(null)}
+            initialTab={fullDetailTab}
+          />
+        )}
 
-      {invoicingProject && (
-        <InvoiceModal
-          isOpen={!!invoicingProject}
-          onClose={() => setInvoicingProject(null)}
-          project={invoicingProject}
-          onConfirm={async (data) => {
-            await handleInvoiceProject(invoicingProject.id, data);
-          }}
+        {editingPriceProject && (
+          <PriceModal
+            isOpen={!!editingPriceProject}
+            onClose={() => setEditingPriceProject(null)}
+            initialValue={editingPriceProject?.value || 0}
+            projectName={editingPriceProject?.name || ""}
+            onConfirm={async (val) => {
+                if (editingPriceProject) {
+                    await handleUpdateProjectValue(editingPriceProject.id, val);
+                }
+            }}
+          />
+        )}
+
+        {invoicingProject && (
+          <InvoiceModal
+            isOpen={!!invoicingProject}
+            onClose={() => setInvoicingProject(null)}
+            project={invoicingProject}
+            onConfirm={async (data) => {
+              await handleInvoiceProject(invoicingProject.id, data);
+            }}
+          />
+        )}
+
+        {payingProject && (
+          <PaymentModal
+            isOpen={!!payingProject}
+            onClose={() => setPayingProject(null)}
+            project={payingProject}
+            onConfirm={async () => {
+              await handleTogglePaidStatus(payingProject.id, true);
+            }}
+          />
+        )}
+
+        <ContactDetailModal
+          contact={detailContact}
+          isOpen={!!detailContact}
+          onClose={() => setDetailContact(null)}
         />
-      )}
+      </div>
 
-      {payingProject && (
-        <PaymentModal
-          isOpen={!!payingProject}
-          onClose={() => setPayingProject(null)}
-          project={payingProject}
-          onConfirm={async () => {
-            await handleTogglePaidStatus(payingProject.id, true);
-          }}
-        />
-      )}
-
-      <ContactDetailModal
-        contact={detailContact}
-        isOpen={!!detailContact}
-        onClose={() => setDetailContact(null)}
-      />
-
-      <div className="bg-transparent rounded-[2.5rem] border border-border/50 overflow-hidden transition-colors duration-300 h-full flex flex-col">
+      <div className="flex flex-col h-full bg-black/20 backdrop-blur-md rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden">
         <DealsFilters
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -464,17 +363,18 @@ export function DealsTable({
           uninvoicedOnly={uninvoicedOnly}
           setUninvoicedOnly={setUninvoicedOnly}
           onReset={resetFilters}
+          onNewClick={() => {}}
         />
 
-        <div className="overflow-auto flex-1 thin-scrollbar">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden thin-scrollbar px-2 min-h-0">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-muted/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border">
+            <thead className="bg-[#0a0a0c] sticky top-0 z-20 border-b border-white/5">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] border-r border-border/50 last:border-0"
+                      className="px-6 py-5 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] italic whitespace-nowrap"
                     >
                       {flexRender(
                         header.column.columnDef.header,
@@ -485,14 +385,17 @@ export function DealsTable({
                 </tr>
               ))}
             </thead>
-            <tbody className="divide-y divide-border/50">
+            <tbody className="divide-y divide-white/[0.03]">
               {table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="group bg-card hover:bg-indigo-500/5 transition-all duration-150 relative"
+                  className="group hover:bg-white/[0.02] transition-all duration-300"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-6 py-3 border-r border-border/10 last:border-0">
+                    <td 
+                      key={cell.id} 
+                      className={`px-6 py-4 ${cell.column.id === 'actions' || cell.column.id === 'project_stage' ? 'overflow-visible' : ''}`}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
@@ -503,18 +406,17 @@ export function DealsTable({
               ))}
             </tbody>
           </table>
-        </div>
 
-        {tableData.length === 0 && (
-          <div className="p-20 text-center flex flex-col items-center gap-4">
-            <div className="p-6 rounded-full bg-muted/50 border border-border">
-              <Banknote className="w-12 h-12 text-muted-foreground/30" />
+          {tableData.length === 0 && (
+            <div className="p-20 text-center flex flex-col items-center gap-6 opacity-30">
+                <Banknote className="w-16 h-16 text-zinc-700" />
+                <div className="space-y-1">
+                    <p className="text-zinc-500 font-black uppercase tracking-widest text-xs">Žiadne finančné údaje</p>
+                    <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-[0.2em]">Financial Ledger Empty</p>
+                </div>
             </div>
-            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">
-              Žiadne obchody ani projekty na zobrazenie
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </>
   );

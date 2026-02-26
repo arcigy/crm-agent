@@ -26,12 +26,7 @@ export function FlagBadge({ phone }: { phone: string | undefined }) {
     const flag = getCountryFlag(phone);
 
     if (flag.code === 'unknown') {
-        return (
-            <div className="flex items-center gap-1.5" title="Unknown">
-                <div className="w-5 h-3.5 rounded-sm bg-gray-100 border border-gray-200 flex items-center justify-center text-[8px] text-gray-400 font-bold">?</div>
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">??</span>
-            </div>
-        );
+        return null;
     }
 
     return (

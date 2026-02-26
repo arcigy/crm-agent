@@ -5,12 +5,9 @@ import {
   X,
   Banknote,
   CheckCircle2,
-  CreditCard,
-  Calendar,
-  Wallet,
-  ArrowRightLeft,
-  ShieldCheck,
   TrendingUp,
+  ShieldCheck,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Project } from "@/types/project";
@@ -45,106 +42,86 @@ export function PaymentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-[#020617]/80 backdrop-blur-xl transition-all"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-all"
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-lg bg-card border border-border rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300">
+      <div className="relative w-full max-w-sm bg-zinc-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
         {/* Header */}
-        <div className="p-8 border-b border-border bg-gradient-to-r from-emerald-600/5 to-transparent flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-emerald-600 rounded-2xl shadow-xl shadow-emerald-600/20">
-              <Banknote className="w-6 h-6 text-white" />
+        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center">
+              <Banknote className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-2xl font-black tracking-tighter text-foreground uppercase italic">
-                Spracovať <span className="text-emerald-500">Platbu</span>
+              <h2 className="text-xl font-black text-white uppercase italic tracking-tight leading-none">
+                Prijať Platbu
               </h2>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                Potvrďte prijatie finančných prostriedkov
-              </p>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Potvrdenie úhrady</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-muted rounded-xl transition-colors text-muted-foreground"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 text-zinc-500 hover:text-white transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-8 space-y-8">
-          <div className="text-center space-y-2">
-            <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-              Suma na prijatie
-            </div>
-            <div className="text-5xl font-black text-emerald-500 italic tracking-tighter tabular-nums">
-              {new Intl.NumberFormat("sk-SK", {
-                style: "currency",
-                currency: "EUR",
-              }).format(project.value || 0)}
-            </div>
-            <div className="text-xs font-bold text-muted-foreground opacity-60">
-              Projekt: {project.name}
-            </div>
-          </div>
-
-          <div className="bg-emerald-500/5 border border-emerald-500/10 p-6 rounded-3xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/20 rounded-lg">
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              </div>
-              <span className="text-xs font-black uppercase tracking-widest text-emerald-600">
-                Verifikácia
-              </span>
+        <div className="p-6 space-y-6 text-center">
+            <div className="py-2">
+                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em] block mb-2">Suma na zaúčtovanie</span>
+                <div className="text-4xl font-black text-white tabular-nums tracking-tighter italic">
+                    {new Intl.NumberFormat("sk-SK", {
+                        style: "currency",
+                        currency: "EUR",
+                    }).format(project.value || 0)}
+                </div>
+                <div className="mt-2 px-3 py-1 bg-white/5 border border-white/5 rounded-full inline-block">
+                    <span className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">{project.name}</span>
+                </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-sm font-bold text-foreground/80">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                Pridanie do štatistík hotovosti
-              </div>
-              <div className="flex items-center gap-3 text-sm font-bold text-foreground/80">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                Označenie projektu ako zaplatený
-              </div>
-              <div className="flex items-center gap-3 text-sm font-bold text-foreground/80">
-                <TrendingUp className="w-4 h-4 text-emerald-500" />
-                Uzavretie finančného cyklu obchodu
-              </div>
+            <div className="bg-emerald-500/5 border border-emerald-500/10 p-5 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-1">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Finančné overenie
+                </div>
+                <div className="space-y-2 text-left">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                        Aktualizácia likvidity
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                        Ukončenie billing cyklu
+                    </div>
+                </div>
             </div>
-          </div>
-
-          <div className="bg-muted/30 p-4 rounded-2xl flex items-center gap-3">
-            <ArrowRightLeft className="w-4 h-4 text-muted-foreground opacity-50" />
-            <p className="text-[10px] font-bold text-muted-foreground leading-relaxed uppercase tracking-widest">
-              Táto akcia je nevratná a okamžite ovplyvní vaše finančné výkazy.
-            </p>
-          </div>
         </div>
 
         {/* Footer */}
-        <div className="p-8 border-t border-border bg-muted/20 flex items-center justify-end gap-4">
+        <div className="p-6 border-t border-white/5 bg-white/[0.02] flex items-center justify-center gap-3">
           <button
             onClick={onClose}
-            className="px-6 py-3 bg-transparent text-muted-foreground font-black uppercase tracking-widest text-[10px] hover:text-foreground transition-colors"
+            className="px-4 py-2 text-zinc-500 font-bold uppercase tracking-widest text-[10px] hover:text-white transition-colors"
           >
-            Neskôr
+            Zrušiť
           </button>
           <button
             disabled={loading}
             onClick={handleConfirm}
-            className="px-8 py-3 bg-emerald-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-2"
+            className="flex-1 py-3 bg-emerald-600 text-white font-black uppercase tracking-widest text-[11px] rounded-xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-500 transition-all flex items-center justify-center gap-2"
           >
             {loading ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Banknote className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4" />
             )}
-            Potvrdiť Prijatie Platby
+            Potvrdiť Prijatie
           </button>
         </div>
       </div>
