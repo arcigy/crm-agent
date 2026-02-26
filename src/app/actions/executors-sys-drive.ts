@@ -56,15 +56,58 @@ export async function executeSysTool(name: string, args: Record<string, any>, us
 
   switch (name) {
     case "sys_fetch_by_date": {
-        let targetDate = args.date as string; 
-        
-        // Normalize "today" and "tomorrow"
-        if (targetDate === "today") {
-            targetDate = new Date().toISOString().split("T")[0];
-        } else if (targetDate === "tomorrow") {
-            const tm = new Date();
-            tm.setDate(tm.getDate() + 1);
-            targetDate = tm.toISOString().split("T")[0];
+        let inputDate = args.date as string; 
+        let targetDate = "";
+
+        // 1. Ultra-Flexible Date Normalization
+        try {
+            const now = new Date();
+            const normalizedInput = inputDate.toLowerCase().trim();
+
+            if (normalizedInput === "today" || normalizedInput === "dnes") {
+                targetDate = now.toISOString().split("T")[0];
+            } else if (normalizedInput === "tomorrow" || normalizedInput === "zajtra") {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                targetDate = tomorrow.toISOString().split("T")[0];
+            } else if (normalizedInput === "yesterday" || normalizedInput === "včera") {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                targetDate = yesterday.toISOString().split("T")[0];
+            } else if (normalizedInput.startsWith("+") || normalizedInput.startsWith("-")) {
+                // Handle relative offsets like "+2 days" or "-1 year"
+                const match = normalizedInput.match(/([+-]\d+)\s*(day|week|month|year|d|w|m|y)?/);
+                if (match) {
+                    const value = parseInt(match[1]);
+                    const unit = match[2] || "day";
+                    const futureDate = new Date();
+                    if (unit.startsWith("d")) futureDate.setDate(now.getDate() + value);
+                    else if (unit.startsWith("w")) futureDate.setDate(now.getDate() + (value * 7));
+                    else if (unit.startsWith("m")) futureDate.setMonth(now.getMonth() + value);
+                    else if (unit.startsWith("y")) futureDate.setFullYear(now.getFullYear() + value);
+                    targetDate = futureDate.toISOString().split("T")[0];
+                }
+            }
+
+            // Fallback: Try native Date parsing for standard formats (DD.MM.YYYY, MM/DD/YYYY, etc)
+            if (!targetDate) {
+                // Handle Slovak/European DD.MM.YYYY
+                if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(normalizedInput)) {
+                    const [d, m, y] = normalizedInput.split(".");
+                    targetDate = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+                } else {
+                    const parsed = new Date(inputDate);
+                    if (!isNaN(parsed.getTime())) {
+                        targetDate = parsed.toISOString().split("T")[0];
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Date normalization error:", e);
+        }
+
+        if (!targetDate) {
+            throw new Error(`Nepodarilo sa rozpoznať formát dátumu: ${inputDate}`);
         }
 
         const directus = (await import("@/lib/directus")).default;
