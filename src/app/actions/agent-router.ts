@@ -58,8 +58,8 @@ CONVERSATION — Use ONLY when:
 DEFAULT: When in doubt → TASK.
 
 IMPLICIT INTENT MAPPING (always resolve these to TASK):
-- "čo mám dnes v pláne?" → fetch tasks due today + calendar
-- "čo mám zajtra?" → fetch tasks due tomorrow
+- "čo mám dnes v pláne?" / "akú mám dnes robotu?" → fetch ALL today's data (tasks, projects, calendar, notes) via sys_fetch_by_date
+- "čo mám zajtra?" → fetch all tomorrow's data via sys_fetch_by_date
 - "aké mám úlohy?" → fetch all open tasks
 - "ako idú dealy?" → fetch pipeline stats
 - "kto sú moji klienti?" → fetch contacts

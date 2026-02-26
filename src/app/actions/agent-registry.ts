@@ -915,6 +915,23 @@ export const SYSTEM_ATOMS: ToolDefinition[] = [
   {
     type: "function",
     function: {
+      name: "sys_fetch_by_date",
+      description: "H10: Fetches all relevant CRM data for a specific date, including tasks, project deadlines, calendar events, and notes mentioning the date. Use this for 'What is my plan today?' or 'What happened on [date]?' requests.",
+      parameters: {
+        type: "object",
+        properties: {
+          date: { type: "string", description: "The date to fetch data for (YYYY-MM-DD)." },
+        },
+        required: ["date"],
+      },
+      producesEntityKey: undefined,
+      requiredEntityKeys: [],
+      isParallelSafe: true,
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "sys_list_files",
       description: "Displays the project's file structure (tree view).",
       parameters: {

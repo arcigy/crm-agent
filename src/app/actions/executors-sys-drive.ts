@@ -52,7 +52,59 @@ export async function executeDriveTool(
 }
 
 export async function executeSysTool(name: string, args: Record<string, any>, userId?: string) {
+  const userEmail = (args as any).userEmail; // Passed down in some contexts or inferred
+
   switch (name) {
+    case "sys_fetch_by_date": {
+        const targetDate = args.date; // YYYY-MM-DD
+        const directus = (await import("@/lib/directus")).default;
+        const { readItems } = await import("@directus/sdk");
+        
+        // Parallel fetch for speed
+        const [tasks, projects, notesWithMention] = await Promise.all([
+          directus.request(readItems("crm_tasks" as any, {
+            filter: { due_date: { _icontains: targetDate } },
+            limit: -1
+          })),
+          directus.request(readItems("projects" as any, {
+            filter: { end_date: { _icontains: targetDate } },
+            limit: -1
+          })),
+          directus.request(readItems("crm_notes" as any, {
+            filter: { content: { _icontains: targetDate } },
+            limit: -1
+          }))
+        ]);
+
+        // Calendar fetch (if userId is available)
+        let calendarEvents: any[] = [];
+        if (userId) {
+            try {
+                const { executeCalendarTool } = await import("./executors-calendar");
+                const calRes = await executeCalendarTool("calendar_get_upcoming_events", { days_ahead: 1 }, "", userId);
+                if (calRes.success && Array.isArray(calRes.data)) {
+                    // Filter specifically for the target date
+                    calendarEvents = calRes.data.filter((e: any) => 
+                        e.start?.dateTime?.includes(targetDate) || e.start?.date?.includes(targetDate)
+                    );
+                }
+            } catch (e) {
+                console.error("Calendar fetch failed in sys_fetch_by_date:", e);
+            }
+        }
+
+        return {
+          success: true,
+          data: {
+            tasks: tasks || [],
+            projects: projects || [],
+            notes: notesWithMention || [],
+            calendar: calendarEvents
+          },
+          message: `Kompletný prehľad pre dátum ${targetDate} bol načítaný.`
+        };
+    }
+
     case "sys_list_files":
       const targetPath = path.resolve(process.cwd(), args.path || ".");
       if (!targetPath.startsWith(process.cwd()))
@@ -88,7 +140,7 @@ export async function executeSysTool(name: string, args: Record<string, any>, us
         data: output.slice(0, 5000),
         message: "Diagnostický príkaz bol vykonaný.",
       };
-    case "sys_fetch_call_logs":
+    case "sys_fetch_call_logs": {
       const directus = (await import("@/lib/directus")).default;
       const { readItems } = await import("@directus/sdk");
       const logs = await directus.request(
@@ -103,6 +155,7 @@ export async function executeSysTool(name: string, args: Record<string, any>, us
         data: logs,
         message: `Načítaných ${Array.isArray(logs) ? logs.length : 0} záznamov hovorov/SMS.`,
       };
+    }
     case "sys_show_info":
       return {
         success: true,

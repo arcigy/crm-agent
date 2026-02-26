@@ -431,8 +431,11 @@ PLANNING RULES:
 2. CARRY CONTEXT: Use IDs from RESOLVED ENTITIES directly. Never re-search what is known.
 3. Use status filters directly (e.g., "Open" for open deals).
 4. Automate dates: "today" = system current date.
-5. Plan 1-2 steps per iteration for stability.
-6. When goal reached → return { "action": "DONE" }.
+5. DAILY PLAN: When asked about today's work, schedule, or plans → ALWAYS use sys_fetch_by_date(date: current_date).
+6. NO HALLUCINATIONS: Do NOT invent or search for a contact for tasks/notes unless explicitly mentioned. Notes and tasks can exist without a contact_id.
+7. COMPREHENSIVE VIEW: For detailed info on a contact, prefer db_get_contact_overview over simple search.
+8. Plan 1-2 steps per iteration for stability.
+9. When goal reached → return { "action": "DONE" }.
 
 OUTPUT FORMAT (strict JSON):
 {

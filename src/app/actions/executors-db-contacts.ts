@@ -320,38 +320,76 @@ export async function executeDbContactTool(
         message: `Kontakt ID ${dId} bol štruktúrovane zlúčený do primárneho kontaktu ID ${pId} a následne spoľahlivo archivovaný.`,
       };
 
-    case "db_get_contact_overview":
+    case "db_get_contact_overview": {
       const overviewCid = args.contact_id as number;
       
+      const [baseRes] = await Promise.all([
+        directus.request(readItems("contacts", { filter: { id: { _eq: overviewCid }, user_email: { _eq: userEmail } } }))
+      ]);
+
+      if (!baseRes || baseRes.length === 0) throw new Error(`Kontakt ID ${overviewCid} sa nenašiel.`);
+      const baseContact = baseRes[0];
+      const fullName = `${baseContact.first_name || ""} ${baseContact.last_name || ""}`.trim();
+      const lastName = baseContact.last_name || baseContact.first_name || "";
+
       const [
-        [baseContact],
         relatedProjects,
         relatedTasks,
         relatedActivities,
-        relatedNotes
+        relatedNotes,
+        mentionedNotes,
+        mentionedTasks
       ] = await Promise.all([
-        directus.request(readItems("contacts", { filter: { id: { _eq: overviewCid }, user_email: { _eq: userEmail } } })),
         directus.request(readItems("projects", { filter: { contact_id: { _eq: overviewCid }, user_email: { _eq: userEmail } } })),
         directus.request(readItems("crm_tasks", { filter: { contact_id: { _eq: overviewCid }, user_email: { _eq: userEmail } } })),
         directus.request(readItems("activities", { filter: { contact_id: { _eq: String(overviewCid) } } })),
-        directus.request(readItems("crm_notes", { filter: { contact_id: { _eq: overviewCid }, user_email: { _eq: userEmail } } }))
+        directus.request(readItems("crm_notes", { filter: { contact_id: { _eq: overviewCid }, user_email: { _eq: userEmail } } })),
+        // Mentions in notes (where not explicitly linked)
+        directus.request(readItems("crm_notes", { 
+          filter: { 
+            _and: [
+              { user_email: { _eq: userEmail } },
+              { contact_id: { _neq: overviewCid } }, // Only mentions, not already linked
+              { _or: [
+                { content: { _icontains: fullName } },
+                { content: { _icontains: lastName } }
+              ]}
+            ]
+          }
+        })),
+        // Mentions in tasks
+        directus.request(readItems("crm_tasks", {
+          filter: {
+            _and: [
+              { user_email: { _eq: userEmail } },
+              { contact_id: { _neq: overviewCid } },
+              { _or: [
+                { title: { _icontains: fullName } },
+                { title: { _icontains: lastName } }
+              ]}
+            ]
+          }
+        }))
       ]).catch(e => {
         throw new Error("Nepodarilo sa načítať komplexný prehľad kontaktu: " + e.message);
       });
-
-      if (!baseContact) throw new Error(`Kontakt ID ${overviewCid} sa nenašiel.`);
 
       return {
         success: true,
         data: {
           contact: baseContact,
           projects: relatedProjects || [],
-          tasks: relatedTasks || [],
+          tasks: [...(relatedTasks || []), ...(mentionedTasks || [])], // Combine linked and mentioned
           activities: relatedActivities || [],
-          notes: relatedNotes || []
+          notes: [...(relatedNotes || []), ...(mentionedNotes || [])], // Combine linked and mentioned
+          mentions_only: {
+            notes: mentionedNotes || [],
+            tasks: mentionedTasks || []
+          }
         },
-        message: `Komplexný prehľad kontaktu ID ${overviewCid} načítaný (Projekty: ${(relatedProjects||[]).length}, Úlohy: ${(relatedTasks||[]).length}, Aktivity: ${(relatedActivities||[]).length}).`
+        message: `Komplexný prehľad kontaktu ${fullName} (ID ${overviewCid}) načítaný. Nájdených ${(relatedProjects||[]).length} projektov, ${(relatedTasks||[]).length + (mentionedTasks||[]).length} úloh a ${(relatedNotes||[]).length + (mentionedNotes||[]).length} poznámok.`
       };
+    }
 
     case "db_find_duplicate_contacts":
       const allC = (await directus.request(
