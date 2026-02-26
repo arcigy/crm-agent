@@ -13,8 +13,9 @@ export function useCurrentCRMUser() {
   
   try {
     const data = useUser();
-    // Wrap signOut if it exists
-    const { signOut } = (window as any).Clerk || {};
+    // Wrap signOut if it exists (SSR safe check)
+    const clerk = typeof window !== "undefined" ? (window as any).Clerk : null;
+    const { signOut } = clerk || {};
     clerkData = { ...data, signOut: signOut || (() => {}) };
   } catch (e) {
     if (!isBypass) console.error("Clerk useUser failed", e);
@@ -25,7 +26,9 @@ export function useCurrentCRMUser() {
       user: getDevUser(),
       isLoaded: true,
       isSignedIn: true,
-      signOut: () => { window.location.href = "/"; }
+      signOut: () => { 
+        if (typeof window !== "undefined") window.location.href = "/"; 
+      }
     };
   }
 

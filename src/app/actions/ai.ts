@@ -280,13 +280,13 @@ async function getCRMContext() {
 }
 
 /**
- * Transcribes audio from base64 string using Gemini 2.5 native audio capabilities.
+ * Transcribes audio from base64 string using Gemini 3 Flash Preview capabilities.
  */
 export async function transcribeAudio(audioBase64: string): Promise<string> {
   const context = await getCRMContext();
   
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash-native-audio-latest",
+    model: "gemini-3-flash-preview", // Upgrading to Gemini 3 Flash Preview
   });
 
   const prompt = `
