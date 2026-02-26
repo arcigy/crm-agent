@@ -415,6 +415,7 @@ export async function orchestrateParams(
     const systemPrompt = `
 ROLE:
 Strategic Planner for ArciGy CRM. Current user: ${userName}.
+Aktuálny dátum a čas: **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**.
 
 AVAILABLE TOOLS:
 ${toolsDocs}

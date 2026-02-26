@@ -56,7 +56,17 @@ export async function executeSysTool(name: string, args: Record<string, any>, us
 
   switch (name) {
     case "sys_fetch_by_date": {
-        const targetDate = args.date; // YYYY-MM-DD
+        let targetDate = args.date as string; 
+        
+        // Normalize "today" and "tomorrow"
+        if (targetDate === "today") {
+            targetDate = new Date().toISOString().split("T")[0];
+        } else if (targetDate === "tomorrow") {
+            const tm = new Date();
+            tm.setDate(tm.getDate() + 1);
+            targetDate = tm.toISOString().split("T")[0];
+        }
+
         const directus = (await import("@/lib/directus")).default;
         const { readItems } = await import("@directus/sdk");
         
