@@ -60,14 +60,29 @@ export async function executeSysTool(name: string, args: Record<string, any>, us
         const directus = (await import("@/lib/directus")).default;
         const { readItems } = await import("@directus/sdk");
         
+        // Calculate the next day for range filtering
+        const d = new Date(targetDate);
+        d.setDate(d.getDate() + 1);
+        const nextDay = d.toISOString().split("T")[0];
+
         // Parallel fetch for speed
         const [tasks, projects, notesWithMention] = await Promise.all([
           directus.request(readItems("crm_tasks" as any, {
-            filter: { due_date: { _icontains: targetDate } },
+            filter: { 
+              _and: [
+                { due_date: { _gte: targetDate } },
+                { due_date: { _lt: nextDay } }
+              ]
+            },
             limit: -1
           })),
           directus.request(readItems("projects" as any, {
-            filter: { end_date: { _icontains: targetDate } },
+            filter: { 
+              _and: [
+                { end_date: { _gte: targetDate } },
+                { end_date: { _lt: nextDay } }
+              ]
+            },
             limit: -1
           })),
           directus.request(readItems("crm_notes" as any, {
