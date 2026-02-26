@@ -51,6 +51,13 @@ export function ChatInterface({
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  // Sync messages when initialMessages change (critical for Chat Switching)
+  useEffect(() => {
+    if (initialMessages.length > 0) {
+      setMessages(initialMessages);
+    }
+  }, [initialMessages]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
@@ -141,8 +148,9 @@ export function ChatInterface({
       setMessages(prev => {
           const newMsgs = [...prev];
           const lastMsg = newMsgs[newMsgs.length - 1];
-          if (lastMsg.id === 'streaming-id') {
+          if (lastMsg && lastMsg.id === 'streaming-id') {
               lastMsg.id = Date.now().toString();
+              lastMsg.content = assistantMsg;
           }
           return newMsgs;
       });

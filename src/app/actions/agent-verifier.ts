@@ -60,9 +60,6 @@ ENTITY TAGS (Mandatory):
 - Task: ^[Názov](id)
 - Note: %[Názov](id)
 
-EMAIL RULES:
-- Signature MUST be: ${userFullName}
-
 FORMATTING:
 - ## pre nadpisy, **bold** pre mená a termíny.
 - Markdown tabuľky pre štruktúrované dáta.

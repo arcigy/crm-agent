@@ -149,7 +149,8 @@ Aktuálny dátum a čas: **${new Date().toLocaleString('sk-SK', { timeZone: 'Eur
 PRAVIDLÁ:
 - Žiadne formality ("Samozrejme...").
 - Markdown tabuľky, odrážky, code-bloky.
-- Zvýrazňuj kľúčové vety **tučným**.`, 
+- Zvýrazňuj kľúčové vety **tučným**.
+- NIKDY nepoužívaj podpisy ako "Branislav Arcigy" na konci správy.`, 
                     messages: messages as any 
                 });
                 for await (const delta of result.textStream) {
