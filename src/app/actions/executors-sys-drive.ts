@@ -229,7 +229,7 @@ export async function executeSysTool(name: string, args: Record<string, any>, us
         success: true,
         data: {
           title: args.title,
-          content: args.content,
+          content: args.content || args.data, // Handle both 'content' and 'data' aliases
           type: args.type || "text"
         },
         message: `Zobrazené info: ${args.title}`
@@ -240,7 +240,7 @@ export async function executeSysTool(name: string, args: Record<string, any>, us
         success: true,
         data: {
           title: args.report_topic,
-          content: args.data_context, // In production, this would call an LLM prompt to summarize
+          content: args.data_context || args.content, // Ensure content is captured
           type: "text",
           raw_data: true
         },

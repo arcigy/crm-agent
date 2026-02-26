@@ -110,8 +110,19 @@ function buildResultSummary(result: ToolResult): string {
     return `Vytvorené ID: ${data.id || data.contact_id || data.project_id || data.task_id}`;
   }
 
+  if (result.tool === "sys_fetch_by_date" || (data.tasks && data.projects)) {
+    const parts = [];
+    if (data.tasks?.length) parts.push(`${data.tasks.length} úloh`);
+    if (data.projects?.length) parts.push(`${data.projects.length} projektov`);
+    if (data.calendar?.length) parts.push(`${data.calendar.length} udalostí`);
+    if (data.notes?.length) parts.push(`${data.notes.length} poznámok`);
+    return parts.length > 0 
+      ? `Načítané: ${parts.join(", ")}.` 
+      : "Na dnešný deň neboli nájdené žiadne záznamy.";
+  }
+
   if (result.tool === "sys_show_info") {
-    return `Doručená informácia: "${data.title}"\n${data.content}`;
+    return `Zobrazený report: "${data.title}"\n${data.content || data.data || ""}`;
   }
 
   return result.message || "Operácia úspešná.";
@@ -154,7 +165,16 @@ function extractKeyOutputs(result: ToolResult): any {
 
   if (result.tool === "sys_show_info") {
     outputs["report_title"] = data.title;
-    outputs["report_content"] = data.content;
+    outputs["report_content"] = data.content || data.data;
+  }
+
+  if (result.tool === "sys_fetch_by_date") {
+    if (data.tasks) outputs["tasks_found"] = data.tasks.length;
+    if (data.projects) outputs["projects_found"] = data.projects.length;
+    if (data.calendar) outputs["calendar_found"] = data.calendar.length;
+    if (data.notes) outputs["notes_found"] = data.notes.length;
+    // Also include the raw data snippet for the verifier
+    outputs["raw_summary"] = buildResultSummary(result);
   }
 
   return outputs;
