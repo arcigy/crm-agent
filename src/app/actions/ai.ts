@@ -228,3 +228,37 @@ JAZYK (VÝSTUP PRE UŽÍVATEĽA): Všetky vygenerované texty v JSON objekte (na
     return [{ type: "p", content: rawContent }];
   }
 }
+
+/**
+ * Transcribes audio from base64 string using Gemini 1.5/2.0 multimodal capabilities.
+ */
+export async function transcribeAudio(audioBase64: string): Promise<string> {
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.0-flash", // Using 2.0 Flash for ultra-fast and accurate STT
+  });
+
+  const prompt = "Prepíš túto nahrávku do textu. Vráť iba samotný prepísaný text v slovenčine (ak je v slovenčine) bez akýchkoľvek ďalších komentárov.";
+
+  try {
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          mimeType: "audio/webm",
+          data: audioBase64,
+        },
+      },
+    ]);
+    return result.response.text().trim();
+  } catch (error: any) {
+    console.error("Transcription Error:", error);
+    // Fallback to 1.5 if 2.0 fails
+    try {
+      const fallbackModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const fallbackRes = await fallbackModel.generateContent([prompt, { inlineData: { mimeType: "audio/webm", data: audioBase64 } }]);
+      return fallbackRes.response.text().trim();
+    } catch (e) {
+      throw new Error("Nepodarilo sa prepísať zvuk. Skúste to prosím znova.");
+    }
+  }
+}

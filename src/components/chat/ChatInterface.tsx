@@ -5,6 +5,7 @@ import { ConversationSidebar, Conversation } from './ConversationSidebar';
 import { ChatBubble } from './ChatBubble';
 import { SendHorizontal, MessageSquare, Copy, Check, Menu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { VoiceRecorder } from './VoiceRecorder';
 
 interface ChatInterfaceProps {
   conversationId?: string;
@@ -30,6 +31,7 @@ export function ChatInterface({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [debugLogs, setDebugLogs] = useState<any[]>([]);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const handleCopyChat = () => {
@@ -233,22 +235,31 @@ export function ChatInterface({
                 <span className="font-medium tracking-wide">{statusMessage}</span>
               </div>
             )}
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Napíš správu ArciGy asistentovi..."
-              disabled={isTyping}
-              className="w-full bg-gray-900 border border-gray-700 rounded-2xl pl-5 pr-14 py-4 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 resize-none min-h-[56px] text-gray-100 placeholder-gray-500 disabled:opacity-50"
-              rows={1}
-            />
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || isTyping}
-              className="absolute right-3 top-3 p-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 rounded-xl transition-colors text-white"
-            >
-              <SendHorizontal className="w-4 h-4" />
-            </button>
+            <div className="flex items-end gap-3">
+              <VoiceRecorder 
+                onTranscription={(text) => setInput(prev => prev ? `${prev} ${text}` : text)}
+                isProcessing={isProcessingVoice}
+                setIsProcessing={setIsProcessingVoice}
+              />
+              <div className="flex-1 relative">
+                <textarea
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Napíš správu ArciGy asistentovi..."
+                  disabled={isTyping || isProcessingVoice}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-2xl pl-5 pr-14 py-4 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 resize-none min-h-[56px] text-gray-100 placeholder-gray-500 disabled:opacity-50"
+                  rows={1}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!input.trim() || isTyping || isProcessingVoice}
+                  className="absolute right-3 top-3 p-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 rounded-xl transition-colors text-white"
+                >
+                  <SendHorizontal className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </main>
