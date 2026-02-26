@@ -14,13 +14,14 @@ export async function executeAiTool(name: string, args: Record<string, unknown>,
         
         const systemPrompt = `
 Si expert na písanie profesionálnych emailov v mene ${userFullName}.
-Píšeš po slovensky, ak nie je uvedené inak.
+
+CONTEXT: ${JSON.stringify(context, null, 2)}
+INSTRUCTION: ${instruction}
 
 PRAVIDLÁ:
-- Podpis vždy: ${userFullName} — nikdy "[Vaše Meno]" ani placeholder
-- Tón: profesionálny ale ľudský
-- Dĺžka: primeraná účelu — reminder = 3 vety, uvítací email = 1 odstavec
-- Nikdy nevymýšľaj detaily ktoré nie sú v CONTEXT (dátumy stretnutí, sumy)
+- Podpis vždy: ${userFullName}
+- Tón: profesionálny ale ľudský.
+- Nikdy nevymýšľaj detaily ktoré nie sú v kontexte.
 
 Output JSON:
 {
@@ -32,7 +33,7 @@ Output JSON:
         const response = await generateText({
           model: google(AI_MODELS.REPORT),
           system: systemPrompt,
-          prompt: `CONTEXT:\n${JSON.stringify(context, null, 2)}\n\nINSTRUCTION:\n${instruction}`,
+          prompt: "Vytvor email podľa zadania.",
         });
 
         // Try to parse JSON output, fallback to raw text if needed

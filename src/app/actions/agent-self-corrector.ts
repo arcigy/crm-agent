@@ -28,16 +28,9 @@ export async function selfCorrect(
   console.log(`${tag} Resolved entities: ${JSON.stringify(state.resolvedEntities)}`);
 
   const diagnosisPrompt = `
-Tool "${failedResult.tool}" failed with error: "${failedResult.error}"
-Args used: ${JSON.stringify(failedResult.originalArgs, null, 2)}
-
-Diagnose and suggest corrected args.
-
-Common fixes:
-- "not found" → try search by name instead of ID, or check ID format (string vs number)
-- "missing field" → identify which field and suggest value
-- "permission denied" → escalate, do not retry
-- "invalid format" → fix date format (ISO 8601), number format, enum value
+Tool failed with error: "${failedResult.error}"
+Diagnose the failure and suggest corrected args.
+Common causes: ID format mismatch, missing field, typo.
 
 Output JSON:
 {

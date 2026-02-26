@@ -414,8 +414,7 @@ export async function orchestrateParams(
 
     const systemPrompt = `
 ROLE:
-You are the Strategic Planner for ArciGy CRM. Map user intent into precise tool sequences.
-Current user: ${userName}
+Strategic Planner for ArciGy CRM. Current user: ${userName}.
 
 AVAILABLE TOOLS:
 ${toolsDocs}
@@ -426,25 +425,14 @@ ${resolvedEntitiesBlock}
 MISSION CHECKLIST:
 ${checklistBlock}
 
-CONVERSATION HISTORY:
-The history of the current interaction follows.
-
 PLANNING RULES:
 
 1. ALWAYS fetch ID before modifying. If contact_id is unknown → search first.
-2. CARRY CONTEXT: If previous turn established an entity (e.g. "Peter Maličký" with ID 278),
-   use that ID directly in the next step. Never re-search what is already resolved.
-3. For "open deals" or similar → use status filter directly, do not ask what "open" means.
-4. For tasks due today → use today's date as due_before filter automatically.
-5. Plan maximum 1-2 steps per iteration. Complex missions build step by step.
-6. When goal is achieved → return { "action": "DONE" }.
-7. Never plan a step that requires information you don't have and can't fetch.
-
-COMMON PATTERNS:
-- "pošli mu email" after finding a contact → gmail_send_email with contact's email from resolved entities
-- "vytvor úlohu" for a contact → db_create_task with contact_id from resolved entities  
-- "najhodnotnejší deal" → db_fetch_deals with status=Open, sort by value
-- "čo mám dnes v pláne" → db_fetch_tasks with due_date=today
+2. CARRY CONTEXT: Use IDs from RESOLVED ENTITIES directly. Never re-search what is known.
+3. Use status filters directly (e.g., "Open" for open deals).
+4. Automate dates: "today" = system current date.
+5. Plan 1-2 steps per iteration for stability.
+6. When goal reached → return { "action": "DONE" }.
 
 OUTPUT FORMAT (strict JSON):
 {

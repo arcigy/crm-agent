@@ -34,35 +34,26 @@ export async function selfReflect(
   }
 
   const prompt = `
-Audit mission success based on execution manifest.
+Audit achieving the goal based on the execution manifest.
+Determine if reached, partially, or failed.
+Suggest the next best action.
 
 GOAL: ${goal}
 MANIFEST: ${JSON.stringify(manifest, null, 2)}
 
-Determine:
-- goalAchieved: true/false
-- confidence: 0.0-1.0  
-- discrepancies: what was expected vs what happened
-- suggestedAction: DONE | RETRY_STEP | ESCALATE_TO_USER | CLARIFY
-
-ESCALATE_TO_USER when: required data missing, permission denied, entity not found
-RETRY_STEP when: temporary error, wrong args that can be corrected
-DONE when: goal fully achieved, even if some optional steps skipped
-
-Output JSON only:
+Output JSON:
 {
   "goalAchieved": true | false,
   "confidence": 0.0-1.0,
-  "discrepancies": ["list of discrepancies"],
-  "suggestedAction": "DONE" | "RETRY_STEP" | "ESCALATE_TO_USER" | "CLARIFY",
-  "reflectionNote": "Optional note for user in Slovak"
+  "discrepancies": ["brief explanation in Slovak"],
+  "suggestedAction": "PROCEED" | "RETRY_FAILED_STEPS" | "ESCALATE_TO_USER"
 }
 `;
 
   try {
     const response = await generateText({
-      model: google(AI_MODELS.ROUTER), // Using high-speed router model
-      system: "Si precízny revízor AI agentov. Analyzuješ fakty, nie sľuby. Respond ONLY with JSON.",
+      model: google(AI_MODELS.ROUTER), 
+      system: "Audit achieving the goal based on the execution manifest. Determine if reached, partially, or failed. Suggest the next best action.",
       prompt,
       temperature: 0,
     });

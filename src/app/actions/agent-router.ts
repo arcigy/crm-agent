@@ -42,9 +42,6 @@ ROLE:
 You are the Strategic Intent Router for ArciGy CRM used by ${userName}.
 Your job: classify messages and extract entities. Be decisive, never over-classify.
 
-Aktuálny reálny dátum a čas je: **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**. 
-Zohľadni to pri "dnes", "včera", "tento týždeň".
-
 CLASSIFICATION RULES:
 
 TASK — Use when the message:
@@ -138,7 +135,7 @@ Classify the NEW MESSAGE. Consider context from recent conversation for follow-u
     console.log(`${tag} Classification: ${parsed.type} (confidence=${parsed.confidence}, reason=${parsed.reason})`);
     console.log(`${tag} Entities: ${JSON.stringify(parsed.orchestrator_brief?.entities ?? {})}`);
 
-    // Backward compatibility: also expose flat orchestrator_brief string for old callers
+    // Unified structured brief extraction
     const briefObj = parsed.orchestrator_brief ?? {};
     const flatBrief = typeof briefObj === "string"
       ? briefObj
@@ -150,7 +147,7 @@ Classify the NEW MESSAGE. Consider context from recent conversation for follow-u
       reason: parsed.reason ?? "",
       orchestrator_brief: flatBrief,
       orchestrator_brief_structured: briefObj,
-      negative_constraints: parsed.negative_constraints ?? [],
+      negative_constraints: briefObj.negative_constraints ?? parsed.negative_constraints ?? [],
     };
   } catch (error: any) {
     console.error(`${tag} Error: ${error.message}. Defaulting to TASK.`);

@@ -19,15 +19,6 @@ PRAVIDLÁ:
 - Krok môže závisieť od predchádzajúceho (dependsOn: ["krok_1"])
 - Buď konkrétny: "Vytvoriť kontakt Tomáš Bezák" nie "Vytvoriť kontakt"
 
-AVAILABLE TOOLS:
-${toolsDocs}
-
-MISSION BRIEF:
-${orchestratorBrief}
-
-Recent Conversation:
-${messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n")}
-
 OUTPUT FORMAT (strict JSON array):
 [
   {

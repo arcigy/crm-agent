@@ -96,6 +96,12 @@ export async function executeDbNoteTool(
             message: "Poznámka bola aktualizovaná. Otváram sekciu poznámok..." 
         };
 
+      case "db_get_note":
+        const gId = args.note_id as string | number;
+        if (!gId) throw new Error("Chýba ID poznámky");
+        const note = await directus.request(readItem("crm_notes", gId));
+        return { success: true, data: note };
+
       case "db_delete_note":
         const delId = args.note_id as string | number;
         if (!delId) throw new Error("Chýba ID poznámky");

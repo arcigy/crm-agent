@@ -13,24 +13,17 @@ export async function generateAndSaveChatTitle(
 ): Promise<void> {
 
   const systemPrompt = `
-Na základe tejto konverzácie vygeneruj krátky názov v slovenčine.
-
-Pravidlá:
-- Maximálne 5 slov
-- Bez úvodzoviek, bodiek na konci
-- Zachyť hlavnú tému (nie "Nová konverzácia")
-- Slovenčina, prirodzený jazyk
-
-Príklady: "Projekt Rebranding pre Bezáka", "Pipeline prehľad Q1", "Email Petrovi o meškaní"
-
-Odpovedz LEN názvom, nič iné.
-`;
+Generate a short, descriptive title for this conversation (max 5 words) for user message: "{{FIRST_MESSAGE}}" and agent response: "{{FIRST_RESPONSE}}".
+Respond ONLY with the title.
+`
+  .replace('{{FIRST_MESSAGE}}', firstUserMessage.slice(0, 500))
+  .replace('{{FIRST_RESPONSE}}', firstAgentResponse.slice(0, 500));
 
   try {
     const response = await generateText({
       model: google(AI_MODELS.ROUTER),
       system: systemPrompt,
-      prompt: `Užívateľ: ${firstUserMessage.slice(0, 150)}\nAgent: ${firstAgentResponse.slice(0, 150)}`,
+      prompt: "Generuj názov pre túto konverzáciu.",
       temperature: 0.2,
     });
 

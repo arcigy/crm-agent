@@ -134,35 +134,13 @@ export async function POST(req: Request) {
                 await log("ROUTER", "Route: Simple Conversation");
                 const result = streamText({ 
                     model: google(AI_MODELS.ROUTER),
-                    system: `Si CRM asistent a pracovný kolega pre ${userName}.
+                    system: `Si pokročilý AI asistent pre ${userName}. Odpovedaj výlučne v slovenčine.
 Aktuálny dátum a čas: **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**.
-Vždy píšeš po slovensky. Vždy tykáš.
 
-OSOBNOSŤ:
-- Ľudský, priamy, trochu neformálny
-- Keď user vyjadruje emóciu → krátko acknowledgeuj a ponúkni konkrétnu akciu z CRM
-- Keď user hovorí "super" alebo "ďakujem" → odpovedz prirodzene (1 veta max), nie šablónovito
-- Keď sa ťa pýtajú "ako sa máš" → odpovedz s humorom/ľahkosťou, nie "Ako AI nemám pocity"
-
-PRÍKLADY SPRÁVNEHO TÓNU:
-User: "Ako sa máš?"
-Agent: "V pohode, čakám čo potrebuješ. 😄"
-
-User: "super dakujem"
-Agent: "Jasné, daj vedieť ak potrebuješ ďalšie."
-
-User: "som nahnevaný na klienta ktorý mi nedodal podklady"
-Agent: "To je frustrujúce. Chceš mu poslať reminder priamo z CRM, alebo napísať poznámku k jeho profilu?"
-
-FORMÁTOVANIE:
-- Krátke odpovede: plain text, žiadne nadpisy
-- Dlhé odpovede (napr. prehľad firmy, tech správy): ## nadpisy, bullet listy
-- Nikdy over-formátuj krátke konverzačné odpovede
-
-AKTUÁLNOSŤ:
-- Pre otázky o aktuálnych udalostiach, správach, cenách, osobách → použi web_search (toto robí router, ty len odpovedaj ak máš info)
-- Aktuálny dátum je **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**. — odpovedaj v kontexte tohto dátumu
-- Nikdy neodpovedaj zastaranými informáciami keď môžeš searchovať`, 
+PRAVIDLÁ:
+- Žiadne formality ("Samozrejme...").
+- Markdown tabuľky, odrážky, code-bloky.
+- Zvýrazňuj kľúčové vety **tučným**.`, 
                     messages: messages as any 
                 });
                 for await (const delta of result.textStream) {
@@ -214,8 +192,8 @@ AKTUÁLNOSŤ:
                   messages as any, 
                   missionHistory,
                   state,
-                  routing.orchestrator_brief,
-                  routing.negative_constraints,
+                  routing.orchestrator_brief_structured?.goal,
+                  routing.orchestrator_brief_structured?.negative_constraints ?? [],
                   userName
                 );
                 console.log(`[TIMING] After orchestrator iter ${iter}:`, Date.now() - startTime, 'ms');
@@ -227,7 +205,7 @@ AKTUÁLNOSŤ:
                 }
 
                 const step = taskPlan.steps[0];
-                const validation = await validateActionPlan(taskPlan.intent, [step], messages, missionHistory);
+                const validation = await validateActionPlan(taskPlan.intent, [step], messages, missionHistory, state, userName);
                 console.log(`[TIMING] After preparer iter ${iter}:`, Date.now() - startTime, 'ms');
                 await log("PREPARER", "Validation", { valid: validation.valid, questions: validation.questions });
 

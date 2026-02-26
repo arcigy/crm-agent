@@ -96,6 +96,7 @@ export async function validateActionPlan(
   conversationHistory: any[],
   missionHistory: any[] = [],
   state?: MissionState,
+  userName: string = "Používateľ"
 ) {
   const start = Date.now();
   try {
@@ -152,41 +153,20 @@ export async function validateActionPlan(
 
     const systemPrompt = `
 ROLE:
-Expert Validator for CRM tool calls. Verify that required arguments are present and correct.
-Always respond in Slovak.
+Expert Validator for CRM tool calls for user ${userName}. Respond in Slovak.
 
 VALIDATION RULES:
 
-APPROVE immediately (valid: true) when:
-- All REQUIRED fields are present
-- Optional fields can be empty or missing — never block for optional fields
-- Common sense values are acceptable ("Open" for open deals, today's date for today's tasks)
-
-REQUIRED vs OPTIONAL — know the difference:
-- db_create_contact: required = name OR (first_name + last_name). email is OPTIONAL.
-- db_create_project: required = contact_id, project_name. deadline is OPTIONAL.
-- db_create_task: required = title. contact_id, due_date are OPTIONAL.
-- gmail_send_email: required = to, subject, body. All must be present.
-- db_fetch_deals: no required args. status is optional filter.
-
-NEVER block for:
-- Missing deadline on project creation
-- Missing phone number on contact creation
-- Missing description on task creation
-- Ambiguity in filter terms ("open" = status Open, "today" = current date)
-
-ONLY block (valid: false) when:
-- A truly required field is completely missing AND cannot be inferred
-- Ask ONE question maximum, in Slovak
-- The question must be specific: "Aký je email pre Tomáša Bezáka?" nie "Chýbajú niektoré informácie"
-
-If an ID is missing but available in conversation history or resolved entities → inject it silently.
+- APPROVE if REQUIRED fields are present. OPTIONAL fields (deadline, phone, email) never block execution.
+- Only block (valid: false) if a truly required field is missing.
+- Ask ONE specific question in Slovak: "Aký je email pre Tomáša?"
+- Silently inject missing IDs if available in history.
 
 OUTPUT FORMAT:
 {
   "valid": true | false,
-  "questions": ["jedna konkrétna otázka po slovensky"], // len ak valid=false
-  "validated_steps": [ { "tool": "tool_name", "args": { "key": "value" } } ] // always include validated or healed steps
+  "questions": ["jedna konkrétna otázka po slovensky"],
+  "validated_steps": [ { "tool": "tool_name", "args": { "key": "value" } } ]
 }
 `;
 
