@@ -13,14 +13,17 @@ export async function generateAndSaveChatTitle(
 ): Promise<void> {
 
   const systemPrompt = `
-Si expert na zhrnutie textu do jedného veľmi krátkeho (max 5 slov) zmysluplného názvu.
-Tvojim jediným cieľom je prečítať prompt používateľa a odpoveď agenta a vrátiť výstižný názov.
+Na základe tejto konverzácie vygeneruj krátky názov v slovenčine.
 
-PRAVIDLÁ:
-- Názov musí mať MAXIMÁLNE 5 slov.
-- NEPOUŽÍVAJ úvodzovky, bodky, výkričníky, ani predpony typu "Názov: ".
-- Píš čisto v slovenskom jazyku.
-- Iba zmysluplný text. Ak užívateľ napísal "ahoj", odpovedz napríklad "Zoznámenie" alebo "Pozdrav".
+Pravidlá:
+- Maximálne 5 slov
+- Bez úvodzoviek, bodiek na konci
+- Zachyť hlavnú tému (nie "Nová konverzácia")
+- Slovenčina, prirodzený jazyk
+
+Príklady: "Projekt Rebranding pre Bezáka", "Pipeline prehľad Q1", "Email Petrovi o meškaní"
+
+Odpovedz LEN názvom, nič iné.
 `;
 
   try {

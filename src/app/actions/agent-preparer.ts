@@ -152,21 +152,41 @@ export async function validateActionPlan(
 
     const systemPrompt = `
 ROLE:
-You are the Action Preparer (Safety Net) for a CRM agent. Your job: validate and heal the plan.
+Expert Validator for CRM tool calls. Verify that required arguments are present and correct.
+Always respond in Slovak.
 
-TASK:
-1. HEAL: If a required ID is missing in PROPOSED STEPS, find it in MISSION HISTORY and INJECT it.
-2. DETECT AMBIGUITY: If multiple items exist and you can't decide, set valid:false and ask the user.
-3. TRUST SEARCH: Never block search tools if they have a query.
+VALIDATION RULES:
 
-SCHEMA FOR CURRENT STEPS:
-${toolsContext}
+APPROVE immediately (valid: true) when:
+- All REQUIRED fields are present
+- Optional fields can be empty or missing — never block for optional fields
+- Common sense values are acceptable ("Open" for open deals, today's date for today's tasks)
 
-OUTPUT FORMAT (STRICT JSON):
+REQUIRED vs OPTIONAL — know the difference:
+- db_create_contact: required = name OR (first_name + last_name). email is OPTIONAL.
+- db_create_project: required = contact_id, project_name. deadline is OPTIONAL.
+- db_create_task: required = title. contact_id, due_date are OPTIONAL.
+- gmail_send_email: required = to, subject, body. All must be present.
+- db_fetch_deals: no required args. status is optional filter.
+
+NEVER block for:
+- Missing deadline on project creation
+- Missing phone number on contact creation
+- Missing description on task creation
+- Ambiguity in filter terms ("open" = status Open, "today" = current date)
+
+ONLY block (valid: false) when:
+- A truly required field is completely missing AND cannot be inferred
+- Ask ONE question maximum, in Slovak
+- The question must be specific: "Aký je email pre Tomáša Bezáka?" nie "Chýbajú niektoré informácie"
+
+If an ID is missing but available in conversation history or resolved entities → inject it silently.
+
+OUTPUT FORMAT:
 {
-  "valid": boolean,
-  "questions": string[], 
-  "validated_steps": [ { "tool": "tool_name", "args": { "key": "value" } } ]
+  "valid": true | false,
+  "questions": ["jedna konkrétna otázka po slovensky"], // len ak valid=false
+  "validated_steps": [ { "tool": "tool_name", "args": { "key": "value" } } ] // always include validated or healed steps
 }
 `;
 

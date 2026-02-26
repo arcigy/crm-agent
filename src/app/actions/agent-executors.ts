@@ -63,6 +63,7 @@ export async function executeAtomicTool(
   name: string,
   args: Record<string, unknown>,
   user: { id: string; emailAddresses: { emailAddress: string }[] },
+  userFullName: string = "Používateľ CRM"
 ) {
   if (!name) return { success: false, error: "Tool name is missing (undefined)." };
   
@@ -139,7 +140,7 @@ export async function executeAtomicTool(
                 if (!toolName) continue;
 
                 console.log(`[Dispatcher] Running ${toolName}...`);
-                const result = (await executeAtomicTool(toolName, toolArgs as any, user)) as any;
+                const result = (await executeAtomicTool(toolName, toolArgs as any, user, userFullName)) as any;
                 
                 // Propagate special actions like redirecting to a specific URL
                 if (result.action) finalAction = result.action;
@@ -180,14 +181,14 @@ export async function executeAtomicTool(
     // AI Tools
     if (name.startsWith("ai_") || name === "gmail_analyze_and_save_lead") {
         if (name === "gmail_analyze_and_save_lead") {
-            const analysisRes = await executeAiTool("ai_deep_analyze_lead", safeArgs, userEmail);
+            const analysisRes = await executeAiTool("ai_deep_analyze_lead", safeArgs, userEmail, userFullName);
             if (!analysisRes.success) return analysisRes;
             
             return await executeDbVerificationTool("db_save_analysis", { 
                 analysis_data: analysisRes.data 
             }, userEmail);
         }
-        return await executeAiTool(name, safeArgs, userEmail);
+        return await executeAiTool(name, safeArgs, userEmail, userFullName);
     }
 
     // Web Tools

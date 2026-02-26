@@ -11,8 +11,13 @@ export async function buildMissionChecklist(
 ): Promise<ChecklistItem[]> {
     const toolsDocs = ALL_ATOMS.map(t => `- ${t.function.name}: ${t.function.description}`).join("\n");
     const systemPrompt = `
-You are the Mission Planner for a Business CRM agent.
-Your ONLY job is to analyze the user's intent and break it down into a strict, ordered checklist of actions.
+Rozlož komplexnú misiu na logické kroky. Každý krok = jedna atomická akcia.
+
+PRAVIDLÁ:
+- Maximálne 5 krokov
+- Každý krok má: id, description (slovensky), expectedTool, dependsOn
+- Krok môže závisieť od predchádzajúceho (dependsOn: ["krok_1"])
+- Buď konkrétny: "Vytvoriť kontakt Tomáš Bezák" nie "Vytvoriť kontakt"
 
 AVAILABLE TOOLS:
 ${toolsDocs}
@@ -23,32 +28,16 @@ ${orchestratorBrief}
 Recent Conversation:
 ${messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n")}
 
-RULES FOR CHECKLIST:
-1. Each item must map to precisely ONE EXPECTED TOOL.
-2. Order matters! If creating a project requires a contact, the contact step must come first. Let dependsOn reflect this order.
-3. Every item gets a unique ID (e.g., "fetch_contact_1", "create_proj_1").
-4. If a tool produces an ID that later tools need, specify resultKey (e.g. "contact_id").
-5. Do NOT include minor conversational steps. Only actionable CRM/email interactions.
-
-Respond cleanly with a JSON array of objects. NOTHING ELSE.
+OUTPUT FORMAT (strict JSON array):
 [
   {
-    "id": "step_1",
-    "description": "Nájdi alebo vytvor kontakt Peter Maličký",
-    "toolExpected": "db_search_contacts",
-    "resultKey": "contact_id",
+    "id": "krok_1",
+    "description": "Popis akcie po slovensky",
+    "expectedTool": "tool_name",
     "dependsOn": []
-  },
-  {
-    "id": "step_2",
-    "description": "Vytvor projekt pre kontakt",
-    "toolExpected": "db_create_project",
-    "resultKey": "project_id",
-    "dependsOn": ["step_1"]
   }
 ]
 `;
-
     try {
         const { text } = await generateText({
             model: google("gemini-2.5-flash"),

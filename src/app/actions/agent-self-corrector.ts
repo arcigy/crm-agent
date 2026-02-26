@@ -29,31 +29,21 @@ export async function selfCorrect(
 
   const diagnosisPrompt = `
 Tool "${failedResult.tool}" failed with error: "${failedResult.error}"
+Args used: ${JSON.stringify(failedResult.originalArgs, null, 2)}
 
-Resolved entities available: ${JSON.stringify(state.resolvedEntities, null, 2)}
-Args that were used: ${JSON.stringify(failedResult.originalArgs, null, 2)}
-Iteration: ${state.iteration}
-Correction attempt: ${state.correctionAttempts + 1} / 2
+Diagnose and suggest corrected args.
 
-Diagnose the failure and suggest corrected args.
+Common fixes:
+- "not found" → try search by name instead of ID, or check ID format (string vs number)
+- "missing field" → identify which field and suggest value
+- "permission denied" → escalate, do not retry
+- "invalid format" → fix date format (ISO 8601), number format, enum value
 
-Common root causes to check:
-1. Wrong ID format (UUID string vs integer) — check resolvedEntities for correct format
-2. Missing field that IS available in resolvedEntities (e.g., contact_id in last_id)
-3. Null/undefined field that should have a value
-4. Wrong field name (e.g., sent "id" but tool expects "contact_id")
-5. Date format mismatch
-
-Rules:
-- If you can fix by using values from resolvedEntities → RETRY_WITH_FIXED_ARGS
-- If the step is non-critical and can be skipped → SKIP_STEP
-- If fundamentally broken and unrecoverable → ESCALATE
-
-Respond ONLY with valid JSON:
+Output JSON:
 {
-  "diagnosis": "concise explanation of what went wrong",
-  "action": "RETRY_WITH_FIXED_ARGS" | "SKIP_STEP" | "ESCALATE",
-  "correctedArgs": { ... }
+  "diagnosis": "brief explanation in Slovak",
+  "correctedArgs": { ... },
+  "canRetry": true | false
 }
 `;
 

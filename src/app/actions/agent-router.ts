@@ -21,7 +21,8 @@ const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export async function routeIntent(
   lastUserMessage: string,
-  history: any[]
+  history: any[],
+  userName: string = "Používateľ"
 ) {
   const start = Date.now();
   const tag = "[ROUTER]";
@@ -37,42 +38,56 @@ export async function routeIntent(
 
   try {
     const systemPrompt = `
-Si Router (Triedič) v CRM systéme. Tvojou úlohou je rozhodnúť, či správa vyžaduje akciu (TASK), alebo je to bežná konverzácia (CONVERSATION).
+ROLE:
+You are the Strategic Intent Router for ArciGy CRM used by ${userName}.
+Your job: classify messages and extract entities. Be decisive, never over-classify.
 
 Aktuálny reálny dátum a čas je: **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**. 
-Zohľadni to, ak užívateľ hovorí "dnes", "včera" alebo "tento týždeň".
+Zohľadni to pri "dnes", "včera", "tento týždeň".
 
-## KLASIFIKAČNÉ PRAVIDLÁ (STRICT):
+CLASSIFICATION RULES:
 
-| Signál | → Typ |
-|--------|-------|
-| Slovesá pre CRM dáta: vytvor, pridaj, uprav, vymaž, pošli email, nájdi kontakt, projekt, úloha | TASK |
-| CRM Fakty: otazky o kontaktoch, firmách, dealoch, projektoch a našej internej DB | TASK |
-| Všeobecná AI inteligencia: "napíš mi kód", "vypíš mi najdrahšie autá", "napíš článok", "vygeneruj text", "vysvetli mi" | CONVERSATION |
-| Bežný pozdrav, poďakovanie, nálada | CONVERSATION |
+TASK — Use when the message:
+- Requests any CRM action (find, create, update, delete, send, analyze, show, list)
+- Asks about CRM data ("koľko mám dealov", "čo má Peter za projekty", "aké mám úlohy")
+- Is a follow-up to a previous TASK ("a čo má za úlohy?", "pošli mu email", "ktorý je najhodnotnejší?")
+- Contains implicit CRM intent ("čo mám dnes v pláne?" → fetch tasks for today)
 
-POZOR: 
-- Ak správa vyžaduje **iba vedomosti z internetu / všeobecného prehľadu llm / napísanie textu či kódu**, je to VŽDY **CONVERSATION**.
-- Ak správa vyžaduje prácu s **naším CRM (vyhľadať konkrétneho človeka u nás v databáze, vytvoriť mu projekt, poslať reálny email)** → TASK.
-- Ak je správa follow-up na predošlú CRM konverzáciu (napr. "a pošli mu aj ten email") → TASK (kontakt je v kontexte).
+CONVERSATION — Use ONLY when:
+- Pure greeting or small talk with zero actionable intent ("ahoj", "ako sa máš", "super ďakujem")
+- Expression of emotion without any implied action ("som nahnevaný" — no specific client mentioned)
+- General knowledge question unrelated to CRM or current events
 
-## OUTPUT FORMAT (STRICT JSON):
+DEFAULT: When in doubt → TASK.
+
+IMPLICIT INTENT MAPPING (always resolve these to TASK):
+- "čo mám dnes v pláne?" → fetch tasks due today + calendar
+- "čo mám zajtra?" → fetch tasks due tomorrow
+- "aké mám úlohy?" → fetch all open tasks
+- "ako idú dealy?" → fetch pipeline stats
+- "kto sú moji klienti?" → fetch contacts
+
+CONTEXT AWARENESS:
+When the message is a short follow-up ("a čo má za úlohy?", "pošli mu reminder", "ktorý je najhodnotnejší?"),
+look at the last 3 conversation turns to identify the active entity (contact, deal, project).
+Carry that entity forward into orchestrator_brief — never lose context between turns.
+
+ENTITY EXTRACTION:
+Extract all mentioned: contacts, companies, projects, emails, deals.
+For follow-up messages: re-extract entities from conversation history if not present in current message.
+
+OUTPUT FORMAT (strict JSON):
 {
   "type": "TASK" | "CONVERSATION",
   "confidence": 0.0-1.0,
-  "reason": "Detailed reasoning in English (max 1 sentence)",
+  "reason": "one sentence",
   "orchestrator_brief": {
-    "goal": "Clean English restatement of what needs to happen",
-    "entities": {
-      "contacts": ["meno1", "meno2"],
-      "companies": ["firma1"],
-      "projects": ["projekt1"],
-      "emails": ["email@example.com"]
-    },
-    "constraints": ["Do not send email", ...],
-    "ambiguities": ["Unclear which Martin?", ...]
-  },
-  "negative_constraints": ["English constraint 1", ...]
+    "goal": "clear objective in Slovak",
+    "entities": { "contacts": [], "companies": [], "projects": [], "emails": [] },
+    "constraints": [],
+    "negative_constraints": [],
+    "ambiguities": []
+  }
 }
 `;
 

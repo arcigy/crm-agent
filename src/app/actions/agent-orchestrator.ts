@@ -332,7 +332,8 @@ export async function orchestrateParams(
   missionHistory: MissionHistoryItem[],
   state?: MissionState,
   orchestratorBrief?: string,
-  negativeConstraints: string[] = []
+  negativeConstraints: string[] = [],
+  userName: string = "Používateľ"
 ) {
   const start = Date.now();
   try {
@@ -413,62 +414,48 @@ export async function orchestrateParams(
 
     const systemPrompt = `
 ROLE:
-You are the Supreme Strategic Planner for a Business CRM. Map user's intent into tool call sequences.
+You are the Strategic Planner for ArciGy CRM. Map user intent into precise tool sequences.
+Current user: ${userName}
 
 AVAILABLE TOOLS:
 ${toolsDocs}
+
+RESOLVED ENTITIES (already known IDs — use these directly, do not re-fetch):
 ${resolvedEntitiesBlock}
+
+MISSION CHECKLIST:
 ${checklistBlock}
-${completedToolsBlock}
-${hardConstraintsBlock}
 
-CORE PRINCIPLE: PARAMETER AGNOSTICISM
-You are a STRUCTURAL ARCHITECT. Decide *which* tools to call, not validate data completeness.
-1. If an ID is in RESOLVED ENTITIES → use it directly. DO NOT fetch again.
-2. NAMESPACED IDs: For multi-entity missions, look for namespaced IDs in RESOLVED ENTITIES (e.g., "contact_martin_id" for a contact named Martin).
-3. For missing parameters, use empty string "" or null.
-4. Do NOT try to gatekeep or ask questions yourself.
+CONVERSATION HISTORY:
+The history of the current interaction follows.
 
-TASK LOGIC:
-1. Analyze user intent from messages and history.
-2. If needed IDs are in RESOLVED ENTITIES → use them directly.
-3. If IDs are not in RESOLVED ENTITIES → search for them first (db_search_contacts, db_fetch_projects, etc.).
-4. Map every pending action to its corresponding tool.
-5. Only return steps: [] if message is purely conversational or mission is 100% complete.
+PLANNING RULES:
 
-RULES:
-1. ID VALIDITY: Never guess IDs. Use RESOLVED ENTITIES if available, else search first.
-2. ATOMICITY: One tool = one step. Return ONLY the next 1-3 steps needed.
-3. NO REPETITION: If a tool returned 0 results in history, don't repeat it with identical args.
-4. SLOVAK ARGS: All text arguments (title, content, comment, subject, body) must be in Slovak.
-5. STRICT PARAMS: Always use exact parameter names from the TOOL DEFINITIONS.
-6. HARD CONSTRAINTS: The HARD CONSTRAINTS block above is absolute — never plan a blocked tool.
-7. DEPENDENT ACTIONS PROOFING: If creating a project/deal/email depends on web research, and the search yielded empty, null, or irrelevant data, DO NOT proceed with creating it! Stop the mission and inform the user using sys_show_info or note that the research failed.
+1. ALWAYS fetch ID before modifying. If contact_id is unknown → search first.
+2. CARRY CONTEXT: If previous turn established an entity (e.g. "Peter Maličký" with ID 278),
+   use that ID directly in the next step. Never re-search what is already resolved.
+3. For "open deals" or similar → use status filter directly, do not ask what "open" means.
+4. For tasks due today → use today's date as due_before filter automatically.
+5. Plan maximum 1-2 steps per iteration. Complex missions build step by step.
+6. When goal is achieved → return { "action": "DONE" }.
+7. Never plan a step that requires information you don't have and can't fetch.
 
-TOOL CHAINING ORDER (never skip):
-- CONTACTS always first if entity unknown → db_search_contacts → db_create_contact
-- PROJECTS need contact_id → db_create_project (use contact_id from RESOLVED ENTITIES)
-- TASKS need project_id OR contact_id
-- COMMUNICATION runs last (needs contact email)
+COMMON PATTERNS:
+- "pošli mu email" after finding a contact → gmail_send_email with contact's email from resolved entities
+- "vytvor úlohu" for a contact → db_create_task with contact_id from resolved entities  
+- "najhodnotnejší deal" → db_fetch_deals with status=Open, sort by value
+- "čo mám dnes v pláne" → db_fetch_tasks with due_date=today
 
-## DISAMBIGUATION PROTOCOL (When Search Returns More Results Than Expected)
-When a search returns MORE results than the task requires, do NOT stop and ask the user.
-Instead, apply these rules IN ORDER:
-1. RECENCY: If the task mentions no preference, prefer the most recently created records (check date_created).
-2. RELEVANCE: If context mentions a company, prefer contacts matching that company.
-3. EXPLICIT MATCH: Prefer exact name matches over partial ones.
-4. FALLBACK: Take the top N by recency and explain your choice in "thought".
-
-CRITICAL: After applying tie-breaking, continue the plan using the chosen IDs.
-
-OUTPUT FORMAT (STRICT JSON):
+OUTPUT FORMAT (strict JSON):
 {
-  "intent": "short_description",
-  "thought": "one short sentence reasoning in English, noting if you are using RESOLVED ENTITIES or need to fetch",
+  "intent": "brief description",
+  "thought": "your reasoning",
   "steps": [
-    { "tool": "tool_name", "args": { "key": "value" } }
+    { "tool": "tool_name", "args": { ... } }
   ]
 }
+Or for completion:
+{ "action": "DONE" }
 `;
 
     // Compress mission history aggressively to save tokens

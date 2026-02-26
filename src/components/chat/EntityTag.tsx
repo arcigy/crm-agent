@@ -40,6 +40,13 @@ export function EntityTag({ type, id, label }: EntityTagProps) {
       case 'deal':    
         if (openProject) openProject(id); 
         break;
+      case 'note':
+      case 'task':
+      case 'file':
+        import('sonner').then(({ toast }) => {
+          toast.info(`Detail pre ${type} #${id} bude čoskoro dostupný v globálnom náhľade.`);
+        });
+        break;
       default:
         console.log(`[EntityTag] No handler for type: ${type}, id: ${id}`);
     }

@@ -34,25 +34,28 @@ export async function selfReflect(
   }
 
   const prompt = `
-Si revízor úloh pre CRM agenta. Tvojou úlohou je posúdiť, či agent skutočne splnil cieľ užívateľa na základe vykonaných krokov.
+Audit mission success based on execution manifest.
 
-PÔVODNÝ CIEĽ: "${goal}"
+GOAL: ${goal}
+MANIFEST: ${JSON.stringify(manifest, null, 2)}
 
-VYKONANÉ KROKY:
-${manifest.entries.map((e) => `- ${e.humanName}: ${e.status} — ${e.summary}`).join("\n")}
+Determine:
+- goalAchieved: true/false
+- confidence: 0.0-1.0  
+- discrepancies: what was expected vs what happened
+- suggestedAction: DONE | RETRY_STEP | ESCALATE_TO_USER | CLARIFY
 
-OTÁZKY PRE TEBA:
-1. Sú výsledky úspešných krokov dostatočné na splnenie cieľa?
-2. Ak nejaký krok zlyhal, bol kritický pre celú misiu?
-3. Sú nejaké výsledky podozrivo prázdne (napr. úspešné hľadanie ale 0 výsledkov)?
+ESCALATE_TO_USER when: required data missing, permission denied, entity not found
+RETRY_STEP when: temporary error, wrong args that can be corrected
+DONE when: goal fully achieved, even if some optional steps skipped
 
-Odpovedaj VÝHRADNE formátom JSON:
+Output JSON only:
 {
   "goalAchieved": true | false,
   "confidence": 0.0-1.0,
-  "discrepancies": ["zoznam nezhôd alebo chýbajúcich vecí"],
-  "suggestedAction": "PROCEED" | "RETRY_FAILED_STEPS" | "ESCALATE_TO_USER",
-  "reflectionNote": "Stručná poznámka pre užívateľa (voliteľné)"
+  "discrepancies": ["list of discrepancies"],
+  "suggestedAction": "DONE" | "RETRY_STEP" | "ESCALATE_TO_USER" | "CLARIFY",
+  "reflectionNote": "Optional note for user in Slovak"
 }
 `;
 

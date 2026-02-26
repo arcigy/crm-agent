@@ -43,6 +43,23 @@ export async function POST(req: Request) {
     const userEmail = user.emailAddresses[0].emailAddress;
     startCostSession(userEmail);
 
+    // Fetch user profile for personalization
+    let userName = 'Používateľ';
+    let userFullName = 'Používateľ CRM';
+    try {
+        const userProfile = await directus.request(readItems('crm_users', {
+            filter: { email: { _eq: userEmail } },
+            fields: ['first_name', 'last_name'],
+            limit: 1,
+        }));
+        if (userProfile && userProfile[0]) {
+            userName = (userProfile[0] as any).first_name || 'Používateľ';
+            userFullName = `${(userProfile[0] as any).first_name || ''} ${(userProfile[0] as any).last_name || ''}`.trim() || 'Používateľ CRM';
+        }
+    } catch (e) {
+        console.error("Failed to fetch user profile:", e);
+    }
+
     let activeConversationId = conversationId;
     let history: Array<{ role: 'user' | 'assistant'; content: string }> = [];
 
@@ -109,7 +126,7 @@ export async function POST(req: Request) {
         try {
             await sendStatus("🔍 Analyzujem zadanie...");
             await log("ROUTER", "Analyzing intent...");
-            const routing = await routeIntent(lastUserMsg, messages as any);
+            const routing = await routeIntent(lastUserMsg, messages as any, userName);
             console.log('[TIMING] After router:', Date.now() - startTime, 'ms');
             await log("ROUTER", "Result", routing);
 
@@ -117,16 +134,35 @@ export async function POST(req: Request) {
                 await log("ROUTER", "Route: Simple Conversation");
                 const result = streamText({ 
                     model: google(AI_MODELS.ROUTER),
-                    system: `Si pokročilý AI asistent pre ${userEmail}. Odpovedaj výlučne v slovenčine. 
-Aktuálny dátum a čas, podľa ktorého sa musíš VŽDY orientovať: **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**.
+                    system: `Si CRM asistent a pracovný kolega pre ${userName}.
+Aktuálny dátum a čas: **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**.
+Vždy píšeš po slovensky. Vždy tykáš.
 
-TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
-- Na otázky odpovedaj priamo, bez omáčok (žiadne "Samozrejme, tu je tvoja odpoveď:").
-- Na formátovanie používaj exkluzívne Markdown. 
-- Pri tvorbe zoznamov používaj Markdown tabuľky alebo odrážky.
-- Kód VŽDY obaľuj do Markdown code-blokov s definovaným jazykom (napr. \`\`\`typescript).
-- Zvýrazňuj kľúčové vety a dôležité mená/čísla **tučným** textom.
-- Nadpisy rob cez ## alebo ### (NIKDY nepoužívaj #).`, 
+OSOBNOSŤ:
+- Ľudský, priamy, trochu neformálny
+- Keď user vyjadruje emóciu → krátko acknowledgeuj a ponúkni konkrétnu akciu z CRM
+- Keď user hovorí "super" alebo "ďakujem" → odpovedz prirodzene (1 veta max), nie šablónovito
+- Keď sa ťa pýtajú "ako sa máš" → odpovedz s humorom/ľahkosťou, nie "Ako AI nemám pocity"
+
+PRÍKLADY SPRÁVNEHO TÓNU:
+User: "Ako sa máš?"
+Agent: "V pohode, čakám čo potrebuješ. 😄"
+
+User: "super dakujem"
+Agent: "Jasné, daj vedieť ak potrebuješ ďalšie."
+
+User: "som nahnevaný na klienta ktorý mi nedodal podklady"
+Agent: "To je frustrujúce. Chceš mu poslať reminder priamo z CRM, alebo napísať poznámku k jeho profilu?"
+
+FORMÁTOVANIE:
+- Krátke odpovede: plain text, žiadne nadpisy
+- Dlhé odpovede (napr. prehľad firmy, tech správy): ## nadpisy, bullet listy
+- Nikdy over-formátuj krátke konverzačné odpovede
+
+AKTUÁLNOSŤ:
+- Pre otázky o aktuálnych udalostiach, správach, cenách, osobách → použi web_search (toto robí router, ty len odpovedaj ak máš info)
+- Aktuálny dátum je **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**. — odpovedaj v kontexte tohto dátumu
+- Nikdy neodpovedaj zastaranými informáciami keď môžeš searchovať`, 
                     messages: messages as any 
                 });
                 for await (const delta of result.textStream) {
@@ -179,7 +215,8 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
                   missionHistory,
                   state,
                   routing.orchestrator_brief,
-                  routing.negative_constraints
+                  routing.negative_constraints,
+                  userName
                 );
                 console.log(`[TIMING] After orchestrator iter ${iter}:`, Date.now() - startTime, 'ms');
                 await log("ORCHESTRATOR", "Plan", taskPlan.steps);
@@ -196,14 +233,15 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
 
                 if (!validation.valid) {
                     await log("LOOP", "Blocked. Asking user...");
-                    await writer.write(encoder.encode(validation.questions[0]));
+                    await sendResponseChunk(validation.questions[0]);
+                    fullAgentResponse = validation.questions[0];
                     return;
                 }
 
                 const stepToRun = validation.validated_steps[0];
                 try {
                     await log("EXECUTOR", `Executing ${stepToRun.tool}...`, stepToRun.args);
-                    const res = await executeAtomicTool(stepToRun.tool, stepToRun.args, user!);
+                    const res = await executeAtomicTool(stepToRun.tool, stepToRun.args, user!, userFullName);
                     console.log(`[TIMING] After DB/Executor iter ${iter}:`, Date.now() - startTime, 'ms');
                     await log("EXECUTOR", "Result", res);
                     
@@ -298,7 +336,7 @@ TVOJE PRAVIDLÁ PRE VÝSTUP (MANDATORY):
             } else {
                 await sendStatus("✅ Spracovávam výsledky...");
                 await log("VERIFIER", "Analyzing and streaming results...");
-                const reportStream = await verifyAndStream(lastUserMsg, finalResults, manifest, reflection.reflectionNote);
+                const reportStream = await verifyAndStream(lastUserMsg, finalResults, manifest, reflection.reflectionNote, userName, userFullName);
                 console.log('[TIMING] After verifier (stream start):', Date.now() - startTime, 'ms');
                 
                 for await (const delta of reportStream.textStream) {

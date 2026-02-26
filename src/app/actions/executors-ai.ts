@@ -6,29 +6,28 @@ import { AI_MODELS } from "@/lib/ai-providers";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
-export async function executeAiTool(name: string, args: Record<string, unknown>, userEmail?: string) {
+export async function executeAiTool(name: string, args: Record<string, unknown>, userEmail?: string, userFullName: string = "Používateľ CRM") {
   try {
     switch (name) {
       case "ai_generate_email":
         const { context, instruction } = args;
         
         const systemPrompt = `
-          Si expert na písanie profesionálnych emailov. 
-          Tvojou úlohou je napísať odpoveď na email na základe histórie správ (context) a inštrukcie od užívateľa (instruction).
-          
-          Pravidlá:
-          1. Odpoveď musí byť zdvorilá a profesionálna.
-          2. Musí reagovať na kontext predošlých správ.
-          3. Musí splniť inštrukciu užívateľa.
-          4. Nevymýšľaj si fakty, ktoré nevieš.
-          5. Výstup má byť LEN samotný text emailu (predmet a telo), žiadne omáčky okolo.
-          
-          Formát výstupu (JSON):
-          {
-            "subject": "Predmet emailu",
-            "body": "Text emailu..."
-          }
-        `;
+Si expert na písanie profesionálnych emailov v mene ${userFullName}.
+Píšeš po slovensky, ak nie je uvedené inak.
+
+PRAVIDLÁ:
+- Podpis vždy: ${userFullName} — nikdy "[Vaše Meno]" ani placeholder
+- Tón: profesionálny ale ľudský
+- Dĺžka: primeraná účelu — reminder = 3 vety, uvítací email = 1 odstavec
+- Nikdy nevymýšľaj detaily ktoré nie sú v CONTEXT (dátumy stretnutí, sumy)
+
+Output JSON:
+{
+  "subject": "predmet emailu",
+  "body": "telo emailu"
+}
+`;
 
         const response = await generateText({
           model: google(AI_MODELS.REPORT),
