@@ -512,7 +512,7 @@ export const INBOX_ATOMS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "db_get_contact_overview",
-      description: "H1: Retrieves a comprehensive 360-degree overview of a contact, including their projects, tasks, past deals, activities, and communication history in one call.",
+      description: "H1: Retrieves a comprehensive 360-degree overview of a contact, including their projects, tasks, past deals, activities, notes, and communication history. CRITICAL: Distinguish between 'comments' (direct text field on contact), 'notes' (separate related items), and 'tasks' (actionable items with due dates).",
       parameters: {
         type: "object",
         properties: {
@@ -567,7 +567,7 @@ export const NOTES_ATOMS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "db_create_note",
-      description: "Creates a new note in the CRM.",
+      description: "Creates a long-form historical note or documentation piece. Use this for recording complex information, call summaries, or detailed background about a contact or project.",
       parameters: {
         type: "object",
         properties: {
@@ -1335,7 +1335,7 @@ export const TASKS_ATOMS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "db_create_task",
-      description: "Creates a new task.",
+      description: "Creates an actionable task with a title and due date. CRITICAL: A 'task' is something TO BE DONE, not just a historical note or information about a person.",
       parameters: {
         type: "object",
         properties: {

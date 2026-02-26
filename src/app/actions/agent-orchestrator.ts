@@ -435,8 +435,12 @@ PLANNING RULES:
 5. DAILY PLAN: When asked about today's work, schedule, or plans → ALWAYS use sys_fetch_by_date(date: current_date).
 6. NO HALLUCINATIONS: Do NOT invent or search for a contact for tasks/notes unless explicitly mentioned. Notes and tasks can exist without a contact_id.
 7. COMPREHENSIVE VIEW: For detailed info on a contact, prefer db_get_contact_overview over simple search.
-8. Plan 1-2 steps per iteration for stability.
-9. When goal reached → return { "action": "DONE" }.
+8. Rozlišuj dátové štruktúry: 
+   - ÚLOHA (task) = akčná položka s termínom (napr. 'zavolať mu', 'poslať zmluvu'). Použi db_create_task.
+   - POZNÁMKA (note) = dlhší text, dokumentácia, zhrnutie (napr. 'zápis zo stretnutia'). Použi db_create_note.
+   - KOMENTÁR (comment) = krátka informácia priamo k profilu kontaktu. Použi db_add_contact_comment.
+9. Plan 1-2 steps per iteration for stability.
+10. When goal reached → return { "action": "DONE" }.
 
 OUTPUT FORMAT (strict JSON):
 {
