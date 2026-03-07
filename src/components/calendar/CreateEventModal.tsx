@@ -92,16 +92,17 @@ export function CreateEventModal({
       }),
       MentionNode,
       Placeholder.configure({
-        placeholder: "Stretnutie s...",
+        placeholder: "Čo ideme plánovať?",
       }),
     ],
     immediatelyRender: false,
     editorProps: {
       attributes: {
         class:
-          "w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all font-bold text-gray-900 placeholder:font-medium placeholder:text-gray-300 min-h-[60px]",
+          "w-full bg-white/5 border border-white/5 rounded-2xl px-6 py-5 focus:bg-white/10 focus:border-violet-500/30 outline-none transition-all font-black text-white italic placeholder:font-black placeholder:text-zinc-600 placeholder:italic min-h-[70px] text-lg uppercase tracking-tight",
       },
       handleKeyDown: (view, event) => {
+        if (!editor) return false;
         return handleAutocompleteKeyDown(event, editor);
       },
     },
@@ -244,35 +245,33 @@ export function CreateEventModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300"
+        className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-500"
         onClick={onClose}
       />
 
-      <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 border border-gray-100 max-h-[90vh]">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
-              <CalendarIcon className="w-5 h-5 text-white" />
-            </div>
-            <h2 className="text-xl font-black text-gray-900 tracking-tight">
-              Nová udalosť
+      <div className="bg-[#050507]/95 backdrop-blur-3xl w-full max-w-lg rounded-[2.5rem] shadow-[0_25px_80px_rgba(0,0,0,0.8),0_0_50px_rgba(124,58,237,0.05)] relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-500 border border-white/[0.05] max-h-[95vh]">
+        <div className="p-8 border-b border-white/[0.03] flex items-center justify-between bg-black/40">
+          <div className="flex flex-col">
+            <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic leading-none">
+              Nová Poznámka
             </h2>
+            <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest italic mt-1.5 opacity-40">Systémový protokol</span>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+            className="p-3 hover:bg-white/5 rounded-2xl transition-all group"
           >
-            <X className="w-6 h-6 text-gray-400" />
+            <X className="w-6 h-6 text-zinc-500 group-hover:text-white transition-colors" />
           </button>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="p-8 space-y-6 overflow-y-auto custom-scrollbar"
+          className="p-10 space-y-8 overflow-y-auto thin-scrollbar"
         >
           <div className="relative">
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 block px-1">
-              Názov udalosti
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] italic text-zinc-600 mb-3 block px-1">
+              Poznámka do kalendára
             </label>
 
             <EditorContent editor={editor} />
@@ -283,45 +282,48 @@ export function CreateEventModal({
               selectedIndex={selectedIndex}
               onSelect={applySuggestion}
             />
+            <p className="mt-2 text-[9px] text-zinc-500 italic px-1">
+              Tento text sa zobrazí priamo v políčku kalendára. Použite @ pre kontakt/projekt.
+            </p>
           </div>
 
           {/* Toggles */}
           <div className="flex gap-4">
-            <label className="flex items-center gap-2 cursor-pointer bg-gray-50 px-4 py-2 rounded-xl border border-gray-200 hover:border-blue-300 transition-colors flex-1">
+            <label className="flex items-center gap-3 cursor-pointer bg-white/5 px-5 py-2.5 rounded-2xl border border-white/5 hover:border-violet-500/30 transition-all flex-1 group">
               <input
                 type="checkbox"
                 checked={isAllDay}
                 onChange={(e) => setIsAllDay(e.target.checked)}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 rounded-lg bg-zinc-800 border-white/10 text-violet-600 focus:ring-violet-500 focus:ring-offset-0 transition-all cursor-pointer"
               />
-              <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+              <span className="text-[10px] font-black text-zinc-400 group-hover:text-white uppercase tracking-[0.1em] italic transition-colors">
                 Celý deň
               </span>
             </label>
 
-            <label className="flex items-center gap-2 cursor-pointer bg-gray-50 px-4 py-2 rounded-xl border border-gray-200 hover:border-blue-300 transition-colors flex-1">
+            <label className="flex items-center gap-3 cursor-pointer bg-white/5 px-5 py-2.5 rounded-2xl border border-white/5 hover:border-violet-500/30 transition-all flex-1 group">
               <input
                 type="checkbox"
                 checked={isReminder}
                 onChange={(e) => setIsReminder(e.target.checked)}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 rounded-lg bg-zinc-800 border-white/10 text-violet-600 focus:ring-violet-500 focus:ring-offset-0 transition-all cursor-pointer"
               />
-              <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+              <span className="text-[10px] font-black text-zinc-400 group-hover:text-white uppercase tracking-[0.1em] italic transition-colors">
                 Pripomienka
               </span>
             </label>
           </div>
 
           {/* Date & Time */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 block px-1">
-                Začiatok
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] italic text-zinc-600 mb-1 block px-1">
+                Kedy
               </label>
               <div className="space-y-2">
                 <input
                   type="date"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:bg-white outline-none font-medium"
+                  className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-2.5 text-[12px] font-black text-white focus:bg-white/10 focus:border-violet-500/20 outline-none italic transition-all"
                   value={formData.startDate}
                   onChange={(e) =>
                     setFormData({ ...formData, startDate: e.target.value })
@@ -330,7 +332,7 @@ export function CreateEventModal({
                 {!isAllDay && (
                   <input
                     type="time"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:bg-white outline-none font-medium"
+                    className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-2.5 text-[12px] font-black text-white focus:bg-white/10 focus:border-violet-500/20 outline-none italic transition-all tabular-nums"
                     value={formData.startTime}
                     onChange={(e) =>
                       setFormData({ ...formData, startTime: e.target.value })
@@ -341,14 +343,14 @@ export function CreateEventModal({
             </div>
 
             {!isReminder && (
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 block px-1">
-                  Koniec
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] italic text-zinc-600 mb-1 block px-1">
+                  Do
                 </label>
                 <div className="space-y-2">
                   <input
                     type="date"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:bg-white outline-none font-medium"
+                    className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-2.5 text-[12px] font-black text-white focus:bg-white/10 focus:border-violet-500/20 outline-none italic transition-all"
                     value={formData.endDate}
                     onChange={(e) =>
                       setFormData({ ...formData, endDate: e.target.value })
@@ -360,7 +362,7 @@ export function CreateEventModal({
                   {!isAllDay && (
                     <input
                       type="time"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:bg-white outline-none font-medium"
+                      className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-2.5 text-[12px] font-black text-white focus:bg-white/10 focus:border-violet-500/20 outline-none italic transition-all tabular-nums"
                       value={formData.endTime}
                       onChange={(e) =>
                         setFormData({ ...formData, endTime: e.target.value })
@@ -372,99 +374,73 @@ export function CreateEventModal({
             )}
           </div>
 
-          {/* Recurrence */}
-          <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 block px-1">
-              Opakovanie
-            </label>
-            <div className="relative">
-              <Repeat className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <select
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:bg-white outline-none appearance-none font-medium"
-                value={formData.recurrence}
-                onChange={(e) =>
-                  setFormData({ ...formData, recurrence: e.target.value })
-                }
-              >
-                {RECURRENCE.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          {/* Location & Additional Details */}
+          <div className="grid grid-cols-1 gap-6">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] italic text-zinc-600 mb-3 block px-1">
+                  Lokalita
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {LOCATIONS.map((loc) => {
+                    const Icon = loc.icon;
+                    const isSelected = formData.location === loc.value;
+                    return (
+                      <button
+                        key={loc.value}
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            location: prev.location === loc.value ? "" : loc.value,
+                          }))
+                        }
+                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all duration-300 relative overflow-hidden group/loc
+                            ${isSelected ? "bg-violet-600 text-white border-transparent shadow-[0_5px_15px_rgba(139,92,246,0.3)]" : "bg-white/5 border-white/5 text-zinc-500 hover:text-white hover:bg-white/10"}`}
+                      >
+                        <Icon
+                          className={`w-3.5 h-3.5 relative z-10 transition-colors ${isSelected ? "text-white" : "text-zinc-600 group-hover/loc:text-violet-400"}`}
+                        />
+                        <span className="text-[10px] font-black uppercase italic tracking-tight relative z-10">{loc.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          {/* Location */}
-          <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 block px-1">
-              Lokalita
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {LOCATIONS.map((loc) => {
-                const Icon = loc.icon;
-                const isSelected = formData.location === loc.value;
-                return (
-                  <button
-                    key={loc.value}
-                    type="button"
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        location: prev.location === loc.value ? "" : loc.value,
-                      }))
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] italic text-zinc-600 mb-3 block px-1">
+                  Doplňujúce detaily
+                </label>
+                <div className="relative group/area">
+                  <div className="absolute left-4 top-4 p-1.5 bg-zinc-800/50 rounded-lg group-focus-within/area:bg-violet-500/10 transition-colors">
+                    <AlignLeft className="w-3.5 h-3.5 text-zinc-600 group-focus-within/area:text-violet-500 transition-colors" />
+                  </div>
+                  <textarea
+                    rows={2}
+                    placeholder="Miesto pre podrobnejší rozpis (voliteľné)..."
+                    className="w-full bg-white/5 border border-white/5 rounded-[1.5rem] pl-14 pr-6 py-4 text-[11px] font-bold text-zinc-400 italic focus:bg-white/10 focus:border-violet-500/20 outline-none resize-none transition-all placeholder:text-zinc-700"
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
                     }
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all ${isSelected ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100"}`}
-                  >
-                    <Icon
-                      className={`w-4 h-4 ${isSelected ? "text-blue-500" : "text-gray-400"}`}
-                    />
-                    <span className="text-xs font-bold">{loc.label}</span>
-                    {isSelected && (
-                      <Check className="w-3.5 h-3.5 ml-auto text-blue-500" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                  />
+                </div>
+              </div>
           </div>
 
-          {/* Description */}
-          <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 block px-1">
-              Popis
-            </label>
-            <div className="relative">
-              <AlignLeft className="absolute left-4 top-4 w-4 h-4 text-gray-300" />
-              <textarea
-                rows={3}
-                placeholder="Detaily udalosti..."
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-12 pr-5 py-3 text-sm focus:bg-white outline-none resize-none"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-4 text-sm font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              Zrušiť
-            </button>
+          <div className="flex gap-4 pt-4">
             <button
               disabled={loading}
               type="submit"
-              className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white rounded-2xl py-4 font-black uppercase tracking-widest shadow-xl shadow-blue-100 disabled:opacity-50 active:scale-95 transition-all flex items-center justify-center gap-2"
+              className="flex-1 h-16 bg-violet-600 hover:bg-violet-500 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] italic shadow-[0_10px_30px_rgba(139,92,246,0.3)] disabled:opacity-50 active:scale-95 transition-all flex items-center justify-center gap-3"
             >
               {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
-                "Vytvoriť"
+                <>
+                    <Check className="w-5 h-5" />
+                    <span>Potvrdiť Poznámku</span>
+                </>
               )}
             </button>
           </div>
@@ -473,3 +449,4 @@ export function CreateEventModal({
     </div>
   );
 }
+

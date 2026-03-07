@@ -15,6 +15,13 @@ export async function createCalendarEvent(eventData: {
   const token = await getAccessToken();
 
   if (!token) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("🛠️ [DEV MODE] Simulating event creation (no token)");
+      return { 
+        success: true, 
+        event: { id: "mock-" + Date.now(), ...eventData } 
+      };
+    }
     return { success: false, error: "Google Calendar not connected" };
   }
 
@@ -45,4 +52,29 @@ export async function createCalendarEvent(eventData: {
     console.error("Create Event Error:", error);
     return { success: false, error: getDirectusErrorMessage(error) };
   }
+}
+
+export async function deleteCalendarEvent(eventId: string) {
+    const token = await getAccessToken();
+
+    if (!token) {
+        if (process.env.NODE_ENV === "development") {
+            console.log("🛠️ [DEV MODE] Simulating event deletion (no token)");
+            return { success: true };
+        }
+        return { success: false, error: "Google Calendar not connected" };
+    }
+
+    try {
+        const calendar = await getCalendarClient(token);
+        await calendar.events.delete({
+            calendarId: "primary",
+            eventId: eventId,
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error("Delete Event Error:", error);
+        return { success: false, error: getDirectusErrorMessage(error) };
+    }
 }

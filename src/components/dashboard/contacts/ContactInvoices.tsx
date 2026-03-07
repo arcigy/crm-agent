@@ -20,6 +20,7 @@ interface InvoiceFile {
   modifiedTime: string;
   projectName: string;
   projectId: number;
+  mimeType?: string;
 }
 
 export function ContactInvoices({ contact }: { contact: Lead }) {
@@ -274,17 +275,27 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
 
   if (hasNoDocs) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4 text-zinc-300 dark:text-zinc-700">
-        <div className="w-16 h-16 rounded-full border-2 border-dashed border-current flex items-center justify-center">
-          <FileText className="w-8 h-8" />
-        </div>
-        <div className="text-center px-8">
-          <p className="text-sm font-black uppercase tracking-widest mb-1">
-            Žiadne finančné dokumenty
-          </p>
-          <p className="text-[10px] font-bold opacity-50 max-w-[250px] mx-auto">
-            V priečinkoch so zmluvami a faktúrami neboli nájdené žiadne súbory.
-          </p>
+      <div className="flex flex-col items-center justify-center h-[400px] text-center p-12 relative overflow-hidden">
+        {/* Subtle Neon Background Decorations */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col items-center">
+            <div className="w-20 h-20 bg-blue-500/10 rounded-[2rem] border border-blue-500/20 flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(59,130,246,0.15)] transition-transform hover:scale-110">
+              <FileText className="w-9 h-9 text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+            </div>
+            
+            <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
+              Žiadne finančné dokumenty
+            </h3>
+            
+            <p className="text-sm text-zinc-400 max-w-sm leading-relaxed font-medium">
+              V cloude neboli nájdené žiadne zmluvy ani faktúry prepojené s týmto klientom.
+            </p>
+            
+            <div className="mt-8 flex items-center gap-2 px-3 py-1 bg-blue-500/5 border border-blue-500/10 rounded-full">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-blue-400/60 uppercase tracking-widest">Digital_Archive_Empty</span>
+            </div>
         </div>
       </div>
     );

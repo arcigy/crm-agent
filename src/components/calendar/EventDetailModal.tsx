@@ -11,78 +11,114 @@ interface EventDetailModalProps {
     isOpen: boolean;
     onClose: () => void;
     onOpenContact?: (contact: any) => void;
+    onSuccess?: () => void;
 }
 
-export function EventDetailModal({ event, isOpen, onClose, onOpenContact }: EventDetailModalProps) {
+import { deleteCalendarEvent } from '@/app/actions/calendar/mutate';
+import { toast } from 'sonner';
+import { Loader2, Trash2 } from 'lucide-react';
+
+export function EventDetailModal({ event, isOpen, onClose, onOpenContact, onSuccess }: EventDetailModalProps) {
+    const [isDeleting, setIsDeleting] = React.useState(false);
+    
     if (!isOpen || !event) return null;
+
+    const handleDelete = async () => {
+        if (!event.id || isProject) return;
+        
+        if (!confirm('Naozaj chcete vymazať túto poznámku?')) return;
+        
+        setIsDeleting(true);
+        try {
+            const res = await deleteCalendarEvent(event.id);
+            if (res.success) {
+                toast.success('Poznámka bola vymazaná');
+                onSuccess?.();
+                onClose();
+            } else {
+                toast.error(res.error || 'Nepodarilo sa vymazať poznámku');
+            }
+        } catch (error) {
+            toast.error('Systémová chyba pri mazaní');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     const isProject = event.id.startsWith('p-');
 
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-500" onClick={onClose} />
 
-            <div className={`bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 border border-gray-100`}>
-                {/* Header Gradient */}
-                <div className={`h-3 w-full ${event.color?.includes('indigo') ? 'bg-indigo-600' : event.color?.includes('amber') ? 'bg-amber-600' : 'bg-blue-600'}`} />
+            <div className={`bg-[#050507]/95 backdrop-blur-3xl w-full max-w-lg rounded-[2.5rem] shadow-[0_25px_80px_rgba(0,0,0,0.8),0_0_50px_rgba(124,58,237,0.05)] relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-500 border border-white/[0.05]`}>
+                {/* Header Decoration */}
+                <div className={`h-2 w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-[0_5px_15px_rgba(139,92,246,0.3)]`} />
 
-                <div className="p-8">
-                    <div className="flex items-start justify-between mb-8">
+                <div className="p-10">
+                    <div className="flex items-start justify-between mb-10">
                         <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${isProject ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-blue-50 text-blue-700 border-blue-100'
-                                    }`}>
-                                    {isProject ? 'Projektová udalosť' : 'Udalosť v kalendári'}
+                            <div className="flex items-center gap-3 mb-4">
+                                <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] italic border border-white/5 bg-white/5 text-zinc-500 shadow-[0_0_15px_rgba(255,255,255,0.02)]
+                                    `}>
+                                    {isProject ? 'STRATEGICKÝ PROJEKT' : 'POZNÁMKA V KALENDÁRI'}
                                 </span>
                             </div>
-                            <h2 className="text-2xl font-black text-gray-900 leading-tight tracking-tight">
+                            <h2 className="text-3xl font-black text-white italic leading-none tracking-tighter uppercase">
                                 {event.title}
                             </h2>
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors shrink-0">
-                            <X className="w-6 h-6 text-gray-400" />
+                        <button onClick={onClose} className="p-3 hover:bg-white/5 rounded-2xl transition-all shrink-0 group">
+                            <X className="w-6 h-6 text-zinc-500 group-hover:text-white transition-colors" />
                         </button>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                         {/* Time & Date */}
-                        <div className="flex items-center gap-6 p-5 bg-gray-50 rounded-3xl border border-gray-100 shadow-inner">
-                            <div className="bg-white p-3 rounded-2xl shadow-sm">
-                                <Calendar className="w-5 h-5 text-blue-600" />
+                        <div className="flex items-center gap-8 p-6 bg-white/[0.02] rounded-[2rem] border border-white/5 shadow-inner group/date relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover/date:opacity-100 transition-opacity" />
+                            <div className="bg-violet-500/10 p-4 rounded-2xl shadow-xl relative z-10 border border-violet-500/20 group-hover/date:scale-110 transition-transform">
+                                <Calendar className="w-6 h-6 text-violet-500" />
                             </div>
-                            <div>
-                                <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none mb-1">Dátum a Čas</p>
-                                <p className="text-gray-900 font-bold">
+                            <div className="relative z-10">
+                                <p className="text-[10px] text-zinc-600 font-black uppercase tracking-[0.2em] italic mb-2">Naplánované na</p>
+                                <p className="text-white font-black italic text-lg tracking-tight">
                                     {format(event.start, 'd. MMMM yyyy', { locale: sk })}
                                 </p>
                                 {!event.allDay && (
-                                    <p className="text-blue-600 text-sm font-black flex items-center gap-1.5 mt-0.5">
-                                        <Clock className="w-3.5 h-3.5" />
-                                        {format(event.start, 'HH:mm')} - {format(event.end, 'HH:mm')}
-                                    </p>
+                                    <div className="text-violet-400 text-[11px] font-black uppercase tracking-widest flex items-center gap-2 mt-2 italic">
+                                        <Clock className="w-4 h-4" />
+                                        <span>{format(event.start, 'HH:mm')}</span>
+                                        <div className="w-3 h-[1px] bg-violet-500/30" />
+                                        <span>{format(event.end, 'HH:mm')}</span>
+                                    </div>
                                 )}
-                                {event.allDay && <p className="text-orange-600 text-[10px] font-black uppercase tracking-widest mt-1">Celodenná udalosť</p>}
+                                {event.allDay && <p className="text-amber-500 text-[10px] font-black uppercase tracking-[0.2em] mt-2 italic">Celodenná Aktivita</p>}
                             </div>
                         </div>
 
                         {/* Location */}
                         {event.location && (
-                            <div className="flex items-start gap-4 px-2">
-                                <MapPin className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
-                                <div>
-                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-0.5">Miesto</p>
-                                    <p className="text-gray-800 font-bold">{event.location}</p>
+                            <div className="flex items-start gap-6 px-4 group/loc">
+                                <div className="p-3 bg-zinc-800/50 rounded-xl group-hover/loc:bg-violet-500/10 transition-colors">
+                                    <MapPin className="w-5 h-5 text-zinc-500 group-hover/loc:text-violet-500 transition-colors" />
+                                </div>
+                                <div className="pt-1">
+                                    <p className="text-[9px] text-zinc-600 font-black uppercase tracking-[0.2em] italic mb-1">Lokácia</p>
+                                    <p className="text-zinc-300 font-bold group-hover/loc:text-white transition-colors italic">{event.location}</p>
                                 </div>
                             </div>
                         )}
 
                         {/* Description */}
                         {event.description && (
-                            <div className="flex items-start gap-4 px-2">
-                                <AlignLeft className="w-5 h-5 text-gray-400 mt-1 shrink-0" />
-                                <div className="flex-1">
-                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1.5">Popis / Poznámky</p>
-                                    <div className="bg-gray-50 rounded-2xl p-4 text-sm text-gray-700 leading-relaxed font-medium border border-gray-100 whitespace-pre-wrap">
+                            <div className="flex items-start gap-6 px-4 group/desc">
+                                <div className="p-3 bg-zinc-800/50 rounded-xl group-hover/desc:bg-violet-500/10 transition-colors">
+                                    <AlignLeft className="w-5 h-5 text-zinc-500 group-hover/desc:text-violet-500 transition-colors" />
+                                </div>
+                                <div className="flex-1 pt-1">
+                                    <p className="text-[9px] text-zinc-600 font-black uppercase tracking-[0.2em] italic mb-3">Detaily poznámky</p>
+                                    <div className="bg-white/[0.02] rounded-2xl p-6 text-[11px] text-zinc-400 leading-relaxed font-bold border border-white/[0.05] group-hover/desc:border-violet-500/20 transition-all italic tracking-tight">
                                         {event.description}
                                     </div>
                                 </div>
@@ -91,33 +127,32 @@ export function EventDetailModal({ event, isOpen, onClose, onOpenContact }: Even
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="mt-8 pt-8 border-t border-gray-100 flex gap-4">
+                    <div className="mt-12 pt-8 border-t border-white/5 flex gap-4">
+                        {!isProject && (
+                            <button
+                                onClick={handleDelete}
+                                disabled={isDeleting}
+                                className="flex-1 h-16 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] italic transition-all flex items-center justify-center gap-3 active:scale-95 group/del"
+                            >
+                                {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5 group-hover/del:rotate-12 transition-transform" />}
+                                <span>Odstrániť</span>
+                            </button>
+                        )}
                         {isProject ? (
                             <button
                                 onClick={() => {
-                                    // Prelinkovanie do sekcie projekty
                                     window.location.href = '/dashboard/projects';
                                 }}
-                                className="flex-1 h-14 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:bg-black transition-all active:scale-95"
+                                className="flex-1 h-16 bg-violet-600 text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] italic shadow-[0_10px_30px_rgba(139,92,246,0.3)] flex items-center justify-center gap-3 hover:bg-violet-500 transition-all active:scale-95 group/btn"
                             >
-                                <ExternalLink className="w-5 h-5" /> Detail projektu
-                            </button>
-                        ) : isProject && event.contact && onOpenContact ? (
-                            <button
-                                onClick={() => {
-                                    onClose();
-                                    onOpenContact(event.contact);
-                                }}
-                                className="flex-1 h-14 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition-all active:scale-95"
-                            >
-                                <User className="w-5 h-5" /> Detail klienta
+                                <ExternalLink className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" /> Detail projektu
                             </button>
                         ) : (
                             <button
                                 onClick={onClose}
-                                className="flex-1 h-14 border-2 border-gray-100 text-gray-400 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                                className="flex-1 h-16 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-400 hover:text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] italic transition-all flex items-center justify-center gap-3 group/close"
                             >
-                                Zavrieť detail
+                                <X className="w-5 h-5 group-close:rotate-90 transition-transform" /> Zavrieť kartu
                             </button>
                         )}
                     </div>
@@ -126,3 +161,4 @@ export function EventDetailModal({ event, isOpen, onClose, onOpenContact }: Even
         </div>
     );
 }
+

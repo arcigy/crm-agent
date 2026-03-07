@@ -62,7 +62,7 @@ export function ProjectActionButtons() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 active:scale-95 group"
+        className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-violet-700 transition-all shadow-lg shadow-violet-500/20 active:scale-95 group"
       >
         <Plus
           className={`w-4 h-4 transition-transform duration-300 ${isOpen ? "rotate-45" : ""}`}
@@ -74,19 +74,19 @@ export function ProjectActionButtons() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-[100] animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute right-0 mt-3 w-64 bg-zinc-900/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-violet-500/20 py-2 z-[100] animate-in fade-in zoom-in-95 duration-200">
           <button
             onClick={() => trigger("open-create-project", "form")}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors group"
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-violet-500/10 transition-colors group"
           >
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400 group-hover:bg-violet-600 group-hover:text-white transition-colors">
               <FolderKanban className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">
+              <span className="text-[11px] font-black uppercase tracking-tight text-zinc-100 leading-none">
                 Nový projekt
               </span>
-              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+              <span className="text-[9px] text-violet-400/50 font-bold uppercase tracking-widest mt-1">
                 Manuálny zápis
               </span>
             </div>
@@ -94,38 +94,38 @@ export function ProjectActionButtons() {
 
           <button
             onClick={() => trigger("open-create-project", "json")}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors group"
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-violet-500/10 transition-colors group"
           >
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400 group-hover:bg-violet-600 group-hover:text-white transition-colors">
               <Code className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">
+              <span className="text-[11px] font-black uppercase tracking-tight text-zinc-100 leading-none">
                 RAW Import
               </span>
-              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+              <span className="text-[9px] text-violet-400/50 font-bold uppercase tracking-widest mt-1">
                 Hromadné pridanie
               </span>
             </div>
           </button>
 
-          <div className="h-px bg-gray-50 my-1 mx-2"></div>
+          <div className="h-px bg-violet-500/10 my-1 mx-2"></div>
 
           <button
             disabled={isSyncing}
             onClick={handleSync}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors group disabled:opacity-50"
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-violet-500/10 transition-colors group disabled:opacity-50"
           >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400 group-hover:bg-violet-600 group-hover:text-white transition-colors">
               <RefreshCw
                 className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`}
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">
+              <span className="text-[11px] font-black uppercase tracking-tight text-zinc-100 leading-none">
                 Sync Google Drive
               </span>
-              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+              <span className="text-[9px] text-violet-400/50 font-bold uppercase tracking-widest mt-1">
                 Aktualizovať popisy
               </span>
             </div>
@@ -133,16 +133,16 @@ export function ProjectActionButtons() {
 
           <button
             onClick={() => trigger("export-projects-csv")}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors group"
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-violet-500/10 transition-colors group"
           >
-            <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-500 group-hover:bg-gray-900 group-hover:text-white transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400 group-hover:bg-violet-600 group-hover:text-white transition-colors">
               <Download className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 leading-none">
+              <span className="text-[11px] font-black uppercase tracking-tight text-zinc-100 leading-none">
                 Exportovať CSV
               </span>
-              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+              <span className="text-[9px] text-violet-400/50 font-bold uppercase tracking-widest mt-1">
                 Export pre Excel
               </span>
             </div>

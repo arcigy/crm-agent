@@ -5,6 +5,7 @@ import { Mail, X, Paperclip, Send, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import RichTextEditor from "../editor/RichTextEditor";
 import { Lead } from "@/types/contact";
+import { sendGeneralEmail } from "@/app/actions/google-email";
 
 interface EmailComposerViewProps {
   contact: Lead;
@@ -32,11 +33,6 @@ export function EmailComposerView({
     setIsSending(true);
     const toastId = toast.loading("Odosielam email...");
     try {
-      // We need a server action to send this email via Google API
-      // I'll check if we have one or if I should use a new one.
-      // Actions like sendColdLeadEmail already exists, but it's for automated sending.
-      // Let's use a generic email sender.
-      const { sendGeneralEmail } = await import("@/app/actions/google-email");
       const res = await sendGeneralEmail({
         to: contact.email || "",
         subject,

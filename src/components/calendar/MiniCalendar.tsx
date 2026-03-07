@@ -39,39 +39,42 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
   const prevMonth = () => setViewDate(subMonths(viewDate, 1));
 
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between mb-4 px-2">
-        <span className="text-sm font-medium text-gray-700">
+    <div className="w-full bg-[#050507] p-5 lg:p-6 rounded-[2.2rem] border border-white/[0.03] shadow-2xl relative overflow-hidden group">
+      {/* Background ambient glow */}
+      <div className="absolute top-1/2 left-1/2 w-[120%] h-[120%] bg-violet-600/5 blur-[80px] -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+
+      <div className="flex items-center justify-between mb-4 px-1 relative z-10">
+        <span className="text-[11px] font-black uppercase italic tracking-[0.25em] text-white/70">
           {format(viewDate, "LLLL yyyy", { locale: sk })}
         </span>
-        <div className="flex gap-1">
+        <div className="flex gap-2">
           <button
             onClick={prevMonth}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-1.5 hover:bg-white/5 rounded-xl transition-all text-zinc-600 hover:text-zinc-300 active:scale-95"
           >
-            <ChevronLeft size={16} className="text-gray-500" />
+            <ChevronLeft size={16} />
           </button>
           <button
             onClick={nextMonth}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-1.5 hover:bg-white/5 rounded-xl transition-all text-zinc-600 hover:text-zinc-300 active:scale-95"
           >
-            <ChevronRight size={16} className="text-gray-500" />
+            <ChevronRight size={16} />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 text-center mb-1">
-        {["p", "u", "s", "š", "p", "s", "n"].map((day, index) => (
+      <div className="grid grid-cols-7 text-center mb-4 gap-y-3 gap-x-2 relative z-10 px-1">
+        {["P", "U", "S", "Š", "P", "S", "N"].map((day, index) => (
           <div
             key={`${day}-${index}`}
-            className="text-[10px] font-bold text-gray-400 uppercase"
+            className="text-[11px] font-black text-zinc-600 uppercase italic tracking-[0.2em]"
           >
             {day}
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 text-center">
+      <div className="grid grid-cols-7 text-center gap-y-2 gap-x-1.5 relative z-10 px-1">
         {calendarDays.map((day) => {
           const isSelected = isSameDay(day, currentDate);
           const isCurrentMonth = isSameMonth(day, monthStart);
@@ -82,14 +85,17 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
               key={day.toString()}
               onClick={() => onDateSelect(day)}
               className={`
-                                aspect-square flex items-center justify-center text-[11px] rounded-full transition-all
-                                ${isSelected ? "bg-blue-600 text-white font-bold" : ""}
-                                ${!isSelected && isDayToday ? "text-blue-600 font-bold bg-blue-50" : ""}
-                                ${!isSelected && !isDayToday && isCurrentMonth ? "text-gray-700 hover:bg-gray-100" : ""}
-                                ${!isSelected && !isCurrentMonth ? "text-gray-300" : ""}
+                                aspect-square flex items-center justify-center text-[10px] font-black rounded-[0.7rem] transition-all duration-300 relative group/day
+                                ${isSelected ? "bg-[#7c3aed] text-white shadow-[0_0_20px_rgba(124,58,237,0.4)] z-10 scale-[1.05]" : ""}
+                                ${!isSelected && isDayToday ? "text-violet-400 border border-violet-500/30 bg-violet-500/5" : ""}
+                                ${!isSelected && !isDayToday && isCurrentMonth ? "text-zinc-400 hover:text-white" : ""}
+                                ${!isSelected && !isCurrentMonth ? "text-zinc-800" : ""}
                             `}
             >
-              {format(day, "d")}
+              {!isSelected && isCurrentMonth && (
+                  <div className="absolute inset-0 bg-white/5 scale-50 opacity-0 group-hover/day:scale-100 group-hover/day:opacity-100 rounded-[0.9rem] transition-all duration-300" />
+              )}
+              <span className="relative z-10">{format(day, "d")}</span>
             </button>
           );
         })}
@@ -97,3 +103,4 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
     </div>
   );
 }
+

@@ -12,116 +12,37 @@ import {
   agentScheduleEvent,
   agentSendEmail,
 } from "@/app/actions/agent";
+import { useSearchParams } from "next/navigation";
+import { useLeadsTagging } from "./leads/useLeadsTagging";
+import { useLeadsMockData } from "./leads/useLeadsMockData";
+import { useLeadsBulkActions } from "./leads/useLeadsBulkActions";
+import { useLeadsMessageHandlers } from "./leads/useLeadsMessageHandlers";
+import { useLeadsFiltering } from "./leads/useLeadsFiltering";
+import { useLeadsPersistence } from "./leads/useLeadsPersistence";
+import { useLeadsAgent } from "./leads/useLeadsAgent";
+import { useLeadsFetch } from "./leads/useLeadsFetch";
 
 export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const { user, isLoaded } = useCurrentCRMUser();
-  const [messages, setMessages] =
-    React.useState<GmailMessage[]>(initialMessages);
-  const [dbAnalyses, setDbAnalyses] = React.useState<any[]>([]);
-  const [androidLogs, setAndroidLogs] = React.useState<AndroidLog[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [isConnected, setIsConnected] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState("");
+  const {
+    customTags, setCustomTags,
+    tagColors, setTagColors,
+    messageTags, setMessageTags,
+    getSmartTags,
+    applySmartTagging
+  } = useLeadsTagging();
+
+  const {
+    messages, setMessages,
+    androidLogs, setAndroidLogs,
+    loading, setLoading,
+    isConnected, setIsConnected,
+    fetchMessages
+  } = useLeadsFetch(initialMessages, getSmartTags);
+
+  const { getMockMessages } = useLeadsMockData();
   const [selectedTab, setSelectedTab] = React.useState<string>("all");
-  const [customTags, setCustomTags] = React.useState<string[]>([
-    "NALIEHAVÉ", "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"
-  ]);
-  const [tagColors, setTagColors] = React.useState<Record<string, string>>({
-    "NALIEHAVÉ": "#ff6d00",
-    "URGENTNÉ": "#ff2040",
-    "NOVÝ OBCHOD": "#00e676",
-    "SERVIS": "#00b0ff",
-    "VYBAVOVAČKY": "#ffab00"
-  });
-
-  const [messageTags, setMessageTags] = React.useState<Record<string, string[]>>({});
-
-  // Smart Tagging Logic
-  // Maps AI classification (intent + priority + sentiment + keywords) → one of 5 tags
-  const getSmartTags = (classification: any): string[] => {
-    if (!classification) return [];
-    const tags: string[] = [];
-
-    const intent    = (classification.intent || "").toLowerCase();
-    const priority  = (classification.priority || "").toLowerCase();
-    const sentiment = (classification.sentiment || "").toLowerCase();
-    const summary   = (classification.summary || "").toLowerCase();
-    const category  = (classification.service_category || "").toLowerCase();
-    const combined  = summary + " " + category;
-
-    // Keywords for NALIEHAVÉ (technical/operational crisis)
-    const krisisKeywords = [
-      "zastavil", "stopka", "chyba", "záloha", "kataster vrátil",
-      "opravte", "súdny", "predvolanie", "povinná", "zajtra",
-      "ráno", "betón", "termín", "vytýčenie", "blokovaný"
-    ];
-    const isKrisisKeyword = krisisKeywords.some(k => combined.includes(k));
-
-    // Keywords for URGENTNÉ (financial/legal pressure)
-    const financialKeywords = [
-      "faktúra", "upomienka", "splatnosť", "hypotéka", "banka",
-      "reklamácia", "doplňte", "výzva", "48 hod", "po splatnosti",
-      "zmen", "pozor"
-    ];
-    const isFinancialKeyword = financialKeywords.some(k => combined.includes(k));
-
-    // Keywords for SERVIS (documents, access, supporting materials)
-    const servisKeywords = [
-      "posielam", "príloha", "dwg", "mapy", "kľúče", "prístup",
-      "súhlas", "podpísal", "sken", "rodné číslo", "vlastník",
-      "podklady", "dokumenty", "doplnenie"
-    ];
-    const isServisKeyword = servisKeywords.some(k => combined.includes(k));
-
-    // ─── Decision Tree ───────────────────────────────────────────
-
-    // 1. NALIEHAVÉ: high priority technical/operational crisis
-    if (priority === "vysoka" && (isKrisisKeyword || (intent === "problem" && sentiment === "negativny"))) {
-      tags.push("NALIEHAVÉ");
-    }
-    // 2. URGENTNÉ: high priority financial/legal pressure
-    else if (priority === "vysoka" && (intent === "faktura" || isFinancialKeyword || sentiment === "negativny")) {
-      tags.push("URGENTNÉ");
-    }
-    // 3. URGENTNÉ fallback: any high priority that's not technical
-    else if (priority === "vysoka") {
-      tags.push("URGENTNÉ");
-    }
-
-    // 4. NOVÝ OBCHOD: new business inquiry
-    if (intent === "dopyt") {
-      tags.push("NOVÝ OBCHOD");
-    }
-    // 5. SERVIS: ongoing work, documents, access
-    else if (intent === "problem" && !tags.includes("NALIEHAVÉ")) {
-      tags.push("SERVIS");
-    } else if (isServisKeyword && !tags.some(t => ["NALIEHAVÉ", "URGENTNÉ"].includes(t))) {
-      tags.push("SERVIS");
-    }
-    // 6. VYBAVOVAČKY: admin/overhead (non-urgent invoices, confirmations, ads)
-    else if ((intent === "faktura" && priority !== "vysoka") || priority === "nizka") {
-      if (!tags.length) tags.push("VYBAVOVAČKY");
-    }
-
-    // De-duplicate
-    return Array.from(new Set(tags));
-  };
-
-  const applySmartTagging = (messageId: string, classification: any) => {
-    const newTags = getSmartTags(classification);
-    if (newTags.length > 0) {
-      setMessageTags(prev => {
-        const existing = prev[messageId] || [];
-        const merged = Array.from(new Set([...existing, ...newTags]));
-        return { ...prev, [messageId]: merged };
-      });
-    }
-  };
-  const [selectedEmail, setSelectedEmail] = React.useState<GmailMessage | null>(
-    null,
-  );
-
-  // MODAL STATE
+  const [searchQuery, setSearchQuery] = React.useState("");
   const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
   const [contactModalData, setContactModalData] = React.useState<{
     name: string;
@@ -131,14 +52,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     website: string;
   } | null>(null);
   const [contactModalEmailBody, setContactModalEmailBody] = React.useState("");
-
-  // NEW STATES
-  const [activeActionId, setActiveActionId] = React.useState<string | null>(
-    null,
-  );
-  const [draftingEmail, setDraftingEmail] = React.useState<GmailMessage | null>(
-    null,
-  );
+  const [activeActionId, setActiveActionId] = React.useState<string | null>(null);
+  const [draftingEmail, setDraftingEmail] = React.useState<GmailMessage | null>(null);
   const [draftContent, setDraftContent] = React.useState("");
   const [isGeneratingDraft, setIsGeneratingDraft] = React.useState(false);
   const [customCommandMode, setCustomCommandMode] = React.useState(false);
@@ -148,357 +63,79 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [hasDraft, setHasDraft] = React.useState(false);
   const [draftData, setDraftData] = React.useState({ to: "", subject: "", body: "" });
   const [localSentMessages, setLocalSentMessages] = React.useState<GmailMessage[]>([]);
-  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [isTagModalOpen, setIsTagModalOpen] = React.useState(false);
   const [tagModalEmail, setTagModalEmail] = React.useState<GmailMessage | null>(null);
+  const [selectedEmail, setSelectedEmail] = React.useState<GmailMessage | null>(
+    null,
+  );
+  const {
+      selectedIds,
+      setSelectedIds,
+      toggleSelection,
+      selectAll,
+      clearSelection,
+      handleBulkArchive,
+      handleBulkTag
+  } = useLeadsBulkActions(setMessages, setMessageTags, setCustomTags);
+
+  const {
+      handleDeleteMessage,
+      handleArchiveMessage,
+      handleSpamMessage,
+      handleMarkUnreadMessage
+  } = useLeadsMessageHandlers(setMessages, setSelectedEmail);
   const itemsPerPage = 50;
+  const searchParams = useSearchParams();
 
-  // Restore State on Mount
+  // Listen for 'compose' query param to trigger new email
   React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      const persistedSession = localStorage.getItem("crm_leads_session");
-      const persistedMessages = localStorage.getItem("crm_leads_messages");
+    const composeEmail = searchParams?.get("compose");
+    if (composeEmail) {
+      setDraftData({
+        to: composeEmail,
+        subject: "",
+        body: "",
+      });
+      setIsComposeOpen(true);
+      setHasDraft(false); // Clear previous draft state to focus on new
       
-      if (persistedMessages) {
-        try {
-          const parsedMessages = JSON.parse(persistedMessages);
-          if (Array.isArray(parsedMessages)) {
-            setMessages(parsedMessages);
-            localStorage.setItem("crm_leads_messages", JSON.stringify(parsedMessages));
-          }
-        } catch(e) {}
-      }
-
-      if (persistedSession) {
-        try {
-          const state = JSON.parse(persistedSession);
-          // The canonical tags — ALL CAPS only
-          const CANONICAL_TAGS = ["NALIEHAVÉ", "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"];
-          const CANONICAL_COLORS: Record<string, string> = {
-            "NALIEHAVÉ": "#ff6d00",
-            "URGENTNÉ": "#ff2040",
-            "NOVÝ OBCHOD": "#00e676",
-            "SERVIS": "#00b0ff",
-            "VYBAVOVAČKY": "#ffab00"
-          };
-
-          // Merge user custom tags but force uppercase, filter out removed ones
-          const existingTags = (state.customTags && Array.isArray(state.customTags)
-            ? state.customTags
-                .map((t: string) => t.toUpperCase())
-                .filter((t: string) => ![
-                  "BACKOFFICE", "KÁVIČKA", "DO VYBAVENIA", "NA PREČÍTANIE",
-                  "URGENTNé", "URGENTE", "DÔLEŽITÉ", "NÁLIEHAVÉ"
-                ].includes(t))
-            : []);
-          const mergedTags = Array.from(new Set([...existingTags, ...CANONICAL_TAGS])).sort();
-          setCustomTags(mergedTags);
-
-          // Strip removed tags from messageTags
-          if (state.messageTags && typeof state.messageTags === "object") {
-            const cleanedMsgTags: Record<string, string[]> = {};
-            for (const [msgId, tags] of Object.entries(state.messageTags as Record<string, string[]>)) {
-              const validTags = tags
-                .map((t: string) => t.toUpperCase())
-                .filter((t: string) => CANONICAL_TAGS.includes(t));
-              if (validTags.length > 0) cleanedMsgTags[msgId] = validTags;
-            }
-            setMessageTags(cleanedMsgTags);
-          }
-
-          // Colors: keep defaults, merge only valid user overrides
-          const mergedColors: Record<string, string> = { ...CANONICAL_COLORS };
-          if (state.tagColors && typeof state.tagColors === "object") {
-            for (const key of CANONICAL_TAGS) {
-              if (state.tagColors[key]) mergedColors[key] = state.tagColors[key];
-            }
-          }
-          setTagColors(mergedColors);
-
-
-          if (state.selectedTab) setSelectedTab(state.selectedTab);
-          if (state.searchQuery !== undefined) setSearchQuery(state.searchQuery);
-          if (state.isComposeOpen !== undefined) setIsComposeOpen(state.isComposeOpen);
-          if (state.hasDraft !== undefined) setHasDraft(state.hasDraft);
-          if (state.draftContent !== undefined) setDraftContent(state.draftContent);
-          if (state.draftData) setDraftData(state.draftData);
-          if (state.selectedEmail) setSelectedEmail(state.selectedEmail);
-          if (state.customPrompt !== undefined) setCustomPrompt(state.customPrompt);
-          if (state.customCommandMode !== undefined) setCustomCommandMode(state.customCommandMode);
-          if (state.activeActionId !== undefined) setActiveActionId(state.activeActionId);
-          if (state.currentPage) setCurrentPage(state.currentPage);
-          if (state.selectedIds && Array.isArray(state.selectedIds)) {
-            setSelectedIds(new Set(state.selectedIds));
-          }
-
-          // Deep sync from DB if possible
-          fetch("/api/notes?type=leads_settings")
-            .then(res => res.json())
-            .then(data => {
-              const CANONICAL_TAGS = ["NALIEHAVÉ", "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"];
-              if (data.success && data.settings) {
-                if (data.settings.customTags && Array.isArray(data.settings.customTags)) {
-                  const filtered = data.settings.customTags
-                    .map((t: string) => t.toUpperCase())
-                    .filter((t: string) => ![
-                        "BACKOFFICE", "KÁVIČKA", "DO VYBAVENIA", "NA PREČÍTANIE",
-                        "URGENTNé", "DÔLEŽITÉ", "NÁLIEHAVÉ"
-                    ].includes(t));
-                  const safelyMergedTags = Array.from(new Set([...filtered, ...CANONICAL_TAGS])).sort();
-                  setCustomTags(safelyMergedTags);
-                }
-                if (data.settings.tagColors) {
-                  setTagColors(prev => ({
-                    ...prev,
-                    ...(Object.fromEntries(
-                      Object.entries(data.settings.tagColors as Record<string, string>)
-                        .filter(([k]) => CANONICAL_TAGS.includes(k))
-                    ) as Record<string, string>)
-                  }));
-                }
-                if (data.settings.messageTags && typeof data.settings.messageTags === "object") {
-                  setMessageTags(prev => {
-                    const merged = { ...prev };
-                    for (const [msgId, tags] of Object.entries(data.settings.messageTags as Record<string, string[]>)) {
-                      const validTags = (tags as string[])
-                        .map((t: string) => t.toUpperCase())
-                        .filter((t: string) => CANONICAL_TAGS.includes(t));
-                      if (validTags.length > 0) merged[msgId] = validTags;
-                      else delete merged[msgId];
-                    }
-                    return merged;
-                  });
-                }
-              }
-            }).catch(() => {});
-
-        } catch(e) { console.error("Error parsing CRM leads session", e); }
-      }
+      // Clean up URL after processing (optional but cleaner)
+      // window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []);
+  }, [searchParams]);
 
-  // Persist State continuously
-  React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      const settings = {
-        selectedTab,
-        searchQuery,
-        isComposeOpen,
-        hasDraft,
-        draftData,
-        draftContent,
-        selectedEmail,
-        customPrompt,
-        customCommandMode,
-        activeActionId,
-        currentPage,
-        selectedIds: Array.from(selectedIds),
-        customTags,
-        tagColors,
-        messageTags
-      };
-      localStorage.setItem("crm_leads_session", JSON.stringify(settings));
-
-      // Sync specific settings (tags & colors) to DB
-      const syncToDB = async () => {
-        try {
-          await fetch("/api/notes", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: "LEADS_INBOX_SETTINGS",
-              content: JSON.stringify({ customTags, tagColors, messageTags })
-            })
-          });
-        } catch (e) { console.error("Failed to sync settings to DB", e); }
-      };
-      
-      const timer = setTimeout(syncToDB, 5000); // 5s debounce
-      return () => clearTimeout(timer);
-    }
-  }, [selectedTab, searchQuery, isComposeOpen, hasDraft, draftData, draftContent, selectedEmail, customPrompt, customCommandMode, activeActionId, currentPage, selectedIds, customTags, tagColors, messageTags]);
-
-  // Persist messages purely for offline fallback
-  React.useEffect(() => {
-    if (typeof window !== "undefined" && messages.length > 0) {
-      localStorage.setItem("crm_leads_messages", JSON.stringify(messages));
-    }
-  }, [messages]);
+  useLeadsPersistence(
+    setMessages, setSelectedTab, setSearchQuery, setIsComposeOpen, setHasDraft,
+    setDraftContent, setDraftData, setSelectedEmail, setCustomPrompt, setCustomCommandMode,
+    setActiveActionId, setCurrentPage, setSelectedIds, setCustomTags, setTagColors, setMessageTags,
+    { selectedTab, searchQuery, isComposeOpen, hasDraft, draftData, draftContent, selectedEmail, customPrompt, customCommandMode, activeActionId, currentPage, selectedIds: Array.from(selectedIds), customTags, tagColors, messageTags }
+  );
 
   const analyzedIds = React.useRef<Set<string>>(new Set());
 
-  const fetchMessages = async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
-    try {
-      // Fetch DB Analyses first (background analyzed emails)
-      const dbRes = await fetch("/api/notes?type=ai_analysis");
-      if (dbRes.ok) {
-        const dbData = await dbRes.json();
-        if (dbData.success) {
-          setDbAnalyses(dbData.notes || []);
-        }
-      }
+  React.useEffect(() => {
+    fetchMessages();
+    const interval = setInterval(() => fetchMessages(true), 15000);
+    return () => clearInterval(interval);
+  }, []);
 
-      // Fetch Gmail
-      const gmailRes = await fetch("/api/google/gmail", { cache: "no-store" });
-      if (gmailRes.ok) {
-        const gmailData = await gmailRes.json();
-        if (gmailData.isConnected && gmailData.messages) {
-          setIsConnected(true);
-          const smartTagsBatch: Record<string, string[]> = {};
-          setMessages((prev) => {
-            return gmailData.messages.map((newMsg: GmailMessage) => {
-              const existing = prev.find((p) => p.id === newMsg.id);
-
-              let classification = existing?.classification;
-              if (!classification) {
-                // Check DB analyses
-                const dbMatch = dbAnalyses.find(
-                  (a) => a.metadata?.gmail_id === newMsg.id,
-                );
-                if (dbMatch) {
-                  classification = dbMatch.metadata.classification;
-                } else {
-                  const saved = typeof window !== 'undefined' ? localStorage.getItem(`ai_classify_${newMsg.id}`) : null;
-                  if (saved) classification = JSON.parse(saved);
-                }
-              }
-
-              if (classification) {
-                const tags = getSmartTags(classification);
-                if (tags.length > 0) smartTagsBatch[newMsg.id] = tags;
-                return { ...newMsg, classification };
-              }
-              return newMsg;
-            });
-          });
-
-          // Apply all smart tags in one go
-          if (Object.keys(smartTagsBatch).length > 0) {
-            setMessageTags(prev => {
-              const next = { ...prev };
-              Object.entries(smartTagsBatch).forEach(([id, tags]) => {
-                const existing = next[id] || [];
-                next[id] = Array.from(new Set([...existing, ...tags]));
-              });
-              return next;
-            });
-          }
-        } else if (gmailData.isConnected === false) {
-          setIsConnected(false);
-        }
-      }
-
-      // Fetch Android Logs
-      try {
-        if (!isBackground) {
-          const androidRes = await fetch("/api/android-logs");
-          if (androidRes.ok) {
-            const androidData = await androidRes.json();
-            if (androidData.success) {
-              setAndroidLogs(androidData.logs);
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Android logs fetch error", e);
-      }
-
-      // DEVELOPMENT MOCK DATA: Inject fake emails for visualization
-      if (process.env.NODE_ENV === "development") {
-        const mockTemplates = [
-          {
-            from: "Marek Urgentný <marek@servis-web.sk>",
-            subject: "KRÍZA: Celý systém spadol!",
-            body: "SÚRNE! Nefunguje nám webová stránka, klienti sa nevedia prihlásiť. Potrebujem to vyriešiť do hodiny, inak prichádzame o peniaze. Prosím, volajte mi hneď!",
-            snippet: "SÚRNE! Nefunguje nám webová stránka, klienti sa nevedia prihlásiť. Potrebujem to vyriešiť...",
-            budget: "—",
-            intent: "problem",
-            category: "Technická podpora",
-            nextStep: "Okamžite nahodiť server a volať klientovi",
-            priority: "vysoka"
-          },
-          {
-            from: "Andrej Networking <andrej@biznis-klub.sk>",
-            subject: "Dajme kávu / Lunch?",
-            body: "Ahoj, sledoval som tvoj posledný projekt a fakt super práca. Nechceš skočiť niekedy budúci týždeň na kávu alebo spoločný lunch? Rád by som prebral možnosti spolupráce a networking.",
-            snippet: "Ahoj, sledoval som tvoj posledný projekt a fakt super práca. Nechceš skočiť niekedy...",
-            budget: "—",
-            intent: "ine",
-            category: "Networking",
-            nextStep: "Navrhnúť termín na stretnutie",
-            priority: "nizka"
-          },
-          {
-            from: "Účtovníctvo <faktury@ucto-plus.sk>",
-            subject: "Faktúra za február 2026",
-            body: "Dobrý deň, v prílohe vám posielam faktúru za služby za mesiac február. Prosím o úhradu v lehote splatnosti. V prípade otázok ma neváhajte kontaktovať.",
-            snippet: "Dobrý deň, v prílohe vám posielam faktúru za služby za mesiac február. Prosím o úhradu...",
-            budget: "250 €",
-            intent: "faktura",
-            category: "Administratíva",
-            nextStep: "Uhradiť faktúru do 14 dní",
-            priority: "stredna"
-          }
-        ];
-
+  // Development Mock Data logic remains in the main hook for visibility but uses the helper
+  React.useEffect(() => {
+      if (process.env.NODE_ENV === "development" && messages.length === 0 && !loading) {
         const smartTagsBatch: Record<string, string[]> = {};
-        const mocks: GmailMessage[] = Array.from({ length: 155 }).map((_, i) => {
-          const template = mockTemplates[i % mockTemplates.length];
-          const id = `mock-${i}`;
-          
-          let isRead = false;
-          let isStarred = false;
-          if (typeof window !== 'undefined') {
-            try {
-              isRead = localStorage.getItem(`email_read_mock-${i}`) === "true";
-              isStarred = localStorage.getItem(`email_starred_mock-${i}`) === "true";
-            } catch(e) {}
-          }
+        const mocks = getMockMessages(getSmartTags);
 
-          const classification = {
-            intent: (template.intent as any),
-            priority: (template.priority as any),
-            estimated_budget: template.budget,
-            summary: template.body.substring(0, 80) + "...",
-            next_step: template.nextStep,
-            service_category: template.category,
-            sentiment: "pozitivny" as any
-          };
-
-          const tags = getSmartTags(classification);
-          if (tags.length > 0) smartTagsBatch[id] = tags;
-
-          return {
-            id,
-            threadId: `thread-${i}`,
-            from: template.from,
-            subject: `${template.subject} #${i + 1}`,
-            snippet: template.snippet,
-            date: new Date(Date.now() - i * 1800000).toISOString(),
-            isRead,
-            isStarred,
-            body: template.body,
-            labels: ["INBOX"],
-            classification
-          };
+        mocks.forEach(m => {
+          const tags = getSmartTags(m.classification);
+          if (tags.length > 0) smartTagsBatch[m.id] = tags;
         });
 
-        setMessages(prev => {
-          if (prev.some(m => m.id.startsWith('mock-'))) return prev;
-          return mocks;
-        });
-
+        setMessages(mocks);
         if (Object.keys(smartTagsBatch).length > 0) {
           setMessageTags(prev => ({ ...prev, ...smartTagsBatch }));
         }
       }
-    } catch (error) {
-      console.error("Failed to fetch inbox:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [messages.length, loading, getMockMessages, getSmartTags, setMessages, setMessageTags]);
 
   const handleConnect = async () => {
     if (!isLoaded || !user) return;
@@ -589,159 +226,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     }
   };
 
-  const handleDeleteMessage = async (e: React.MouseEvent | null, msg: GmailMessage) => {
-    if (e) e.stopPropagation();
-
-    const toastId = toast.loading("Odstraňujem správu...");
-    
-    // Optimistic UI update
-    setMessages((prev) =>
-      prev.map((m) => {
-        if (m.id === msg.id) {
-          const currentLabels = m.labels || [];
-          return { 
-            ...m, 
-            labels: [...currentLabels.filter(l => l !== "INBOX"), "TRASH"] 
-          };
-        }
-        return m;
-      }),
-    );
-
-    if (selectedEmail?.id === msg.id) {
-      setSelectedEmail(null);
-    }
-
-    if (msg.id.startsWith("mock-") || msg.id.startsWith("local-sent-") || msg.id === "local-draft-1") {
-      toast.success("Správa bola presunutá do koša", { id: toastId });
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/google/gmail", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          messageId: msg.id,
-          action: "trash" 
-        }),
-      });
-
-      if (res.ok) {
-        toast.success("Správa bola presunutá do koša", { id: toastId });
-      } else {
-        throw new Error("Failed to trash");
-      }
-    } catch (error) {
-      console.error("Failed to delete message:", error);
-      // Revert on failure
-      setMessages((prev) =>
-        prev.map((m) => {
-          if (m.id === msg.id) {
-            const currentLabels = m.labels || [];
-            return { 
-              ...m, 
-              labels: [...currentLabels.filter(l => l !== "TRASH"), "INBOX"] 
-            };
-          }
-          return m;
-        }),
-      );
-      toast.error("Nepodarilo sa odstrániť správu", { id: toastId });
-    }
-  };
-
-  const handleArchiveMessage = async (msg: GmailMessage) => {
-    const toastId = toast.loading("Archivujem správu...");
-    setMessages((prev) =>
-      prev.map((m) => {
-        if (m.id === msg.id) {
-          const currentLabels = m.labels || [];
-          return { 
-            ...m, 
-            labels: [...currentLabels.filter(l => l !== "INBOX"), "ARCHIVE"] 
-          };
-        }
-        return m;
-      }),
-    );
-    if (selectedEmail?.id === msg.id) setSelectedEmail(null);
-
-    if (msg.id.startsWith("mock-") || msg.id.startsWith("local-sent-") || msg.id === "local-draft-1") {
-      toast.success("Správa bola archivovaná", { id: toastId });
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/google/gmail", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId: msg.id, action: "archive" }),
-      });
-      if (res.ok) toast.success("Správa bola archivovaná", { id: toastId });
-      else throw new Error();
-    } catch (e) {
-      toast.error("Chyba pri archivácii", { id: toastId });
-    }
-  };
-
-  const handleSpamMessage = async (msg: GmailMessage) => {
-    const toastId = toast.loading("Nahlasujem spam...");
-    setMessages((prev) =>
-      prev.map((m) => {
-        if (m.id === msg.id) {
-          const currentLabels = m.labels || [];
-          return { 
-            ...m, 
-            labels: [...currentLabels.filter(l => l !== "INBOX"), "SPAM"] 
-          };
-        }
-        return m;
-      }),
-    );
-    if (selectedEmail?.id === msg.id) setSelectedEmail(null);
-
-    // Mock handling
-    if (msg.id.startsWith("mock-")) {
-      toast.success("Nahlásené ako spam", { id: toastId });
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/google/gmail", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId: msg.id, action: "spam" }),
-      });
-      if (res.ok) toast.success("Nahlásené ako spam", { id: toastId });
-      else throw new Error();
-    } catch (e) {
-      toast.error("Chyba pri nahlasovaní", { id: toastId });
-    }
-  };
-
-  const handleMarkUnreadMessage = async (msg: GmailMessage) => {
-    setMessages((prev) =>
-      prev.map((m) => (m.id === msg.id ? { ...m, isRead: false } : m)),
-    );
-    if (selectedEmail?.id === msg.id) setSelectedEmail(null);
-
-    if (msg.id.startsWith("mock-")) {
-      toast.success("Označené ako neprečítané");
-      return;
-    }
-
-    try {
-      await fetch("/api/google/gmail", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId: msg.id, action: "unread" }),
-      });
-      toast.success("Označené ako neprečítané");
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  // Message Handlers moved to useLeadsMessageHandlers hook
 
   const analyzeEmail = async (msg: GmailMessage) => {
     if (analyzedIds.current.has(msg.id)) return;
@@ -823,108 +308,15 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     setActiveActionId((prev) => (prev === msgId ? null : msgId));
   };
 
-  const handleDraftReply = async (msg: GmailMessage) => {
-    setIsGeneratingDraft(true);
-    try {
-      const cleanBody = (msg.body || "")
-        .toString()
-        .replace(/<[^>]*>?/gm, "")
-        .substring(0, 1000);
-      const res = await fetch("/api/ai/draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          originalContent: cleanBody,
-          nextStep: msg.classification?.next_step || "Reply",
-          senderName: msg.from,
-          messageId: msg.id,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setDraftContent(data.draft);
-        setDraftingEmail(msg);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsGeneratingDraft(false);
-    }
-  };
+  const { handleDraftReply, executeCommand } = useLeadsAgent(
+    setDraftContent, setDraftingEmail, setIsGeneratingDraft, setSearchQuery, setSelectedTab, setMessages
+  );
 
   const handleExecuteCustomCommand = async () => {
     if (!customPrompt.trim() || !selectedEmail) return;
-    setIsGeneratingDraft(true);
-
-    try {
-      const cleanBody = (selectedEmail.body || "")
-        .toString()
-        .replace(/<[^>]*>?/gm, "")
-        .substring(0, 2000);
-
-      const res = await fetch("/api/ai/agent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: customPrompt,
-          emailBody: cleanBody,
-          sender: selectedEmail.from,
-          messageId: selectedEmail.id,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success && data.plan?.actions) {
-        for (const action of data.plan.actions) {
-          if (action.tool === "draft_reply") {
-            setDraftContent(
-              action.parameters.body_html || action.parameters.body,
-            );
-            setDraftingEmail(selectedEmail);
-          } else if (action.tool === "create_contact") {
-            await agentCreateContact(action.parameters);
-          } else if (action.tool === "create_deal") {
-            await agentCreateDeal({
-              ...action.parameters,
-              contact_email: selectedEmail.from,
-            });
-          } else if (action.tool === "check_availability") {
-            await agentCheckAvailability(action.parameters.time_range);
-          } else if (action.tool === "schedule_event") {
-            await agentScheduleEvent(action.parameters);
-          } else if (action.tool === "send_email") {
-            await agentSendEmail({
-              recipient: selectedEmail.from,
-              subject: "Re: " + selectedEmail.subject,
-              body_html: action.parameters.content || action.parameters.body,
-              threadId: selectedEmail.id,
-            });
-          } else if (action.tool === "search_filter") {
-            if (action.parameters.query)
-              setSearchQuery(action.parameters.query);
-            if (action.parameters.tab) setSelectedTab(action.parameters.tab);
-          } else if (action.tool === "mark_read") {
-            await fetch("/api/google/gmail", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ messageId: selectedEmail.id }),
-            });
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === selectedEmail.id ? { ...m, isRead: true } : m,
-              ),
-            );
-          }
-        }
-        setCustomCommandMode(false);
-        setCustomPrompt("");
-      }
-    } catch (error) {
-      console.error("Agent Execution Failed:", error);
-    } finally {
-      setIsGeneratingDraft(false);
-    }
+    await executeCommand(customPrompt, selectedEmail);
+    setCustomCommandMode(false);
+    setCustomPrompt("");
   };
 
   const handleSaveContact = async (e: React.MouseEvent, msg: GmailMessage) => {
@@ -987,108 +379,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     setIsContactModalOpen(true);
   };
 
-  const normalizeSearchText = (text?: string | null) => {
-    return (text || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
-  };
-
-  const filteredMessages = messages.filter((msg) => {
-    const lowerSearch = normalizeSearchText(searchQuery);
-    const matchesSearch =
-      normalizeSearchText(msg.subject).includes(lowerSearch) ||
-      normalizeSearchText(msg.from).includes(lowerSearch) ||
-      normalizeSearchText(msg.snippet).includes(lowerSearch);
-
-
-
-    if (selectedTab === "unread") return matchesSearch && !msg.isRead;
-    if (selectedTab === "starred") return matchesSearch && msg.isStarred;
-    if (selectedTab === "sent") return matchesSearch && msg.labels?.includes("SENT");
-    if (selectedTab === "drafts") return matchesSearch && msg.labels?.includes("DRAFT");
-    if (selectedTab === "snoozed") return matchesSearch && msg.labels?.includes("SNOOZED");
-    if (selectedTab === "shopping") return matchesSearch && msg.labels?.includes("CATEGORY_PURCHASES");
-    if (selectedTab === "spam") return matchesSearch && msg.labels?.includes("SPAM");
-    if (selectedTab === "trash") return matchesSearch && msg.labels?.includes("TRASH");
-    if (selectedTab === "all") return matchesSearch && (!msg.labels || msg.labels.includes("INBOX") || msg.labels.length === 0);
-    if (selectedTab.startsWith("tag:")) {
-      const tag = selectedTab.replace("tag:", "");
-      const msgTags = messageTags[msg.id] || [];
-      const hasGmailTag = msg.labels?.includes(tag) || false;
-      return matchesSearch && (hasGmailTag || msgTags.includes(tag));
-    }
-    
-    // For now, these tabs are placeholders, so we show all messages
-    if (["leads", "more", "archive"].includes(selectedTab)) {
-      return matchesSearch;
-    }
-    return false;
-  });
-
-  const filteredLocalSent = localSentMessages.filter((msg) => {
-    const lowerSearch = normalizeSearchText(searchQuery);
-    const matchesSearch =
-      normalizeSearchText(msg.subject).includes(lowerSearch) ||
-      normalizeSearchText(msg.snippet).includes(lowerSearch);
-
-    if (selectedTab === "sent") return matchesSearch && msg.labels?.includes("SENT");
-    if (selectedTab === "all") return matchesSearch;
-    
-    return false;
-  });
-
-  const filteredLogs = androidLogs.filter((log) => {
-    const lowerSearch = normalizeSearchText(searchQuery);
-    const matchesSearch =
-      normalizeSearchText(log.phone_number).includes(lowerSearch) ||
-      normalizeSearchText(log.body).includes(lowerSearch);
-
-    if (selectedTab === "sms") return matchesSearch && log.type === "sms";
-    if (selectedTab === "calls") return matchesSearch && log.type === "call";
-    if (selectedTab === "all") return matchesSearch;
-    return false;
-  });
-
-  const shouldShowDraft = hasDraft && selectedTab === "drafts";
-
-  const localDraftItem = shouldShowDraft ? [{
-    id: "local-draft-1",
-    threadId: "draft",
-    from: "Koncept (Nová správa)",
-    subject: (draftData.subject || "Bez predmetu") + " (Rozpísané)",
-    snippet: draftData.body || draftData.to || "Zatiaľ bez textu...",
-    date: new Date().toISOString(),
-    isRead: true,
-    isStarred: false,
-    body: draftData.body,
-    labels: ["DRAFT"],
-    classification: {
-      intent: "notifikácia" as any,
-      priority: "stredna" as any,
-      estimated_budget: "—",
-      summary: "Neodoslaný koncept. Kliknite pre pokračovanie v písaní.",
-      next_step: "Dokončiť a odoslať správu",
-      service_category: "Koncepty",
-      sentiment: "pozitivny" as any
-    },
-    itemType: "email" as const
-  } as any] : [];
-
-  const allItems = [
-    ...localDraftItem,
-    ...filteredLocalSent.map((m) => ({ ...m, itemType: "email" as const })),
-    ...filteredMessages.map((m) => ({ ...m, itemType: "email" as const })),
-    ...filteredLogs.map((l) => ({ ...l, itemType: "android" as const })),
-  ].sort((a, b) => {
-    const dateA = new Date(
-      (a as any).date || (a as any).timestamp || 0,
-    ).getTime();
-    const dateB = new Date(
-      (b as any).date || (b as any).timestamp || 0,
-    ).getTime();
-    return dateB - dateA;
-  });
+  const { allItems } = useLeadsFiltering(
+    messages, localSentMessages, androidLogs, searchQuery, selectedTab, messageTags, hasDraft, draftData
+  );
 
   const totalPages = Math.ceil(allItems.length / itemsPerPage);
   const paginatedItems = allItems.slice(
@@ -1096,56 +389,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     currentPage * itemsPerPage
   );
 
-  const toggleSelection = React.useCallback((id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const selectAll = React.useCallback((ids: string[]) => {
-    setSelectedIds(prev => {
-      if (prev.size === ids.length) return new Set();
-      return new Set(ids);
-    });
-  }, []);
-
-  const clearSelection = React.useCallback(() => {
-    setSelectedIds(new Set());
-  }, []);
-
-  const handleBulkArchive = React.useCallback((idsToArchive: string[]) => {
-    import('sonner').then(({ toast }) => toast.success(`Archivovaných ${idsToArchive.length} správ`));
-    setMessages(prev => 
-      prev.map(m => idsToArchive.includes(m.id) ? { ...m, labels: [...(m.labels || []), "ARCHIVE"].filter(l => l !== "INBOX") } : m)
-    );
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      idsToArchive.forEach(id => next.delete(id));
-      return next;
-    });
-  }, []);
-
-  const handleBulkTag = React.useCallback((idsToTag: string[], tag: string) => {
-    import('sonner').then(({ toast }) => toast.success(`Štítok '${tag}' pridaný na ${idsToTag.length} správ`));
-    setMessageTags(prev => {
-      const next = { ...prev };
-      idsToTag.forEach(id => {
-        next[id] = [...new Set([...(next[id] || []), tag])];
-      });
-      return next;
-    });
-    setCustomTags(prev => {
-      if (!prev.includes(tag)) return [...prev, tag].sort();
-      return prev;
-    });
-    clearSelection();
-  }, [clearSelection]);
-
   const handleEmptyTrash = React.useCallback(() => {
-    import('sonner').then(({ toast }) => toast.success("Kôš bol úspešne vyprázdnený"));
+    toast.success("Kôš bol úspešne vyprázdnený");
     setMessages(prev => prev.filter(m => !(m.labels || []).includes("TRASH")));
   }, []);
 
@@ -1157,7 +402,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         : [...current, tag];
       return { ...prev, [id]: next };
     });
-  }, []);
+  }, [setMessageTags]);
 
   const handleRemoveCustomTag = React.useCallback((tag: string) => {
     setCustomTags(prev => prev.filter(t => t !== tag));
@@ -1173,8 +418,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       });
       return next;
     });
-    import('sonner').then(({ toast }) => toast.success(`Štítok '${tag}' bol odstránený`));
-  }, []);
+    toast.success(`Štítok '${tag}' bol odstránený`);
+  }, [setCustomTags, setTagColors, setMessageTags]);
 
   const handleRenameCustomTag = React.useCallback((oldTag: string, newTag: string) => {
     if (!newTag.trim() || oldTag === newTag) return;
@@ -1201,8 +446,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       return next;
     });
     
-    import('sonner').then(({ toast }) => toast.success(`Štítok '${oldTag}' premenovaný na '${newTag}'`));
-  }, []);
+    toast.success(`Štítok '${oldTag}' premenovaný na '${newTag}'`);
+  }, [setCustomTags, setTagColors, setMessageTags]);
 
   return {
     messages,

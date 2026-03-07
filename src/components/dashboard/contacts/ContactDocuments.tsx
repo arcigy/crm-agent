@@ -7,8 +7,8 @@ import {
   ChevronDown,
   Loader2,
   ExternalLink,
-  FileText,
   Search,
+  Cloud,
 } from "lucide-react";
 import { Lead } from "@/types/contact";
 import { DriveFileIcon } from "../projects/DriveFileIcon";
@@ -72,7 +72,6 @@ export function ContactDocuments({ contact }: { contact: Lead }) {
   // Load entire project structure recursively
   const loadProjectRecursive = async (projectId: string) => {
     if (contents[projectId]) {
-      // Already loaded, just toggle
       setExpanded((prev) => ({ ...prev, [projectId]: !prev[projectId] }));
       return;
     }
@@ -85,11 +84,9 @@ export function ContactDocuments({ contact }: { contact: Lead }) {
       const data = await res.json();
 
       if (data.isConnected && data.files) {
-        // Build hierarchical structure
         const fileMap = new Map<string, FileNode>();
         const rootChildren: FileNode[] = [];
 
-        // First pass: create all nodes
         data.files.forEach((file: any) => {
           fileMap.set(file.id, {
             id: file.id,
@@ -101,23 +98,19 @@ export function ContactDocuments({ contact }: { contact: Lead }) {
           });
         });
 
-        // Second pass: build hierarchy
         data.files.forEach((file: any) => {
           const node = fileMap.get(file.id)!;
           const parentId = file.parents?.[0];
 
           if (parentId === projectId) {
-            // Direct child of project root
             rootChildren.push(node);
           } else if (parentId && fileMap.has(parentId)) {
-            // Child of another folder
             const parent = fileMap.get(parentId)!;
             if (!parent.children) parent.children = [];
             parent.children.push(node);
           }
         });
 
-        // Sort folders first, then files
         const sortNodes = (nodes: FileNode[]) => {
           nodes.sort((a, b) => {
             const aIsFolder =
@@ -163,56 +156,48 @@ export function ContactDocuments({ contact }: { contact: Lead }) {
                 : window.open(node.webViewLink, "_blank")
             }
             className={`
-              group flex items-center gap-2 py-1.5 px-3 rounded-lg cursor-pointer transition-all
-              hover:bg-muted/50 border border-transparent hover:border-border/50
-              ${level === 0 ? "mt-4 first:mt-0" : ""}
+              group flex items-center gap-3 py-2 px-3 rounded-xl cursor-pointer transition-all duration-200
+              ${isFolder ? "hover:bg-violet-500/5 text-zinc-300" : "hover:bg-violet-500/10 text-zinc-400"}
+              border border-transparent hover:border-violet-500/20 relative
             `}
-            style={{ paddingLeft: `${level * 16 + 12}px` }}
+            style={{ marginLeft: `${level * 20}px` }}
           >
-            {/* Indentation line for nested items */}
-            {level > 0 && (
-              <div
-                className="absolute left-0 w-px h-full bg-border/40 group-hover:bg-blue-500/30"
-                style={{ left: `${level * 16 - 2}px` }}
-              />
-            )}
-
-            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
               {isFolder ? (
                 <>
-                  {isExpanded ? (
-                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  ) : (
-                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  )}
-                  <DriveFileIcon file={node} className="w-4 h-4 shrink-0" />
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isExpanded ? 'bg-violet-500/20 text-violet-400 border border-violet-500/20' : 'bg-white/5 text-zinc-500 border border-white/5'}`}>
+                    <Folder className={`w-4 h-4 ${isExpanded ? 'fill-violet-400/20' : ''}`} />
+                  </div>
                 </>
               ) : (
-                <>
-                  <div className="w-3.5 h-3.5 shrink-0" />{" "}
-                  {/* Spacer for alignment with folders */}
-                  <DriveFileIcon file={node} className="w-4 h-4 shrink-0" />
-                </>
+                <div className="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/5 flex items-center justify-center text-zinc-500">
+                  <DriveFileIcon file={node} className="w-4 h-4" />
+                </div>
               )}
 
-              <span
-                className={`
-                text-[13px] truncate transition-colors font-medium
-                ${isFolder ? "text-foreground" : "text-muted-foreground group-hover:text-blue-500"}
-                ${level === 0 ? "font-black uppercase tracking-tight text-[11px] text-blue-600" : ""}
-              `}
-              >
-                {node.name}
-              </span>
+              <div className="flex flex-col min-w-0">
+                <span className={`text-sm font-semibold ${isFolder ? "text-white" : "text-zinc-400 group-hover:text-violet-400"} transition-colors truncate`}>
+                  {node.name}
+                </span>
+                <span className="text-[10px] font-medium text-zinc-500 leading-none mt-0.5">
+                  {isFolder ? "Priečinok" : node.mimeType.split('.').pop()?.toUpperCase() || "Súbor"}
+                </span>
+              </div>
             </div>
 
+            {isFolder && (
+                 <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                    <ChevronDown className="w-3.5 h-3.5 text-zinc-600" />
+                 </div>
+            )}
+            
             {!isFolder && (
-              <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-40 transition-opacity" />
+              <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-40 transition-all text-violet-400" />
             )}
           </div>
 
           {isFolder && isExpanded && hasChildren && (
-            <div className="relative">
+            <div className="mt-1">
               {renderTree(node.children!, level + 1)}
             </div>
           )}
@@ -222,87 +207,86 @@ export function ContactDocuments({ contact }: { contact: Lead }) {
   };
 
   return (
-    <div className="h-full flex flex-col p-8 custom-scrollbar overflow-y-auto bg-card/30">
-      <div className="mb-10 flex items-end justify-between border-b border-border pb-6">
-        <div>
-          <h3 className="text-2xl font-black text-foreground uppercase tracking-tight italic leading-none">
-            Google <span className="text-blue-600">Explorer</span>
+    <div className="h-full flex flex-col p-6 bg-transparent overflow-hidden">
+      {/* Header - Violet Branding Style */}
+      <div className="mb-6 flex items-center justify-between bg-slate-900 bg-opacity-50 backdrop-blur-lg border border-violet-900/30 p-6 rounded-2xl relative overflow-hidden shadow-lg">
+        <div className="absolute -top-10 -left-10 w-40 h-40 bg-violet-500 opacity-5 rounded-full blur-[50px] pointer-events-none" />
+        
+        <div className="relative z-10">
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            Cloudový <span className="text-violet-400">Archív</span>
           </h3>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-2 opacity-70">
-            Projektová štruktúra a dokumentácia
+          <p className="text-[11px] font-semibold text-zinc-500 mt-1">
+             {contact.first_name} {contact.last_name} — Dokumenty
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
-            <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">
-              Live Sync
-            </span>
-          </div>
+
+        <div className="relative z-10 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.1)] transition-transform hover:scale-105">
+                <Cloud className="w-5 h-5" />
+            </div>
         </div>
       </div>
 
-      <div className="flex-1">
+      <div className="flex-1 overflow-y-auto thin-scrollbar pr-2 pb-6">
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center gap-4">
-            <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-              PRIPÁJAM SA K DRIVE...
+            <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+            <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest animate-pulse">
+              Synchronizujem...
             </p>
           </div>
         ) : roots.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-            <div className="w-20 h-20 bg-muted rounded-[2rem] flex items-center justify-center text-4xl mb-4 grayscale">
-              📁
+          <div className="flex flex-col items-center justify-center h-[400px] text-center p-12 relative overflow-hidden">
+            {/* Subtle Neon Background Decorations */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col items-center">
+                <div className="w-20 h-20 bg-blue-500/10 rounded-[2rem] border border-blue-400/20 flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(59,130,246,0.15)] transition-transform hover:scale-110">
+                  <Folder className="w-9 h-9 text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                </div>
+                
+                <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
+                  Digitálny archív je prázdny
+                </h3>
+                
+                <p className="text-sm text-zinc-400 max-w-sm leading-relaxed font-medium">
+                  Zdá sa, že v cloude neexistuje priečinok s menom tohto klienta. Skontrolujte nastavenia synchronizácie.
+                </p>
             </div>
-            <p className="text-sm font-black uppercase tracking-widest text-foreground">
-              Žiadne prepojené projekty
-            </p>
-            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-2">
-              Chýba tag "Client: {contact.first_name} {contact.last_name}" v
-              popise
-            </p>
           </div>
         ) : (
-          <div className="bg-background/40 rounded-[2rem] border border-border p-6 shadow-inner relative overflow-hidden">
-            {/* Subtle background decoration */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[80px] -mr-32 -mt-32 rounded-full" />
-
-            <div className="relative z-10 space-y-10">
-              {roots.map((project) => (
-                <div key={project.id} className="space-y-4">
-                  {/* Project Header */}
-                  <div className="flex items-center gap-4 border-b border-border pb-4">
-                    <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+          <div className="space-y-4">
+            {roots.map((project) => (
+              <div key={project.id} className="bg-slate-900 bg-opacity-50 backdrop-blur-lg border border-violet-900/30 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-4 border-b border-white/5 pb-4 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-violet-500 flex items-center justify-center text-white shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-transform hover:rotate-6">
                       <Folder className="w-5 h-5 fill-current/20" />
                     </div>
                     <div>
-                      <h4 className="text-base font-black text-foreground uppercase tracking-tight">
+                      <h4 className="text-base font-bold text-white">
                         {project.name}
                       </h4>
-                      <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">
-                        HLAVNÝ PROJEKTOVÝ PRIEČINOK
+                      <p className="text-[10px] font-bold text-violet-400/80 uppercase tracking-wider mt-0.5">
+                        HLAVNÝ PRIEČINOK
                       </p>
                     </div>
                   </div>
 
-                  {/* Subfolders as expandable tree */}
-                  <div className="pl-4">
-                    {!contents[project.id] &&
-                      !loadingNodes[project.id] &&
-                      !expanded[project.id] && (
+                  <div className="pl-2">
+                    {!contents[project.id] && !loadingNodes[project.id] && !expanded[project.id] && (
                         <button
                           onClick={() => loadProjectRecursive(project.id)}
-                          className="text-xs text-muted-foreground hover:text-blue-600 transition-colors flex items-center gap-2"
+                          className="h-9 px-5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-zinc-400 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-sm"
                         >
-                          <ChevronRight className="w-3 h-3" />
-                          Načítať celý projekt...
+                          Načítať štruktúru priečinka
                         </button>
                       )}
 
                     {loadingNodes[project.id] && (
-                      <div className="flex items-center gap-2 text-blue-500 py-2">
+                      <div className="flex items-center gap-3 text-violet-400 py-4 animate-pulse">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span className="text-xs font-bold">Načítavam...</span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Synchronizujem dáta...</span>
                       </div>
                     )}
 
@@ -312,24 +296,24 @@ export function ContactDocuments({ contact }: { contact: Lead }) {
                       </div>
                     )}
                   </div>
-                </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      <div className="mt-8 pt-6 border-t border-border flex justify-between items-center px-4">
-        <div className="flex items-center gap-1.5 grayscale opacity-50">
-          <Folder className="w-3.5 h-3.5" />
-          <Search className="w-3.5 h-3.5" />
-          <span className="text-[9px] font-black uppercase tracking-widest">
-            IDE Interface v2.0
+      {/* Footer Meta */}
+      <div className="mt-2 pt-4 border-t border-white/5 flex justify-between items-center px-4 opacity-50">
+        <div className="flex items-center gap-2.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
+          <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest">
+            Cloud Pipeline Online
           </span>
         </div>
-        <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest">
-          Automatické priraďovanie podľa metadát
-        </p>
+        <div className="flex items-center gap-3">
+             <Search className="w-3.5 h-3.5 text-zinc-600" />
+             <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest">Global Index Active</span>
+        </div>
       </div>
     </div>
   );

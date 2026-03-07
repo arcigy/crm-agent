@@ -37,6 +37,7 @@ export function ComposeModal({
   const [attachments, setAttachments] = React.useState<File[]>([]);
   const suggestionsRef = React.useRef<HTMLDivElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const subjectRef = React.useRef<HTMLInputElement>(null);
 
   const isMinimizedRef = React.useRef(isMinimized);
   const [activeTransition, setActiveTransition] = React.useState("all 0.4s cubic-bezier(0.16, 1, 0.3, 1)");
@@ -45,12 +46,36 @@ export function ComposeModal({
     if (!isOpen) {
       setIsMaximized(false);
       setIsMinimized(false);
-    } else if (initialData) {
-      setTo(initialData.to || "");
-      setSubject(initialData.subject || "");
-      setBody(initialData.body || "");
+    } else {
+      if (initialData) {
+        setTo(initialData.to || "");
+        setSubject(initialData.subject || "");
+        setBody(initialData.body || "");
+      }
+      
+      // If we have a recipient but no subject, focus subject
+      if (initialData?.to && !initialData.subject) {
+        // Longer timeout to ensure the modal is fully rendered and inputs aren't grabbing focus
+        const t = setTimeout(() => {
+            if (subjectRef.current) {
+                subjectRef.current.focus();
+                // Move cursor to end just in case
+                const length = subjectRef.current.value.length;
+                subjectRef.current.setSelectionRange(length, length);
+            }
+        }, 150);
+        return () => clearTimeout(t);
+      } else if (!initialData?.to) {
+        // If no recipient, focus recipient
+        // We'll use a small timeout for this too to be consistent
+        const t = setTimeout(() => {
+            const recipientInput = document.querySelector('input[placeholder="Meno alebo e-mail..."]') as HTMLInputElement;
+            if (recipientInput) recipientInput.focus();
+        }, 150);
+        return () => clearTimeout(t);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, initialData]);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -295,7 +320,6 @@ export function ComposeModal({
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                 className="flex-1 !bg-transparent border-none outline-none focus:ring-0 appearance-none text-white text-[13px] font-medium placeholder:text-white/20"
                 style={{ backgroundColor: "transparent", boxShadow: "none" }}
-                autoFocus
                 placeholder="Meno alebo e-mail..."
               />
             </div>
@@ -375,6 +399,7 @@ export function ComposeModal({
           <div className="flex items-center px-5 py-3 rounded-full border border-violet-500/30 bg-transparent focus-within:border-violet-500/70 transition-colors">
             <span className="text-[13px] font-medium text-white/40 w-16 shrink-0 tracking-wide">Predmet</span>
             <input
+              ref={subjectRef}
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}

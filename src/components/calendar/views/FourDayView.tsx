@@ -8,16 +8,18 @@ interface FourDayViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
+  onDateClick?: (date: Date) => void;
 }
 
 export function FourDayView({
   currentDate,
   events,
   onEventClick,
+  onDateClick,
 }: FourDayViewProps) {
   const days = Array.from({ length: 4 }, (_, i) => addDays(currentDate, i));
 
   return (
-    <TimeGridView days={days} events={events} onEventClick={onEventClick} />
+    <TimeGridView days={days} events={events} onEventClick={onEventClick} onDateClick={onDateClick} />
   );
 }

@@ -6,9 +6,9 @@ import {
   Briefcase,
   MessageSquare,
   Clock,
-  Edit2,
-  Trash2,
-  X,
+  Coins,
+  Activity,
+  Zap,
 } from "lucide-react";
 import { Lead } from "@/types/contact";
 
@@ -27,32 +27,32 @@ export function ContactOverview({
     contact.deals?.reduce((sum, d) => sum + (d.value || 0), 0) || 0;
 
   return (
-    <div className="flex-1 flex flex-col bg-background overflow-hidden relative transition-colors duration-300">
-      <div className="flex-1 overflow-y-auto p-8 bg-slate-50/30 dark:bg-slate-900/10 transition-colors">
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
-            <KpiCard
-              label="Total Deals Value"
-              value={`$${totalDealValue.toLocaleString()}`}
-              icon={<Wallet className="w-4 h-4 text-green-600" />}
-              trend="+12% vs last month"
-            />
-            <KpiCard
-              label="Open Deals"
-              value={String(contact.deals?.length || 0)}
-              icon={<Briefcase className="w-4 h-4 text-blue-600" />}
-            />
-            <KpiCard
-              label="Total Interactions"
-              value={String(contact.activities?.length || 0)}
-              icon={<MessageSquare className="w-4 h-4 text-purple-600" />}
-            />
-            <KpiCard
-              label="Last Contact"
-              value="2 days ago"
-              icon={<Clock className="w-4 h-4 text-amber-600" />}
-            />
-          </div>
+    <div className="h-full flex flex-col p-5 space-y-4 bg-transparent overflow-hidden scrollbar-hide">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <NeonKpi 
+            label="Objem Dealov"
+            value={`${new Intl.NumberFormat('sk-SK').format(totalDealValue)} €`}
+        />
+        <NeonKpi 
+            label="Aktívne Dealy"
+            value={String(contact.deals?.length || 0)}
+        />
+        <NeonKpi 
+            label="Interakcie"
+            value={String(contact.activities?.length || 0)}
+        />
+        <NeonKpi 
+            label="Vek Kontaktu"
+            value="142 dní"
+        />
+        <NeonKpi 
+            label="Posledný Kontakt"
+            value="2 dni"
+        />
+      </div>
+
+      <div className="flex-1 overflow-y-auto thin-scrollbar pr-2 pb-5">
+        <div className="grid grid-cols-12 gap-5">
           {children}
         </div>
       </div>
@@ -60,25 +60,20 @@ export function ContactOverview({
   );
 }
 
-function KpiCard({ label, value, icon, trend }: any) {
+function NeonKpi({ label, value }: any) {
   return (
-    <div className="bg-card p-4 rounded-xl border border-border shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
-      <div className="flex items-start justify-between mb-2">
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+    <div className="relative overflow-hidden flex flex-col items-center justify-center text-center bg-slate-900 bg-opacity-50 backdrop-blur-lg rounded-2xl border border-violet-900/30 px-3 py-3 h-20 shadow-sm transition-all hover:bg-opacity-70 group/kpi">
+        {/* Label */}
+        <span className="text-[10px] font-semibold text-violet-400/80 mb-1 tracking-wider uppercase group-hover/kpi:text-violet-400 transition-colors">
           {label}
         </span>
-        <div className="p-1.5 bg-gray-50 dark:bg-slate-800 rounded-md transition-colors">
-          {icon}
+
+        {/* Value */}
+        <div className="w-full">
+            <h3 className="text-xl font-bold text-white leading-none">
+              {value}
+            </h3>
         </div>
-      </div>
-      <div>
-        <span className="text-xl font-black text-foreground tracking-tight transition-colors">
-          {value}
-        </span>
-        {trend && (
-          <p className="text-[9px] font-bold text-green-600 mt-1">{trend}</p>
-        )}
-      </div>
     </div>
-  );
+  )
 }

@@ -27,11 +27,11 @@ export const getProjectColumns = (
       return (
         <Link
           href={iso ? `/dashboard/calendar?date=${iso}` : "#"}
-          className="flex items-center gap-1.5 text-xs group hover:text-indigo-600 transition-colors"
+          className="flex items-center gap-1.5 text-xs group hover:text-violet-400 transition-colors"
           onClick={(e) => !iso && e.preventDefault()}
         >
-          <Calendar className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-400" />
-          <span className="font-medium text-foreground group-hover:text-indigo-700 dark:group-hover:text-indigo-400 hover:underline">
+          <Calendar className="w-3.5 h-3.5 text-violet-400/20 group-hover:text-violet-400" />
+          <span className="font-bold text-zinc-400 group-hover:text-violet-300 transition-colors tracking-tight uppercase">
             {isValid
               ? d.toLocaleDateString("sk-SK", {
                   day: "numeric",
@@ -50,12 +50,12 @@ export const getProjectColumns = (
         className="flex flex-col cursor-pointer group/name"
         onClick={() => onProjectClick?.(info.row.original)}
       >
-        <span className="font-black text-foreground text-[11px] uppercase tracking-tight italic group-hover/name:text-indigo-600 transition-colors">
+        <span className="font-black text-zinc-100 text-[11px] uppercase tracking-tight italic group-hover/name:text-violet-400 transition-colors">
           {info.getValue() || info.row.original.project_type}
         </span>
-        <div className="flex items-center gap-1 opacity-50">
-          <FolderKanban className="w-2.5 h-2.5 text-gray-400" />
-          <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400">
+        <div className="flex items-center gap-1 opacity-40">
+          <FolderKanban className="w-2.5 h-2.5 text-violet-400/50" />
+          <span className="text-[9px] font-black uppercase tracking-widest text-violet-400/50">
             {info.row.original.project_type}
           </span>
         </div>
@@ -89,10 +89,10 @@ export const getProjectColumns = (
             if (c) onContactClick(c);
           }}
         >
-          <div className="w-6 h-6 rounded-full bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 flex items-center justify-center text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
+          <div className="w-7 h-7 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-[10px] font-black text-violet-400 group-hover:bg-violet-500 group-hover:text-white transition-all shadow-lg shadow-violet-500/5 group-hover:shadow-violet-500/20">
             {initials}
           </div>
-          <span className="text-xs font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+          <span className="text-[11px] font-black uppercase tracking-tight text-zinc-400 group-hover:text-violet-300 transition-colors">
             {name}
           </span>
         </div>
@@ -129,17 +129,17 @@ export const getProjectColumns = (
       return (
         <Link
           href={iso ? `/dashboard/calendar?date=${iso}` : "#"}
-          className={`flex items-center gap-2 text-sm group hover:underline ${isOverdue ? "text-red-500" : "text-foreground"}`}
+          className={`flex items-center gap-2 text-[11px] group ${isOverdue ? "text-rose-500" : "text-zinc-400"}`}
           onClick={(e) => !iso && e.preventDefault()}
         >
           <Calendar
-            className={`w-4 h-4 ${isOverdue ? "text-red-400" : "text-gray-400"} group-hover:text-blue-400`}
+            className={`w-3.5 h-3.5 ${isOverdue ? "text-rose-400" : "text-violet-400/20"} group-hover:text-violet-400 transition-colors`}
           />
-          <span className="font-medium group-hover:text-indigo-600">
+          <span className="font-black uppercase tracking-tight group-hover:text-violet-300 transition-colors">
             {isValidDate ? d.toLocaleDateString("sk-SK") : "—"}
           </span>
           {isOverdue && (
-            <span className="text-[10px] font-black text-red-500 uppercase">
+            <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest animate-pulse">
               Meškanie!
             </span>
           )}
@@ -152,11 +152,19 @@ export const getProjectColumns = (
     header: "Súbory",
     cell: (info) => (
       <button
+        disabled={!info.row.original.drive_folder_id}
         onClick={(e) => {
           e.stopPropagation();
-          onDriveClick(info.row.original);
+          if (info.row.original.drive_folder_id) {
+            onDriveClick(info.row.original);
+          }
         }}
-        className={`p-1.5 rounded-lg border border-border transition-colors ${info.row.original.drive_folder_id ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white" : "bg-gray-50 dark:bg-slate-800 text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700"}`}
+        className={`p-2 rounded-xl border border-violet-500/10 transition-all ${
+          info.row.original.drive_folder_id
+            ? "bg-violet-500/10 text-violet-400 hover:bg-violet-600 hover:text-white shadow-lg shadow-violet-600/10 cursor-pointer"
+            : "bg-zinc-900/50 text-zinc-700 border-transparent cursor-not-allowed opacity-30"
+        }`}
+        title={info.row.original.drive_folder_id ? "Otvoriť súbory" : "Súborový priečinok nie je prepojený"}
       >
         <HardDrive className="w-3.5 h-3.5" />
       </button>

@@ -7,6 +7,7 @@ import { FlagBadge } from "./FlagBadge";
 import { StatusBadge } from "./StatusBadge";
 import { InlineEditableCell } from "./InlineEditableCell";
 import { ContactLabelsDisplay } from "./ContactLabelsDisplay";
+import { Mail } from "lucide-react";
 
 const columnHelper = createColumnHelper<Lead>();
 
@@ -58,15 +59,32 @@ export const contactColumns = [
   columnHelper.accessor("email", {
     id: "email",
     header: "Email",
-    cell: (info) => (
-      <InlineEditableCell 
-        id={Number(info.row.original.id)} 
-        initialValue={info.getValue() || ""} 
-        field="email" 
-        placeholder="EMAIL"
-        className="text-violet-400 font-medium"
-      />
-    ),
+    cell: (info) => {
+      const email = info.getValue() || "";
+      return (
+        <div className="flex items-center gap-2 group/email-cell">
+          <InlineEditableCell 
+            id={Number(info.row.original.id)} 
+            initialValue={email} 
+            field="email" 
+            placeholder="EMAIL"
+            className="text-violet-400 font-medium"
+          />
+          {email && (
+            <button 
+                onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `/dashboard/leads?compose=${encodeURIComponent(email)}`;
+                }}
+                className="opacity-0 group-hover/email-cell:opacity-100 p-1 hover:bg-violet-500/20 rounded-md transition-all text-violet-400 shrink-0"
+                title="Poslať email"
+            >
+                <Mail className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      );
+    },
   }),
   columnHelper.accessor("phone", {
     id: "phone",

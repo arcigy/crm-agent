@@ -52,7 +52,6 @@ const menuGroups: MenuSection[] = [
   {
     title: "Nástroje",
     items: [
-      { name: "Projekty", href: "/dashboard/projects", icon: FolderKanban },
       { name: "Kalendár", href: "/dashboard/calendar", icon: Calendar },
       { name: "Úlohy", href: "/dashboard/todo", icon: CheckSquare },
       { name: "Poznámky", href: "/dashboard/notes", icon: FileText },

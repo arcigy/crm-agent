@@ -8,14 +8,14 @@ import {
   MapPin,
   Globe,
   Briefcase,
-  MessageSquare,
-  Edit2,
-  Check,
   ShieldCheck,
   Trash2,
   X,
   Cake,
   Gift,
+  Check,
+  Edit2,
+  MessageSquare,
 } from "lucide-react";
 import { Lead } from "@/types/contact";
 import { QRCodeSVG } from "qrcode.react";
@@ -23,6 +23,7 @@ import { updateContact, deleteContact } from "@/app/actions/contacts";
 import { toast } from "sonner";
 import { getNameDayDate, formatSlovakDate } from "@/lib/calendar";
 import { normalizeSlovakPhone } from "@/lib/phone";
+import { useRouter } from "next/navigation";
 
 interface ContactProfileSidebarProps {
   contact: Lead;
@@ -39,6 +40,7 @@ export function ContactProfileSidebar({
   setSmsMode,
   emailMode,
 }: ContactProfileSidebarProps) {
+  const router = useRouter();
   const [showQr, setShowQr] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -114,245 +116,217 @@ export function ContactProfileSidebar({
   };
 
   return (
-    <div
-      className={`w-80 lg:w-96 bg-sidebar border-r border-border flex flex-col shrink-0 overflow-y-auto transition-all duration-300 ${emailMode ? "hidden lg:flex w-64 opacity-50 pointer-events-none" : ""}`}
-    >
-      <div className="h-32 bg-gradient-to-br from-slate-800 to-slate-900 relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 left-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full sm:hidden"
-        >
-          <X className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-          disabled={isSaving}
-          className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-md border border-white/20 transition-all active:scale-95"
-          title={isEditing ? "Save" : "Edit Details"}
-        >
-          {isEditing ? (
-            <Check className="w-4 h-4" />
-          ) : (
-            <Edit2 className="w-4 h-4" />
-          )}
-        </button>
-        {isEditing && (
-          <button
-            onClick={() => setIsEditing(false)}
-            className="absolute top-4 right-14 p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-md border border-white/20 transition-all active:scale-95"
-            title="Cancel"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
+    <div className={`w-80 lg:w-96 bg-slate-950 border-r border-white/5 flex flex-col shrink-0 overflow-y-auto thin-scrollbar select-none relative transition-all duration-300 ${emailMode ? "opacity-50 pointer-events-none" : ""}`}>
+      
+      {/* Minimalistic Header */}
+      <div className="pt-12 px-10 pb-10 border-b border-white/5 relative">
+         <div className="absolute top-6 right-6 flex gap-2 z-20">
+             <button
+                onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
+                disabled={isSaving}
+                className="p-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/10 transition-all active:scale-95"
+             >
+                {isEditing ? <Check className="w-4 h-4" /> : <Edit2 className="w-4 h-4 text-white/40" />}
+             </button>
+             {isEditing && (
+                 <button onClick={() => setIsEditing(false)} className="p-2.5 bg-white/5 hover:bg-red-500/10 text-red-500 rounded-xl border border-white/10 transition-all">
+                     <X className="w-4 h-4" />
+                 </button>
+             )}
+         </div>
+
+         <div className="flex flex-col items-start gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-violet-600 flex items-center justify-center text-white font-bold text-xl shadow-[0_0_30px_rgba(139,92,246,0.15)] shrink-0 border border-white/10">
+                {initials.toUpperCase()}
+            </div>
+            <div>
+                <h2 className="text-2xl font-bold text-white leading-tight">
+                    {formData.first_name} {formData.last_name}
+                </h2>
+                <p className="text-xs font-semibold text-violet-400 mt-1">Súkromný kontakt</p>
+            </div>
+         </div>
       </div>
 
-      <div className="px-6 relative">
-        <div className="-mt-12 mb-4 w-24 h-24 rounded-3xl bg-card p-1.5 shadow-xl transition-colors">
-          <div className="w-full h-full rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-3xl">
-            {initials.toUpperCase()}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          {isEditing ? (
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <input
-                type="text"
-                value={formData.first_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, first_name: e.target.value })
-                }
-                onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg p-2 text-sm font-bold placeholder:text-gray-400"
-                placeholder="First Name"
-              />
-              <input
-                type="text"
-                value={formData.last_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, last_name: e.target.value })
-                }
-                onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg p-2 text-sm font-bold placeholder:text-gray-400"
-                placeholder="Last Name"
-              />
+      <div className="flex-1 px-8 pt-10 space-y-10">
+        {/* Core Actions - Clean PWA style */}
+        <div className="grid grid-cols-2 gap-3">
+            <div className="relative group">
+                <button
+                    onClick={() => setShowQr(!showQr)}
+                    className="w-full h-10 flex items-center justify-center gap-2 bg-violet-600 text-white rounded-xl font-semibold text-xs transition-all active:scale-95 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                >
+                    <Phone className="w-4 h-4" /> Zavolať
+                </button>
+                {showQr && (
+                    <div className="fixed bottom-10 left-10 z-[300] bg-slate-900/95 backdrop-blur-3xl border border-violet-500/30 p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center animate-in slide-in-from-bottom-5 duration-300">
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setShowQr(false); }} 
+                            className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-slate-800 border border-violet-500/30 flex items-center justify-center text-white hover:bg-violet-600 transition-colors shadow-lg z-10"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                        <div className="bg-white p-3 rounded-2xl mb-3 shadow-inner">
+                            <QRCodeSVG value={`tel:${formData.phone}`} size={140} />
+                        </div>
+                        <p className="text-[13px] font-bold text-white tracking-wide flex items-center justify-center gap-2">
+                           <Phone className="w-3.5 h-3.5 text-violet-400" /> {formData.phone || "Bez čísla"}
+                        </p>
+                    </div>
+                )}
             </div>
-          ) : (
-            <h2 className="text-2xl font-bold text-foreground leading-tight mb-1">
-              {formData.first_name} {formData.last_name}
-            </h2>
-          )}
-          
-          {isEditing ? (
-            <input
-              type="text"
-              value={formData.company}
-              onChange={(e) =>
-                setFormData({ ...formData, company: e.target.value })
-              }
-              onKeyDown={(e) => e.key === "Enter" && handleSave()}
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg p-2 text-xs font-medium placeholder:text-gray-400"
-              placeholder="Company Name"
-            />
-          ) : (
-            <p className="text-sm font-medium text-gray-500 flex items-center gap-1.5 transition-all">
-              <Building2 className="w-3.5 h-3.5" />
-              {formData.company || "Private Contact"}
-            </p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 mb-8 relative">
-          <div className="relative group/call">
             <button
-              onClick={() => setShowQr(!showQr)}
-              className="w-full flex items-center justify-center gap-2 p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-all active:scale-95"
+                onClick={() => {
+                    const email = formData.email || "";
+                    onClose();
+                    router.push(`/dashboard/leads?compose=${encodeURIComponent(email)}`);
+                }}
+                className="h-10 flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white rounded-xl font-semibold text-xs transition-all hover:bg-white/10 active:scale-95 px-4"
             >
-              <Phone className="w-4 h-4" />{" "}
-              <span className="text-xs font-bold">Call</span>
+                <Mail className="w-4 h-4" /> Email
             </button>
-            {showQr && contact.phone && (
-              <div className="absolute top-full left-0 mt-2 z-50 bg-card p-4 rounded-xl shadow-2xl border border-border animate-in fade-in zoom-in duration-200 w-48 flex flex-col items-center transition-colors">
-                <div className="bg-white p-2 rounded-lg border border-gray-100 mb-2">
-                  <QRCodeSVG value={`tel:${contact.phone}`} size={120} />
-                </div>
-                <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">
-                  Scan to Call
-                </p>
-                <p className="text-xs font-black text-foreground">
-                  {contact.phone}
-                </p>
-              </div>
-            )}
-          </div>
-          <button
-            onClick={() => setEmailMode(true)}
-            className="flex items-center justify-center gap-2 p-2.5 bg-card border border-border hover:bg-slate-50 dark:hover:bg-slate-800 text-foreground rounded-xl shadow-sm transition-colors"
-          >
-            <Mail className="w-4 h-4" />{" "}
-            <span className="text-xs font-bold">Email</span>
-          </button>
-          <button
-            onClick={() => setSmsMode(true)}
-            className="col-span-2 flex items-center justify-center gap-2 p-2.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl shadow-sm transition-all"
-          >
-            <MessageSquare className="w-4 h-4" />{" "}
-            <span className="text-xs font-bold">Draft SMS to QR</span>
-          </button>
         </div>
 
-        <div className="space-y-4 mb-8">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-            Information
-          </h3>
-          <InfoRow
-            icon={<Mail />}
-            label="Email"
-            value={formData.email}
-            isEditing={isEditing}
-            onChange={(val: string) => setFormData({ ...formData, email: val })}
-            onSave={handleSave}
-            copyable
-          />
-          <InfoRow
-            icon={<Phone />}
-            label="Phone"
-            value={formData.phone}
-            isEditing={isEditing}
-            onChange={(val: string) => setFormData({ ...formData, phone: val })}
-            onSave={handleSave}
-            copyable
-          />
-          <InfoRow
-            icon={<ShieldCheck />}
-            label="Status"
-            value={formData.status}
-            isEditing={isEditing}
-            isSelect
-            options={[
-              { label: "Lead", value: "lead" },
-              { label: "Active", value: "active" },
-              { label: "Archived", value: "archived" },
-            ]}
-            onChange={(val: string) => setFormData({ ...formData, status: val })}
-            onSave={handleSave}
-          />
-          <InfoRow
-            icon={<Briefcase />}
-            label="Role"
-            value={formData.job_title}
-            isEditing={isEditing}
-            onChange={(val: string) => setFormData({ ...formData, job_title: val })}
-            onSave={handleSave}
-            placeholder="Napr. CEO / Konateľ"
-          />
-          <InfoRow
-            icon={<MapPin />}
-            label="Location"
-            value={formData.address}
-            isEditing={isEditing}
-            onChange={(val: string) => setFormData({ ...formData, address: val })}
-            onSave={handleSave}
-            placeholder="Napr. Bratislava, SR"
-          />
-          <InfoRow
-            icon={<Globe />}
-            label="Website"
-            value={formData.website}
-            valueClass="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-            isEditing={isEditing}
-            onChange={(val: string) => setFormData({ ...formData, website: val })}
-            onSave={handleSave}
-            placeholder="www.firma.sk"
-          />
-          <div className="pt-2">
-            <InfoRow
-              icon={<Gift />}
-              label="Meniny"
-              value={formatSlovakDate(formData.nameday || getNameDayDate(formData.first_name)) || "—"}
-              isEditing={isEditing}
-              onChange={(val: string) => setFormData({ ...formData, nameday: val })}
-              onSave={handleSave}
+        {/* Info Grid - Minimalistic List */}
+        <div className="space-y-4">
+            <ContactInfoRow 
+                icon={<Mail />} 
+                label="Email" 
+                value={formData.email} 
+                isEditing={isEditing}
+                onChange={(v: string) => setFormData({...formData, email: v})}
+                onClick={() => {
+                    const email = formData.email || "";
+                    if (!email) return;
+                    onClose();
+                    router.push(`/dashboard/leads?compose=${encodeURIComponent(email)}`);
+                }}
             />
-          </div>
-          <InfoRow
-            icon={<Cake />}
-            label="Narodeniny"
-            value={formatSlovakDate(formData.birthday) || formData.birthday}
-            isEditing={isEditing}
-            renderEdit={() => (
-              <BirthdayPicker 
-                value={formData.birthday} 
-                onChange={(val) => setFormData({ ...formData, birthday: val })} 
-              />
-            )}
-            onSave={handleSave}
-          />
+            <ContactInfoRow 
+                icon={<Phone />} 
+                label="Telefón" 
+                value={formData.phone} 
+                isEditing={isEditing}
+                onChange={(v: string) => setFormData({...formData, phone: v})}
+            />
+            <ContactInfoRow 
+                icon={<ShieldCheck />} 
+                label="Status" 
+                value={formData.status} 
+                color={formData.status === 'active' ? 'text-emerald-400' : formData.status === 'lead' ? 'text-blue-400' : 'text-zinc-500'}
+                isEditing={isEditing}
+                isSelect
+                options={[
+                    { label: "Lead", value: "lead" },
+                    { label: "Active", value: "active" },
+                    { label: "Archived", value: "archived" },
+                ]}
+                onChange={(v: string) => setFormData({...formData, status: v})}
+            />
+            <ContactInfoRow 
+                icon={<Briefcase />} 
+                label="Pozícia" 
+                value={formData.job_title} 
+                isEditing={isEditing}
+                onChange={(v: string) => setFormData({...formData, job_title: v})}
+            />
+            <ContactInfoRow 
+                icon={<Building2 />} 
+                label="Firma" 
+                value={formData.company} 
+                isEditing={isEditing}
+                onChange={(v: string) => setFormData({...formData, company: v})}
+            />
+            <ContactInfoRow 
+                icon={<MapPin />} 
+                label="Lokalita" 
+                value={formData.address} 
+                isEditing={isEditing}
+                onChange={(v: string) => setFormData({...formData, address: v})}
+            />
+            <ContactInfoRow 
+                icon={<Globe />} 
+                label="Webstránka" 
+                value={formData.website} 
+                isEditing={isEditing}
+                onChange={(v: string) => setFormData({...formData, website: v})}
+            />
+            <ContactInfoRow 
+                icon={<Gift />} 
+                label="Meniny" 
+                value={formatSlovakDate(formData.nameday || getNameDayDate(formData.first_name)) || "—"} 
+                isEditing={isEditing}
+                onChange={(v: string) => setFormData({...formData, nameday: v})}
+            />
+            <ContactInfoRow 
+                icon={<Cake />} 
+                label="Narodeniny" 
+                value={formatSlovakDate(formData.birthday) || formData.birthday || "—"} 
+                isEditing={isEditing}
+                renderEdit={() => (
+                    <BirthdayPicker 
+                        value={formData.birthday} 
+                        onChange={(val) => setFormData({ ...formData, birthday: val })} 
+                    />
+                )}
+            />
         </div>
 
-        <div className="pt-6 border-t border-border mt-auto mb-8">
-          <button
-            onClick={handleDelete}
-            className="w-full flex items-center justify-center gap-2 p-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all font-bold text-xs"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete Contact
-          </button>
+        {/* Delete Action - Clean Footer */}
+        <div className="pt-8 pb-20 border-t border-white/5 opacity-50 hover:opacity-100 transition-opacity">
+            <button
+                onClick={handleDelete}
+                className="w-full flex items-center justify-center gap-2 text-xs font-semibold text-red-500/80 hover:text-red-500 transition-all active:scale-95"
+            >
+                Zmazať kontakt
+            </button>
         </div>
       </div>
     </div>
   );
 }
 
-function BirthdayPicker({ 
-  value, 
-  onChange 
-}: { 
-  value: string; 
-  onChange: (val: string) => void 
-}) {
-  // Parse YYYY-MM-DD
+function ContactInfoRow({ icon, label, value, color, isEditing, onChange, isSelect, options, renderEdit, onClick }: any) {
+    return (
+        <div 
+            className={`group flex items-center justify-between py-1 transition-all relative ${onClick && !isEditing ? "cursor-pointer" : ""}`}
+            onClick={() => !isEditing && onClick?.()}
+        >
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-8 h-8 rounded-xl bg-violet-500/5 flex items-center justify-center text-violet-400/50 transition-colors group-hover:text-violet-400 group-hover:bg-violet-500/10 shrink-0">
+                    {React.cloneElement(icon as React.ReactElement, { className: "w-3.5 h-3.5" } as any)}
+                </div>
+                <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-[10px] font-semibold text-zinc-500 mb-0.5">{label}</span>
+                    {isEditing ? (
+                        renderEdit ? renderEdit() : isSelect ? (
+                            <select 
+                                value={value} 
+                                onChange={(e) => onChange(e.target.value)}
+                                className="bg-transparent border-b border-violet-500/30 p-0 pb-1 text-sm font-medium text-white focus:ring-0 outline-none cursor-pointer"
+                            >
+                                {options.map((o: any) => <option key={o.value} value={o.value} className="bg-zinc-900">{o.label}</option>)}
+                            </select>
+                        ) : (
+                            <input 
+                                type="text"
+                                value={value || ""}
+                                onChange={(e) => onChange(e.target.value)}
+                                className="bg-transparent border-b border-violet-500/30 p-0 pb-1 text-sm font-medium text-white focus:ring-0 outline-none w-full"
+                            />
+                        )
+                    ) : (
+                        <p className={`text-sm font-medium ${color || "text-zinc-200"} transition-colors truncate pr-4`}>
+                            {value || "—"}
+                        </p>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function BirthdayPicker({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   const dateObj = value && value.includes('-') ? new Date(value) : null;
   const [d, setD] = React.useState(dateObj ? dateObj.getDate().toString() : "");
   const [m, setM] = React.useState(dateObj ? (dateObj.getMonth() + 1).toString() : "");
@@ -367,146 +341,20 @@ function BirthdayPicker({
     }
   }, [d, m, y, onChange]);
 
-  const months = [
-    "Jan", "Feb", "Mar", "Apr", "Máj", "Jún", 
-    "Júl", "Aug", "Sep", "Okt", "Nov", "Dec"
-  ];
-
-  const getDayOfWeek = () => {
-    if (!d || !m || !y) return null;
-    const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-    if (isNaN(date.getTime())) return null;
-    const days = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
-    return days[date.getDay()];
-  };
-
-  const dayOfWeek = getDayOfWeek();
-
   return (
-    <div className="flex flex-col gap-1 mt-1">
-      <div className="flex gap-1">
-        <select 
-          value={d} 
-          onChange={(e) => setD(e.target.value)}
-          className="bg-slate-50 dark:bg-slate-800 border border-border rounded px-1 py-0.5 text-[10px] font-bold outline-none"
-        >
-          <option value="">Deň</option>
-          {Array.from({length: 31}, (_, i) => i + 1).map(day => (
-            <option key={day} value={day}>{day}.</option>
-          ))}
-        </select>
-        <select 
-          value={m} 
-          onChange={(e) => setM(e.target.value)}
-          className="bg-slate-50 dark:bg-slate-800 border border-border rounded px-1 py-0.5 text-[10px] font-bold outline-none"
-        >
-          <option value="">Mesiac</option>
-          {months.map((name, i) => (
-            <option key={i+1} value={i+1}>{name}</option>
-          ))}
-        </select>
-        <select 
-          value={y} 
-          onChange={(e) => setY(e.target.value)}
-          className="bg-slate-50 dark:bg-slate-800 border border-border rounded px-1 py-0.5 text-[10px] font-bold outline-none"
-        >
-          <option value="">Rok</option>
-          {Array.from({length: 100}, (_, i) => new Date().getFullYear() - i).map(year => (
-            <option key={year} value={year}>{year}</option>
-          ))}
-        </select>
-      </div>
-      {dayOfWeek && (
-        <p className="text-[10px] font-bold text-blue-500 animate-in fade-in slide-in-from-left-1 duration-300">
-          Bol to: {dayOfWeek}
-        </p>
-      )}
-    </div>
-  );
-}
-
-interface InfoRowProps {
-  icon: React.ReactElement;
-  label: string;
-  value?: string;
-  copyable?: boolean;
-  valueClass?: string;
-  isEditing?: boolean;
-  isSelect?: boolean;
-  options?: { label: string; value: string }[];
-  onChange?: (val: string) => void;
-  onSave?: () => void;
-  placeholder?: string;
-  renderEdit?: () => React.ReactNode;
-}
-
-function InfoRow({
-  icon,
-  label,
-  value,
-  copyable,
-  valueClass,
-  isEditing,
-  isSelect,
-  options,
-  onChange,
-  onSave,
-  ...props
-}: InfoRowProps) {
-  return (
-    <div className="flex items-center gap-3 group">
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 bg-card border border-border shadow-sm shrink-0 transition-colors">
-        {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "w-3.5 h-3.5" })}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">
-          {label}
-        </p>
-        {isEditing && (onChange || props.renderEdit) ? (
-          props.renderEdit ? (
-            props.renderEdit()
-          ) : isSelect ? (
-            <select
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              className="w-full bg-transparent border-none p-0 text-xs font-semibold text-foreground focus:ring-0 outline-none cursor-pointer"
-            >
-              {(options || []).map((opt: any) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type="text"
-              value={value || ""}
-              onChange={(e) => onChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && onSave) {
-                  onSave();
-                }
-              }}
-              className="w-full bg-transparent border-none p-0 text-xs font-semibold text-foreground focus:ring-0 outline-none"
-              placeholder={props.placeholder || `Enter ${label}...`}
-            />
-          )
-        ) : (
-          <p
-            className={`text-xs font-semibold text-foreground truncate ${valueClass || ""}`}
-          >
-            {value || "—"}
-          </p>
-        )}
-      </div>
-      {copyable && value && (
-        <button
-          onClick={() => navigator.clipboard.writeText(value)}
-          className="opacity-0 group-hover:opacity-100 p-1.5 text-xs text-gray-400 hover:text-foreground transition-all"
-        >
-          Copy
-        </button>
-      )}
+    <div className="flex gap-2 mt-1">
+      <select value={d} onChange={(e) => setD(e.target.value)} className="bg-zinc-900 border border-white/10 rounded px-1 text-[10px] text-white">
+        <option value="">d.</option>
+        {Array.from({length: 31}, (_, i) => i + 1).map(day => <option key={day} value={day}>{day}.</option>)}
+      </select>
+      <select value={m} onChange={(e) => setM(e.target.value)} className="bg-zinc-900 border border-white/10 rounded px-1 text-[10px] text-white">
+        <option value="">m.</option>
+        {Array.from({length: 12}, (_, i) => i + 1).map(month => <option key={month} value={month}>{month}.</option>)}
+      </select>
+      <select value={y} onChange={(e) => setY(e.target.value)} className="bg-zinc-900 border border-white/10 rounded px-1 text-[10px] text-white">
+        <option value="">r.</option>
+        {Array.from({length: 100}, (_, i) => new Date().getFullYear() - i).map(y => <option key={y} value={y}>{y}</option>)}
+      </select>
     </div>
   );
 }

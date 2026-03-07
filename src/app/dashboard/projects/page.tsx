@@ -1,97 +1,72 @@
 import { Suspense } from "react";
-import { ProjectsTable } from "@/components/dashboard/ProjectsTable";
+import { DealsTable } from "@/components/dashboard/DealsTable";
 import { getProjects } from "@/app/actions/projects";
+import { getDeals } from "@/app/actions/deals";
+import { getContacts } from "@/app/actions/contacts";
 import DashboardLoading from "@/app/dashboard/loading";
-import type { Project } from "@/types/project";
 import { Lead } from "@/types/contact";
-import { ProjectActionButtons } from "@/components/dashboard/ProjectActionButtons";
+import { Zap } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 async function ProjectsContent() {
-  let projects: Project[] = [];
-  let contacts: Lead[] = [];
+  const [projectsRes, contactsRes, dealsRes] = await Promise.all([
+    getProjects(),
+    getContacts(),
+    getDeals(),
+  ]);
 
-  try {
-    const projectsResult = await getProjects();
-    const realProjects = projectsResult.data || [];
+  const projects = projectsRes.data || [];
+  const contacts = (contactsRes.data as Lead[]) || [];
+  const deals = dealsRes.data || [];
 
-    if (realProjects.length > 0) {
-      const { getContacts } = await import("@/app/actions/contacts");
-      const contactsRes = await getContacts();
+  const totalRevenue = projects.reduce((acc, p) => {
+    const d = deals.find((deal) => deal.project_id === p.id);
+    return acc + (Number(p.value ?? d?.value) || 0);
+  }, 0);
 
-      if (contactsRes.success && contactsRes.data) {
-        const rawContacts = contactsRes.data;
-        
-        const uniqueContactsMap = new Map();
-        (rawContacts as any[]).forEach((contact) => {
-          uniqueContactsMap.set(String(contact.id), contact);
-        });
-        
-        const normalize = (s: string) =>
-          (s || "")
-            .toString()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .trim()
-            .toLowerCase();
+  return (
+    <div className="flex flex-col h-full min-h-0 gap-4">
+      <div className="flex-1 min-h-0 relative">
+        {/* Revenue Badge - Unified with "Obchody" */}
+        <div className="absolute -top-20 right-4 z-40">
+          <div className="bg-emerald-500/5 border border-emerald-500/20 px-6 py-3 rounded-[2rem] backdrop-blur-2xl shadow-[0_20px_50px_rgba(16,185,129,0.1)] flex items-center gap-4 group hover:border-emerald-500/40 transition-all duration-500">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] group-hover:rotate-12 transition-all">
+              <Zap className="w-6 h-6 text-white fill-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-500/60 group-hover:text-emerald-400 transition-colors">Celková Hodnota</span>
+              <span className="text-2xl font-black text-white italic tracking-tighter tabular-nums leading-none mt-0.5">
+                {new Intl.NumberFormat("sk-SK", {
+                  style: "currency",
+                  currency: "EUR",
+                }).format(totalRevenue)}
+              </span>
+            </div>
+          </div>
+        </div>
 
-        contacts = Array.from(uniqueContactsMap.values()).map((contact) => {
-          const fn = contact.first_name || "";
-          const ln = contact.last_name || "";
-          const fullName = normalize(`${fn} ${ln}`);
-
-          const contactProjects = (realProjects as any[]).filter((p) => {
-            const isIdMatch = String(p.contact_id) === String(contact.id);
-            const isNameMatch = p.contact_name && normalize(p.contact_name) === fullName;
-            return isIdMatch || isNameMatch;
-          });
-
-          return { ...contact, projects: contactProjects };
-        });
-
-        projects = (realProjects as any[]).map((p: any) => {
-          const contact = contacts.find((c) => String(c.id) === String(p.contact_id));
-          return {
-            ...p,
-            contact_name: contact
-              ? `${contact.first_name} ${contact.last_name}`.trim()
-              : p.contact_name || "Neznámy",
-          };
-        });
-      } else {
-        projects = realProjects as any[];
-      }
-    }
-  } catch (e) {
-    console.error("[Projects Hub] Initial load failed:", e);
-  }
-
-  return <ProjectsTable data={projects} contacts={contacts} />;
+        <DealsTable deals={deals} projects={projects} contacts={contacts} />
+      </div>
+    </div>
+  );
 }
 
 export default function ProjectsPage() {
   return (
-    <div className="space-y-6 h-full flex flex-col transition-colors duration-300 overflow-hidden">
-      <div className="flex items-center justify-between px-2 mb-4 flex-shrink-0">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
-              Projekty
-            </h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <ProjectActionButtons />
+    <div className="h-full flex flex-col p-4 bg-transparent transition-colors duration-500 relative overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8 px-2">
+        <div>
+          <h1 className="text-5xl font-black uppercase italic tracking-tighter text-white leading-none">
+            Projekty
+          </h1>
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-2 pb-4">
-        <Suspense fallback={<DashboardLoading />}>
-          <ProjectsContent />
-        </Suspense>
-      </div>
+      <Suspense fallback={<DashboardLoading />}>
+        <ProjectsContent />
+      </Suspense>
     </div>
   );
 }

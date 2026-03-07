@@ -1,15 +1,11 @@
 export interface CalendarEvent {
   id: string;
-  summary: string;
+  title: string;
   description?: string;
-  start: {
-    dateTime?: string;
-    date?: string;
-  };
-  end: {
-    dateTime?: string;
-    date?: string;
-  };
+  start: Date;
+  end: Date;
+  allDay?: boolean;
+  color?: string;
   colorId?: string;
   location?: string;
   status?: string;
@@ -23,4 +19,4 @@ export interface CalendarEvent {
   };
 }
 
-export type CalendarView = "month" | "week" | "day" | "4days" | "year";
+export type CalendarView = "month" | "week" | "day" | "4days" | "year" | "agenda";

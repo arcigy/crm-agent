@@ -7,14 +7,16 @@ interface DayViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
+  onDateClick?: (date: Date) => void;
 }
 
-export function DayView({ currentDate, events, onEventClick }: DayViewProps) {
+export function DayView({ currentDate, events, onEventClick, onDateClick }: DayViewProps) {
   return (
     <TimeGridView
       days={[currentDate]}
       events={events}
       onEventClick={onEventClick}
+      onDateClick={onDateClick}
     />
   );
 }

@@ -13,6 +13,8 @@ interface CalendarViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
+  onDateClick?: (date: Date) => void;
+  showWeekends?: boolean;
 }
 
 export function CalendarView({
@@ -20,6 +22,8 @@ export function CalendarView({
   currentDate,
   events,
   onEventClick,
+  onDateClick,
+  showWeekends = true,
 }: CalendarViewProps) {
   switch (view) {
     case "month":
@@ -28,6 +32,8 @@ export function CalendarView({
           currentDate={currentDate}
           events={events}
           onEventClick={onEventClick}
+          onDayClick={onDateClick}
+          showWeekends={showWeekends}
         />
       );
     case "week":
@@ -36,6 +42,8 @@ export function CalendarView({
           currentDate={currentDate}
           events={events}
           onEventClick={onEventClick}
+          onDateClick={onDateClick}
+          showWeekends={showWeekends}
         />
       );
     case "day":
@@ -44,6 +52,7 @@ export function CalendarView({
           currentDate={currentDate}
           events={events}
           onEventClick={onEventClick}
+          onDateClick={onDateClick}
         />
       );
     case "year":
@@ -68,6 +77,7 @@ export function CalendarView({
           currentDate={currentDate}
           events={events}
           onEventClick={onEventClick}
+          onDateClick={onDateClick}
         />
       );
     default:

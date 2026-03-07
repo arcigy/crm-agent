@@ -32,13 +32,13 @@ export function ProjectDetailModal({
   if (!isOpen || !project) return null;
 
   return (
-    <div className="fixed inset-0 z-[270] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-500">
+    <div className="fixed inset-0 z-[270] flex items-center justify-center animate-in fade-in duration-500">
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-md"
+        className="absolute inset-0 bg-black"
         onClick={onClose}
       />
 
-      <div className="bg-[#0a0a0c] w-full max-w-7xl h-[90vh] sm:rounded-[2.5rem] shadow-[0_0_100px_rgba(139,92,246,0.15)] relative flex overflow-hidden animate-in zoom-in-95 duration-500 border border-white/10">
+      <div className="bg-[#0a0a0c] w-full h-full relative flex overflow-hidden animate-in zoom-in-100 duration-500">
         <ProjectProfileSidebar
           project={project}
           onClose={onClose}
@@ -47,7 +47,7 @@ export function ProjectDetailModal({
 
         <div className="flex-1 flex flex-col bg-[#0a0a0c] overflow-hidden">
           {/* Main Content Header / Neon Tabs */}
-          <div className="h-16 border-b border-white/5 flex items-center justify-between px-10 bg-black/20 shrink-0">
+          <div className="h-20 border-b border-white/5 flex items-center justify-between px-10 bg-black/20 shrink-0">
             <div className="flex items-center gap-10 h-full">
               <button
                 onClick={() => setActiveTab("overview")}
@@ -87,7 +87,7 @@ export function ProjectDetailModal({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto thin-scrollbar relative">
+          <div className="flex-1 overflow-hidden relative pt-10">
             {activeTab === "overview" && (
                 <ProjectOverview project={project} onClose={onClose} />
             )}
