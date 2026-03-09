@@ -182,22 +182,22 @@ export function ContactDetailModal({
                 </ContactOverview>
               </div>
             ) : activeTab === "tasks" ? (
-              <div className="h-full overflow-y-auto p-8 bg-zinc-50/10 transition-all">
+              <div className="h-full overflow-y-auto p-8 bg-zinc-50/10 transition-all thin-scrollbar">
                 <h3 className="text-sm font-black uppercase text-zinc-400 mb-6 tracking-widest">
                   Prepojené Úlohy
                 </h3>
                 <RelatedTasks entityId={currentContact.id} type="contact" />
               </div>
             ) : activeTab === "documents" ? (
-              <div className="h-full overflow-y-auto">
+              <div className="h-full overflow-y-auto thin-scrollbar">
                 <ContactDocuments contact={currentContact} />
               </div>
             ) : activeTab === "invoices" ? (
-              <div className="h-full overflow-y-auto bg-zinc-50/10 transition-all">
+              <div className="h-full overflow-y-auto bg-zinc-50/10 transition-all thin-scrollbar">
                 <ContactInvoices contact={currentContact} />
               </div>
             ) : activeTab === "events" ? (
-              <div className="h-full overflow-y-auto bg-zinc-50/10 transition-all">
+              <div className="h-full overflow-y-auto bg-zinc-50/10 transition-all thin-scrollbar">
                 <ContactEvents contact={currentContact} />
               </div>
             ) : (

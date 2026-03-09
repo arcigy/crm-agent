@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { GoogleConnectButton } from "@/components/calendar/GoogleConnectButton";
 
 interface DriveFile {
   id: string;
@@ -37,6 +38,7 @@ export default function FilesTool() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("list");
   const [path, setPath] = React.useState<{ id: string; name: string }[]>([]);
+  const [isConnected, setIsConnected] = React.useState(true);
 
   // Multi-select state
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
@@ -124,6 +126,9 @@ export default function FilesTool() {
             cacheRef.current.set(cacheKey, data.files);
             setFiles(data.files);
             prefetchSubfolders(data.files);
+            setIsConnected(true);
+          } else if (data.isConnected === false) {
+            setIsConnected(false);
           }
         })
         .catch(() => {});
@@ -143,10 +148,12 @@ export default function FilesTool() {
         const fetchedFiles = data.files || [];
         setFiles(fetchedFiles);
         cacheRef.current.set(cacheKey, fetchedFiles);
+        setIsConnected(true);
 
         // Prefetch subfolders
         prefetchSubfolders(fetchedFiles);
       } else {
+        setIsConnected(false);
         toast.error("Google Drive nie je prepojený");
       }
     } catch (error) {
@@ -268,6 +275,34 @@ export default function FilesTool() {
     setContextMenu((prev) => ({ ...prev, visible: false }));
   };
 
+  if (!isConnected) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-20 text-center animate-in fade-in zoom-in-95 duration-700">
+        <div className="relative mb-10 group">
+          <div className="absolute inset-0 bg-violet-600/20 blur-3xl rounded-full group-hover:bg-violet-600/30 transition-all duration-500 scale-150" />
+          <div className="w-24 h-24 bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-violet-500/20 flex items-center justify-center shadow-2xl relative z-10 transition-transform group-hover:scale-110">
+            <HardDrive className="w-10 h-10 text-violet-500 drop-shadow-[0_0_8px_rgba(139,92,246,0.3)]" />
+          </div>
+        </div>
+
+        <h2 className="text-3xl font-black text-foreground tracking-tighter uppercase italic mb-4">
+          Google Drive nie je prepojený
+        </h2>
+        
+        <p className="text-zinc-500 font-bold max-w-md leading-relaxed mb-10 text-sm uppercase tracking-wide">
+          Pre prístup k firemným súborom, zmluvám a projektovej dokumentácii je potrebné autorizovať váš Google účet.
+        </p>
+
+        <div className="w-full max-w-xs space-y-4">
+           <GoogleConnectButton />
+           <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none">
+              Zabezpečené cez Clerk OAuth 2.0
+           </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700 h-full flex flex-col">
       {/* Header */}
@@ -279,7 +314,7 @@ export default function FilesTool() {
         </div>
         <div className="flex gap-4">
           {selectedIds.size > 0 && (
-            <span className="bg-blue-100 text-blue-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest">
+            <span className="bg-violet-100 text-violet-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-violet-500/10">
               {selectedIds.size} vybraných
             </span>
           )}
@@ -294,7 +329,7 @@ export default function FilesTool() {
         <div className="flex items-center gap-2 text-sm font-bold overflow-x-auto no-scrollbar">
           <button
             onClick={() => navigateBack(-1)}
-            className={`hover:text-blue-500 transition-colors ${path.length === 0 ? "text-foreground" : "text-gray-500"}`}
+            className={`hover:text-violet-500 transition-colors ${path.length === 0 ? "text-foreground" : "text-gray-500"}`}
           >
             Drive
           </button>
@@ -303,7 +338,7 @@ export default function FilesTool() {
               <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
               <button
                 onClick={() => navigateBack(i)}
-                className={`hover:text-blue-500 transition-colors whitespace-nowrap ${i === path.length - 1 ? "text-foreground" : "text-gray-500"}`}
+                className={`hover:text-violet-500 transition-colors whitespace-nowrap ${i === path.length - 1 ? "text-foreground" : "text-gray-500"}`}
               >
                 {p.name}
               </button>
@@ -313,13 +348,13 @@ export default function FilesTool() {
         <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl">
           <button
             onClick={() => setViewMode("grid")}
-            className={`p-2 rounded-lg transition-all ${viewMode === "grid" ? "bg-white text-blue-600 shadow-sm" : "text-gray-400"}`}
+            className={`p-2 rounded-lg transition-all ${viewMode === "grid" ? "bg-white text-violet-600 shadow-sm" : "text-gray-400"}`}
           >
             <Grid className="w-4 h-4" />
           </button>
           <button
             onClick={() => setViewMode("list")}
-            className={`p-2 rounded-lg transition-all ${viewMode === "list" ? "bg-white text-blue-600 shadow-sm" : "text-gray-400"}`}
+            className={`p-2 rounded-lg transition-all ${viewMode === "list" ? "bg-white text-violet-600 shadow-sm" : "text-gray-400"}`}
           >
             <ListIcon className="w-4 h-4" />
           </button>
@@ -334,13 +369,13 @@ export default function FilesTool() {
           placeholder="Hľadať v cloude..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-16 pr-8 py-5 bg-card border border-border rounded-[2rem] text-lg font-bold text-foreground shadow-sm focus:border-blue-500/50 outline-none transition-all placeholder:text-gray-500 select-none"
+          className="w-full pl-16 pr-8 py-5 bg-card border border-border rounded-[2.5rem] text-lg font-bold text-foreground shadow-sm focus:border-violet-500/50 outline-none transition-all placeholder:text-gray-500 select-none focus:ring-4 focus:ring-violet-500/5"
         />
       </div>
 
       {/* File Area */}
       <div
-        className="flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-2"
+        className="flex-1 overflow-y-auto min-h-0 thin-scrollbar pr-2"
         onClick={handleBackgroundClick}
         onContextMenu={(e) => {
           if (e.target === e.currentTarget) {
@@ -350,7 +385,7 @@ export default function FilesTool() {
       >
         {loading ? (
           <div className="h-full flex flex-col items-center justify-center gap-4 py-20 select-none">
-            <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+            <Loader2 className="w-12 h-12 text-violet-600 animate-spin" />
             <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
               Sťahujem dáta z Google Drive...
             </span>
@@ -382,13 +417,13 @@ export default function FilesTool() {
                     onClick={(e) => handleFileClick(e, file, index)}
                     onDoubleClick={(e) => handleFileDoubleClick(e, file)}
                     onContextMenu={(e) => handleContextMenu(e, file)}
-                    className={`group bg-card p-6 rounded-[2.5rem] border transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden cursor-pointer select-none ${isSelected ? "border-blue-500 ring-4 ring-blue-500/10" : "border-border hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-900/10"}`}
+                    className={`group bg-card p-6 rounded-[2.5rem] border transition-all flex flex-col items-center text-center gap-4 relative overflow-hidden cursor-pointer select-none ${isSelected ? "border-violet-500 ring-4 ring-violet-500/10" : "border-border hover:border-violet-500/50 hover:shadow-2xl hover:shadow-violet-900/10"}`}
                   >
                     <div
-                      className={`absolute top-0 left-0 w-full h-1 ${isSelected ? "bg-blue-500 opacity-100" : "bg-blue-600 opacity-0 group-hover:opacity-100"} transition-opacity`}
+                      className={`absolute top-0 left-0 w-full h-1 ${isSelected ? "bg-violet-500 opacity-100" : "bg-violet-600 opacity-0 group-hover:opacity-100"} transition-opacity`}
                     ></div>
                     <div
-                      className={`w-20 h-20 rounded-[2rem] flex items-center justify-center transition-transform group-hover:scale-110 ${isFolder ? "bg-amber-50" : "bg-blue-50"}`}
+                      className={`w-20 h-20 rounded-[2.5rem] flex items-center justify-center transition-transform group-hover:scale-110 shadow-inner ${isFolder ? "bg-amber-50" : "bg-violet-50"}`}
                     >
                       {isFolder ? (
                         <Folder className="w-10 h-10 text-amber-500 fill-amber-500/20" />
@@ -443,7 +478,7 @@ export default function FilesTool() {
                       onClick={(e) => handleFileClick(e, file, index)}
                       onDoubleClick={(e) => handleFileDoubleClick(e, file)}
                       onContextMenu={(e) => handleContextMenu(e, file)}
-                      className={`transition-colors cursor-pointer group select-none ${isSelected ? "bg-blue-50" : "hover:bg-blue-50/50"}`}
+                      className={`transition-colors cursor-pointer group select-none ${isSelected ? "bg-violet-50 dark:bg-violet-900/10" : "hover:bg-violet-50/50 dark:hover:bg-violet-900/5"}`}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -485,7 +520,7 @@ export default function FilesTool() {
                             e.stopPropagation();
                             window.open(file.webViewLink, "_blank");
                           }}
-                          className="p-2 text-gray-300 hover:text-gray-900 opacity-0 group-hover:opacity-100 transition-all"
+                          className="p-2 text-gray-300 hover:text-violet-600 dark:hover:text-violet-400 opacity-0 group-hover:opacity-100 transition-all font-bold"
                         >
                           <ExternalLink className="w-4 h-4" />
                         </button>
@@ -524,9 +559,9 @@ export default function FilesTool() {
 
               <button
                 onClick={handleDownload}
-                className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-400 rounded-lg transition-colors flex items-center gap-3"
               >
-                <Download className="w-4 h-4 text-gray-400" /> Stiahnuť
+                <Download className="w-4 h-4 text-gray-400 group-hover:text-violet-500" /> Stiahnuť
               </button>
 
               <button
@@ -544,9 +579,9 @@ export default function FilesTool() {
                   }
                   setContextMenu((prev) => ({ ...prev, visible: false }));
                 }}
-                className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors flex items-center gap-3"
+                className="w-full text-left px-3 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-400 rounded-lg transition-colors flex items-center gap-3"
               >
-                <ExternalLink className="w-4 h-4 text-gray-400" /> Otvoriť
+                <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-violet-500" /> Otvoriť
               </button>
             </>
           ) : (

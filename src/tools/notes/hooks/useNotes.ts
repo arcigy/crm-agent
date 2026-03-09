@@ -8,6 +8,7 @@ export function useNotes() {
   const [notes, setNotes] = React.useState<Note[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [selectedCategory, setSelectedCategory] = React.useState("all");
   const [selectedNote, setSelectedNote] = React.useState<Note | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
 
@@ -34,7 +35,7 @@ export function useNotes() {
       const res = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "", content: "<p></p>" }),
+        body: JSON.stringify({ title: "", content: "<p></p>", category: selectedCategory !== "all" && selectedCategory !== "linked" ? selectedCategory : "idea" }),
       });
 
       if (res.ok) {
@@ -81,17 +82,24 @@ export function useNotes() {
     }
   };
 
-  const filteredNotes = notes.filter(
-    (n) =>
+  const filteredNotes = notes.filter((n) => {
+    const matchesSearch =
       n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      n.content.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+      n.content.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (selectedCategory === "all") return matchesSearch;
+    if (selectedCategory === "linked") return matchesSearch && (n.contact_id || n.project_id || n.deal_id);
+    
+    return matchesSearch && n.category === selectedCategory;
+  });
 
   return {
     notes,
     loading,
     searchQuery,
     setSearchQuery,
+    selectedCategory,
+    setSelectedCategory,
     selectedNote,
     setSelectedNote,
     isSaving,

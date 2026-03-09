@@ -59,7 +59,7 @@ export default function InvoicingPage() {
         <div className="lg:col-span-2 space-y-8">
           <section className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-100 dark:border-zinc-800 shadow-sm">
             <h2 className="text-lg font-black text-zinc-900 dark:text-white uppercase tracking-tight mb-6 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-blue-500" />
+              <Building2 className="w-5 h-5 text-violet-500" />
               Firemné údaje
             </h2>
             
@@ -95,7 +95,7 @@ export default function InvoicingPage() {
               <div className="md:col-span-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 block ml-1">Sídlo / Adresa</label>
                 <textarea 
-                  className="w-full p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all min-h-[100px] text-zinc-900 dark:text-white"
+                   className="w-full p-6 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-[2rem] font-bold focus:ring-4 focus:ring-violet-500/10 outline-none transition-all min-h-[120px] text-zinc-900 dark:text-white thin-scrollbar"
                   value={settings.address}
                   onChange={(e) => updateSetting('address', e.target.value)}
                   placeholder="Ulica 123, 811 01 Bratislava"
@@ -106,7 +106,7 @@ export default function InvoicingPage() {
 
           <section className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-100 dark:border-zinc-800 shadow-sm">
             <h2 className="text-lg font-black text-zinc-900 dark:text-white uppercase tracking-tight mb-6 flex items-center gap-2">
-              <Landmark className="w-5 h-5 text-blue-500" />
+              <Landmark className="w-5 h-5 text-violet-500" />
               Platobné a kontaktné údaje
             </h2>
             
@@ -145,17 +145,17 @@ export default function InvoicingPage() {
 
         {/* Right Column: Actions & Preview */}
         <div className="space-y-6">
-          <div className="bg-blue-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-blue-600/20">
+          <div className="bg-violet-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-violet-600/20 border border-violet-500/30">
             <h3 className="font-black uppercase italic tracking-tighter text-xl mb-4">Uložiť zmeny</h3>
-            <p className="text-blue-100 text-xs font-bold leading-relaxed mb-8">
+            <p className="text-violet-100 text-xs font-bold leading-relaxed mb-8">
               Vaše nastavenia budú okamžite aplikované na všetky novo vytvorené faktúry v tomto systéme.
             </p>
             <button
               disabled={isSaving}
               onClick={handleSave}
-              className="w-full py-4 bg-white text-blue-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-zinc-900 hover:text-white transition-all active:scale-95 flex items-center justify-center gap-3"
+              className="w-full py-4 bg-white text-violet-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-zinc-900 hover:text-white transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg"
             >
-              {isSaving ? <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> : (
+              {isSaving ? <div className="w-4 h-4 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" /> : (
                 <>
                   <Save className="w-4 h-4" />
                   Uložiť nastavenia
@@ -195,13 +195,13 @@ function InputField({ label, icon: Icon, value, onChange, placeholder }: InputFi
     <div className="flex flex-col gap-2">
       <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">{label}</label>
       <div className="relative">
-        <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500 opacity-50" />
+        <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-violet-500 opacity-50" />
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all text-zinc-900 dark:text-white"
+          className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-zinc-900 dark:text-white"
         />
       </div>
     </div>

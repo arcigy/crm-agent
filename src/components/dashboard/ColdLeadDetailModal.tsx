@@ -76,7 +76,7 @@ export function ColdLeadDetailModal({
       <div className="bg-background w-full max-w-[95vw] sm:max-w-4xl h-[85vh] sm:rounded-[3.5rem] shadow-2xl relative flex overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 border border-border transition-colors">
         
         {/* Left Sidebar - Summary */}
-        <div className="w-80 bg-slate-50 border-r border-border p-8 hidden md:flex flex-col gap-6 scrollbar-hide">
+        <div className="w-80 bg-slate-50 border-r border-border p-8 hidden md:flex flex-col gap-6 overflow-y-auto thin-scrollbar">
            <div className="w-20 h-20 rounded-3xl bg-blue-600 flex items-center justify-center text-white font-black text-3xl shadow-lg shadow-blue-200 uppercase shrink-0">
              {companyName[0]}
            </div>
@@ -162,9 +162,9 @@ export function ColdLeadDetailModal({
               </button>
            </div>
 
-           <div className="flex-1 overflow-hidden relative">
+           <div className="flex-1 overflow-y-auto thin-scrollbar relative">
               {emailMode ? (
-                <div className="h-full overflow-y-auto">
+                <div className="h-full">
                     <EmailComposerView 
                     contact={fakeLead} 
                     onClose={() => setEmailMode(false)} 

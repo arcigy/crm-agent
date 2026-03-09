@@ -196,7 +196,7 @@ export function CreateProjectModal({
             </>
           ) : (
             <textarea
-              className="w-full h-64 font-mono text-xs p-6 bg-zinc-950/50 border-2 border-violet-500/5 rounded-[2rem] text-zinc-300 focus:border-violet-500 focus:bg-zinc-900 outline-none resize-none shadow-inner placeholder:text-zinc-700"
+              className="w-full h-64 font-mono text-xs p-6 bg-zinc-950/50 border-2 border-violet-500/5 rounded-[2rem] text-zinc-300 focus:border-violet-500 focus:bg-zinc-900 outline-none resize-none shadow-inner placeholder:text-zinc-700 thin-scrollbar overflow-y-auto"
               placeholder="INSERT SYSTEM MEMORY..."
               value={jsonInput}
               onChange={(e) => setJsonInput(e.target.value)}

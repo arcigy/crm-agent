@@ -19,6 +19,8 @@ import {
   Underline as UnderlineIcon,
   List,
   Palette,
+  Clock,
+  Search,
 } from "lucide-react";
 import {
   getTodoRelations,
@@ -32,6 +34,7 @@ import { useProjectPreview } from "@/components/providers/ProjectPreviewProvider
 import { MentionNode } from "@/lib/tiptap-mention-node";
 import { useAutocomplete } from "@/hooks/useAutocomplete";
 import { AutocompleteDropdown } from "@/components/editor/AutocompleteDropdown";
+import { ModernTimePicker } from "./ModernTimePicker";
 
 interface TodoSmartInputProps {
   onAdd: (title: string, time?: string) => void;
@@ -74,6 +77,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
     "contact" | "project" | "deal" | null
   >(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
   const [relations, setRelations] = useState<Relations>({
     contacts: [],
     projects: [],
@@ -340,7 +344,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
         isFocused ? "scale-[1.01]" : ""
       }`}
     >
-      <div className="relative group bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-sm border border-zinc-200 dark:border-zinc-800 transition-all duration-300 focus-within:border-blue-500 focus-within:shadow-blue-500/10 focus-within:ring-4 focus-within:ring-blue-500/5">
+      <div className="relative group bg-white/70 dark:bg-zinc-900/60 backdrop-blur-3xl rounded-[2.5rem] shadow-[0_25px_50px_rgba(0,0,0,0.1)] border border-zinc-200/50 dark:border-zinc-800/50 transition-all duration-300 focus-within:border-violet-500/30 focus-within:shadow-violet-500/10 focus-within:ring-8 focus-within:ring-violet-500/5">
         {/* Formatting & Relation Toolbar */}
         <div className="absolute top-4 left-8 right-8 flex items-center justify-between z-50">
           <div className="flex items-center gap-2">
@@ -402,36 +406,55 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
 
           <div className="flex items-center gap-2">
             <TagButton
-              icon={<User size={16} />}
+              icon={<User size={18} className="drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]" />}
               color={
                 activePicker === "contact"
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-blue-50 text-blue-500 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800"
+                  ? "bg-violet-600 text-white border-violet-600 shadow-[0_10px_25px_rgba(139,92,246,0.4)]"
+                  : "bg-white/50 dark:bg-zinc-800/50 text-violet-500 border-violet-100 dark:border-violet-900/30 hover:bg-violet-500 hover:text-white hover:border-violet-500 shadow-sm"
               }
               onClick={() =>
                 setActivePicker(activePicker === "contact" ? null : "contact")
               }
             >
               {activePicker === "contact" && (
-                <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-zinc-800 border-2 border-blue-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-top-2 fade-in duration-200 z-[100]">
+                <div className="absolute top-full right-0 mt-3 w-80 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-3xl border border-violet-100 dark:border-violet-900/20 rounded-[2rem] shadow-[0_40px_80px_rgba(0,0,0,0.2)] p-4 animate-in slide-in-from-top-2 fade-in duration-300 z-[100]">
                   <PickerHeader
                     title="Kontakty"
-                    icon={<User size={14} />}
+                    icon={<User size={14} className="text-violet-500" />}
                     onClose={() => setActivePicker(null)}
                   />
-                  <div className="max-h-60 overflow-y-auto">
-                    {relations.contacts.map((c) => (
+                  <div className="px-1 mb-4">
+                    <div className="relative group/s">
+                      <div className="absolute inset-0 bg-violet-500/5 rounded-2xl blur-xl group-focus-within/s:bg-violet-500/10 transition-all" />
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within/s:text-violet-500 transition-colors" size={14} />
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="Hľadať v kontaktoch..."
+                        className="relative w-full pl-11 pr-4 py-4 bg-zinc-100/50 dark:bg-zinc-800/50 border border-transparent focus:border-violet-500/30 rounded-2xl text-[11px] font-black uppercase tracking-widest italic outline-none transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                        value={pickerSearch}
+                        onChange={(e) => setPickerSearch(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto thin-scrollbar pr-1">
+                    {relations.contacts
+                      .filter(c => 
+                        `${c.first_name} ${c.last_name} ${c.company}`.toLowerCase().includes(pickerSearch.toLowerCase())
+                      )
+                      .map((c) => (
                       <PickerItem
                         key={c.id}
                         title={`${c.first_name} ${c.last_name}`}
                         sub={c.company}
-                        onClick={() =>
+                        onClick={() => {
                           insertMention(
                             `${c.first_name} ${c.last_name}`,
                             c.id,
                             "contact",
-                          )
-                        }
+                          );
+                          setPickerSearch("");
+                        }}
                       />
                     ))}
                   </div>
@@ -440,32 +463,52 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
             </TagButton>
 
             <TagButton
-              icon={<FolderKanban size={16} />}
+              icon={<FolderKanban size={18} className="drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />}
               color={
                 activePicker === "project"
-                  ? "bg-purple-600 text-white border-purple-600"
-                  : "bg-purple-50 text-purple-500 border-purple-100 dark:bg-purple-900/20 dark:border-purple-800"
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-[0_10px_25px_rgba(99,102,241,0.4)]"
+                  : "bg-white/50 dark:bg-zinc-800/50 text-indigo-500 border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-500 hover:text-white hover:border-indigo-500 shadow-sm"
               }
               onClick={() =>
                 setActivePicker(activePicker === "project" ? null : "project")
               }
             >
               {activePicker === "project" && (
-                <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-zinc-800 border-2 border-purple-100 dark:border-zinc-700 rounded-3xl shadow-2xl p-2 animate-in slide-in-from-top-2 fade-in duration-200 z-[100]">
+                <div className="absolute top-full right-0 mt-3 w-80 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-3xl border border-indigo-100 dark:border-indigo-900/20 rounded-[2rem] shadow-[0_40px_80px_rgba(0,0,0,0.2)] p-4 animate-in slide-in-from-top-2 fade-in duration-300 z-[100]">
                   <PickerHeader
                     title="Projekty"
-                    icon={<FolderKanban size={14} />}
+                    icon={<FolderKanban size={14} className="text-indigo-500" />}
                     onClose={() => setActivePicker(null)}
                   />
-                  <div className="max-h-60 overflow-y-auto">
-                    {relations.projects.map((p) => (
+                  <div className="px-1 mb-4">
+                    <div className="relative group/s">
+                      <div className="absolute inset-0 bg-indigo-500/5 rounded-2xl blur-xl group-focus-within/s:bg-indigo-500/10 transition-all" />
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within/s:text-indigo-500 transition-colors" size={14} />
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="Hľadať v projektoch..."
+                        className="relative w-full pl-11 pr-4 py-4 bg-zinc-100/50 dark:bg-zinc-800/50 border border-transparent focus:border-indigo-500/30 rounded-2xl text-[11px] font-black uppercase tracking-widest italic outline-none transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                        value={pickerSearch}
+                        onChange={(e) => setPickerSearch(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto thin-scrollbar pr-1">
+                    {relations.projects
+                      .filter(p => 
+                        p.project_type.toLowerCase().includes(pickerSearch.toLowerCase()) || 
+                        p.stage?.toLowerCase().includes(pickerSearch.toLowerCase())
+                      )
+                      .map((p) => (
                       <PickerItem
                         key={p.id}
                         title={p.project_type}
                         sub={p.stage}
-                        onClick={() =>
-                          insertMention(p.project_type, p.id, "project")
-                        }
+                        onClick={() => {
+                          insertMention(p.project_type, p.id, "project");
+                          setPickerSearch("");
+                        }}
                       />
                     ))}
                   </div>
@@ -486,20 +529,10 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
           selectedIndex={selectedIndex}
         />
 
-        {/* Bottom Actions Toolbar */}
-        <div className="absolute left-8 bottom-6 flex items-center gap-3 z-30 transition-all duration-300">
-          {/* Time Picker */}
-          <div className="relative group/time">
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="pl-3 pr-1 py-3.5 bg-zinc-50 dark:bg-zinc-800 border-2 border-zinc-200 dark:border-zinc-700 rounded-2xl text-sm font-bold text-zinc-600 dark:text-zinc-300 focus:outline-none focus:border-blue-500 transition-all cursor-pointer w-[110px]"
-            />
-          </div>
+        <div className="absolute left-10 bottom-8 flex items-center gap-3 z-30 transition-all duration-300">
+          <ModernTimePicker value={time} onChange={setTime} />
         </div>
 
-        {/* Floating Submit Button */}
         <button
           onClick={(e) => handleSubmit(e)}
           disabled={
@@ -507,9 +540,9 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
             (editor.isEmpty &&
               !editor.getHTML().includes("data-mention-component"))
           }
-          className="absolute bottom-6 right-6 w-14 h-14 bg-gray-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-2xl flex items-center justify-center shadow-xl transition-all hover:scale-110 active:scale-90 disabled:opacity-20 z-20"
+          className="absolute bottom-8 right-8 w-20 h-20 bg-gradient-to-br from-violet-500 via-violet-600 to-indigo-600 text-white rounded-[2rem] flex items-center justify-center shadow-[0_20px_40px_rgba(139,92,246,0.4)] transition-all hover:scale-110 hover:shadow-violet-500/40 hover:-rotate-6 active:scale-95 disabled:opacity-20 z-20 group/submit"
         >
-          <Plus size={32} />
+          <Plus size={40} className="group-hover:rotate-180 transition-transform duration-700 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
         </button>
       </div>
       <style jsx global>{`
@@ -538,10 +571,10 @@ function ToolbarBtn({
     <button
       onClick={onClick}
       title={title}
-      className={`p-1.5 rounded-md transition-colors ${
+      className={`p-2 rounded-xl transition-all ${
         isActive
-          ? "bg-zinc-200 dark:bg-zinc-600 text-zinc-900 dark:text-white"
-          : "hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-500"
+          ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20 scale-105"
+          : "hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
       }`}
     >
       {icon}
@@ -568,7 +601,7 @@ function TagButton({
           onClick();
         }}
         type="button"
-        className={`p-3.5 rounded-2xl border-2 transition-all group ${color}`}
+        className={`p-4 rounded-2xl border-2 transition-all duration-300 group ${color}`}
       >
         {icon}
       </button>
@@ -613,13 +646,13 @@ function PickerItem({
         e.stopPropagation();
         onClick();
       }}
-      className="flex flex-col p-3 rounded-2xl hover:bg-zinc-50 dark:hover:bg-zinc-700/50 cursor-pointer transition-all border border-transparent hover:border-zinc-100 dark:hover:border-zinc-600"
+      className="flex flex-col p-4 rounded-2xl hover:bg-violet-500/5 dark:hover:bg-violet-500/10 cursor-pointer transition-all border border-transparent hover:border-violet-500/20 group/item mb-1"
     >
-      <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+      <span className="text-[13px] font-black text-zinc-800 dark:text-zinc-100 group-hover/item:text-violet-600 dark:group-hover/item:text-violet-400 transition-colors tracking-tight">
         {title}
       </span>
       {sub && (
-        <span className="text-[9px] font-black text-zinc-400 uppercase tracking-tight">
+        <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] mt-0.5 group-hover/item:text-violet-500/60 transition-colors">
           {sub}
         </span>
       )}

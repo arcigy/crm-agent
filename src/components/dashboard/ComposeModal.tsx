@@ -414,7 +414,7 @@ export function ComposeModal({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="Vaša správa..."
-              className="w-full h-full !bg-transparent border-none outline-none focus:ring-0 appearance-none text-white text-[13px] font-medium resize-none placeholder:text-white/20 leading-relaxed"
+              className="w-full h-full !bg-transparent border-none outline-none focus:ring-0 appearance-none text-white text-[13px] font-medium resize-none placeholder:text-white/20 leading-relaxed thin-scrollbar overflow-y-auto"
               style={{ backgroundColor: "transparent", boxShadow: "none" }}
             />
           </div>

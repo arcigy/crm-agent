@@ -48,7 +48,7 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
 
   return (
     <div
-      className="w-full flex flex-col h-full overflow-y-auto relative"
+      className="w-full flex flex-col h-full overflow-y-auto thin-scrollbar relative"
       style={{
         background: "#000000",
       }}

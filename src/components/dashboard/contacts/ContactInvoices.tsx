@@ -254,7 +254,7 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-zinc-400">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
         <p className="text-sm font-bold uppercase tracking-widest animate-pulse">
           Prehľadávam dokumenty...
         </p>
@@ -277,11 +277,11 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
     return (
       <div className="flex flex-col items-center justify-center h-[400px] text-center p-12 relative overflow-hidden">
         {/* Subtle Neon Background Decorations */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-violet-500/10 rounded-full blur-[100px] pointer-events-none" />
         
         <div className="relative z-10 flex flex-col items-center">
-            <div className="w-20 h-20 bg-blue-500/10 rounded-[2rem] border border-blue-500/20 flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(59,130,246,0.15)] transition-transform hover:scale-110">
-              <FileText className="w-9 h-9 text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+            <div className="w-20 h-20 bg-violet-500/10 rounded-[2rem] border border-violet-500/20 flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(139,92,246,0.15)] transition-transform hover:scale-110">
+              <FileText className="w-9 h-9 text-violet-400 drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
             </div>
             
             <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
@@ -292,9 +292,9 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
               V cloude neboli nájdené žiadne zmluvy ani faktúry prepojené s týmto klientom.
             </p>
             
-            <div className="mt-8 flex items-center gap-2 px-3 py-1 bg-blue-500/5 border border-blue-500/10 rounded-full">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                <span className="text-[10px] font-bold text-blue-400/60 uppercase tracking-widest">Digital_Archive_Empty</span>
+            <div className="mt-8 flex items-center gap-2 px-3 py-1 bg-violet-500/5 border border-violet-500/10 rounded-full">
+                <div className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-violet-400/60 uppercase tracking-widest">Digital_Archive_Empty</span>
             </div>
         </div>
       </div>
@@ -304,7 +304,7 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
   const FileItem = ({ file }: { file: InvoiceFile }) => (
     <div
       key={file.id}
-      className="group flex items-center gap-4 p-4 bg-white dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all cursor-pointer"
+      className="group flex items-center gap-4 p-4 bg-white dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-2xl hover:border-violet-500/50 hover:shadow-xl hover:shadow-violet-500/5 transition-all cursor-pointer"
       onClick={() => window.open(file.webViewLink, "_blank")}
     >
       <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110">
@@ -320,10 +320,10 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-sm font-black text-foreground truncate group-hover:text-blue-600 transition-colors">
+          <p className="text-sm font-black text-foreground truncate group-hover:text-violet-600 transition-colors">
             {file.name}
           </p>
-          <div className="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-[9px] font-black uppercase text-blue-600 tracking-wider h-fit">
+          <div className="px-1.5 py-0.5 rounded bg-violet-50 dark:bg-violet-900/20 text-[9px] font-black uppercase text-violet-600 tracking-wider h-fit">
             DOC
           </div>
         </div>
@@ -345,7 +345,7 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
         </div>
       </div>
 
-      <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-zinc-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+      <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-zinc-400 group-hover:bg-violet-600 group-hover:text-white transition-all">
         <ExternalLink className="w-4 h-4" />
       </div>
     </div>
@@ -380,14 +380,14 @@ export function ContactInvoices({ contact }: { contact: Lead }) {
       {invoiceFiles.length > 0 && (
         <div>
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center text-blue-600">
+            <div className="w-8 h-8 rounded-lg bg-violet-600/10 flex items-center justify-center text-violet-600">
               <FileText className="w-4 h-4" />
             </div>
             <h4 className="text-sm font-black text-foreground uppercase tracking-widest italic">
               Faktúry a finančné doklady
             </h4>
             <div className="flex-1 h-px bg-zinc-100 dark:bg-zinc-800/50" />
-            <span className="text-[10px] font-black text-blue-600 bg-blue-600/5 px-2 py-0.5 rounded-full border border-blue-600/10">
+            <span className="text-[10px] font-black text-violet-600 bg-violet-600/5 px-2 py-0.5 rounded-full border border-violet-600/10">
               {invoiceFiles.length}
             </span>
           </div>

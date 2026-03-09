@@ -145,7 +145,7 @@ export function ContactExtractionModal({
                     </button>
                 </div>
 
-                <div className="p-6 overflow-y-auto">
+                <div className="p-6 overflow-y-auto thin-scrollbar">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                         {/* Name */}
                         <div className={`p-4 rounded-xl border-2 transition-all duration-700 delay-100 ${animate ? 'border-red-100 bg-red-50/50 translate-x-0 opacity-100' : 'border-transparent bg-transparent -translate-x-4 opacity-0'}`}>
@@ -206,7 +206,7 @@ export function ContactExtractionModal({
                         <div className="absolute -top-3 left-4 bg-white px-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
                             Zdroj informácií
                         </div>
-                        <div className="p-5 rounded-xl bg-gray-50 border border-gray-100 text-sm leading-relaxed font-medium text-gray-400 font-mono whitespace-pre-wrap">
+                        <div className="p-5 rounded-xl bg-gray-50 border border-gray-100 text-sm leading-relaxed font-medium text-gray-400 font-mono whitespace-pre-wrap max-h-[200px] overflow-y-auto thin-scrollbar">
                             {renderHighlightedText()}
                         </div>
                     </div>

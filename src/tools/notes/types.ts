@@ -4,6 +4,7 @@ export interface Note {
   content: string;
   date_created: string;
   user_email: string;
+  category?: string | null;
   contact_id?: number | null;
   project_id?: number | null;
   deal_id?: number | null;

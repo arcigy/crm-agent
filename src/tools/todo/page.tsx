@@ -13,16 +13,16 @@ export default function TodoTool() {
   const { tasks, add, toggle, remove, update } = useTasks();
 
   return (
-    <div className="w-full mx-auto h-full flex flex-col gap-4 p-2 md:p-4 animate-in fade-in duration-700 overflow-hidden">
+    <div className="w-full mx-auto h-full flex flex-col gap-4 p-2 md:p-4 animate-in fade-in duration-700">
       {/* Header & Input */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 relative z-50">
         <header className="flex items-end justify-between gap-6 mb-2">
           <div className="space-y-1">
             <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
               Úlohy
             </h1>
           </div>
-          <div className="flex items-center gap-6 px-5 py-2.5 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm">
+          <div className="flex items-center gap-6 px-6 py-3 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
             <Stat
               label="Hotovo"
               value={tasks.filter((t) => t.completed).length}
@@ -32,7 +32,7 @@ export default function TodoTool() {
             <Stat
               label="Zostáva"
               value={tasks.filter((t) => !t.completed).length}
-              color="text-blue-500"
+              color="text-violet-500"
             />
           </div>
         </header>
@@ -54,7 +54,7 @@ export default function TodoTool() {
       </div>
 
       {/* Main View */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 relative z-10 pb-40">
         <TodoThreeDayView
           tasks={tasks}
           currentDate={selectedDate}

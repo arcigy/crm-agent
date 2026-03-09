@@ -92,7 +92,7 @@ export function ProjectDetailModal({
                 <ProjectOverview project={project} onClose={onClose} />
             )}
             {activeTab === "tasks" && (
-              <div className="p-10">
+              <div className="p-10 h-full overflow-y-auto thin-scrollbar">
                 <div className="flex items-center gap-3 mb-8">
                     <div className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_10px_#8b5cf6]" />
                     <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">

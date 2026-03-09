@@ -55,7 +55,7 @@ export function QuickComposerModal({
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full h-64 p-4 bg-violet-50/30 border-2 border-transparent focus:border-violet-100 focus:bg-white rounded-xl resize-none outline-none text-sm text-gray-700 font-medium leading-relaxed transition-all"
+            className="w-full h-64 p-4 bg-violet-50/30 border-2 border-transparent focus:border-violet-100 focus:bg-white rounded-xl resize-none outline-none text-sm text-gray-700 font-medium leading-relaxed transition-all thin-scrollbar overflow-y-auto"
             placeholder="Sem napíšte odpoveď..."
             autoFocus
           />

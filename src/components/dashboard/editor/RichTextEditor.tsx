@@ -72,7 +72,7 @@ export default function RichTextEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose-base lg:prose-md xl:prose-lg focus:outline-none max-w-none p-8 min-h-[300px] overflow-y-auto custom-scrollbar font-medium text-foreground dark:prose-invert",
+          "prose prose-sm sm:prose-base lg:prose-md xl:prose-lg focus:outline-none max-w-none p-8 min-h-full font-medium text-foreground dark:prose-invert h-auto",
       },
       handleKeyDown: (view, event) => {
         if (!editor) return false;
@@ -108,14 +108,14 @@ export default function RichTextEditor({
   }, [content, editor]);
 
   return (
-    <div className="flex flex-col border border-border rounded-[2.5rem] bg-card shadow-inner min-h-0 flex-1 transition-colors">
+    <div className="flex flex-col border border-border rounded-[2.5rem] bg-card shadow-inner min-h-0 flex-1 transition-colors overflow-hidden">
       <MenuBar editor={editor} onLinkOpen={() => {
         if (editor) {
           editor.chain().focus().insertContent("@").run();
           checkAutocomplete(editor);
         }
       }} />
-      <EditorContent editor={editor} className="flex-1 overflow-hidden" />
+      <EditorContent editor={editor} className="flex-1 overflow-y-auto thin-scrollbar min-h-0" />
       <AutocompleteDropdown
         suggestions={suggestions}
         position={position}

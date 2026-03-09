@@ -42,7 +42,7 @@ export function ProjectOverview({ project, onClose }: ProjectOverviewProps) {
   };
 
   return (
-    <div className="h-full flex flex-col p-8 space-y-8 bg-[#000000] overflow-hidden">
+    <div className="h-full overflow-y-auto thin-scrollbar p-8 space-y-12 bg-[#000000]">
       {/* KPI Cards - Static Glassmorphism */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <NeonKpi 

@@ -55,7 +55,7 @@ export function EventDetailModal({ event, isOpen, onClose, onOpenContact, onSucc
                 {/* Header Decoration */}
                 <div className={`h-2 w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-[0_5px_15px_rgba(139,92,246,0.3)]`} />
 
-                <div className="p-10">
+                <div className="p-10 overflow-y-auto thin-scrollbar max-h-[85vh]">
                     <div className="flex items-start justify-between mb-10">
                         <div className="flex-1">
                             <div className="flex items-center gap-3 mb-4">
@@ -118,7 +118,7 @@ export function EventDetailModal({ event, isOpen, onClose, onOpenContact, onSucc
                                 </div>
                                 <div className="flex-1 pt-1">
                                     <p className="text-[9px] text-zinc-600 font-black uppercase tracking-[0.2em] italic mb-3">Detaily poznámky</p>
-                                    <div className="bg-white/[0.02] rounded-2xl p-6 text-[11px] text-zinc-400 leading-relaxed font-bold border border-white/[0.05] group-hover/desc:border-violet-500/20 transition-all italic tracking-tight">
+                                    <div className="bg-white/[0.02] rounded-2xl p-6 text-[11px] text-zinc-400 leading-relaxed font-bold border border-white/[0.05] group-hover/desc:border-violet-500/20 transition-all italic tracking-tight max-h-[200px] overflow-y-auto thin-scrollbar">
                                         {event.description}
                                     </div>
                                 </div>

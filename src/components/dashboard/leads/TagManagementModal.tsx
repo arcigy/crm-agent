@@ -253,7 +253,7 @@ export function TagManagementModal({
           </div>
 
           {/* Content */}
-          <div className="p-8 overflow-y-auto max-h-[60vh]">
+          <div className="p-8 overflow-y-auto max-h-[60vh] thin-scrollbar">
             <div className="space-y-3">
               {customTags.length === 0 && !isAdding && (
                 <div className="text-center py-8">
