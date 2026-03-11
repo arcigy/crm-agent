@@ -1,24 +1,12 @@
 "use client";
 
 import * as React from "react";
-import {
-  Building2,
-  BrainCircuit,
-  Target,
-  Save,
-  Sparkles,
-  RefreshCcw,
-  Zap,
-  Info,
-  User,
-  ShieldCheck,
-  MessageSquare,
-} from "lucide-react";
+import { Save, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
-import {
-  getOnboardingSettings,
-  updateOnboardingSettings,
-} from "@/app/actions/onboarding";
+import { getOnboardingSettings, updateOnboardingSettings } from "@/app/actions/onboarding";
+import AIHeader from "@/components/dashboard/settings/ai/AIHeader";
+import { AIIdentitySections } from "@/components/dashboard/settings/ai/AIIdentitySections";
+import { AITuningSections } from "@/components/dashboard/settings/ai/AITuningSections";
 
 export default function AISettingsPage() {
   const [loading, setLoading] = React.useState(true);
@@ -34,16 +22,16 @@ export default function AISettingsPage() {
     services: "",
     focus: "",
     custom_instructions: "",
+    signature: "",
+    negative_keywords: "",
+    availability: "",
   });
 
   React.useEffect(() => {
     async function load() {
       const data = await getOnboardingSettings();
       if (data) {
-        setFormData({
-          ...formData,
-          ...data,
-        });
+        setFormData(prev => ({ ...prev, ...(data as any) }));
       }
       setLoading(false);
     }
@@ -66,253 +54,55 @@ export default function AISettingsPage() {
     }
   };
 
+  const updateField = (key: string, value: string) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[400px]">
-        <RefreshCcw className="w-6 h-6 text-blue-500 animate-spin" />
+      <div className="flex items-center justify-center h-[500px]">
+        <RefreshCcw className="w-8 h-8 text-violet-500 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl space-y-8 animate-in fade-in duration-500 pb-20">
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-600/20">
-            <BrainCircuit className="w-6 h-6 text-white" />
-          </div>
-          <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">
-            AI & <span className="text-indigo-500">Kontext Firmy</span>
-          </h1>
+    <div className="max-w-6xl mx-auto animate-in fade-in duration-1000 pt-10 pb-20 px-4 md:px-0 relative">
+      {/* ── Background Ambiance (Grey Neon) ── */}
+      <div className="absolute top-[-100px] right-0 w-[500px] h-[500px] bg-white/[0.02] rounded-full blur-[140px] pointer-events-none -z-10" />
+
+      {/* ── Settings Console Window ── */}
+      <div className="bg-zinc-950/40 backdrop-blur-3xl border border-white/[0.03] rounded-[3.5rem] p-10 md:p-14 shadow-[0_40px_100px_rgba(0,0,0,0.6)] relative overflow-hidden">
+        
+        <AIHeader />
+
+        <div className="space-y-0 divide-y divide-white/[0.03] relative z-10 w-full">
+          <AIIdentitySections formData={formData} onChange={updateField} />
+          <AITuningSections formData={formData} onChange={updateField} />
         </div>
-        <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em] pl-1 opacity-60 flex items-center gap-2">
-          <Sparkles className="w-3 h-3 text-indigo-500" />
-          Ladí správanie agenta a analýzu dát
-        </p>
-      </div>
 
-      {/* Basic Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* User Identity */}
-        <section className="bg-card border border-border p-8 rounded-[2.5rem] shadow-sm space-y-6">
-          <div className="flex items-center gap-3 border-b border-border pb-4">
-            <User className="w-5 h-5 text-violet-500" />
-            <h2 className="text-xs font-black uppercase tracking-widest text-foreground">
-              Osobný Profil
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                Prezývka
-              </label>
-              <input
-                type="text"
-                value={formData.nickname}
-                onChange={(e) =>
-                  setFormData({ ...formData, nickname: e.target.value })
-                }
-                className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-violet-500 outline-none transition-all"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                Povolanie
-              </label>
-              <input
-                type="text"
-                value={formData.profession}
-                onChange={(e) =>
-                  setFormData({ ...formData, profession: e.target.value })
-                }
-                className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-violet-500 outline-none transition-all"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Company Identity */}
-        <section className="bg-card border border-border p-8 rounded-[2.5rem] shadow-sm space-y-6">
-          <div className="flex items-center gap-3 border-b border-border pb-4">
-            <Building2 className="w-5 h-5 text-blue-500" />
-            <h2 className="text-xs font-black uppercase tracking-widest text-foreground">
-              Identita Firmy
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                Názov Firmy
-              </label>
-              <input
-                type="text"
-                value={formData.company_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, company_name: e.target.value })
-                }
-                className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-blue-500 outline-none transition-all"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                Oblasť podnikania
-              </label>
-              <input
-                type="text"
-                value={formData.industry}
-                onChange={(e) =>
-                  setFormData({ ...formData, industry: e.target.value })
-                }
-                className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-blue-500 outline-none transition-all"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* More About You */}
-        <section className="md:col-span-2 bg-card border border-border p-8 rounded-[2.5rem] shadow-sm space-y-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 mb-2">
-              <ShieldCheck className="w-4 h-4 text-violet-500" />
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                Viac o Vás (Záujmy, hodnoty, predvoľby)
-              </label>
-            </div>
-            <textarea
-              rows={3}
-              value={formData.about_me}
-              onChange={(e) =>
-                setFormData({ ...formData, about_me: e.target.value })
-              }
-              className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-violet-500 outline-none transition-all resize-none"
-            />
-          </div>
-        </section>
-
-        {/* AI Tuning */}
-        <section className="md:col-span-2 bg-card border border-border p-8 rounded-[2.5rem] shadow-sm space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 border-b border-border pb-4">
-                <Target className="w-5 h-5 text-indigo-500" />
-                <h2 className="text-xs font-black uppercase tracking-widest text-foreground">
-                  AI Parametre
-                </h2>
-              </div>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                    Tón komunikácie
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.tone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, tone: e.target.value })
-                    }
-                    className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-indigo-500 outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                    Priorita pri analýze
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.focus}
-                    onChange={(e) =>
-                      setFormData({ ...formData, focus: e.target.value })
-                    }
-                    className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-indigo-500 outline-none transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 border-b border-border pb-4">
-                <MessageSquare className="w-5 h-5 text-emerald-500" />
-                <h2 className="text-xs font-black uppercase tracking-widest text-foreground">
-                  Vlastné Pokyny
-                </h2>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                  Systémový Prompt (Custom Instructions)
-                </label>
-                <textarea
-                  rows={5}
-                  value={formData.custom_instructions}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      custom_instructions: e.target.value,
-                    })
-                  }
-                  className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-emerald-500 outline-none transition-all resize-none"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Goals & Services */}
-        <section className="md:col-span-2 bg-card border border-border p-8 rounded-[2.5rem] shadow-sm space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-2">
-                <Target className="w-4 h-4 text-emerald-500" />
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  Dlhodobé ciele CRM
-                </label>
-              </div>
-              <textarea
-                rows={4}
-                value={formData.goals}
-                onChange={(e) =>
-                  setFormData({ ...formData, goals: e.target.value })
-                }
-                className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-emerald-500 outline-none transition-all resize-none"
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-4 h-4 text-amber-500" />
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  Popis Služieb / Produktov
-                </label>
-              </div>
-              <textarea
-                rows={4}
-                value={formData.services}
-                onChange={(e) =>
-                  setFormData({ ...formData, services: e.target.value })
-                }
-                className="w-full bg-muted/30 border border-border rounded-2xl p-4 font-bold focus:border-amber-500 outline-none transition-all resize-none"
-              />
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* Footer Actions */}
-      <div className="flex items-center justify-end gap-4 pt-4">
-        <button
-          disabled={saving}
-          onClick={handleSave}
-          className="px-10 py-4 bg-blue-600 text-white font-black uppercase tracking-[0.2em] text-xs rounded-2xl shadow-xl shadow-blue-600/20 hover:bg-blue-700 active:scale-95 transition-all flex items-center gap-3 group"
-        >
-          {saving ? (
-            <RefreshCcw className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4 group-hover:scale-110 transition-transform" />
-          )}
-          Uložiť Konfiguráciu AI
-        </button>
+        <div className="mt-16 pt-10 border-t border-white/[0.03] flex items-center justify-end">
+           <button
+              disabled={saving}
+              onClick={handleSave}
+              className="group relative px-14 py-5 bg-zinc-100 text-zinc-950 font-black uppercase tracking-[0.4em] text-[10px] rounded-2xl shadow-[0_15px_40px_rgba(255,255,255,0.05)] hover:bg-white hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-95 transition-all flex items-center gap-4 border border-white/20 overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] transition-all" />
+              
+              {saving ? (
+                <RefreshCcw className="w-5 h-5 animate-spin text-zinc-950" />
+              ) : (
+                <Save className="w-5 h-5 group-hover:scale-110 transition-transform duration-500 text-zinc-950" />
+              )}
+              <span className="relative z-10 drop-shadow-sm">Deploy_Configuration</span>
+            </button>
+        </div>
       </div>
     </div>
   );
 }
+
+
+
+
+

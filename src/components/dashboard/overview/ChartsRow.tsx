@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown, BarChart3, TrendingUp } from "lucide-react";
+import Link from "next/link";
 
 export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -38,22 +39,23 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
     <div className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl px-5 md:px-8 pt-2 md:pt-3 pb-4 md:pb-6 rounded-none md:rounded-[2.5rem] border-b md:border border-violet-500/20 dark:border-violet-500/20 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full' : 'h-auto md:h-full shadow-sm hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-1.5'}`}>
       <div className="absolute -top-6 -left-6 w-24 h-24 bg-violet-500/20 rounded-full blur-[40px] pointer-events-none group-hover:bg-violet-500/30 transition-all duration-300" />
       
-      <div 
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full md:cursor-default relative z-20 cursor-pointer md:cursor-auto mb-1 md:mb-2"
+      <Link 
+        href="/dashboard/projects"
+        prefetch={true}
+        className="flex items-center justify-between w-full relative z-20 md:mb-2 transition-transform hover:scale-[1.02] origin-left group/header"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full">
           <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl md:bg-violet-500/10 bg-violet-500/20 flex items-center justify-center border border-violet-500/30 md:border-violet-500/20">
             <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-violet-500" />
           </div>
-          <div className="flex flex-col items-start text-left">
+          <div className="flex flex-col items-start text-left flex-1">
             <h3 className="text-sm md:text-lg font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Pipeline Projektov</h3>
           </div>
         </div>
-        <div className={`w-5 h-5 flex items-center justify-center transition-all duration-300 md:hidden ${isExpanded ? 'rotate-180' : ''}`}>
-           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        <div className={`w-5 h-5 flex items-center justify-center transition-all duration-300 md:hidden`}>
+           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         </div>
-      </div>
+      </Link>
       
       <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'opacity-100 block' : 'hidden md:block opacity-0 md:opacity-100'}`}>
         <div className="space-y-1 md:space-y-1.5 relative z-10 overflow-hidden">

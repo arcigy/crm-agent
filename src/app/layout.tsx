@@ -40,8 +40,9 @@ export default function RootLayout({
         >
           <ThemeProvider
             attribute="class"
-            defaultTheme="light"
+            defaultTheme="dark"
             enableSystem={false}
+            forcedTheme="dark"
           >
             {children}
             <Toaster richColors position="top-right" />

@@ -39,6 +39,9 @@ export async function getOnboardingSettings() {
       tone: p?.communication_tone || "",
       services: p?.offered_services || "",
       focus: p?.ai_focus_areas || "",
+      signature: (p?.signature_template as string) || "",
+      negative_keywords: (p?.negative_keywords as string) || "",
+      availability: (p?.working_hours as string) || "",
     };
   } catch (error) {
     console.error("Get Onboarding Settings Error:", error);
@@ -57,6 +60,9 @@ export async function updateOnboardingSettings(data: {
   tone: string;
   services: string;
   focus: string;
+  signature: string;
+  negative_keywords: string;
+  availability: string;
 }) {
   try {
     const email = await getUserEmail();
@@ -99,6 +105,9 @@ export async function updateOnboardingSettings(data: {
       communication_tone: data.tone,
       offered_services: data.services,
       ai_focus_areas: data.focus,
+      signature_template: data.signature,
+      negative_keywords: data.negative_keywords,
+      working_hours: data.availability,
       date_updated: new Date().toISOString(),
     };
 

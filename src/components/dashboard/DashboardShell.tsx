@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ThemeToggle } from "./ThemeToggle";
 import { LogoutButton } from "./LogoutButton";
 import { useCurrentCRMUser } from "@/hooks/useCurrentCRMUser";
 import { FloatingAgentChat } from "./FloatingAgentChat";
@@ -105,7 +104,7 @@ export function DashboardShell({
   };
 
   return (
-    <div className="flex h-[100dvh] w-full bg-slate-50 dark:bg-black overflow-hidden relative">
+    <div className="flex h-[100dvh] w-full bg-transparent overflow-hidden relative">
       <style jsx global>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -130,17 +129,17 @@ export function DashboardShell({
           background: rgba(255, 255, 255, 0.2);
         }
 
-        @keyframes loading-bar {
+        @keyframes premium-loading {
           0% { transform: translateX(-100%); }
-          50% { transform: translateX(0); }
+          50% { transform: translateX(0%); }
           100% { transform: translateX(100%); }
         }
       `}</style>
 
-      {/* Top Loading Bar */}
+      {/* Top Loading Bar (Premium Neon) */}
       {isNavigating && (
-        <div className="fixed top-0 left-0 right-0 h-1 z-[3000] overflow-hidden">
-          <div className="h-full bg-indigo-600 animate-[loading-bar_0.8s_infinite_linear]" style={{ width: '40%' }} />
+        <div className="fixed top-0 left-0 right-0 h-[3px] z-[5000] overflow-hidden bg-white/5 backdrop-blur-sm shadow-[0_2px_15px_rgba(139,92,246,0.3)]">
+          <div className="h-full bg-gradient-to-r from-transparent via-violet-500 to-transparent absolute inset-0 animate-[premium-loading_1.5s_infinite_ease-in-out]" style={{ width: '100%', filter: 'drop-shadow(0 0 8px rgba(139,92,246,0.8))' }} />
         </div>
       )}
 
@@ -215,7 +214,6 @@ export function DashboardShell({
           </nav>
 
           <div className="p-4 border-t border-white/5 space-y-1">
-            <ThemeToggle />
             <Link
               href="/dashboard/settings"
               onMouseEnter={() => router.prefetch('/dashboard/settings')}
@@ -230,20 +228,7 @@ export function DashboardShell({
         </div>
       </aside>
 
-      {/* ── Background Elements ── */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        {/* Subtle Grid Pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
-          style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
-            backgroundSize: '32px 32px'
-          }}
-        />
-        {/* Soft Radial Glows */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-[120px]" />
-      </div>
+
 
       {/* Main Content Area */}
       <main 

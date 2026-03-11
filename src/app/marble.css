@@ -1,0 +1,17 @@
+/* src/app/marble.css */
+
+/* Full‑screen wrapper with glossy black marble texture */
+.marble-bg {
+  /* Ensure it covers the whole viewport */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  /* Uniform dark color overlay with seamless high-res repeating marble tile */
+  background-image: linear-gradient(rgba(10, 10, 10, 0.88), rgba(10, 10, 10, 0.88)), url('/seamless_black_marble.png');
+  background-size: 512px 512px;    /* smaller repeating tile for extreme crispness */
+  background-position: left top;   
+  background-repeat: repeat;       /* repeats infinitely, preventing pixelation */
+  background-color: #050505;       /* Solid deep dark grey base */
+  background-attachment: fixed;    /* Parallax scroll effect kept */
+}

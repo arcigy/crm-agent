@@ -20,6 +20,7 @@ import { selfReflect } from '@/app/actions/agent-self-reflector';
 import { extractAndStoreIds } from '@/app/actions/agent-self-corrector';
 import { saveUserMessage, saveAssistantMessage, loadChatHistory } from '@/lib/message-store';
 import { generateAndSaveChatTitle } from '@/lib/chat-title-generator';
+import { getAgentSettings } from '@/app/actions/agent-settings';
 import directus from '@/lib/directus';
 import { readItems, createItem } from '@directus/sdk';
 import { MissionState, ToolResult } from '@/app/actions/agent-types';
@@ -133,6 +134,9 @@ export async function POST(req: Request) {
 
     (async () => {
         try {
+            const agentSettings = await getAgentSettings();
+            await log("CONFIG", "Loaded agent settings", { agent_name: agentSettings.agent_name, mode: agentSettings.mode });
+
             await sendStatus("🔍 Analyzujem zadanie...");
             await log("ROUTER", "Analyzing intent...");
             const routing = await routeIntent(lastUserMsg, messages as any, userName);
@@ -143,7 +147,7 @@ export async function POST(req: Request) {
                 await log("ROUTER", "Route: Simple Conversation");
                 const result = streamText({ 
                     model: google(AI_MODELS.ROUTER),
-                    system: `Si pokročilý AI asistent pre ${userName}. Odpovedaj výlučne v slovenčine.
+                    system: `Si ${agentSettings.agent_name}, pokročilý AI asistent pre ${userName}. Odpovedaj výlučne v slovenčine.
 Aktuálny dátum a čas: **${new Date().toLocaleString('sk-SK', { timeZone: 'Europe/Bratislava' })}**.
 
 PRAVIDLÁ:
@@ -160,12 +164,14 @@ PRAVIDLÁ:
                 return;
             }
 
-            // C2 FIX: Confidence threshold gate
-            // If router is not confident + has ambiguities → ask user instead of going to orchestrator
-            const CONFIDENCE_THRESHOLD = 0.65;
+            // Exit Check: Confidence threshold gate
+            // Precisely configured via Control Console
+            const baseThreshold = agentSettings.confidence_threshold / 100;
+            const threshold = agentSettings.mode === 'precise' ? Math.max(baseThreshold, 0.8) : baseThreshold;
+            
             const ambiguities = routing.orchestrator_brief_structured?.ambiguities ?? [];
-            if (routing.confidence < CONFIDENCE_THRESHOLD && ambiguities.length > 0) {
-                await log("ROUTER", `Low confidence (${routing.confidence}), requesting clarification`);
+            if (routing.confidence < threshold && ambiguities.length > 0) {
+                await log("ROUTER", `Low confidence (${routing.confidence.toFixed(2)} < ${threshold.toFixed(2)}), requesting clarification`);
                 const clarification = ambiguities.length > 0
                     ? `Pred tým, ako začnem, potrebujem vedieť: ${ambiguities.join(", ")}`
                     : `Môžeš mi upresnit, čo presnne chceš spravit? Napríklad pre koho alebo čo?`;

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Cloud, Loader2 } from "lucide-react";
+import { Cloud } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrentCRMUser } from "@/hooks/useCurrentCRMUser";
+import { MiniPremiumLoader } from "@/components/ui/MiniPremiumLoader";
 
 export function GoogleConnectButton({
   className = "",
@@ -45,7 +46,7 @@ export function GoogleConnectButton({
     }
   };
 
-  if (!isLoaded) return <Loader2 className="w-4 h-4 animate-spin" />;
+  if (!isLoaded) return <MiniPremiumLoader size="sm" />;
 
   if (isConnected && !isScopeFix) {
     if (!showManageOptions) {
@@ -90,7 +91,7 @@ export function GoogleConnectButton({
             disabled={isLoading}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-800/40 text-amber-900 dark:text-amber-200 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
           >
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+            {isLoading ? <MiniPremiumLoader size="sm" /> : <Cloud className="w-4 h-4" />}
             Znovu udeliť povolenia (Google Dialóg)
           </button>
         </div>
@@ -105,7 +106,7 @@ export function GoogleConnectButton({
       className={`flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm ${className}`}
     >
       {isLoading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <MiniPremiumLoader size="sm" />
       ) : (
         <Cloud className="w-4 h-4 text-orange-500" />
       )}

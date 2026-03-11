@@ -1,6 +1,8 @@
 "use client";
 
 import { Users, FolderKanban, TrendingUp, Check } from "lucide-react";
+import Link from "next/link";
+
 
 interface StatCardProps {
   label: string;
@@ -11,11 +13,12 @@ interface StatCardProps {
   borderColor: string;     // tailwind border color, e.g. "border-blue-500/30"
   iconBg: string;          // tailwind bg + shadow for icon pill
   textColor: string;       // value text color
+  href: string;            // target path
 }
 
-function StatCard({ label, value, icon: Icon, trend, glowColor, borderColor, iconBg, textColor }: StatCardProps) {
+function StatCard({ label, value, icon: Icon, trend, glowColor, borderColor, iconBg, textColor, href }: StatCardProps) {
   return (
-    <div className={`
+    <Link href={href} prefetch={true} className={`
       relative overflow-hidden flex flex-col items-center justify-center text-center
       bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl
       rounded-2xl md:rounded-[2rem]
@@ -23,7 +26,7 @@ function StatCard({ label, value, icon: Icon, trend, glowColor, borderColor, ico
       shadow-sm hover:shadow-xl
       transition-all duration-300 ease-out
       hover:-translate-y-1.5 hover:scale-[1.02]
-      active:scale-95 cursor-default
+      active:scale-95 cursor-pointer block focus:outline-none focus:ring-2 focus:ring-violet-500/50
       px-3 py-5 md:py-6
       group
     `}>
@@ -62,13 +65,13 @@ function StatCard({ label, value, icon: Icon, trend, glowColor, borderColor, ico
       ) : (
         <div className="h-3" />
       )}
-    </div>
+    </Link>
   );
 }
 
 export function DashboardStats({ stats }: { stats: any }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5 mb-3 pt-2 relative z-30 w-full">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5 mb-3 pt-4 px-2 md:px-4 relative z-30 w-[calc(100%-16px)] md:w-full mx-auto">
       <StatCard
         label="Kontakty"
         value={stats.contactsCount || 0}
@@ -78,6 +81,7 @@ export function DashboardStats({ stats }: { stats: any }) {
         borderColor="border-blue-400/30"
         iconBg="bg-blue-500 shadow-blue-500/40"
         textColor="text-blue-600 dark:text-blue-400"
+        href="/dashboard/contacts"
       />
       <StatCard
         label="Projekty"
@@ -88,6 +92,7 @@ export function DashboardStats({ stats }: { stats: any }) {
         borderColor="border-indigo-400/30"
         iconBg="bg-indigo-500 shadow-indigo-500/40"
         textColor="text-indigo-600 dark:text-indigo-400"
+        href="/dashboard/projects"
       />
       <StatCard
         label="Hodnota"
@@ -98,6 +103,7 @@ export function DashboardStats({ stats }: { stats: any }) {
         borderColor="border-emerald-400/30"
         iconBg="bg-emerald-500 shadow-emerald-500/40"
         textColor="text-emerald-600 dark:text-emerald-400"
+        href="/dashboard/deals"
       />
       <StatCard
         label="Hotové Úlohy"
@@ -107,6 +113,7 @@ export function DashboardStats({ stats }: { stats: any }) {
         borderColor="border-violet-400/30"
         iconBg="bg-violet-500 shadow-violet-500/40"
         textColor="text-violet-600 dark:text-violet-400"
+        href="/dashboard/todo"
       />
     </div>
   );

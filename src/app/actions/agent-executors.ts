@@ -71,6 +71,26 @@ export async function executeAtomicTool(
   const userEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
   const userId = user?.id;
 
+  // Security layer: Check tool permissions from Agent Control Console
+  const { getAgentSettings } = await import("./agent-settings");
+  const agentSettings = await getAgentSettings();
+  
+  const isAllowed = (n: string) => {
+    if (n.startsWith("sys_") || n.startsWith("verify_") || n.startsWith("drive_")) return true; // System tools always allowed
+    
+    if (n.startsWith("gmail_") || n.includes("contact")) return agentSettings.tools_allowed.includes("contacts");
+    if (n.startsWith("calendar_")) return agentSettings.tools_allowed.includes("calendar");
+    if (n.includes("note")) return agentSettings.tools_allowed.includes("notes");
+    if (n.includes("deal") || n.includes("invoice")) return agentSettings.tools_allowed.includes("billing");
+    if (n.includes("lead") || n.startsWith("web_")) return agentSettings.tools_allowed.includes("marketing");
+    
+    return true; // Default allow for unspecified categories to avoid breaking existing flows
+  };
+
+  if (!isAllowed(name)) {
+    return { success: false, error: `Bezpečnostné obmedzenie: Agent nemá oprávnenie na spustenie nástroja '${name}'. Povoľte prístup v Agent Control Console.` };
+  }
+
   try {
     // Gmail Tools
     if (name.startsWith("gmail_")) {

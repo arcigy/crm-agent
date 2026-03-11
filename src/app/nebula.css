@@ -1,0 +1,29 @@
+/* src/app/nebula.css */
+/* Deep Violet Nebula background – premium glassmorphism vibe */
+
+/* Full‑screen wrapper */
+.nebula-bg {
+  /* Ensure it covers the whole viewport */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  /* Background gradient – dark violet base */
+  background: radial-gradient(circle at 30% 30%, #2b0a3b 0%, #0a001f 70%);
+  /* Subtle texture – multiple blurred blobs */
+
+  background-blend-mode: overlay;
+  /* Soft animation – slow pulsing of the blobs */
+
+  overflow: hidden;
+}
+
+
+
+/* Optional: add a faint glass‑morphism overlay for inner content */
+.nebula-bg > * {
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 1rem;
+  padding: 1rem;
+  margin: 0.5rem;
+}

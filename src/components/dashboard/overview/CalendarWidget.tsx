@@ -79,7 +79,7 @@ export function CalendarWidget({ events, scopeError }: { events: any[], scopeErr
         }}
         className="flex items-center justify-between w-full md:cursor-default relative z-20 cursor-pointer md:cursor-auto mb-2 md:mb-3"
       >
-        <div className="flex items-center gap-3">
+        <Link href="/dashboard/calendar" prefetch={true} className="flex flex-1 items-center gap-3 transition-transform hover:scale-[1.02] origin-left">
           <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl md:bg-indigo-100 md:dark:bg-indigo-900/30 bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 md:border-indigo-500/20">
             <CalendarIcon className="w-4 h-4 md:w-5 md:h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
@@ -87,7 +87,7 @@ export function CalendarWidget({ events, scopeError }: { events: any[], scopeErr
             <h3 className="text-sm md:text-lg font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Kalendár</h3>
             <span className="text-[7px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Dnešné plány</span>
           </div>
-        </div>
+        </Link>
         
         {/* Weekly Nav */}
         <div className="hidden md:flex items-center gap-1 bg-white/50 dark:bg-zinc-800/50 p-1 rounded-xl border border-black/5 dark:border-white/5 shadow-sm">
@@ -145,9 +145,9 @@ export function CalendarWidget({ events, scopeError }: { events: any[], scopeErr
           )}
         </div>
 
-        <a href="/dashboard/calendar" className="mt-4 text-center text-[10px] font-black text-indigo-400 hover:text-indigo-600 transition-colors uppercase italic tracking-widest relative z-10 flex items-center justify-center gap-2 group/link">
+        <Link href="/dashboard/calendar" prefetch={true} className="mt-4 text-center text-[10px] font-black text-indigo-400 hover:text-indigo-600 transition-colors uppercase italic tracking-widest relative z-10 flex items-center justify-center gap-2 group/link">
           Otvoriť Kalendár <ChevronRight className="w-3 h-3 group-hover/link:translate-x-1 transition-transform" />
-        </a>
+        </Link>
       </div>
     </div>
   );

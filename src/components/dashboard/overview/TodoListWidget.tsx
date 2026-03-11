@@ -1,7 +1,9 @@
 "use client";
 
 import { SmartText } from "@/components/todo/SmartText";
-import { CheckCircle2, Clock, Calendar, Check, Undo2 } from "lucide-react";
+import { CheckCircle2, Clock, Calendar, Check, Undo2, ChevronRight } from "lucide-react";
+import Link from "next/link";
+
 import { format, isToday, isThisWeek } from "date-fns";
 import { sk } from "date-fns/locale";
 import { useState, useEffect } from "react";
@@ -90,15 +92,16 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
       <div className="absolute -top-6 -left-6 w-24 h-24 bg-emerald-500/20 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/30 transition-all duration-300" />
       
       {/* Header / Trigger */}
-      <div 
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full md:cursor-default relative z-20 cursor-pointer md:cursor-auto mb-2 md:mb-3"
+      <Link 
+        href="/dashboard/todo"
+        prefetch={true}
+        className="flex items-center justify-between w-full md:cursor-pointer relative z-20 md:mb-3 transition-transform hover:scale-[1.02] origin-left group/header"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full">
           <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl md:bg-emerald-500/10 bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 md:border-emerald-500/20">
             <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
           </div>
-          <div className="flex flex-col items-start text-left">
+          <div className="flex flex-col items-start text-left flex-1 min-w-0">
             <h3 className="text-sm md:text-lg font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">{title}</h3>
             <span className="text-[7px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Dnešný zoznam úloh</span>
           </div>
@@ -113,7 +116,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
           </div>
         </div>
-      </div>
+      </Link>
 
       <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'opacity-100 block' : 'hidden md:block opacity-0 md:opacity-100'}`}>
         <div className="flex-1 min-h-0 space-y-2 overflow-y-auto pr-1 thin-scrollbar relative z-10">
@@ -187,9 +190,9 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
           )}
         </div>
         
-        <a href="/dashboard/todo" className="mt-4 text-center text-[10px] font-black text-zinc-400 hover:text-emerald-600 uppercase italic transition-colors relative z-10">
+        <Link href="/dashboard/todo" prefetch={true} className="mt-4 text-center text-[10px] font-black text-zinc-400 hover:text-emerald-600 uppercase italic transition-colors relative z-10">
           Pozrieť všetky úlohy
-        </a>
+        </Link>
       </div>
     </div>
   );

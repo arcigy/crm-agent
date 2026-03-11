@@ -6,6 +6,7 @@ import { ChatBubble } from './ChatBubble';
 import { SendHorizontal, MessageSquare, Copy, Check, Menu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { VoiceRecorder } from './VoiceRecorder';
+import { TypingIndicator } from './TypingIndicator';
 
 interface ChatInterfaceProps {
   conversationId?: string;
@@ -229,7 +230,7 @@ export function ChatInterface({
                   createdAt={msg.created_at} 
                 />
               ))}
-              {isTyping && <ChatBubble role="assistant" content="*Pracujem na tom...*" createdAt={new Date().toISOString()} isStreaming />}
+              {isTyping && <TypingIndicator />}
               <div ref={messagesEndRef} />
             </div>
           )}
@@ -238,9 +239,12 @@ export function ChatInterface({
         <div className="p-4 md:p-6 bg-gray-950/80 backdrop-blur border-t border-gray-800">
           <div className="max-w-4xl mx-auto relative">
             {statusMessage && (
-              <div className="absolute -top-10 left-0 flex items-center gap-2 px-4 py-2 text-sm text-gray-400 bg-gray-900/50 rounded-t-xl border-x border-t border-gray-800 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                <span className="font-medium tracking-wide">{statusMessage}</span>
+              <div className="absolute -top-12 left-0 flex items-center gap-3 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-violet-100 bg-zinc-900 border border-violet-500/20 rounded-t-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-300 shadow-[0_-5px_15px_rgba(139,92,246,0.1)]">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.8)]"></span>
+                </span>
+                <span className="opacity-80">{statusMessage}</span>
               </div>
             )}
             <div className="flex items-end gap-3">

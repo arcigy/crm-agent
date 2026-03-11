@@ -337,18 +337,22 @@ export async function orchestrateParams(
 ) {
   const start = Date.now();
   try {
+    // Dynamic behavior from DB
+    const { getAgentSettings } = await import("./agent-settings");
+    const agentSettings = await getAgentSettings();
+
     // Group tools to help LLM attention focus dynamically by domain
     const registry = await import("./agent-registry");
     const categories = [
-      { name: "📇 KONTAKTY & GMAIL", tools: registry.INBOX_ATOMS },
-      { name: "🏢 PROJEKTY", tools: registry.PROJECT_ATOMS },
-      { name: "💰 OBCHODY", tools: registry.DEAL_ATOMS },
-      { name: "📋 ÚLOHY", tools: registry.TASKS_ATOMS },
-      { name: "🗓️ KALENDÁR", tools: registry.CALENDAR_ATOMS },
-      { name: "🎯 LEADS", tools: registry.LEADS_ATOMS },
-      { name: "🧠 AI & ANALÝZA", tools: registry.AI_ATOMS || [] },
-      { name: "⚙️ SYSTÉM & OSTATNÉ", tools: [...registry.SYSTEM_ATOMS, ...registry.WEB_ATOMS, ...registry.NOTES_ATOMS, ...registry.ACTIVITY_ATOMS, ...registry.VERIFIER_ATOMS] },
-    ];
+      { name: "📇 KONTAKTY & GMAIL", tools: registry.INBOX_ATOMS, key: "contacts" },
+      { name: "🏢 PROJEKTY", tools: registry.PROJECT_ATOMS, key: "projects" },
+      { name: "💰 OBCHODY", tools: registry.DEAL_ATOMS, key: "deals" },
+      { name: "📋 ÚLOHY", tools: registry.TASKS_ATOMS, key: "tasks" },
+      { name: "🗓️ KALENDÁR", tools: registry.CALENDAR_ATOMS, key: "calendar" },
+      { name: "🎯 LEADS", tools: registry.LEADS_ATOMS, key: "marketing" },
+      { name: "🧠 AI & ANALÝZA", tools: registry.AI_ATOMS || [], key: "notes" },
+      { name: "⚙️ SYSTÉM & OSTATNÉ", tools: [...registry.SYSTEM_ATOMS, ...registry.WEB_ATOMS, ...registry.NOTES_ATOMS, ...registry.ACTIVITY_ATOMS, ...registry.VERIFIER_ATOMS], key: "system" },
+    ].filter(cat => cat.key === "system" || agentSettings.tools_allowed.includes(cat.key));
 
     // Category-First Scaling: Filter relevant categories to keep prompt clean
     const lowerGoal = (orchestratorBrief || messages[messages.length - 1].content).toLowerCase();
@@ -499,11 +503,13 @@ Or for completion:
         : "";
 
     const aiStart = Date.now();
+    const temp = agentSettings.mode === 'precise' ? 0 : agentSettings.mode === 'fast' ? 0.4 : 0.1;
+    
     const response = await withRetry(() =>
       generateText({
         model: google(AI_MODELS.ORCHESTRATOR),
         system: systemPrompt,
-        temperature: 0.1,
+        temperature: temp,
         prompt: `KONVERZÁCIA (Context): \n${JSON.stringify(historyContext.slice(-10))}\n\nSTRATEGICKÉ ZADANIE (Brief): ${orchestratorBrief || "Analyze last message and decide next steps."}${constraintsText}\n\nDOSIAHNI CIEĽ.`,
       })
     );

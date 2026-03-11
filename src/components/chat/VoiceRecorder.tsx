@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Mic, Square, Loader2 } from 'lucide-react';
+import { Mic, Square } from 'lucide-react';
 import { transcribeAudio } from '@/app/actions/ai';
 import { toast } from 'sonner';
+import { MiniPremiumLoader } from "@/components/ui/MiniPremiumLoader";
 
 interface VoiceRecorderProps {
   onTranscription: (text: string) => void;
@@ -26,7 +27,6 @@ export function VoiceRecorder({ onTranscription, isProcessing, setIsProcessing }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Determine best semi-compatible format
       const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
         ? 'audio/webm' 
         : 'audio/mp4';
@@ -63,7 +63,6 @@ export function VoiceRecorder({ onTranscription, isProcessing, setIsProcessing }
         stream.getTracks().forEach(track => track.stop());
       };
 
-      // Audio Visualization logic
       const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
       const audioContext = new AudioContextClass();
       const source = audioContext.createMediaStreamSource(stream);
@@ -78,7 +77,6 @@ export function VoiceRecorder({ onTranscription, isProcessing, setIsProcessing }
 
       const updateLevels = () => {
         analyser.getByteFrequencyData(dataArray);
-        // Take a slice of the middle frequencies for a nice look
         const avg = Array.from(dataArray).reduce((a, b) => a + b, 0) / bufferLength;
         const normalized = Math.min(100, Math.max(15, (avg / 255) * 100 * 1.5));
         
@@ -124,20 +122,21 @@ export function VoiceRecorder({ onTranscription, isProcessing, setIsProcessing }
   return (
     <div className="flex items-center">
       {isRecording ? (
-        <div className="flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl animate-in fade-in slide-in-from-right-2 duration-300">
+        <div className="flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl animate-in fade-in slide-in-from-right-2 duration-300 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
           <div className="flex items-center gap-[2px] h-6 w-32">
             {audioLevels.map((lvl, i) => (
               <div 
                 key={i} 
-                className="w-1 bg-emerald-500 rounded-full transition-all duration-75"
+                className="w-1 bg-emerald-500 rounded-full transition-all duration-75 shadow-[0_0_5px_rgba(16,185,129,0.3)]"
                 style={{ height: `${lvl}%` }}
               />
             ))}
           </div>
           <span className="text-xs font-mono text-emerald-400 tabular-nums min-w-[32px]">{formatTime(recordingTime)}</span>
           <button 
+            type="button"
             onClick={stopRecording}
-            className="p-2 bg-emerald-600 hover:bg-emerald-500 rounded-full text-white transition-colors shadow-lg shadow-emerald-500/20"
+            className="p-2 bg-emerald-600 hover:bg-emerald-500 rounded-full text-white transition-colors shadow-lg shadow-emerald-500/20 active:scale-95"
           >
             <Square size={12} fill="currentColor" />
           </button>
@@ -147,10 +146,10 @@ export function VoiceRecorder({ onTranscription, isProcessing, setIsProcessing }
           onClick={startRecording}
           disabled={isProcessing}
           type="button"
-          className={`p-3 bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-emerald-500 rounded-2xl transition-all border border-gray-800 hover:border-emerald-500/50 shadow-md flex items-center justify-center ${isProcessing ? 'animate-pulse' : ''}`}
+          className={`p-3 bg-zinc-900/60 backdrop-blur border border-zinc-800 hover:border-violet-500/50 text-zinc-400 hover:text-violet-400 rounded-2xl transition-all shadow-xl group disabled:opacity-50`}
           title="Nahrať hlasovú správu"
         >
-          {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mic className="w-5 h-5" />}
+          {isProcessing ? <MiniPremiumLoader size="sm" /> : <Mic className="w-5 h-5 group-hover:scale-110 transition-transform" />}
         </button>
       )}
     </div>
