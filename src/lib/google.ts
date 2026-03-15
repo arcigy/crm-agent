@@ -121,9 +121,8 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
                     console.error("❌ [getValidToken] Failed to refresh DB token:", refreshError.message || refreshError);
                     // Continue to Clerk fallback if refresh fails
                 }
-            } else if (isExpired || isStale) {
-                console.log(`[getValidToken] DB Token expired but no refresh_token found.`);
-                return "MISSING_REFRESH_TOKEN";
+                console.log(`[getValidToken] DB Token expired but no refresh_token found. Fallback to Clerk.`);
+                // Fall through to Clerk fallback
             }
         } else {
             console.log(`[getValidToken] No token found in Directus.`);
