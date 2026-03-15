@@ -129,7 +129,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   // Initial fetch and periodic sync are now handled in useLeadsFetch
   // with dependency on selectedTab. We only need periodic background refresh here if desired.
   React.useEffect(() => {
-    fetchMessages(false, selectedTab);
+    // Initial fetch and periodic sync are now primarily handled in useLeadsFetch
     const interval = setInterval(() => fetchMessages(true, selectedTab), 15000);
     return () => clearInterval(interval);
   }, [selectedTab]);
@@ -427,14 +427,24 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     }
   }, [fetchMessages, setMessages, selectedTab]);
 
-  const handleToggleTag = React.useCallback((id: string, tag: string) => {
+  const handleToggleTag = React.useCallback(async (id: string, tag: string) => {
+    let next: string[] = [];
     setMessageTags(prev => {
       const current = prev[id] || [];
-      const next = current.includes(tag) 
+      next = current.includes(tag) 
         ? current.filter(t => t !== tag)
         : [...current, tag];
       return { ...prev, [id]: next };
     });
+
+    // Sync to Gmail in background
+    try {
+        const { syncMessageTagsToGmail } = await import("@/app/actions/gmail-labels");
+        // We sync ALL current CRM tags for this message to Gmail
+        await syncMessageTagsToGmail(id, next);
+    } catch (err) {
+        console.error("Gmail tag sync error:", err);
+    }
   }, [setMessageTags]);
 
   const handleRemoveCustomTag = React.useCallback((tag: string) => {

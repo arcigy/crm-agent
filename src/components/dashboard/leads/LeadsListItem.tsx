@@ -215,8 +215,9 @@ export const LeadsListItem = React.memo(({
           </div>
 
           {/* Tags - always visible, no layout shift */}
-          {tags.length > 0 && (
-            <div className="flex items-center gap-1.5 ml-4 mr-6 flex-shrink-0 justify-end">
+          {(tags.length > 0 || (msg.googleLabels && msg.googleLabels.length > 0)) && (
+            <div className="flex items-center gap-1.5 ml-4 mr-6 flex-shrink-0 justify-end max-w-[200px] flex-wrap">
+              {/* CRM Tags */}
               {tags.slice(0, 2).map((tag) => {
                 const color = tagColors[tag] || "#8b5cf6";
                 return (
@@ -234,8 +235,19 @@ export const LeadsListItem = React.memo(({
                   </span>
                 );
               })}
-              {tags.length > 2 && (
-                <span className="text-[9px] font-black text-white/30">+{tags.length - 2}</span>
+              
+              {/* Google Labels (filtered) */}
+              {msg.googleLabels?.filter(l => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.toUpperCase())).slice(0, 2).map((label) => (
+                <span
+                  key={label}
+                  className="px-2 py-[2px] rounded-md text-[9px] font-bold tracking-tight bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 whitespace-nowrap"
+                >
+                  {label.replace(/^CRM\//, '')}
+                </span>
+              ))}
+
+              {(tags.length + (msg.googleLabels?.length || 0)) > 4 && (
+                <span className="text-[9px] font-black text-white/30">...</span>
               )}
             </div>
           )}

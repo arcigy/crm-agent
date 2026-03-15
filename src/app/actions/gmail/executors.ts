@@ -243,6 +243,20 @@ export async function executeGmailTool(
           message: `Nájdených ${eMessages.length} správ s ${queryEmail}.`,
         };
 
+      case "gmail_modify_labels":
+        await gmail.users.messages.modify({
+          userId: "me",
+          id: args.messageId as string,
+          requestBody: {
+            addLabelIds: args.addLabelIds as string[],
+            removeLabelIds: args.removeLabelIds as string[],
+          }
+        });
+        return {
+          success: true,
+          message: "Štítky e-mailu boli upravené.",
+        };
+
       case "gmail_save_draft":
         const draftHeaders = [
           `To: ${args.to}`,

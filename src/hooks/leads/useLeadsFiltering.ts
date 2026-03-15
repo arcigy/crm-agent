@@ -35,16 +35,16 @@ export function useLeadsFiltering(
     if (selectedTab === "shopping") return matchesSearch && msg.labels?.includes("CATEGORY_PURCHASES");
     if (selectedTab === "spam") return matchesSearch && msg.labels?.includes("SPAM");
     if (selectedTab === "trash") return matchesSearch && msg.labels?.includes("TRASH");
-    if (selectedTab === "all") return matchesSearch && (!msg.labels || msg.labels.includes("INBOX") || msg.labels.length === 0);
+    if (selectedTab === "inbox") return matchesSearch && (!msg.labels || msg.labels.includes("INBOX") || msg.labels.length === 0);
     
     if (selectedTab.startsWith("tag:")) {
       const tag = selectedTab.replace("tag:", "");
       const msgTags = messageTags[msg.id] || [];
-      const hasGmailTag = msg.labels?.includes(tag) || false;
+      const hasGmailTag = msg.labels?.includes(tag) || msg.labels?.includes(`CRM/${tag}`);
       return matchesSearch && (hasGmailTag || msgTags.includes(tag));
     }
-    
-    if (["leads", "more", "archive"].includes(selectedTab)) return matchesSearch;
+
+    if (["leads", "more", "archive", "all"].includes(selectedTab)) return matchesSearch;
     return false;
   });
 

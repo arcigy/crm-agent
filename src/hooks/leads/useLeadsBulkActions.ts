@@ -43,8 +43,10 @@ export function useLeadsBulkActions(
     });
   }, [setMessages]);
 
-  const handleBulkTag = React.useCallback((idsToTag: string[], tag: string) => {
+  const handleBulkTag = React.useCallback(async (idsToTag: string[], tag: string) => {
     toast.success(`Štítok '${tag}' pridaný na ${idsToTag.length} správ`);
+    
+    // Update local state
     setMessageTags(prev => {
       const next = { ...prev };
       idsToTag.forEach(id => {
@@ -52,6 +54,13 @@ export function useLeadsBulkActions(
       });
       return next;
     });
+
+    // Update Gmail in background
+    const { syncMessageTagsToGmail } = await import("@/app/actions/gmail-labels");
+    Promise.all(idsToTag.map(id => syncMessageTagsToGmail(id, [tag]))).catch(err => {
+        console.error("Bulk sync error:", err);
+    });
+
     setCustomTags(prev => {
       if (!prev.includes(tag)) return [...prev, tag].sort();
       return prev;

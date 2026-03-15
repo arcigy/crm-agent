@@ -87,6 +87,13 @@ export async function GET(request: Request) {
     if (!token) return NextResponse.json({ isConnected: false, error: "Google account not linked or token expired" });
 
     const gmail = await getGmailClient(token);
+    
+    // Fetch labels map to show human-readable names
+    const labelsRes = await gmail.users.labels.list({ userId: "me" });
+    const labelMap: Record<string, string> = {};
+    (labelsRes.data.labels || []).forEach((l: any) => {
+      if (l.id && l.name) labelMap[l.id] = l.name;
+    });
 
     // FIX 1.4: Retry logic for fetch failures
     let listRes;
@@ -152,6 +159,7 @@ export async function GET(request: Request) {
               isRead: !detail.data.labelIds?.includes("UNREAD"),
               isStarred: detail.data.labelIds?.includes("STARRED"),
               labels: detail.data.labelIds || [],
+              googleLabels: (detail.data.labelIds || []).map((id: string) => labelMap[id] || id),
             };
         } catch (e) {
           return null;

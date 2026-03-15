@@ -137,7 +137,8 @@ export function useLeadsFetch(
 
   // Re-fetch when category changes
   React.useEffect(() => {
-    fetchMessages();
+    // Only fetch if we don't have fresh data for this tab
+    fetchMessages(false, selectedTab);
   }, [selectedTab]);
 
   return {

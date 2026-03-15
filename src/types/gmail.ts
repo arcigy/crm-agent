@@ -20,7 +20,8 @@ export interface GmailMessage {
     attachments?: GmailAttachment[];
     isRead: boolean;
     isStarred?: boolean;
-    labels: string[];
+    labels: string[]; // Internal Gmail IDs
+    googleLabels?: string[]; // Human readable names
     classification?: EmailClassification;
     isAnalyzing?: boolean;
 }
