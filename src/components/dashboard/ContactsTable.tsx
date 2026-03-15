@@ -16,6 +16,7 @@ import {
   useSensor,
   useSensors,
   closestCenter,
+  closestCorners,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -23,8 +24,8 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import { restrictToFirstScrollableAncestor } from "@dnd-kit/modifiers";
-import { Plus } from "lucide-react";
+
+import { Plus, Search, FilterX } from "lucide-react";
 import { toast } from "sonner";
 
 import { Lead } from "@/types/contact";
@@ -88,6 +89,8 @@ export function ContactsTable({
     setColumnOrder,
     columnSizing,
     setColumnSizing,
+    columnFilters,
+    setColumnFilters,
     handleDragEnd,
     rowOrder,
   } = useContactsTable(data);
@@ -109,21 +112,16 @@ export function ContactsTable({
   const table = useReactTable({
     data: sortedData,
     columns: contactColumns,
-    state: { sorting, grouping, globalFilter, rowSelection, columnOrder, columnSizing },
+    state: { sorting, grouping, globalFilter, rowSelection, columnOrder, columnSizing, columnFilters },
     onSortingChange: setSorting,
     onGroupingChange: setGrouping,
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
     onColumnOrderChange: setColumnOrder,
-    onColumnSizingChange: (updaterOrValue: any) => {
-      const newSizing = typeof updaterOrValue === 'function' 
-        ? updaterOrValue(columnSizing) 
-        : updaterOrValue;
-      
-      // Apply the new sizing
-      setColumnSizing(newSizing);
-    },
-    columnResizeMode: "onChange",
+    onColumnSizingChange: setColumnSizing,
+    onColumnFiltersChange: setColumnFilters,
+    columnResizeMode: "onEnd",
+    columnResizeDirection: "ltr",
     defaultColumn: {
       minSize: 60,
       maxSize: 1000,
@@ -134,6 +132,10 @@ export function ContactsTable({
     getGroupedRowModel: getGroupedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getRowId: (row) => String(row.id),
+    // Manual sorting strategy: use our sortedData and prevent internal sorting from overriding
+    manualSorting: true,
+    manualGrouping: true,
     initialState: { expanded: true },
   });
 
@@ -198,9 +200,8 @@ export function ContactsTable({
   return (
     <DndContext
       sensors={sensors}
-      modifiers={[restrictToFirstScrollableAncestor]}
       onDragEnd={onDragEnd}
-      collisionDetection={closestCenter}
+      collisionDetection={closestCorners}
     >
       <BulkActions
         selectedIds={selectedIds}
@@ -285,8 +286,7 @@ export function ContactsTable({
             <table 
               className="w-full text-left border-collapse"
               style={{ 
-                tableLayout: "fixed",
-                minWidth: "100%"
+                tableLayout: "fixed"
               }}
             >
               <colgroup>
@@ -298,37 +298,67 @@ export function ContactsTable({
               </colgroup>
               <thead className="bg-muted/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {/* Gutter: Consolidated Selection, Strip, Drag */}
-                    <th style={{ width: "54px" }} className="p-0 bg-transparent z-20 border-r border-white/5">
-                      <div className="flex items-center justify-center h-full">
-                        <button
-                          onClick={() => table.toggleAllRowsSelected()}
-                          className={`w-4 h-4 rounded-md border transition-all flex items-center justify-center ${
-                            table.getIsAllRowsSelected()
-                              ? "bg-violet-600 border-violet-600 shadow-[0_0_10px_rgba(124,58,237,0.4)]"
-                              : "border-white/20 hover:border-violet-400/50"
-                          }`}
-                        >
-                          {table.getIsAllRowsSelected() && (
-                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                          )}
-                        </button>
-                      </div>
-                    </th>
-                    
-                    <SortableContext
-                      items={headerGroup.headers.map((h) => h.column.id)}
-                      strategy={horizontalListSortingStrategy}
-                    >
+                  <React.Fragment key={headerGroup.id}>
+                    <tr key={headerGroup.id}>
+                      {/* Gutter: Consolidated Selection, Strip, Drag */}
+                      <th style={{ width: "54px" }} className="p-0 bg-transparent z-20 border-r border-white/5">
+                        <div className="flex items-center justify-center h-full">
+                          <button
+                            onClick={() => table.toggleAllRowsSelected()}
+                            className={`w-4 h-4 rounded-md border transition-all flex items-center justify-center ${
+                              table.getIsAllRowsSelected()
+                                ? "bg-violet-600 border-violet-600 shadow-[0_0_10px_rgba(124,58,237,0.4)]"
+                                : "border-white/20 hover:border-violet-400/50"
+                            }`}
+                          >
+                            {table.getIsAllRowsSelected() && (
+                              <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                            )}
+                          </button>
+                        </div>
+                      </th>
+                      
+                      <SortableContext
+                        items={headerGroup.headers.map((h) => h.column.id)}
+                        strategy={horizontalListSortingStrategy}
+                      >
+                        {headerGroup.headers.map((header) => (
+                          <DraggableHeader key={header.id} header={header} />
+                        ))}
+                      </SortableContext>
+                      <th style={{ width: "40px" }} className="p-2 border-l border-white/5 text-center bg-transparent">
+                        <Plus className="w-4 h-4 text-violet-400/50 hover:text-violet-400 transition-colors mx-auto" />
+                      </th>
+                    </tr>
+                    {/* Filter Row */}
+                    <tr className="bg-black/40 backdrop-blur-md border-b border-white/5">
+                      <th className="p-0 border-r border-white/5">
+                        <div className="flex items-center justify-center h-8">
+                          <FilterX 
+                            className={`w-3 h-3 cursor-pointer transition-colors ${columnFilters.length > 0 ? "text-violet-400 hover:text-violet-300" : "text-white/10"}`}
+                            onClick={() => setColumnFilters([])}
+                          />
+                        </div>
+                      </th>
                       {headerGroup.headers.map((header) => (
-                        <DraggableHeader key={header.id} header={header} />
+                        <th key={`filter-${header.id}`} className="px-2 py-1.5 border-r border-white/5 last:border-0 overflow-hidden">
+                          {header.column.getCanFilter() ? (
+                            <div className="relative group/filter">
+                              <Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-white/10 group-focus-within/filter:text-violet-500/50 transition-colors" />
+                              <input 
+                                type="text"
+                                value={(header.column.getFilterValue() as string) ?? ""}
+                                onChange={(e) => header.column.setFilterValue(e.target.value)}
+                                placeholder="Hľadať..."
+                                className="w-full bg-white/5 border border-white/5 rounded-lg pl-7 pr-2 py-1 text-[11px] text-white placeholder:text-white/5 focus:outline-none focus:border-violet-500/30 focus:bg-white/10 transition-all font-medium"
+                              />
+                            </div>
+                          ) : null}
+                        </th>
                       ))}
-                    </SortableContext>
-                    <th style={{ width: "40px" }} className="p-2 border-l border-white/5 text-center bg-transparent">
-                      <Plus className="w-4 h-4 text-violet-400/50 hover:text-violet-400 transition-colors mx-auto" />
-                    </th>
-                  </tr>
+                      <th />
+                    </tr>
+                  </React.Fragment>
                 ))}
               </thead>
               <tbody className="divide-y divide-border">
@@ -349,7 +379,7 @@ export function ContactsTable({
                           columnsCount={table.getVisibleLeafColumns().length}
                         />
                       ) : (
-                        <DraggableRow key={row.id} row={row} />
+                        <DraggableRow key={row.original.id} row={row} />
                       ),
                     )}
                 </SortableContext>

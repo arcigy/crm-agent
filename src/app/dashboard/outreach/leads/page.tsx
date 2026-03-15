@@ -11,9 +11,11 @@ import { LeadsHeader } from "./components/LeadsHeader";
 import { BulkActionsBar } from "./components/BulkActionsBar";
 import { ColdLeadsImportModal } from "@/components/dashboard/ColdLeadsImportModal";
 import { ColdLeadDetailModal } from "@/components/dashboard/ColdLeadDetailModal";
-import { cleanupDuplicates, updateColdLead, deleteColdLeadList, updateColdLeadList, createColdLeadList, getColdLeadLists, sendColdLeadEmail } from "@/app/actions/cold-leads";
+import { cleanupDuplicates, updateColdLead, deleteColdLeadList, updateColdLeadList, createColdLeadList, getColdLeadLists } from "@/app/actions/cold-leads";
+import { useRouter } from "next/navigation";
 
 export default function OutreachLeadsPage() {
+  const router = useRouter();
   const {
     leads, setLeads,
     lists, setLists,
@@ -57,11 +59,13 @@ export default function OutreachLeadsPage() {
   };
 
   const handleSendEmail = async (id: string | number) => {
-    const tid = toast.loading("Odosielam...");
-    const res = await sendColdLeadEmail(id);
-    if (res.success) toast.success("Odoslané", { id: tid });
-    else toast.error(res.error || "Chyba (Skontrolujte Google prepojenie)", { id: tid });
-    refreshLeads(activeListName);
+    const lead = leads.find(l => l.id === id);
+    if (!lead?.email) {
+      toast.error("Lead nemá emailovú adresu");
+      return;
+    }
+    
+    router.push(`/dashboard/leads?compose=${encodeURIComponent(lead.email)}`);
   };
 
   return (

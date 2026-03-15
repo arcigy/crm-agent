@@ -35,9 +35,12 @@ import { MentionNode } from "@/lib/tiptap-mention-node";
 import { useAutocomplete } from "@/hooks/useAutocomplete";
 import { AutocompleteDropdown } from "@/components/editor/AutocompleteDropdown";
 import { ModernTimePicker } from "./ModernTimePicker";
+import { format, addDays, isSameDay, startOfDay } from "date-fns";
+import { sk } from "date-fns/locale";
 
 interface TodoSmartInputProps {
-  onAdd: (title: string, time?: string) => void;
+  onAdd: (title: string, date: string, time?: string) => void;
+  initialSelectedDate?: string;
 }
 
 interface Relations {
@@ -70,8 +73,9 @@ const CustomLink = LinkExtension.extend({
   },
 });
 
-export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
+export function TodoSmartInput({ onAdd, initialSelectedDate }: TodoSmartInputProps) {
   const [time, setTime] = useState("");
+  const [selectedDate, setSelectedDate] = useState(initialSelectedDate || format(new Date(), "yyyy-MM-dd"));
   const [isFocused, setIsFocused] = useState(false);
   const [activePicker, setActivePicker] = useState<
     "contact" | "project" | "deal" | null
@@ -250,13 +254,17 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
       console.log("Loading relations for TodoSmartInput...");
       const res = await getTodoRelations();
       console.log("Relations loaded:", res);
-      if (res.success && res.data) {
-        setRelations(res.data);
-        import("sonner").then(({ toast }) => toast.success("Dáta načítané"));
+      if (res.success) {
+        if (res.data) setRelations(res.data);
       } else {
-        const err = (res as { error?: string }).error || "Neznáma chyba";
+        const errorData = (res as any).error;
+        const errMessage = typeof errorData === 'string' 
+          ? errorData 
+          : JSON.stringify(errorData) || "Neznáma chyba";
+        
+        console.error("Failed to load todo relations:", errorData);
         import("sonner").then(({ toast }) =>
-          toast.error(`Chyba načítania: ${err}`),
+          toast.error(`Chyba načítania: ${errMessage}`),
         );
       }
     } catch (err: unknown) {
@@ -319,7 +327,7 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
       // Assuming toast from sonner is available globally or via import.
       import("sonner").then(({ toast }) => toast.info("Ukladám úlohu..."));
 
-      onAdd(html, time);
+      onAdd(html, selectedDate, time);
       editor.commands.clearContent();
       setTime("");
       localStorage.removeItem("todo-draft");
@@ -402,6 +410,31 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
               isActive={editor.isActive("bulletList")}
               icon={<List size={14} strokeWidth={3} />}
             />
+          </div>
+
+          {/* Quick Date Picker - ON EDGE WITH VIOLET THEME */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-2xl border border-violet-200 dark:border-violet-500/30 transition-all shadow-xl z-[60] p-1">
+            {[0, 1, 2, 3, 4].map((offset) => {
+              const date = addDays(startOfDay(new Date()), offset);
+              const isSelected = isSameDay(date, new Date(selectedDate));
+              const dayName = format(date, "EEE", { locale: sk });
+              const dayNum = format(date, "d.M.");
+              
+              return (
+                <button
+                  key={offset}
+                  onClick={() => setSelectedDate(format(date, "yyyy-MM-dd"))}
+                  className={`flex flex-col items-center px-3 py-1 rounded-xl transition-all ${
+                    isSelected 
+                      ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20 scale-105" 
+                      : "hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400"
+                  }`}
+                >
+                  <span className="text-[7px] font-black uppercase tracking-tighter italic leading-tight">{dayName}</span>
+                  <span className="text-[9px] font-black leading-none tabular-nums text-center">{dayNum}</span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="flex items-center gap-2">
@@ -540,9 +573,9 @@ export function TodoSmartInput({ onAdd }: TodoSmartInputProps) {
             (editor.isEmpty &&
               !editor.getHTML().includes("data-mention-component"))
           }
-          className="absolute bottom-8 right-8 w-20 h-20 bg-gradient-to-br from-violet-500 via-violet-600 to-indigo-600 text-white rounded-[2rem] flex items-center justify-center shadow-[0_20px_40px_rgba(139,92,246,0.4)] transition-all hover:scale-110 hover:shadow-violet-500/40 hover:-rotate-6 active:scale-95 disabled:opacity-20 z-20 group/submit"
+          className="absolute bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-violet-500 via-violet-600 to-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-[0_15px_30px_rgba(139,92,246,0.3)] transition-all hover:scale-110 active:scale-95 disabled:opacity-20 z-20 group/submit"
         >
-          <Plus size={40} className="group-hover:rotate-180 transition-transform duration-700 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
+          <Plus size={24} className="transition-transform duration-300" />
         </button>
       </div>
       <style jsx global>{`

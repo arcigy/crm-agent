@@ -5,6 +5,7 @@ import {
     Search, Edit3, Trash2, Send, CheckCircle, Clock, AlertCircle, 
     MoreHorizontal, Globe, Mail, Phone, MapPin, QrCode, Eye, Loader2
 } from "lucide-react";
+import { useRouter } from 'next/navigation';
 import { ColdLeadItem } from "@/app/actions/cold-leads";
 import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
@@ -44,6 +45,7 @@ export function LeadsTable({
     handleKeyDown,
     editInputRef
 }: LeadsTableProps) {
+    const router = useRouter();
     return (
         <div className="bg-white border border-gray-100 rounded-[2rem] shadow-sm overflow-hidden flex flex-col">
             <div className="overflow-x-auto">
@@ -68,7 +70,7 @@ export function LeadsTable({
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                         {leads.map((lead) => (
-                            <tr key={lead.id} className={cn("group hover:bg-blue-50/30 transition-colors", selectedIds.has(lead.id) ? "bg-blue-50/50" : "")}>
+                            <tr key={lead.id} className={cn("group hover:bg-blue-50/30 transition-all relative hover:z-10", selectedIds.has(lead.id) ? "bg-blue-50/50" : "")}>
                                 <td className="p-4 text-center">
                                     <input 
                                         type="checkbox" 
@@ -157,9 +159,18 @@ export function LeadsTable({
                                         <button onClick={() => onOpenDetail(lead)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all" title="Detail">
                                             <Eye className="w-4 h-4" />
                                         </button>
-                                        <button onClick={() => onSendEmail(lead.id)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all" title="Poslať email">
-                                            <Mail className="w-4 h-4" />
-                                        </button>
+                                         <button 
+                                            onClick={() => onSendEmail(lead.id)} 
+                                            onMouseEnter={() => {
+                                                if (lead.email) {
+                                                    router.prefetch(`/dashboard/leads?compose=${encodeURIComponent(lead.email)}`);
+                                                }
+                                            }}
+                                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all" 
+                                            title="Poslať email"
+                                         >
+                                             <Mail className="w-4 h-4" />
+                                         </button>
                                         <button onClick={() => onDelete(lead.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title="Vymazať">
                                             <Trash2 className="w-4 h-4" />
                                         </button>

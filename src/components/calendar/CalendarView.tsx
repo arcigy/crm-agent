@@ -6,7 +6,7 @@ import { WeekView } from "./views/WeekView";
 import { DayView } from "./views/DayView";
 import { YearView } from "./views/YearView";
 import { AgendaView } from "./views/AgendaView";
-import { FourDayView } from "./views/FourDayView";
+import { WorkWeekView } from "./views/WorkWeekView";
 
 interface CalendarViewProps {
   view: ViewType;
@@ -15,6 +15,7 @@ interface CalendarViewProps {
   onEventClick: (event: CalendarEvent) => void;
   onDateClick?: (date: Date) => void;
   showWeekends?: boolean;
+  highlightFree?: boolean;
 }
 
 export function CalendarView({
@@ -24,6 +25,7 @@ export function CalendarView({
   onEventClick,
   onDateClick,
   showWeekends = true,
+  highlightFree = false,
 }: CalendarViewProps) {
   switch (view) {
     case "month":
@@ -34,6 +36,7 @@ export function CalendarView({
           onEventClick={onEventClick}
           onDayClick={onDateClick}
           showWeekends={showWeekends}
+          highlightFree={highlightFree}
         />
       );
     case "week":
@@ -44,6 +47,7 @@ export function CalendarView({
           onEventClick={onEventClick}
           onDateClick={onDateClick}
           showWeekends={showWeekends}
+          highlightFree={highlightFree}
         />
       );
     case "day":
@@ -53,6 +57,7 @@ export function CalendarView({
           events={events}
           onEventClick={onEventClick}
           onDateClick={onDateClick}
+          highlightFree={highlightFree}
         />
       );
     case "year":
@@ -71,13 +76,14 @@ export function CalendarView({
           onEventClick={onEventClick}
         />
       );
-    case "4days":
+    case "workweek":
       return (
-        <FourDayView
+        <WorkWeekView
           currentDate={currentDate}
           events={events}
           onEventClick={onEventClick}
           onDateClick={onDateClick}
+          highlightFree={highlightFree}
         />
       );
     default:

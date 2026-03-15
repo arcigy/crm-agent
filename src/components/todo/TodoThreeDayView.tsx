@@ -5,6 +5,19 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-reac
 import { format, addDays, subDays } from "date-fns";
 import { sk } from "date-fns/locale";
 import { DayColumn } from "./DayColumn";
+import { PremiumDatePicker } from "@/components/ui/PremiumDatePicker";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  defaultDropAnimationSideEffects,
+} from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
+import { TaskItem } from "./TaskItem";
 
 interface Task {
   id: string;
@@ -30,9 +43,44 @@ export function TodoThreeDayView({
   onDelete,
   onUpdate,
 }: TodoThreeDayViewProps) {
+  const [activeTask, setActiveTask] = React.useState<Task | null>(null);
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
   const current = new Date(currentDate);
   const yesterday = subDays(current, 1);
   const tomorrow = addDays(current, 1);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = tasks.find(t => t.id === event.active.id);
+    if (task) setActiveTask(task);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveTask(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    if (active.id !== over.id) {
+      const activeTask = tasks.find(t => t.id === active.id);
+      if (activeTask && over.id.toString().startsWith("col-")) {
+        const newDate = over.id.toString().replace("col-", "");
+        // Keep the time if exists
+        const timePart = activeTask.due_date?.includes("T") 
+          ? activeTask.due_date.split("T")[1] 
+          : null;
+        const newDueDate = timePart ? `${newDate}T${timePart}` : newDate;
+        
+        onUpdate(activeTask.id, { due_date: newDueDate });
+      }
+    }
+  };
 
   const getRelativeDateLabel = (date: Date) => {
     const today = new Date();
@@ -47,13 +95,13 @@ export function TodoThreeDayView({
   const getTasksForDate = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     return tasks.filter((t) => {
-      const isSelectedToday = getRelativeDateLabel(date) === "Dnes";
-      if (!t.due_date) return isSelectedToday;
+      // If no due_date, only show in current "Today" column relative to system time
+      if (!t.due_date) {
+        return getRelativeDateLabel(date) === "Dnes";
+      }
+      
       const taskDateStr = t.due_date.split("T")[0];
-      const todayStr = format(new Date(), "yyyy-MM-dd");
-      if (taskDateStr === dateStr) return true;
-      if (isSelectedToday && !t.completed && taskDateStr < todayStr) return true;
-      return false;
+      return taskDateStr === dateStr;
     }).sort((a, b) => {
       const aTime = a.due_date?.includes("T") ? a.due_date.split("T")[1].substring(0, 5) : "99:99";
       const bTime = b.due_date?.includes("T") ? b.due_date.split("T")[1].substring(0, 5) : "99:99";
@@ -73,21 +121,56 @@ export function TodoThreeDayView({
             </div>
           </div>
           <div className="relative group flex items-center gap-1.5 mt-1">
-            <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest transition-all group-hover:text-violet-500">{format(current, "dd. MM. yyyy")}</span>
-            <div className="relative cursor-pointer p-1.5 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-full group/cal">
-              <CalendarIcon size={16} className="text-zinc-400 group-hover/cal:text-violet-500" />
-              <input type="date" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" value={currentDate} onChange={(e) => onDateChange(e.target.value)} />
-            </div>
+            <span className="text-[10px] font-mono font-bold uppercase text-zinc-400 tracking-widest transition-all group-hover:text-violet-500 tabular-nums">{format(current, "dd. MM. yyyy")}</span>
+            <PremiumDatePicker 
+              value={currentDate} 
+              onChange={onDateChange} 
+              align="right"
+              customTrigger={
+                <div className="relative cursor-pointer p-1.5 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-full group/cal">
+                  <CalendarIcon size={16} className="text-zinc-400 group-hover/cal:text-violet-500" />
+                </div>
+              }
+            />
           </div>
         </div>
         <NavButton date={tomorrow} label={getRelativeDateLabel(tomorrow)} onClick={onDateChange} icon={<ChevronRight size={18} />} isRight />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto items-center overflow-visible mt-6">
-        <DayWrapper label={getRelativeDateLabel(yesterday)} date={yesterday} tasks={getTasksForDate(yesterday)} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} variant="side" onClick={() => onDateChange(format(yesterday, "yyyy-MM-dd"))} />
-        <DayWrapper label={getRelativeDateLabel(current)} date={current} tasks={getTasksForDate(current)} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} variant="center" />
-        <DayWrapper label={getRelativeDateLabel(tomorrow)} date={tomorrow} tasks={getTasksForDate(tomorrow)} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} variant="side" onClick={() => onDateChange(format(tomorrow, "yyyy-MM-dd"))} />
-      </div>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto items-center overflow-visible mt-6">
+          <DayWrapper id={`col-${format(yesterday, "yyyy-MM-dd")}`} label={getRelativeDateLabel(yesterday)} date={yesterday} tasks={getTasksForDate(yesterday)} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} variant="side" onClick={() => onDateChange(format(yesterday, "yyyy-MM-dd"))} />
+          <DayWrapper id={`col-${format(current, "yyyy-MM-dd")}`} label={getRelativeDateLabel(current)} date={current} tasks={getTasksForDate(current)} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} variant="center" />
+          <DayWrapper id={`col-${format(tomorrow, "yyyy-MM-dd")}`} label={getRelativeDateLabel(tomorrow)} date={tomorrow} tasks={getTasksForDate(tomorrow)} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} variant="side" onClick={() => onDateChange(format(tomorrow, "yyyy-MM-dd"))} />
+        </div>
+
+        <DragOverlay dropAnimation={{
+          sideEffects: defaultDropAnimationSideEffects({
+            styles: {
+              active: {
+                opacity: '0.4',
+              },
+            },
+          }),
+        }}>
+          {activeTask ? (
+            <div className="w-[300px] pointer-events-none rotate-2">
+               <TaskItem 
+                task={activeTask} 
+                onToggle={() => {}} 
+                onDelete={() => {}} 
+                onUpdate={() => {}} 
+                isCenter={true} 
+                columnDate={""} 
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }

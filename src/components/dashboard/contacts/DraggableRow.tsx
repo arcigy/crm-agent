@@ -38,7 +38,7 @@ export const DraggableRow = React.memo(({ row }: DraggableRowProps) => {
       ref={setNodeRef}
       style={style}
       key={row.id}
-      className={`group bg-transparent hover:bg-violet-900/10 transition-all duration-150 relative ${isDragging ? "shadow-2xl ring-2 ring-violet-500/30 bg-zinc-900/90 scale-[1.01]" : ""}`}
+      className={`group bg-transparent hover:bg-violet-900/10 transition-all duration-150 relative ${isDragging ? "z-[2000] shadow-2xl ring-2 ring-violet-500/30 bg-zinc-900/90 scale-[1.01]" : "hover:z-[100] focus-within:z-[100]"}`}
     >
       {/* Unified Control Gutter */}
       <td style={{ width: "54px" }} className="p-0 border-r border-white/5 z-10 bg-inherit group/gutter">
@@ -82,8 +82,8 @@ export const DraggableRow = React.memo(({ row }: DraggableRowProps) => {
       {row.getVisibleCells().map((cell) => (
         <td
           key={cell.id}
-          className="px-2 py-1 border-r border-white/5 last:border-0 text-xs text-white/80 relative"
-          style={{ width: cell.column.getSize() }}
+          className={`px-2 py-1 border-r border-white/5 last:border-0 text-xs text-white/80 relative text-ellipsis whitespace-nowrap ${cell.column.id === 'status' ? 'overflow-visible' : 'overflow-hidden'}`}
+          style={{ width: cell.column.getSize(), maxWidth: cell.column.getSize() }}
         >
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
         </td>

@@ -56,12 +56,12 @@ function getMessageBody(payload: any): {
   return { text, html, attachments };
 }
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const category = searchParams.get("category") || "inbox";
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const tab = searchParams.get("tab") || searchParams.get("category") || "inbox";
 
   const CATEGORY_QUERIES: Record<string, any> = {
-    inbox: { labelIds: ["INBOX"] },
+    inbox: { labelIds: ["INBOX"], q: "-category:promotions -category:social" },
     starred: { labelIds: ["STARRED"] },
     sent: { labelIds: ["SENT"] },
     drafts: { labelIds: ["DRAFT"] },
@@ -70,9 +70,10 @@ export async function GET(req: Request) {
     purchases: { q: "category:purchases" },
     archive: { q: "-in:inbox -in:trash -in:spam" },
     snoozed: { labelIds: ["SNOOZED"] },
+    unread: { q: "is:unread -category:promotions -category:social" }
   };
 
-  const query = CATEGORY_QUERIES[category] || CATEGORY_QUERIES.inbox;
+  const query = CATEGORY_QUERIES[tab] || CATEGORY_QUERIES.inbox;
 
   try {
     const user = await currentUser();
@@ -113,11 +114,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ 
         isConnected: true, 
         messages: [],
-        message: `No emails in category: ${category}` 
+        message: `No emails in tab: ${tab}` 
       });
 
     const messages = await Promise.all(
-      listRes.data.messages.map(async (m: any) => {
+      (listRes.data.messages || []).map(async (m: any) => {
         try {
           const detail = await gmail.users.messages.get({
             userId: "me",
@@ -243,6 +244,57 @@ export async function PATCH(req: Request) {
           removeLabelIds: ["STARRED"],
         },
       });
+    } else if (action === "trash") {
+      await gmail.users.messages.trash({
+        userId: "me",
+        id: messageId,
+      });
+    } else if (action === "archive") {
+      await gmail.users.messages.modify({
+        userId: "me",
+        id: messageId,
+        requestBody: {
+          removeLabelIds: ["INBOX"],
+        },
+      });
+    } else if (action === "spam") {
+      await gmail.users.messages.modify({
+        userId: "me",
+        id: messageId,
+        requestBody: {
+          addLabelIds: ["SPAM"],
+          removeLabelIds: ["INBOX"],
+        },
+      });
+    } else if (action === "unread") {
+      await gmail.users.messages.modify({
+        userId: "me",
+        id: messageId,
+        requestBody: {
+          addLabelIds: ["UNREAD"],
+        },
+      });
+    } else if (action === "untrash") {
+      await gmail.users.messages.untrash({
+        userId: "me",
+        id: messageId,
+      });
+    } else if (action === "empty_trash") {
+      // List everything in trash
+      const trashList = await gmail.users.messages.list({
+        userId: "me",
+        q: "label:TRASH"
+      });
+      
+      if (trashList.data.messages && trashList.data.messages.length > 0) {
+        // PERMANENT DELETE (Batch)
+        await gmail.users.messages.batchDelete({
+          userId: "me",
+          requestBody: {
+            ids: trashList.data.messages.map((m: any) => m.id as string)
+          }
+        });
+      }
     } else {
       // Default behavior (mark as read)
       await gmail.users.messages.modify({

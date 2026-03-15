@@ -8,6 +8,41 @@ import { StatusBadge } from "./StatusBadge";
 import { InlineEditableCell } from "./InlineEditableCell";
 import { ContactLabelsDisplay } from "./ContactLabelsDisplay";
 import { Mail } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+const EmailCell = ({ email, id }: { email: string; id: number }) => {
+  const router = useRouter();
+  const handleCompose = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/dashboard/leads?compose=${encodeURIComponent(email)}`);
+  };
+
+  const handlePrefetch = () => {
+    router.prefetch(`/dashboard/leads?compose=${encodeURIComponent(email)}`);
+  };
+
+  return (
+    <div className="flex items-center gap-2 group/email-cell w-full">
+      <InlineEditableCell 
+        id={id} 
+        initialValue={email} 
+        field="email" 
+        placeholder="EMAIL"
+        className="text-violet-400 font-medium"
+      />
+      {email && (
+        <button 
+            onClick={handleCompose}
+            onMouseEnter={handlePrefetch}
+            className="opacity-0 group-hover/email-cell:opacity-100 p-1 hover:bg-violet-500/20 rounded-md transition-all text-violet-400 shrink-0"
+            title="Poslať email"
+        >
+            <Mail className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
+  );
+};
 
 const columnHelper = createColumnHelper<Lead>();
 
@@ -62,26 +97,8 @@ export const contactColumns = [
     cell: (info) => {
       const email = info.getValue() || "";
       return (
-        <div className="flex items-center gap-2 group/email-cell">
-          <InlineEditableCell 
-            id={Number(info.row.original.id)} 
-            initialValue={email} 
-            field="email" 
-            placeholder="EMAIL"
-            className="text-violet-400 font-medium"
-          />
-          {email && (
-            <button 
-                onClick={(e) => {
-                    e.stopPropagation();
-                    window.location.href = `/dashboard/leads?compose=${encodeURIComponent(email)}`;
-                }}
-                className="opacity-0 group-hover/email-cell:opacity-100 p-1 hover:bg-violet-500/20 rounded-md transition-all text-violet-400 shrink-0"
-                title="Poslať email"
-            >
-                <Mail className="w-3.5 h-3.5" />
-            </button>
-          )}
+        <div className="flex items-center gap-2 h-full w-full">
+           <EmailCell email={email} id={Number(info.row.original.id)} />
         </div>
       );
     },
@@ -89,17 +106,29 @@ export const contactColumns = [
   columnHelper.accessor("phone", {
     id: "phone",
     header: "Phone",
-    cell: (info) => (
-      <div className="flex items-center gap-1">
-        <FlagBadge phone={info.getValue()} />
-        <InlineEditableCell 
-          id={Number(info.row.original.id)} 
-          initialValue={info.getValue() || ""} 
-          field="phone" 
-          placeholder="PHONE"
-        />
-      </div>
-    ),
+    cell: (info) => {
+      const phone = info.getValue() || "";
+      return (
+        <div 
+          className="flex items-center gap-1 cursor-pointer group/phone-cell hover:bg-white/5 py-1 px-1 -ml-1 rounded-md transition-all border border-transparent hover:border-white/5"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (phone) {
+              window.dispatchEvent(
+                new CustomEvent("open-qr", {
+                  detail: phone.replace(/[^0-9+]/g, ''),
+                }),
+              );
+            }
+          }}
+        >
+          <FlagBadge phone={phone} />
+          <span className={`text-[13px] font-bold truncate ${phone ? 'text-zinc-100 group-hover/phone-cell:text-white' : 'text-white/20 italic'}`}>
+            {phone || "PHONE"}
+          </span>
+        </div>
+      );
+    },
   }),
   columnHelper.accessor("company", {
     id: "company",

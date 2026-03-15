@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, Phone, MessageSquare, Mail, History } from "lucide-react";
+import { CheckCircle2, Phone, MessageSquare, Mail, History, Calendar as CalendarIcon } from "lucide-react";
 import { Lead } from "@/types/contact";
 
 export function ContactActivity({ contact }: { contact: Lead }) {
@@ -38,7 +38,9 @@ export function ContactActivity({ contact }: { contact: Lead }) {
                                         ? "bg-blue-600 text-white"
                                         : a.type === "sms"
                                             ? "bg-emerald-600 text-white"
-                                            : "bg-pink-600 text-white"
+                                            : a.type === "meeting"
+                                                ? "bg-violet-600 text-white"
+                                                : "bg-pink-600 text-white"
                                 }
                             `}
                         >
@@ -46,6 +48,8 @@ export function ContactActivity({ contact }: { contact: Lead }) {
                                 <Phone className="w-3.5 h-3.5" />
                             ) : a.type === "sms" ? (
                                 <MessageSquare className="w-3.5 h-3.5" />
+                            ) : a.type === "meeting" ? (
+                                <CalendarIcon className="w-3.5 h-3.5" />
                             ) : (
                                 <Mail className="w-3.5 h-3.5" />
                             )}

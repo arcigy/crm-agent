@@ -20,18 +20,10 @@ interface ContactEventsProps {
   contact: Lead;
 }
 
-interface RawEvent {
-  id: string;
-  summary: string;
-  description?: string;
-  start: { dateTime?: string; date?: string };
-  end: { dateTime?: string; date?: string };
-  location?: string;
-  hangoutLink?: string;
-}
+// Using CalendarEvent from @/types/calendar
 
 export function ContactEvents({ contact }: ContactEventsProps) {
-  const [events, setEvents] = React.useState<RawEvent[]>([]);
+  const [events, setEvents] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [selectedEvent, setSelectedEvent] =
     React.useState<CalendarEvent | null>(null);
@@ -58,12 +50,17 @@ export function ContactEvents({ contact }: ContactEventsProps) {
 
         const res = await getCalendarEvents(timeMin, timeMax);
         if (res.success && res.events) {
-          // Filter events that mention this contact
-          const filtered = res.events.filter((e: RawEvent) => {
-            const inSummary = e.summary?.toLowerCase().includes(contactName);
-            const inDescription = e.description
-              ?.toLowerCase()
-              .includes(contactName);
+          // Filter events that mention this contact or have its ID linked
+          const filtered = res.events.filter((e: any) => {
+            // Priority 1: Direct ID link
+            const idMatch = e.extendedProperties?.private?.contactId === String(contact.id);
+            if (idMatch) return true;
+
+            // Priority 2: Name mention (Fallback)
+            const summary = (e.summary || e.title || "").toLowerCase();
+            const description = (e.description || "").toLowerCase();
+            const inSummary = summary.includes(contactName);
+            const inDescription = description.includes(contactName);
             return inSummary || inDescription;
           });
           setEvents(filtered);
@@ -77,26 +74,28 @@ export function ContactEvents({ contact }: ContactEventsProps) {
     load();
   }, [contact.id, contactName]);
 
-  const openEventDetail = (event: RawEvent) => {
-    const startDate = event.start.dateTime
-      ? parseISO(event.start.dateTime)
-      : event.start.date
-        ? parseISO(event.start.date)
-        : new Date();
+  const now = new Date();
 
-    const endDate = event.end.dateTime
+  const openEventDetail = (event: any) => {
+    const startDate = event.start?.dateTime
+      ? parseISO(event.start.dateTime)
+      : event.start?.date
+        ? parseISO(event.start.date)
+        : event.start instanceof Date ? event.start : new Date();
+
+    const endDate = event.end?.dateTime
       ? parseISO(event.end.dateTime)
-      : event.end.date
+      : event.end?.date
         ? parseISO(event.end.date)
-        : startDate;
+        : event.end instanceof Date ? event.end : startDate;
 
     const calendarEvent: any = {
       id: event.id,
-      title: event.summary,
+      title: event.summary || event.title || "Bez názvu",
       description: event.description,
       start: startDate,
       end: endDate,
-      allDay: !event.start.dateTime,
+      allDay: !event.start?.dateTime,
       location: event.location,
       color: "blue",
     };
@@ -104,38 +103,31 @@ export function ContactEvents({ contact }: ContactEventsProps) {
   };
 
   // Separate upcoming and past events
-  const now = new Date();
   const upcomingEvents = events
     .filter((e) => {
-      const start = e.start.dateTime
-        ? parseISO(e.start.dateTime)
-        : parseISO(e.start.date || "");
+      const startStr = e.start?.dateTime || e.start?.date || e.start;
+      const start = typeof startStr === 'string' ? parseISO(startStr) : (startStr instanceof Date ? startStr : new Date());
       return isFuture(start) || start.toDateString() === now.toDateString();
     })
     .sort((a, b) => {
-      const aStart = a.start.dateTime
-        ? parseISO(a.start.dateTime)
-        : parseISO(a.start.date || "");
-      const bStart = b.start.dateTime
-        ? parseISO(b.start.dateTime)
-        : parseISO(b.start.date || "");
+      const aStr = a.start?.dateTime || a.start?.date || a.start;
+      const bStr = b.start?.dateTime || b.start?.date || b.start;
+      const aStart = typeof aStr === 'string' ? parseISO(aStr) : (aStr instanceof Date ? aStr : new Date());
+      const bStart = typeof bStr === 'string' ? parseISO(bStr) : (bStr instanceof Date ? bStr : new Date());
       return aStart.getTime() - bStart.getTime();
     });
-
+ 
   const pastEvents = events
     .filter((e) => {
-      const start = e.start.dateTime
-        ? parseISO(e.start.dateTime)
-        : parseISO(e.start.date || "");
+      const startStr = e.start?.dateTime || e.start?.date || e.start;
+      const start = typeof startStr === 'string' ? parseISO(startStr) : (startStr instanceof Date ? startStr : new Date());
       return isPast(start) && start.toDateString() !== now.toDateString();
     })
     .sort((a, b) => {
-      const aStart = a.start.dateTime
-        ? parseISO(a.start.dateTime)
-        : parseISO(a.start.date || "");
-      const bStart = b.start.dateTime
-        ? parseISO(b.start.dateTime)
-        : parseISO(b.start.date || "");
+       const aStr = a.start?.dateTime || a.start?.date || a.start;
+       const bStr = b.start?.dateTime || b.start?.date || b.start;
+       const aStart = typeof aStr === 'string' ? parseISO(aStr) : (aStr instanceof Date ? aStr : new Date());
+       const bStart = typeof bStr === 'string' ? parseISO(bStr) : (bStr instanceof Date ? bStr : new Date());
       return bStart.getTime() - aStart.getTime(); // Most recent first
     });
 
@@ -174,15 +166,12 @@ export function ContactEvents({ contact }: ContactEventsProps) {
     event,
     isPastEvent = false,
   }: {
-    event: RawEvent;
+    event: any;
     isPastEvent?: boolean;
   }) => {
-    const startDate = event.start.dateTime
-      ? parseISO(event.start.dateTime)
-      : event.start.date
-        ? parseISO(event.start.date)
-        : new Date();
-    const isAllDay = !event.start.dateTime;
+    const startStr = event.start?.dateTime || event.start?.date || event.start;
+    const startDate = typeof startStr === 'string' ? parseISO(startStr) : (startStr instanceof Date ? startStr : new Date());
+    const isAllDay = !event.start?.dateTime;
 
     return (
       <button
@@ -217,7 +206,7 @@ export function ContactEvents({ contact }: ContactEventsProps) {
             <h4
               className={`font-bold truncate mb-1 ${isPastEvent ? "text-gray-600" : "text-gray-900 group-hover:text-blue-600"} transition-colors`}
             >
-              {event.summary}
+              {event.summary || event.title}
             </h4>
             <div className="flex items-center gap-3 text-xs text-gray-500">
               {!isAllDay && (

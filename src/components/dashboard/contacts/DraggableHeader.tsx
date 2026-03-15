@@ -32,8 +32,8 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
   return (
     <th
       ref={setNodeRef}
-      style={{ ...style, width: header.getSize() }}
-      className={`group relative px-3 py-2 text-[10px] font-bold text-white/50 uppercase tracking-wider border-r border-white/5 last:border-0 transition-colors select-none overflow-hidden whitespace-nowrap ${
+      style={{ ...style, width: header.getSize(), maxWidth: header.getSize() }}
+      className={`group relative px-3 py-2 text-[10px] font-bold text-white/50 uppercase tracking-wider border-r border-white/5 last:border-0 transition-colors select-none whitespace-nowrap ${
         isDragging 
           ? "bg-zinc-900 shadow-xl ring-1 ring-violet-500/30" 
           : "hover:bg-white/5"
@@ -56,9 +56,19 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
 
       {header.column.getCanResize() && (
         <div
-          onMouseDown={header.getResizeHandler()}
-          onTouchStart={header.getResizeHandler()}
-          onDoubleClick={() => {
+          title="Prispôsobiť šírku"
+          onMouseDown={(e) => {
+             e.preventDefault();
+             e.stopPropagation();
+             header.getResizeHandler()(e);
+          }}
+          onTouchStart={(e) => {
+             e.preventDefault();
+             e.stopPropagation();
+             header.getResizeHandler()(e);
+          }}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
             const column = header.column;
             const rows = header.getContext().table.getRowModel().rows;
             let maxChars = String(column.columnDef.header || "").length;
@@ -75,16 +85,22 @@ export function DraggableHeader({ header }: DraggableHeaderProps) {
               [column.id]: newSize,
             }));
           }}
-          className={`resizer absolute -right-2 top-0 h-full w-4 cursor-col-resize select-none touch-none z-[100] flex items-center justify-center group/resizer ${
+          className={`resizer absolute top-0 -right-2 h-full w-4 cursor-col-resize select-none touch-none z-[100] flex items-center justify-center group/resizer ${
             header.column.getIsResizing() ? "bg-violet-900/10" : ""
           }`}
+          style={{
+            transform: header.column.getIsResizing() 
+              ? `translateX(${header.getContext().table.getState().columnSizingInfo.deltaOffset ?? 0}px)`
+              : 'none',
+            transition: 'none'
+          }}
         >
-          {/* Thin line for resizing instead of thick purple rectangle */}
+          {/* Thin line for resizing */}
           <div 
-            className={`w-[2px] h-full transition-colors duration-200 rounded-full ${
+            className={`w-[2px] rounded-full transition-all duration-200 ${
               header.column.getIsResizing() 
-                ? "bg-violet-400 shadow-[0_0_12px_rgba(167,139,250,0.8)] opacity-100" 
-                : "bg-transparent group-hover/resizer:bg-white/30"
+                ? "bg-violet-400 shadow-[0_0_12px_rgba(167,139,250,0.8)] opacity-100 h-[2000px] absolute top-0" 
+                : "bg-transparent group-hover/resizer:bg-white/30 h-full"
             }`}
           />
         </div>

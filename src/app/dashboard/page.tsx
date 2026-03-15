@@ -59,22 +59,20 @@ async function CalendarSection() {
     return <CalendarWidget events={events} scopeError={scopeError} />;
 }
 
-async function AnalyticsAndChartsSection() {
-    const [cRes, pRes, dRes] = await Promise.all([
-        getContacts(),
-        getProjects(),
-        getDeals()
-    ]);
-    const contacts = (cRes.success ? cRes.data : []) as any[];
+async function AnalyticsSectionWrapper() {
+    const res = await getContacts();
+    const pRes = await getProjects();
+    const contacts = (res.success ? res.data : []) as any[];
+    const projects = (pRes.data || []) as any[];
+    return <AnalyticsSection contacts={contacts} projects={projects} deals={[]} />;
+}
+
+async function ChartsSectionWrapper() {
+    const pRes = await getProjects();
+    const dRes = await getDeals();
     const projects = (pRes.data || []) as any[];
     const deals = (dRes.data || []) as any[];
-
-    return (
-        <>
-            <AnalyticsSection contacts={contacts} deals={deals} projects={projects} />
-            <ChartsRow deals={deals} projects={projects} />
-        </>
-    );
+    return <ChartsRow deals={deals} projects={projects} />;
 }
 
 export default function DashboardPage() {
@@ -88,19 +86,29 @@ export default function DashboardPage() {
         </Suspense>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-0 md:gap-6 pb-8 w-full">
-        <div className="lg:contents flex flex-col gap-0 overflow-hidden">
-             <Suspense fallback={<div className="h-64 bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-[2.5rem]" />}>
-                <div className="lg:min-h-0"><TasksSection /></div>
-             </Suspense>
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-2 gap-4 md:gap-6 pb-8 w-full">
+        <div className="min-h-0 flex flex-col h-full lg:h-auto">
+          <Suspense fallback={<div className="h-64 bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-[2.5rem]" />}>
+            <TasksSection />
+          </Suspense>
+        </div>
 
-             <Suspense fallback={<div className="h-64 bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-[2.5rem]" />}>
-                <CalendarSection />
-             </Suspense>
+        <div className="min-h-0 flex flex-col h-full lg:h-auto">
+          <Suspense fallback={<div className="h-64 bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-[2.5rem]" />}>
+            <CalendarSection />
+          </Suspense>
+        </div>
 
-             <Suspense fallback={<div className="h-64 bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-[2.5rem]" />}>
-                <AnalyticsAndChartsSection />
-             </Suspense>
+        <div className="min-h-0 flex flex-col h-full lg:h-auto">
+          <Suspense fallback={<div className="h-64 bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-[2.5rem]" />}>
+            <AnalyticsSectionWrapper />
+          </Suspense>
+        </div>
+
+        <div className="min-h-0 flex flex-col h-full lg:h-auto">
+          <Suspense fallback={<div className="h-64 bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-[2.5rem]" />}>
+            <ChartsSectionWrapper />
+          </Suspense>
         </div>
       </div>
     </div>

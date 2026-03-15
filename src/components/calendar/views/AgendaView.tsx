@@ -55,7 +55,7 @@ export function AgendaView({
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-[#0a0a0c] p-10 thin-scrollbar">
+    <div className="h-full overflow-y-auto bg-[#050507] p-10 scrollbar-hide scroll-smooth">
       <div className="max-w-3xl mx-auto space-y-16">
         {days.map((dayKey) => {
           const date = new Date(dayKey);
@@ -74,11 +74,11 @@ export function AgendaView({
 
               <div className="flex-1 space-y-6">
                 {dayEvents.map((event) => (
-                  <button
-                    key={event.id}
-                    onClick={() => onEventClick(event)}
-                    className="w-full flex items-center gap-8 p-6 rounded-[2rem] bg-black/20 border border-white/5 hover:bg-black/40 hover:border-violet-500/30 transition-all duration-500 text-left group/card relative overflow-hidden shadow-2xl"
-                  >
+                    <button
+                      key={event.id}
+                      onClick={() => onEventClick(event)}
+                      className="w-full flex items-center gap-8 p-6 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:bg-[#7c3aed]/5 hover:border-[#7c3aed]/30 transition-all duration-500 text-left group/card relative overflow-hidden shadow-2xl"
+                    >
                     <div className="absolute inset-0 bg-gradient-to-r from-violet-500/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
                     
                     <div className="w-20 shrink-0 text-right relative z-10">

@@ -2,7 +2,7 @@
 
 import directus from "@/lib/directus";
 import { readItems } from "@directus/sdk";
-import { getUserEmail } from "@/lib/auth";
+import { getAuthorizedEmails } from "@/lib/auth";
 
 export interface ContactRelation {
   id: number;
@@ -25,14 +25,24 @@ export interface DealRelation {
 
 export async function getTodoRelations() {
   try {
-    const email = await getUserEmail();
-    if (!email) return { success: false as const, error: "Unauthorized" };
+    const authEmails = await getAuthorizedEmails();
+    if (authEmails.length === 0) return { success: false as const, error: "Unauthorized" };
 
     const [contacts, projects, deals] = await Promise.all([
       directus.request(
         readItems("contacts", {
-          filter: { user_email: { _eq: email } },
-          limit: 50,
+          filter: {
+            _and: [
+              {
+                _or: [
+                   { user_email: { _in: authEmails } },
+                   { user_email: { _null: true } },
+                ],
+              },
+              { deleted_at: { _null: true } },
+            ],
+          },
+          limit: -1,
           sort: ["-date_created"],
         }),
       ),
@@ -40,11 +50,16 @@ export async function getTodoRelations() {
         readItems("projects", {
           filter: {
             _and: [
-              { user_email: { _eq: email } },
+              {
+                _or: [
+                   { user_email: { _in: authEmails } },
+                   { user_email: { _null: true } },
+                ],
+              },
               { deleted_at: { _null: true } },
             ],
           },
-          limit: 50,
+          limit: -1,
           sort: ["-date_created"],
         }),
       ),
@@ -52,11 +67,16 @@ export async function getTodoRelations() {
         readItems("deals", {
           filter: {
             _and: [
-              { user_email: { _eq: email } },
+              {
+                _or: [
+                   { user_email: { _in: authEmails } },
+                   { user_email: { _null: true } },
+                ],
+              },
               { deleted_at: { _null: true } },
             ],
           },
-          limit: 50,
+          limit: -1,
           sort: ["-date_created"],
         }),
       ),
@@ -70,11 +90,17 @@ export async function getTodoRelations() {
         deals: deals as DealRelation[],
       },
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Get Todo Relations Error:", error);
+    
+    // Directus or Axios error objects often have nested errors
+    const errorMessage = error?.errors?.[0]?.message || 
+                         error?.message || 
+                         (typeof error === 'string' ? error : JSON.stringify(error));
+
     return {
       success: false as const,
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage,
     };
   }
 }

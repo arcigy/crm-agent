@@ -38,16 +38,15 @@ export default function TodoTool() {
         </header>
 
         <TodoSmartInput
-          onAdd={(title, time) => {
+          initialSelectedDate={selectedDate}
+          onAdd={(title, date, time) => {
             if (time) {
-              const [year, month, day] = selectedDate.split("-").map(Number);
+              const [year, month, day] = date.split("-").map(Number);
               const [hour, minute] = time.split(":").map(Number);
               const dateObj = new Date(year, month - 1, day, hour, minute);
               add(title, dateObj.toISOString());
             } else {
-              // Just the date part. Directus timestamp fields accept YYYY-MM-DD.
-              // This helps the UI know there is no specific time.
-              add(title, selectedDate);
+              add(title, date);
             }
           }}
         />

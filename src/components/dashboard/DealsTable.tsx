@@ -146,14 +146,21 @@ export function DealsTable({
         }
 
         return (
-          <div className="flex flex-col py-1">
-            <span className="font-black text-white text-[15px] tabular-nums tracking-tighter italic">
+          <div 
+            className="flex flex-col py-1 cursor-pointer group/price rounded-xl px-2 -mx-2 hover:bg-violet-500/10 transition-all"
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingPriceProject(project);
+            }}
+            title="Klikni pre úpravu ceny"
+          >
+            <span className="font-black text-white text-[15px] tabular-nums tracking-tighter italic group-hover/price:text-violet-400 transition-colors">
                 {new Intl.NumberFormat("sk-SK", {
                 style: "currency",
                 currency: "EUR",
                 }).format(value)}
             </span>
-            <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest leading-none">Net_Revenue</span>
+
           </div>
         );
       },
@@ -259,13 +266,14 @@ export function DealsTable({
                             </button>
                             <button 
                               onClick={() => {
-                                setEditingPriceProject(deal.project);
+                                setFullDetailTab("overview");
+                                setFullDetailProject(deal.project);
                                 setActiveMenu(null);
                               }}
-                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-white hover:bg-emerald-500/10 transition-all"
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-violet-400 hover:text-white hover:bg-violet-500/10 transition-all"
                             >
-                                <Settings className="w-4 h-4 text-emerald-400" />
-                                Upraviť Cenu
+                                <Settings className="w-4 h-4 text-violet-400" />
+                                Upraviť Obchod
                             </button>
                             <div className="h-px bg-white/5 my-1" />
                             <button 

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { X, Send, Paperclip, MoreVertical, Minimize2, Maximize2, Trash2, Minus } from "lucide-react";
 import { toast } from "sonner";
+import RichTextEditor from "./editor/RichTextEditor";
 
 interface ComposeModalProps {
   isOpen: boolean;
@@ -42,37 +43,43 @@ export function ComposeModal({
   const isMinimizedRef = React.useRef(isMinimized);
   const [activeTransition, setActiveTransition] = React.useState("all 0.4s cubic-bezier(0.16, 1, 0.3, 1)");
 
+  const lastAppliedEmail = React.useRef<string | null>(null);
+
   React.useEffect(() => {
     if (!isOpen) {
       setIsMaximized(false);
       setIsMinimized(false);
+      lastAppliedEmail.current = null;
     } else {
-      if (initialData) {
-        setTo(initialData.to || "");
-        setSubject(initialData.subject || "");
+      // If we got initialData, it means a fresh trigger (e.g. from URL param)
+      if (initialData && (initialData.to !== lastAppliedEmail.current || lastAppliedEmail.current === null)) {
+        // Clean email - strip "Name <email>" to just "email"
+        let cleanTo = initialData.to || "";
+        const emailMatch = cleanTo.match(/<(.+@.+)>/);
+        if (emailMatch) cleanTo = emailMatch[1];
+        
+        lastAppliedEmail.current = initialData.to || "";
+        setTo(cleanTo);
+        // FORCE EMPTY SUBJECT - User requested "nedavaj nic do predmetu"
+        setSubject(""); 
         setBody(initialData.body || "");
-      }
-      
-      // If we have a recipient but no subject, focus subject
-      if (initialData?.to && !initialData.subject) {
-        // Longer timeout to ensure the modal is fully rendered and inputs aren't grabbing focus
-        const t = setTimeout(() => {
-            if (subjectRef.current) {
-                subjectRef.current.focus();
-                // Move cursor to end just in case
-                const length = subjectRef.current.value.length;
-                subjectRef.current.setSelectionRange(length, length);
-            }
-        }, 150);
-        return () => clearTimeout(t);
-      } else if (!initialData?.to) {
-        // If no recipient, focus recipient
-        // We'll use a small timeout for this too to be consistent
-        const t = setTimeout(() => {
+        setShowSuggestions(false);
+        
+        // Focus body if we have a recipient
+        if (cleanTo) {
+          const t = setTimeout(() => {
+            const editorView = document.querySelector('.ProseMirror') as HTMLElement;
+            if (editorView) editorView.focus();
+          }, 50);
+          return () => clearTimeout(t);
+        } else {
+          // Focus recipient if empty
+          const t = setTimeout(() => {
             const recipientInput = document.querySelector('input[placeholder="Meno alebo e-mail..."]') as HTMLInputElement;
             if (recipientInput) recipientInput.focus();
-        }, 150);
-        return () => clearTimeout(t);
+          }, 50);
+          return () => clearTimeout(t);
+        }
       }
     }
   }, [isOpen, initialData]);
@@ -119,6 +126,11 @@ export function ComposeModal({
     }
 
     const timer = setTimeout(async () => {
+      // Don't search if we just applied initialData and haven't typed further
+      if (initialData && to === (initialData.to?.match(/<(.+@.+)>/)?.[1] || initialData.to) && lastAppliedEmail.current === initialData.to) {
+        return;
+      }
+
       try {
         const res = await fetch(`/api/contacts?q=${encodeURIComponent(to)}`);
         const data = await res.json();
@@ -150,7 +162,7 @@ export function ComposeModal({
       }
     }, 250);
     return () => clearTimeout(timer);
-  }, [to, recentEmails]);
+  }, [to, recentEmails, initialData]);
 
   const handleAIRefine = async () => {
     if (!body.trim()) {
@@ -202,11 +214,11 @@ export function ComposeModal({
     isMinimizedRef.current = isMinimized;
   }, [isMinimized]);
 
-  if (!isOpen) return null;
+  // No early return, use CSS to hide/show to keep it mounted for speed
 
   return (
     <div
-      className="fixed z-[150] overflow-hidden"
+      className={`fixed z-[150] overflow-hidden transition-all duration-300 ${isOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-full opacity-0 pointer-events-none'}`}
       style={{
         bottom: 0,
         right: isMaximized ? "0px" : "56px",
@@ -219,7 +231,6 @@ export function ComposeModal({
         boxShadow: isMinimized 
           ? "0 -5px 20px rgba(0,0,0,0.5), 0 0 15px rgba(124,58,237,0.2)"
           : "0 -10px 40px rgba(0,0,0,0.5), 0 0 30px rgba(124,58,237,0.15), inset 0 1px 0 rgba(196,181,253,0.1)",
-        transition: activeTransition,
         cursor: isMinimized ? "pointer" : "default"
       }}
       onClick={() => {
@@ -408,14 +419,12 @@ export function ComposeModal({
             />
           </div>
 
-          {/* Body */}
-          <div className="flex-1 mt-1 rounded-[1.5rem] border border-violet-500/30 bg-transparent focus-within:border-violet-500/70 transition-colors p-5 flex flex-col">
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
+          {/* Body - Rich Text Editor */}
+          <div className="flex-1 mt-1 rounded-[1.5rem] border border-violet-500/30 bg-black/20 focus-within:border-violet-500/70 transition-colors flex flex-col min-h-0 overflow-hidden">
+            <RichTextEditor
+              content={body}
+              onChange={setBody}
               placeholder="Vaša správa..."
-              className="w-full h-full !bg-transparent border-none outline-none focus:ring-0 appearance-none text-white text-[13px] font-medium resize-none placeholder:text-white/20 leading-relaxed thin-scrollbar overflow-y-auto"
-              style={{ backgroundColor: "transparent", boxShadow: "none" }}
             />
           </div>
 

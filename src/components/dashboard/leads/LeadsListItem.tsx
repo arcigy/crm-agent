@@ -15,7 +15,8 @@ import {
    Sparkles,
    X,
    AlertCircle,
-   Tag
+   Tag,
+   RotateCcw
 } from "lucide-react";
 import { GmailMessage } from "@/types/gmail";
 import { AndroidLog } from "@/types/android";
@@ -37,6 +38,7 @@ interface LeadsListItemProps {
   onExecuteCustomCommand: () => void;
   onToggleStar: (e: React.MouseEvent, email: GmailMessage) => void;
   onDeleteMessage: (e: React.MouseEvent, email: GmailMessage) => void;
+  onRestoreMessage?: (e: React.MouseEvent, email: GmailMessage) => void;
   isSelected?: boolean;
   onToggleSelection?: (e: React.MouseEvent, id: string) => void;
   tags?: string[];
@@ -79,6 +81,7 @@ export const LeadsListItem = React.memo(({
   onExecuteCustomCommand,
   onToggleStar,
   onDeleteMessage,
+  onRestoreMessage,
   isSelected,
   onToggleSelection,
   tags = [],
@@ -260,12 +263,22 @@ export const LeadsListItem = React.memo(({
               >
                 <Tag className="w-3 h-3" />
               </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); onDeleteMessage(e, msg); }}
-                className="p-1.5 hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-lg transition-all text-zinc-400 hover:text-violet-600 hover:scale-110 active:scale-95"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
+              {msg.labels?.includes("TRASH") ? (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRestoreMessage?.(e, msg); }}
+                  className="p-1.5 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-lg transition-all text-zinc-400 hover:text-green-600 hover:scale-110 active:scale-95"
+                  title="Obnoviť z koša"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </button>
+              ) : (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDeleteMessage(e, msg); }}
+                  className="p-1.5 hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-lg transition-all text-zinc-400 hover:text-violet-600 hover:scale-110 active:scale-95"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { SortingState, GroupingState } from "@tanstack/react-table";
+import { SortingState, GroupingState, ColumnFiltersState } from "@tanstack/react-table";
 import { DragEndEvent } from "@dnd-kit/core";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ export function useContactsTable(data: Lead[]) {
   const [rowOrder, setRowOrder] = React.useState<string[]>([]);
   const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
   const [columnSizing, setColumnSizing] = React.useState<Record<string, number>>({});
+   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [isMounted, setIsMounted] = React.useState(false);
 
@@ -39,7 +40,8 @@ export function useContactsTable(data: Lead[]) {
     // Load persisted table state
     const savedColumnOrder = localStorage.getItem("contacts_column_order");
     const savedSizing = localStorage.getItem("contacts_column_sizing");
-    const savedRowOrder = localStorage.getItem("contacts_row_order");
+     const savedRowOrder = localStorage.getItem("contacts_row_order");
+    const savedColumnFilters = localStorage.getItem("contacts_column_filters");
     
     if (savedColumnOrder) {
       try { setColumnOrder(JSON.parse(savedColumnOrder)); } catch (e) { console.error(e); }
@@ -48,7 +50,15 @@ export function useContactsTable(data: Lead[]) {
       try { setColumnSizing(JSON.parse(savedSizing)); } catch (e) { console.error(e); }
     }
     if (savedRowOrder) {
-      try { setRowOrder(JSON.parse(savedRowOrder)); } catch (e) { console.error(e); }
+      try { 
+        const parsed = JSON.parse(savedRowOrder);
+        if (Array.isArray(parsed)) {
+          setRowOrder(parsed.map(id => String(id)));
+        }
+      } catch (e) { console.error(e); }
+    }
+    if (savedColumnFilters) {
+      try { setColumnFilters(JSON.parse(savedColumnFilters)); } catch (e) { console.error(e); }
     }
 
     const handleOpenQr = (e: CustomEvent) => setQrPhone(e.detail);
@@ -89,22 +99,22 @@ export function useContactsTable(data: Lead[]) {
   }, [columnOrder, isMounted]);
 
   React.useEffect(() => {
-    if (isMounted) {
+    if (isMounted && Object.keys(columnSizing).length > 0) {
       localStorage.setItem("contacts_column_sizing", JSON.stringify(columnSizing));
     }
   }, [columnSizing, isMounted]);
 
-  React.useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem("contacts_column_sizing", JSON.stringify(columnSizing));
-    }
-  }, [columnSizing, isMounted]);
-
-  React.useEffect(() => {
+   React.useEffect(() => {
     if (isMounted) {
       localStorage.setItem("contacts_row_order", JSON.stringify(rowOrder));
     }
   }, [rowOrder, isMounted]);
+
+  React.useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem("contacts_column_filters", JSON.stringify(columnFilters));
+    }
+  }, [columnFilters, isMounted]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -112,37 +122,65 @@ export function useContactsTable(data: Lead[]) {
 
     const activeData = active.data.current;
     const overData = over.data.current;
-    const contact = activeData?.contact as Lead;
 
-    if (overData?.type === "group") {
-      const targetStatus = overData.status as string;
-      if (contact && targetStatus && contact.status !== targetStatus) {
-        const promise = updateContact(contact.id, { status: targetStatus });
-        toast.promise(promise, {
-          loading: "Updating contact status...",
-          success: "Status updated successfully",
-          error: (err: any) => "Failed to update status: " + err.message,
-        });
-        await promise;
-        router.refresh();
-        return;
-      }
-    }
-
-    if (active.id !== over.id && overData?.type === "row") {
+    if (active.id !== over.id && String(active.id).startsWith("row-")) {
       const activeId = String(active.id).replace("row-", "");
-      const overId = String(over.id).replace("row-", "");
+      const activeContact = activeData?.contact as Lead;
       
-      const currentOrder: string[] = (rowOrder.length > 0 ? rowOrder : data.map(d => String(d.id))) as string[];
-      const oldIndex = currentOrder.indexOf(activeId);
-      const newIndex = currentOrder.indexOf(overId);
+      const dataIds = data.map(d => String(d.id));
+      const currentOrder = rowOrder.length > 0 ? [...rowOrder] : [...dataIds];
+      
+      let normalizedOrder = Array.from(new Set(currentOrder.map(id => String(id))));
+      dataIds.forEach(id => {
+        if (!normalizedOrder.includes(id)) normalizedOrder.push(id);
+      });
+
+      const oldIndex = normalizedOrder.indexOf(activeId);
+      let newIndex = -1;
+
+      // Case 1: Dropped on a Group Header
+      if (overData?.type === "group") {
+        const targetStatus = overData.status as string;
+        
+        if (activeContact && activeContact.status !== targetStatus) {
+           // Async status update
+           updateContact(activeContact.id, { status: targetStatus }).then(() => {
+              React.startTransition(() => {
+                router.refresh();
+              });
+           });
+           toast.success(`Presunuté do ${targetStatus}`, { duration: 1500 });
+        }
+
+        const firstInGroup = data.find(d => String(d.status).toLowerCase() === targetStatus.toLowerCase());
+        newIndex = firstInGroup ? normalizedOrder.indexOf(String(firstInGroup.id)) : 0;
+      } 
+      // Case 2: Dropped on another Row
+      else if (overData?.type === "row") {
+        const overId = String(over.id).replace("row-", "");
+        const overContact = overData.contact as Lead;
+        newIndex = normalizedOrder.indexOf(overId);
+
+        if (activeContact && overContact && activeContact.status !== overContact.status) {
+          updateContact(activeContact.id, { status: String(overContact.status) }).then(() => {
+            React.startTransition(() => {
+              router.refresh();
+            });
+          });
+        }
+      } 
+      // Case 3: Dropped on Header
+      else if (!overData?.type) {
+        newIndex = 0;
+      }
       
       if (oldIndex !== -1 && newIndex !== -1) {
-        const newOrder = [...currentOrder];
-        const [removed] = newOrder.splice(oldIndex, 1);
-        newOrder.splice(newIndex, 0, removed);
-        setRowOrder(newOrder);
-        toast.info("Row order updated locally");
+        const [removed] = normalizedOrder.splice(oldIndex, 1);
+        normalizedOrder.splice(newIndex, 0, removed);
+        
+        // INSTANT UI UPDATE
+        setRowOrder([...normalizedOrder]);
+        setSorting([]);
       }
     }
   };
@@ -176,8 +214,10 @@ export function useContactsTable(data: Lead[]) {
     setColumnOrder,
     columnSizing,
     setColumnSizing,
-    rowOrder,
+     rowOrder,
     setRowOrder,
+    columnFilters,
+    setColumnFilters,
     handleDragEnd,
   };
 }

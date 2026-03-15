@@ -23,8 +23,9 @@ export function useLeadsFetch(
   
   const CACHE_TTL = 60000; // 60 seconds
 
-  const fetchMessages = async (isBackground = false) => {
-    const category = selectedTab.startsWith("tag:") ? "inbox" : selectedTab;
+  const fetchMessages = async (isBackground = false, tabParam?: string) => {
+    const activeTab = tabParam || selectedTab;
+    const category = activeTab.startsWith("tag:") ? "inbox" : activeTab;
     const now = Date.now();
     const cached = emailCache.current[category];
 
@@ -64,8 +65,7 @@ export function useLeadsFetch(
         }
       }
 
-      const gmailRes = await fetch(`/api/google/gmail?category=${category}&t=${Date.now()}`, { cache: "no-store" });
-      
+      const gmailRes = await fetch(`/api/google/gmail?tab=${category}&t=${Date.now()}`, { cache: "no-store" });
       if (gmailRes.ok) {
         const gmailData = await gmailRes.json();
         if (gmailData.isConnected && gmailData.messages) {
@@ -101,10 +101,13 @@ export function useLeadsFetch(
             const androidData = await androidRes.json();
             if (androidData.success) setAndroidLogs(androidData.logs);
           }
-        } catch (e) { console.error("Android logs fetch error", e); }
+        } catch (e) {
+          console.error("Android logs fetch error", e);
+        }
       }
     } catch (error) { 
-      console.error("Failed to fetch fresh messages:", error); 
+      console.error("Failed to fetch fresh messages:", error);
+      setIsConnected(false); // Make button appear on critical failure
     }
     return null;
   };

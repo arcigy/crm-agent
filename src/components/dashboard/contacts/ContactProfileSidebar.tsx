@@ -178,8 +178,18 @@ export function ContactProfileSidebar({
             <button
                 onClick={() => {
                     const email = formData.email || "";
+                    if (!email) {
+                        toast.error("Kontakt nemá priradený e-mail");
+                        return;
+                    }
                     onClose();
                     router.push(`/dashboard/leads?compose=${encodeURIComponent(email)}`);
+                }}
+                onMouseEnter={() => {
+                    const email = formData.email || "";
+                    if (email) {
+                        router.prefetch(`/dashboard/leads?compose=${encodeURIComponent(email)}`);
+                    }
                 }}
                 className="h-10 flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white rounded-xl font-semibold text-xs transition-all hover:bg-white/10 active:scale-95 px-4"
             >
@@ -197,7 +207,10 @@ export function ContactProfileSidebar({
                 onChange={(v: string) => setFormData({...formData, email: v})}
                 onClick={() => {
                     const email = formData.email || "";
-                    if (!email) return;
+                    if (!email) {
+                        toast.error("Kontakt nemá priradený e-mail");
+                        return;
+                    }
                     onClose();
                     router.push(`/dashboard/leads?compose=${encodeURIComponent(email)}`);
                 }}
@@ -342,19 +355,34 @@ function BirthdayPicker({ value, onChange }: { value: string; onChange: (val: st
   }, [d, m, y, onChange]);
 
   return (
-    <div className="flex gap-2 mt-1">
-      <select value={d} onChange={(e) => setD(e.target.value)} className="bg-zinc-900 border border-white/10 rounded px-1 text-[10px] text-white">
-        <option value="">d.</option>
-        {Array.from({length: 31}, (_, i) => i + 1).map(day => <option key={day} value={day}>{day}.</option>)}
-      </select>
-      <select value={m} onChange={(e) => setM(e.target.value)} className="bg-zinc-900 border border-white/10 rounded px-1 text-[10px] text-white">
-        <option value="">m.</option>
-        {Array.from({length: 12}, (_, i) => i + 1).map(month => <option key={month} value={month}>{month}.</option>)}
-      </select>
-      <select value={y} onChange={(e) => setY(e.target.value)} className="bg-zinc-900 border border-white/10 rounded px-1 text-[10px] text-white">
-        <option value="">r.</option>
-        {Array.from({length: 100}, (_, i) => new Date().getFullYear() - i).map(y => <option key={y} value={y}>{y}</option>)}
-      </select>
+    <div className="flex items-center gap-1.5 mt-2">
+      <div className="relative group/bday-select w-1/4">
+          <select value={d} onChange={(e) => setD(e.target.value)} className="w-full appearance-none bg-black/40 border border-white/10 rounded-lg py-1.5 px-2.5 text-xs text-white/90 font-bold focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all cursor-pointer hover:border-white/20">
+            <option value="" className="text-zinc-500">Deň</option>
+            {Array.from({length: 31}, (_, i) => i + 1).map(day => <option key={day} value={day} className="bg-zinc-900">{day}.</option>)}
+          </select>
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/30 group-hover/bday-select:text-violet-400 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+      </div>
+      <div className="relative group/bday-select w-1/3">
+          <select value={m} onChange={(e) => setM(e.target.value)} className="w-full appearance-none bg-black/40 border border-white/10 rounded-lg py-1.5 px-2.5 text-xs text-white/90 font-bold focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all cursor-pointer hover:border-white/20">
+            <option value="" className="text-zinc-500">Mes.</option>
+            {Array.from({length: 12}, (_, i) => i + 1).map(month => <option key={month} value={month} className="bg-zinc-900">{month}.</option>)}
+          </select>
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/30 group-hover/bday-select:text-violet-400 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+      </div>
+      <div className="relative group/bday-select flex-1">
+          <select value={y} onChange={(e) => setY(e.target.value)} className="w-full appearance-none bg-black/40 border border-white/10 rounded-lg py-1.5 px-2.5 text-xs text-white/90 font-bold focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all cursor-pointer hover:border-white/20">
+            <option value="" className="text-zinc-500">Rok</option>
+            {Array.from({length: 100}, (_, i) => new Date().getFullYear() - i).map(y => <option key={y} value={y} className="bg-zinc-900">{y}</option>)}
+          </select>
+           <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/30 group-hover/bday-select:text-violet-400 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+      </div>
     </div>
   );
 }

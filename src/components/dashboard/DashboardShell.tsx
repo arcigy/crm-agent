@@ -108,26 +108,8 @@ export function DashboardShell({
       <style jsx global>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .thin-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .thin-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .thin-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(0, 0, 0, 0.1);
-          border-radius: 10px;
-        }
-        .dark .thin-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
-        }
-        .thin-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(0, 0, 0, 0.2);
-        }
-        .dark .thin-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.2);
-        }
+        .scroll-smooth { scroll-behavior: smooth; }
+
 
         @keyframes premium-loading {
           0% { transform: translateX(-100%); }
@@ -166,7 +148,7 @@ export function DashboardShell({
       <aside
         className={`
           fixed inset-y-0 left-0 z-[2000] bg-white/95 dark:bg-zinc-950 border-r border-white/10 flex flex-col transition-transform duration-200 ease-out will-change-transform
-          ${isMenuOpen ? "w-80 translate-x-0 shadow-[20px_0_60px_rgba(0,0,0,0.2)]" : "w-80 -translate-x-full"}
+          ${isMenuOpen ? "lg:w-80 w-72 translate-x-0 shadow-[20px_0_60px_rgba(0,0,0,0.2)]" : "lg:w-80 w-72 -translate-x-full"}
         `}
       >
         <div className="flex flex-col h-full overflow-hidden relative">
@@ -236,7 +218,7 @@ export function DashboardShell({
       >
           {/* Spacer so content never goes under the fixed top bar */}
           <div className="h-14 flex-shrink-0" />
-          <div className="flex-1 min-h-0 overflow-y-auto px-2 md:px-6 pb-4 md:pb-6 scrollbar-hide">
+          <div className="flex-1 min-h-0 overflow-y-auto px-2 md:px-6 pb-4 md:pb-6 scrollbar-hide scroll-smooth">
              <div className="w-full h-full">
                 {!completed && onboardingScene ? onboardingScene : children}
              </div>

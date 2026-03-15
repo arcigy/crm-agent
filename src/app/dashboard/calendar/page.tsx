@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCurrentCRMUser } from "@/hooks/useCurrentCRMUser";
 import { useUser } from "@clerk/nextjs";
 import { CalendarHeader } from "@/components/calendar/CalendarHeader";
@@ -13,6 +13,7 @@ import { CreateEventModal } from "@/components/calendar/CreateEventModal";
 import { EventDetailModal } from "@/components/calendar/EventDetailModal";
 import { ContactDetailModal } from "@/components/dashboard/ContactDetailModal";
 import { CalendarEvent, CalendarView as ViewType } from "@/types/calendar";
+import { format } from "date-fns";
 import { Lead } from "@/types/contact";
 import { toast } from "sonner";
 import { Loader2, Calendar as CalendarIcon } from "lucide-react";
@@ -50,6 +51,9 @@ const MOCK_EVENTS: CalendarEvent[] = [
 
 function CalendarContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [view, setView] = useState<ViewType>("month");
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -66,9 +70,14 @@ function CalendarContent() {
   ]);
   const [modalDate, setModalDate] = useState<Date | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showWeekends, setShowWeekends] = useState(true);
-  const [showDeclined, setShowDeclined] = useState(false);
+  const [onlyDeals, setOnlyDeals] = useState(false);
+  const [highlightFree, setHighlightFree] = useState(false);
+  const [devEvents, setDevEvents] = useState<CalendarEvent[]>([]);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [isRealConnected, setIsRealConnected] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncCounts, setSyncCounts] = useState({ google: 0, crm: 0 });
 
   const { user, isLoaded } = useCurrentCRMUser();
 
@@ -88,19 +97,67 @@ function CalendarContent() {
     }
   };
 
+  // Sync URL -> State (for browser back/forward buttons)
   useEffect(() => {
     const dateParam = searchParams?.get("date");
+    const viewParam = searchParams?.get("view");
+
     if (dateParam) {
       const parsedDate = new Date(dateParam);
       if (!isNaN(parsedDate.getTime())) {
-        setCurrentDate(parsedDate);
-        setView("day");
+        const dStr = format(parsedDate, "yyyy-MM-dd");
+        const currentStr = format(currentDate, "yyyy-MM-dd");
+        if (dStr !== currentStr) {
+          setCurrentDate(parsedDate);
+        }
       }
+    }
+    
+    if (viewParam && viewParam !== view) {
+      setView(viewParam as ViewType);
     }
   }, [searchParams]);
 
-  const fetchEvents = async () => {
-    setIsLoading(true);
+  // Helper to update URL and State (creates history entry)
+  const navigateCalendar = (newDate: Date, newView: ViewType) => {
+    const params = new URLSearchParams(searchParams?.toString());
+    params.set("date", format(newDate, "yyyy-MM-dd"));
+    params.set("view", newView);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    
+    setCurrentDate(newDate);
+    setView(newView);
+  };
+
+  // Persistence for devEvents
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('crm_dev_events');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved).map((e: any) => ({
+            ...e,
+            start: new Date(e.start),
+            end: new Date(e.end)
+          }));
+          setDevEvents(parsed);
+          setEvents(parsed);
+        } catch (e) {
+          console.error("Failed to parse saved dev events", e);
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (devEvents.length > 0) {
+      localStorage.setItem('crm_dev_events', JSON.stringify(devEvents));
+    }
+  }, [devEvents]);
+
+  const fetchEvents = async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    setIsSyncing(true);
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -121,12 +178,33 @@ function CalendarContent() {
           end: new Date(e.end.dateTime || e.end.date || e.end),
           allDay: !!e.start.date && !e.start.dateTime
         }));
+        
+        const crmCount = formattedEvents.filter((e: any) => 
+          e.id.toString().startsWith('p-') || 
+          e.id.toString().startsWith('d-') || 
+          e.id.toString().startsWith('t-')
+        ).length;
+        
         setEvents(formattedEvents);
+        setSyncCounts({ 
+          google: formattedEvents.length - crmCount, 
+          crm: crmCount 
+        });
+        setLastSyncTime(new Date());
       } else {
         setIsRealConnected(false);
         if (process.env.NODE_ENV === 'development') {
             setIsConnected(true);
-            setEvents(MOCK_EVENTS);
+            // If we have devEvents in state (loaded from localStorage), use those
+            if (devEvents.length > 0) {
+              setEvents(devEvents);
+              setSyncCounts({ google: devEvents.length, crm: 0 });
+            } else {
+              setDevEvents(MOCK_EVENTS);
+              setEvents(MOCK_EVENTS);
+              setSyncCounts({ google: MOCK_EVENTS.length, crm: 0 });
+            }
+            setLastSyncTime(new Date());
         } else {
             setIsConnected(false);
         }
@@ -135,20 +213,33 @@ function CalendarContent() {
       console.error("Error fetching events:", error);
       if (process.env.NODE_ENV === 'development') {
           setIsConnected(true);
-          setEvents(MOCK_EVENTS);
+          setEvents(devEvents.length > 0 ? devEvents : MOCK_EVENTS);
+          setLastSyncTime(new Date());
       } else {
           setIsConnected(false);
       }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
+      setIsSyncing(false);
     }
   };
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+    
+    // Background sync every 5 minutes
+    const interval = setInterval(() => {
+      fetchEvents(true);
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [devEvents.length === 0]); 
 
   const toggleLayer = (layerId: string) => {
+    if (layerId === 'sync') {
+      fetchEvents();
+      return;
+    }
     setActiveLayers((prev) =>
       prev.includes(layerId)
         ? prev.filter((id) => id !== layerId)
@@ -193,50 +284,55 @@ function CalendarContent() {
       <CalendarHeader
         currentDate={currentDate}
         view={view}
-        onViewChange={setView}
+        onViewChange={(v) => navigateCalendar(currentDate, v)}
         onPrev={() => {
           const d = new Date(currentDate);
           if (view === "month") d.setMonth(d.getMonth() - 1);
           else if (view === "week") d.setDate(d.getDate() - 7);
-          else if (view === "4days") d.setDate(d.getDate() - 4);
+          else if (view === "workweek") d.setDate(d.getDate() - 5);
           else if (view === "year") d.setFullYear(d.getFullYear() - 1);
           else d.setDate(d.getDate() - 1);
-          setCurrentDate(d);
+          navigateCalendar(d, view);
         }}
         onNext={() => {
           const d = new Date(currentDate);
           if (view === "month") d.setMonth(d.getMonth() + 1);
           else if (view === "week") d.setDate(d.getDate() + 7);
-          else if (view === "4days") d.setDate(d.getDate() + 4);
+          else if (view === "workweek") d.setDate(d.getDate() + 5);
           else if (view === "year") d.setFullYear(d.getFullYear() + 1);
           else d.setDate(d.getDate() + 1);
-          setCurrentDate(d);
+          navigateCalendar(d, view);
         }}
-        onToday={() => setCurrentDate(new Date())}
+        onToday={() => navigateCalendar(new Date(), view)}
         onCreateClick={() => setIsCreateModalOpen(true)}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        showWeekends={showWeekends}
-        onWeekendsToggle={() => setShowWeekends(!showWeekends)}
-        showDeclined={showDeclined}
-        onDeclinedToggle={() => setShowDeclined(!showDeclined)}
+        onlyDeals={onlyDeals}
+        onOnlyDealsToggle={() => setOnlyDeals(!onlyDeals)}
+        highlightFree={highlightFree}
+        onHighlightFreeToggle={() => setHighlightFree(!highlightFree)}
         onSettingsClick={() => window.location.href = '/dashboard/settings'}
         onSyncClick={fetchEvents}
+        onDateSelect={(d) => navigateCalendar(d, view)}
       />
 
       <div className="flex flex-1 overflow-hidden relative z-10">
-        <div className="hidden lg:block w-80 border-r border-white/5 p-6 overflow-y-auto thin-scrollbar bg-black/20">
+        <div className="hidden lg:block w-80 border-r border-white/5 p-4 overflow-y-auto scrollbar-hide bg-black/20">
           <CalendarSidebar
             currentDate={currentDate}
             onDateSelect={(date) => {
               setCurrentDate(date);
-              if (view === "month") setView("day");
             }}
-            activeLayers={activeLayers}
+            activeLayers={isSyncing ? [...activeLayers, 'syncing'] : activeLayers}
             onLayerToggle={toggleLayer}
             onCreateClick={() => setIsCreateModalOpen(true)}
             isConnected={isRealConnected}
             onConnect={handleConnect}
+            onDateDoubleClick={(date) => {
+              navigateCalendar(date, "day");
+            }}
+            lastSyncTime={lastSyncTime}
+            syncCounts={syncCounts}
           />
         </div>
 
@@ -256,14 +352,25 @@ function CalendarContent() {
               <CalendarView
                 view={view}
                 currentDate={currentDate}
+                highlightFree={highlightFree}
                 events={events.filter(e => {
                   const matchesSearch = searchTerm ? (
                     e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     e.description?.toLowerCase().includes(searchTerm.toLowerCase())
                   ) : true;
                   
-                  const isProject = e.id.startsWith('p-');
-                  const layerId = isProject ? 'tasks' : 'primary';
+                  const isBusinessItem = 
+                    e.id.toString().startsWith('p-') || 
+                    e.id.toString().startsWith('d-') || 
+                    ['project', 'deal'].includes(e.extendedProperties?.private?.type || '') ||
+                    ['project', 'deal'].includes((e as any).type || '') ||
+                    e.title.toLowerCase().includes('#biznis') ||
+                    e.title.toLowerCase().includes('#deal');
+                  
+                  // Filter by deals if active
+                  if (onlyDeals && !isBusinessItem) return false;
+
+                  const layerId = isBusinessItem ? 'tasks' : 'primary';
                   const matchesLayer = activeLayers.includes(layerId);
                   
                   return matchesSearch && matchesLayer;
@@ -275,7 +382,6 @@ function CalendarContent() {
                   setModalDate(date);
                   setIsCreateModalOpen(true);
                 }}
-                showWeekends={showWeekends}
               />
             )}
           </Suspense>
@@ -287,17 +393,51 @@ function CalendarContent() {
         onClose={() => {
           setIsCreateModalOpen(false);
           setModalDate(undefined);
+          setEditingEvent(null);
         }}
-        onSuccess={fetchEvents}
+        onSuccess={(newEvent) => {
+          if (process.env.NODE_ENV === 'development' && newEvent) {
+             const formatted = {
+               ...newEvent,
+               title: newEvent.summary || newEvent.title || "Bez názvu",
+               start: new Date(newEvent.start.dateTime || newEvent.start.date || newEvent.start),
+               end: new Date(newEvent.end.dateTime || newEvent.end.date || newEvent.end),
+               allDay: newEvent.start.date && !newEvent.start.dateTime
+             };
+             
+             let updated;
+             if (editingEvent) {
+               updated = devEvents.map(e => e.id === formatted.id ? formatted : e);
+             } else {
+               updated = [formatted, ...devEvents];
+             }
+             
+             setDevEvents(updated);
+             setEvents(updated);
+          }
+          fetchEvents();
+        }}
         initialDate={modalDate || currentDate}
+        initialEvent={editingEvent}
       />
 
       <EventDetailModal
         event={selectedEvent}
         isOpen={!!selectedEvent}
         onClose={() => setSelectedEvent(null)}
-        onSuccess={fetchEvents}
+        onSuccess={() => {
+          if (process.env.NODE_ENV === 'development' && selectedEvent) {
+             const newEvents = devEvents.filter(e => e.id !== selectedEvent.id);
+             setDevEvents(newEvents);
+             setEvents(newEvents);
+          }
+          fetchEvents();
+        }}
         onOpenContact={(contact) => setViewContact(contact)}
+        onEdit={(event) => {
+          setEditingEvent(event);
+          setIsCreateModalOpen(true);
+        }}
       />
 
       <ContactDetailModal

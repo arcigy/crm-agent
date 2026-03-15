@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     const type = searchParams.get("type");
 
     if (type === "leads_settings") {
-      // @ts-expect-error - Directus SDK types
+
       const settingsNote = await directus.request(
         readItems("crm_notes", {
           filter: {
@@ -40,7 +40,7 @@ export async function GET(req: Request) {
 
     if (type === "ai_analysis") {
         // AI analysis is stored in activities with type 'ai_analysis'
-        // @ts-expect-error - Directus SDK types
+
         const activities = await directus.request(
             readItems("activities", {
                 filter: { 
@@ -57,7 +57,7 @@ export async function GET(req: Request) {
     }
 
     // Standard notes
-    // @ts-expect-error - Directus SDK types
+
     const notes = await directus.request(
       readItems("crm_notes", {
         filter: { user_email: { _eq: userEmail } },
@@ -81,12 +81,12 @@ export async function POST(req: Request) {
     if (!userEmail)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { title, content, contact_id, project_id, task_id, file_link } =
+    const { title, content, contact_id, project_id, task_id, file_link, category } =
       await req.json();
 
     if (title === "LEADS_INBOX_SETTINGS") {
       // Upsert logic for leads settings
-      // @ts-expect-error - Directus SDK types
+
       const existing = await directus.request(
         readItems("crm_notes", {
           filter: {
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
 
       if (existing && (existing as any[]).length > 0) {
         // Update existing
-        // @ts-expect-error - Directus SDK types
+
         const res = await directus.request(
           updateItem("crm_notes", (existing as any[])[0].id, {
             content,
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // @ts-expect-error - Directus SDK types
+
     const res = await directus.request(
       createItem("crm_notes", {
         title,
@@ -121,6 +121,7 @@ export async function POST(req: Request) {
         project_id: project_id || null,
         task_id: task_id || null,
         file_link: file_link || null,
+        category: category || null,
       }),
     );
 
@@ -139,7 +140,7 @@ export async function PATCH(req: Request) {
     if (!userEmail)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { id, title, content, contact_id, project_id, task_id, file_link } =
+    const { id, title, content, contact_id, project_id, task_id, file_link, category, deleted_at } =
       await req.json();
 
     // Ownership check
@@ -148,7 +149,6 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // @ts-expect-error - Directus SDK types
     const res = await directus.request(
       updateItem("crm_notes", id, {
         title,
@@ -157,6 +157,8 @@ export async function PATCH(req: Request) {
         project_id: project_id === undefined ? undefined : project_id,
         task_id: task_id === undefined ? undefined : task_id,
         file_link: file_link === undefined ? undefined : file_link,
+        category: category === undefined ? undefined : category,
+        deleted_at: deleted_at === undefined ? undefined : deleted_at,
       }),
     );
 
@@ -185,7 +187,6 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // @ts-expect-error - Directus SDK types
     await directus.request(deleteItem("crm_notes", id));
 
     return NextResponse.json({ success: true });

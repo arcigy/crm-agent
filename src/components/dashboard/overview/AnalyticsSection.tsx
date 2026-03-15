@@ -29,10 +29,18 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
         status: p.stage
       };
     })
-    .slice(0, 8); // Top 8 for quick access
+    .slice(0, 20); // Top 20 for quick access
 
   return (
-    <div className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl px-5 md:px-8 pt-2 md:pt-3 pb-4 md:pb-6 rounded-none md:rounded-[2.5rem] border-b md:border border-blue-500/20 dark:border-blue-500/20 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full' : 'h-auto md:h-full shadow-sm hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1.5'}`}>
+    <div className={`
+      bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl 
+      px-5 md:px-8 pt-2 md:pt-3 pb-4 md:pb-6 
+      rounded-none md:rounded-[2.5rem] 
+      border-b md:border border-blue-500/20 dark:border-blue-500/20 
+      flex flex-col relative group transition-all duration-300 
+      ${isExpanded ? 'fixed inset-0 z-[100] h-full rounded-none' : 'h-full shadow-sm hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1.5'}
+      overflow-hidden
+    `}>
       <div className="absolute -top-6 -left-6 w-24 h-24 bg-blue-500/20 rounded-full blur-[40px] pointer-events-none group-hover:bg-blue-500/30 transition-all duration-300" />
       
       <Link 
@@ -54,8 +62,8 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
         </div>
       </Link>
 
-      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'opacity-100 block' : 'hidden md:block opacity-0 md:opacity-100'}`}>
-        <div className="flex-1 min-h-0 space-y-2.5 overflow-y-auto pr-1 thin-scrollbar relative z-10">
+      <div className="flex-1 flex flex-col min-h-0 mt-2">
+        <div className={`flex-1 min-h-0 space-y-2.5 pr-1 scrollbar-hide relative z-10 overscroll-contain ${focusData.length > 0 ? 'overflow-y-auto' : 'flex items-center justify-center'}`}>
           {focusData.length > 0 ? (
             focusData.map((item, i) => (
               <div 
@@ -87,7 +95,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
               </div>
             ))
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center opacity-30 py-10">
+            <div className="flex flex-col items-center justify-center text-center opacity-30">
               <User className="w-12 h-12 mb-3 text-muted-foreground" />
               <p className="text-[11px] font-black uppercase italic tracking-widest text-muted-foreground">Žiadne aktívne zákazky</p>
             </div>

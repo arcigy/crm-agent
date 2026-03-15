@@ -5,6 +5,7 @@ export interface Note {
   date_created: string;
   user_email: string;
   category?: string | null;
+  deleted_at?: string | null;
   contact_id?: number | null;
   project_id?: number | null;
   deal_id?: number | null;

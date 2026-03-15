@@ -5,6 +5,8 @@ import { updateContact } from "@/app/actions/contacts";
 import { toast } from "sonner";
 import { Loader2, ChevronDown } from "lucide-react";
 
+import { createPortal } from "react-dom";
+
 interface StatusBadgeProps {
   contactId: number;
   currentStatus: string;
@@ -19,8 +21,23 @@ const statuses = [
 export function StatusBadge({ contactId, currentStatus }: StatusBadgeProps) {
   const [loading, setLoading] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
+  const [coords, setCoords] = React.useState({ top: 0, left: 0, width: 0 });
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
 
   const status = statuses.find(s => s.value === currentStatus) || statuses[1];
+
+  const handleOpen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
+    setIsOpen(!isOpen);
+  };
 
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === currentStatus) {
@@ -49,10 +66,8 @@ export function StatusBadge({ contactId, currentStatus }: StatusBadgeProps) {
   return (
     <div className="relative inline-block">
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen(!isOpen);
-        }}
+        ref={buttonRef}
+        onClick={handleOpen}
         disabled={loading}
         className={`
           flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all active:scale-95
@@ -70,13 +85,20 @@ export function StatusBadge({ contactId, currentStatus }: StatusBadgeProps) {
         )}
       </button>
 
-      {isOpen && (
-        <>
+      {isOpen && createPortal(
+        <div className="fixed inset-0 z-[9999]">
           <div 
-            className="fixed inset-0 z-[100]" 
+            className="absolute inset-0 bg-transparent" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute top-full left-0 mt-2 z-[200] bg-[#0a0a0c] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-1.5 min-w-[140px] animate-in fade-in zoom-in-95 duration-200">
+          <div 
+            style={{ 
+              top: coords.top + 8, 
+              left: coords.left,
+              minWidth: Math.max(140, coords.width)
+            }}
+            className="absolute z-[10000] bg-[#0a0a0c] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-1.5 animate-in fade-in zoom-in-95 duration-200"
+          >
             {statuses.map((s) => (
               <button
                 key={s.value}
@@ -94,7 +116,8 @@ export function StatusBadge({ contactId, currentStatus }: StatusBadgeProps) {
               </button>
             ))}
           </div>
-        </>
+        </div>,
+        document.body
       )}
     </div>
   );

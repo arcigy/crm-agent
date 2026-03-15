@@ -463,7 +463,7 @@ export function TagManagementModal({
                   onClick={() => setIsAdding(true)}
                   className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-dashed border-violet-500/20 hover:border-violet-500/50 hover:bg-violet-50/50 dark:hover:bg-violet-900/10 transition-all group text-violet-600 dark:text-violet-400 font-black uppercase tracking-widest text-[10px]"
                 >
-                  <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
+                  <Plus className="w-4 h-4 transition-all" />
                   Vytvoriť nový štítok
                 </button>
               )}

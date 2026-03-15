@@ -88,7 +88,15 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   const badgeStyle = "bg-white/50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50 backdrop-blur-sm";
 
   return (
-    <div className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl px-5 md:px-8 pt-2 md:pt-3 pb-4 md:pb-6 rounded-none md:rounded-[2.5rem] border-b md:border border-emerald-500/20 dark:border-emerald-500/20 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full' : 'h-auto md:h-full shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1.5'}`}>
+    <div className={`
+      bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl 
+      px-5 md:px-8 pt-2 md:pt-3 pb-4 md:pb-6 
+      rounded-none md:rounded-[2.5rem] 
+      border-b md:border border-emerald-500/20 dark:border-emerald-500/20 
+      flex flex-col relative group transition-all duration-300 
+      ${isExpanded ? 'fixed inset-0 z-[100] h-full rounded-none' : 'h-full shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1.5'}
+      overflow-hidden
+    `}>
       <div className="absolute -top-6 -left-6 w-24 h-24 bg-emerald-500/20 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/30 transition-all duration-300" />
       
       {/* Header / Trigger */}
@@ -118,8 +126,8 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
         </div>
       </Link>
 
-      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'opacity-100 block' : 'hidden md:block opacity-0 md:opacity-100'}`}>
-        <div className="flex-1 min-h-0 space-y-2 overflow-y-auto pr-1 thin-scrollbar relative z-10">
+      <div className="flex-1 flex flex-col min-h-0 mt-2">
+        <div className={`flex-1 min-h-0 space-y-2 pr-1 scrollbar-hide relative z-10 ${filteredTasks.length > 0 ? 'overflow-y-auto' : 'flex items-center justify-center'}`}>
           {filteredTasks.length > 0 ? (
             filteredTasks.map((task) => {
               const isDone = task.completed;
@@ -129,7 +137,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
               return (
                 <div 
                   key={task.id} 
-                  className={`flex items-center gap-4 p-3 rounded-2xl transition-all relative overflow-hidden group/item border shadow-none
+                  className={`flex items-center gap-4 p-[14px] rounded-[1.2rem] transition-all relative overflow-hidden group/item border shadow-none
                     ${isDone 
                       ? 'bg-emerald-500/10 border-emerald-500/20' 
                       : 'bg-white/60 dark:bg-zinc-900/40 border-black/10 dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/30 cursor-pointer'}
@@ -183,7 +191,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
               );
             })
           ) : (
-            <div className="h-full min-h-[100px] flex flex-col items-center justify-center text-center opacity-40">
+            <div className="flex flex-col items-center justify-center text-center opacity-40">
               <CheckCircle2 className="w-8 h-8 mb-1" />
               <p className="text-[10px] font-bold italic uppercase tracking-widest">Pohoda, nič tu nie je</p>
             </div>

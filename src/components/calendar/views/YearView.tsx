@@ -30,7 +30,7 @@ export function YearView({ currentDate }: YearViewProps) {
   });
 
   return (
-    <div className="h-full overflow-y-auto p-10 bg-[#050507] thin-scrollbar">
+    <div className="h-full overflow-y-auto p-10 bg-[#050507] scrollbar-hide">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-12 gap-y-16 max-w-7xl mx-auto">
         {months.map((month) => {
           const monthStart = startOfMonth(month);
