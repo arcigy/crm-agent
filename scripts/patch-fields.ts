@@ -1,5 +1,6 @@
 const DIRECTUS_URL = "https://directus-buk1-production.up.railway.app";
-const DIRECTUS_TOKEN = "3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE";
+const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN;
+if (!DIRECTUS_TOKEN) throw new Error("DIRECTUS_TOKEN env variable is required");
 
 async function createSchema() {
   const fetchDirectus = async (url: string, method: string, body?: any) => {

@@ -38,12 +38,12 @@ const SCOPES = [
   "https://www.googleapis.com/auth/drive",
 ];
 
-export async function getAuthUrl(state?: string, redirectUri?: string): Promise<string> {
+export async function getAuthUrl(state?: string, redirectUri?: string, forceConsent: boolean = false): Promise<string> {
     const client = await getOAuth2Client(undefined, undefined, redirectUri);
     return client.generateAuthUrl({
         access_type: "offline",
         scope: SCOPES,
-        prompt: "select_account consent",
+        prompt: forceConsent ? "consent" : "select_account",
         state: state || "",
     });
 }
@@ -121,8 +121,9 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
                     console.error("❌ [getValidToken] Failed to refresh DB token:", refreshError.message || refreshError);
                     // Continue to Clerk fallback if refresh fails
                 }
-            } else {
+            } else if (isExpired || isStale) {
                 console.log(`[getValidToken] DB Token expired but no refresh_token found.`);
+                return "MISSING_REFRESH_TOKEN";
             }
         } else {
             console.log(`[getValidToken] No token found in Directus.`);

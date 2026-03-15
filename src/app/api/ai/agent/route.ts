@@ -13,7 +13,7 @@ import { orchestrateParams } from '@/app/actions/agent-orchestrator';
 import { validateActionPlan } from '@/app/actions/agent-preparer';
 import { verifyAndStream, verifyExecutionResults, formatDirectResponse } from '@/app/actions/agent-verifier';
 import { executeAtomicTool } from '@/app/actions/agent-executors';
-import { startCostSession, endCostSession } from '@/lib/ai-cost-tracker';
+import { startCostSession, endCostSession, updateMissionStatus } from '@/lib/ai-cost-tracker';
 import { AI_MODELS } from '@/lib/ai-providers';
 import { buildExecutionManifest } from '@/app/actions/agent-manifest-builder';
 import { selfReflect } from '@/app/actions/agent-self-reflector';
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
     const startTime = Date.now();
     const userEmail = user.emailAddresses[0].emailAddress;
-    startCostSession(userEmail);
+    startCostSession(user.id, userEmail);
 
     // Fetch user profile for personalization
     let userName = 'Používateľ';
@@ -298,6 +298,10 @@ PRAVIDLÁ:
 
             // 5. VERIFIER & FINAL REPORT
             await sendStatus("✅ Spracovávam výsledky...");
+            
+            // Step 2 FIX: Set mission status for persistence
+            updateMissionStatus(goal, reflection.goalAchieved);
+
             await log("VERIFIER", "Analyzing and streaming results...");
             const reportStream = await verifyAndStream(lastUserMsg, finalResults, manifest, reflection.reflectionNote, userName, userFullName);
             console.log('[TIMING] After verifier (stream start):', Date.now() - startTime, 'ms');
@@ -309,7 +313,9 @@ PRAVIDLÁ:
             console.log('[TIMING] After verifier (stream end):', Date.now() - startTime, 'ms');
 
             const sessionSummary = endCostSession();
-            if (sessionSummary) await log("COST", `Celková cena dopytu: ${(sessionSummary.totalCost * 100).toFixed(3)} centov`);
+            if (sessionSummary) {
+                console.log(`[COST] Celková cena dopytu: ${(sessionSummary.totalCost * 100).toFixed(3)} centov`);
+            }
         } catch (error: any) {
             await log("ERROR", "Global Pipeline Error", error.message);
             await sendResponseChunk("Prepáč, nastala neočakávaná chyba.");

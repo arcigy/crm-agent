@@ -33,6 +33,7 @@ export async function executeDbDealTool(
 
     case "db_invoice_deal":
     case "db_update_deal":
+    case "db_create_invoice":
       // Ownership check
       const current = (await directus.request(
         readItems("deals", {
@@ -43,79 +44,51 @@ export async function executeDbDealTool(
             ],
           },
         }),
-      )) as Record<string, unknown>[];
+      )) as Record<string, any>[];
+      
       if (current.length === 0) throw new Error("Access denied or not found");
+      const dealRecord = current[0];
 
-      const updatePayload = { ...args };
-      if (name === "db_invoice_deal") {
-        (updatePayload as any).status = "invoiced";
-        (updatePayload as any).invoice_date = new Date().toISOString();
+      // Optimistic Locking Check
+      const expectedVersion = args.expected_date_updated as string;
+      if (expectedVersion && dealRecord.date_updated !== expectedVersion) {
+         return { 
+           success: false, 
+           error: "CONFLICT", 
+           message: "Záznam bol zmenený iným používateľom. Prosím, obnovte stránku.",
+           retryable: true 
+         };
       }
+
+      const updatePayload: any = { ...args };
+      delete updatePayload.deal_id;
+      delete updatePayload.expected_date_updated;
+      
+      if (name === "db_invoice_deal") {
+        updatePayload.status = "invoiced";
+        updatePayload.invoice_date = new Date().toISOString();
+        
+        // Sequence integration
+        try {
+          const { db } = await import("@/lib/db");
+          const seqRes = await db.query("SELECT nextval('invoice_number_seq') as num");
+          updatePayload.invoice_number = seqRes.rows[0].num;
+        } catch (seqErr) {
+          console.error("[Deal Executor] Sequence failed:", seqErr);
+        }
+      } else if (name === "db_create_invoice") {
+        updatePayload.paid = true;
+      }
+
+      updatePayload.date_updated = new Date().toISOString();
 
       await directus.request(updateItem("deals", args.deal_id as string, updatePayload));
+      
       return {
         success: true,
-        message: name === "db_invoice_deal" ? "Obchod bol úspešne vyfakturovaný." : "Obchod bol úspešne aktualizovaný.",
-      };
-
-    case "db_fetch_deals":
-      const fetchDealFilters: any[] = [
-        { user_email: { _eq: userEmail } },
-        { deleted_at: { _null: true } },
-      ];
-      if (args.contact_id) {
-        fetchDealFilters.push({ contact_id: { _eq: String(args.contact_id) } });
-      }
-      const dealsRes = (await directus.request(
-        readItems("deals", {
-          filter: {
-            _and: fetchDealFilters,
-          },
-          limit: (args.limit as number) || 10,
-        }),
-      )) as Record<string, unknown>[];
-      return {
-        success: true,
-        data: dealsRes,
-        message: `Zoznam obchodov načítaný (${dealsRes.length}).`,
-      };
-
-    case "db_search_deals":
-      const dealQuery = (args.query as string || args.name as string || "").trim();
-      if (!dealQuery) {
-        return { success: false, error: "Prázdny vyhľadávací dopyt pre obchody.", retryable: true };
-      }
-
-      const sdealsRes = (await directus.request(
-        readItems("deals", {
-          filter: {
-            _and: [
-              { user_email: { _eq: userEmail } },
-              { deleted_at: { _null: true } },
-              {
-                _or: [
-                   { name: { _icontains: dealQuery } },
-                   { description: { _icontains: dealQuery } }
-                ]
-              }
-            ],
-          },
-          limit: 10,
-        }),
-      )) as Record<string, unknown>[];
-      return {
-        success: true,
-        data: sdealsRes,
-        message: `Nájdených obchodov pre "${dealQuery}": ${sdealsRes.length}.`,
-      };
-
-    case "db_create_invoice":
-      await directus.request(
-        updateItem("deals", args.deal_id as string, { paid: true }),
-      );
-      return {
-        success: true,
-        message: "Obchod bol úspešne označený ako zaplatený (paid: true).",
+        message: name === "db_invoice_deal" ? "Obchod bol úspešne vyfakturovaný." : 
+                 name === "db_create_invoice" ? "Obchod bol úspešne označený ako zaplatený." :
+                 "Obchod bol úspešne aktualizovaný.",
       };
 
     case "db_get_deals_by_stage":

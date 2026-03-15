@@ -32,28 +32,29 @@ export async function POST(req: Request) {
   if (event.type === 'checkout.session.completed' || event.type === 'customer.subscription.updated') {
     if (customerEmail) {
        // Sync to Directus
-       try {
-         const contacts = await directus.request(
-           readItems('contacts' as any, {
-              filter: { email: { _eq: customerEmail.toLowerCase() } },
-              limit: 1
-           })
-         ) as any[];
+         try {
+          const contacts = await directus.request(
+            readItems('contacts' as any, {
+               filter: { email: { _eq: customerEmail.toLowerCase() } }
+            })
+          ) as any[];
 
-         if (contacts.length > 0) {
-            const subscription = event.type === 'customer.subscription.updated' 
-              ? event.data.object as Stripe.Subscription 
-              : null;
+          if (contacts.length > 0) {
+             const subscription = event.type === 'customer.subscription.updated' 
+               ? event.data.object as Stripe.Subscription 
+               : null;
 
-            await directus.request(
-              updateItem('contacts' as any, contacts[0].id, {
-                subscription_status: subscription ? subscription.status : 'active',
-                stripe_customer_id: session.customer,
-                updated_at: new Date().toISOString()
-              })
-            );
-            console.log(`[Stripe Webhook] Updated subscription for ${customerEmail}`);
-         }
+             for (const contact of contacts) {
+               await directus.request(
+                 updateItem('contacts' as any, contact.id, {
+                   subscription_status: subscription ? subscription.status : 'active',
+                   stripe_customer_id: session.customer,
+                   updated_at: new Date().toISOString()
+                 })
+               );
+             }
+             console.log(`[Stripe Webhook] Updated ${contacts.length} records for ${customerEmail}`);
+          }
        } catch (err) {
          console.error("[Stripe Webhook] Error updating Directus:", err);
        }

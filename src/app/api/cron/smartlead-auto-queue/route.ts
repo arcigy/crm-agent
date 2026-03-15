@@ -3,7 +3,12 @@ import { NextResponse } from 'next/server';
 import directus from '@/lib/directus';
 import { readItems, updateItems } from '@directus/sdk';
 
-export async function GET(_request: Request) {
+export async function GET(request: Request) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return new Response('Unauthorized', { status: 401 });
+    }
+
     try {
         // 1. Find campaigns with auto-sync enabled
         const activeCampaigns = await directus.request(readItems('outreach_campaigns', {

@@ -133,7 +133,11 @@ export async function importGoogleContacts() {
     }
 
     const toArchive = crmContacts.filter(c => c.google_id && !activeGoogleIds.has(c.google_id));
-    if (toArchive.length > 0) {
+    // CRITICAL: Only archive local contacts if we are SURE we fetched the FULL list from Google.
+    // Otherwise, contacts from page 2+ would be mistakenly archived.
+    const isFullListFetched = !response.data.nextPageToken;
+    
+    if (toArchive.length > 0 && isFullListFetched) {
         for (const c of toArchive) {
             await directus.request(updateItem("contacts", c.id, {
                 status: "archived",

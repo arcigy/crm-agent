@@ -56,7 +56,24 @@ function getMessageBody(payload: any): {
   return { text, html, attachments };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const category = searchParams.get("category") || "inbox";
+
+  const CATEGORY_QUERIES: Record<string, any> = {
+    inbox: { labelIds: ["INBOX"] },
+    starred: { labelIds: ["STARRED"] },
+    sent: { labelIds: ["SENT"] },
+    drafts: { labelIds: ["DRAFT"] },
+    spam: { labelIds: ["SPAM"] },
+    trash: { labelIds: ["TRASH"] },
+    purchases: { q: "category:purchases" },
+    archive: { q: "-in:inbox -in:trash -in:spam" },
+    snoozed: { labelIds: ["SNOOZED"] },
+  };
+
+  const query = CATEGORY_QUERIES[category] || CATEGORY_QUERIES.inbox;
+
   try {
     const user = await currentUser();
     if (!user)
@@ -70,17 +87,37 @@ export async function GET() {
 
     const gmail = await getGmailClient(token);
 
-    const listRes = await gmail.users.messages.list({
-      userId: "me",
-      maxResults: 20,
-      q: "-category:promotions -category:social",
-    });
+    // FIX 1.4: Retry logic for fetch failures
+    let listRes;
+    try {
+      listRes = await gmail.users.messages.list({
+        userId: "me",
+        maxResults: 100, // Always fetch 100
+        ...query,
+      });
+    } catch (err: any) {
+      if (err.status >= 500) {
+        // Retry once after 1s
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        listRes = await gmail.users.messages.list({
+          userId: "me",
+          maxResults: 100,
+          ...query,
+        });
+      } else {
+        throw err;
+      }
+    }
 
     if (!listRes.data.messages)
-      return NextResponse.json({ isConnected: true, messages: [] });
+      return NextResponse.json({ 
+        isConnected: true, 
+        messages: [],
+        message: `No emails in category: ${category}` 
+      });
 
     const messages = await Promise.all(
-      listRes.data.messages.map(async (m) => {
+      listRes.data.messages.map(async (m: any) => {
         try {
           const detail = await gmail.users.messages.get({
             userId: "me",
@@ -90,10 +127,11 @@ export async function GET() {
 
           const headers = detail.data.payload?.headers;
           const subject =
-            headers?.find((h) => h.name === "Subject")?.value || "No Subject";
+            headers?.find((h: any) => h.name === "Subject")?.value || "No Subject";
           const from =
-            headers?.find((h) => h.name === "From")?.value || "Unknown";
-          const date = headers?.find((h) => h.name === "Date")?.value || "";
+            headers?.find((h: any) => h.name === "From")?.value || "Unknown";
+          const date = headers?.find((h: any) => h.name === "Date")?.value || "";
+          const to = headers?.find((h: any) => h.name === "To")?.value || "";
 
           const { text, html, attachments } = getMessageBody(
             detail.data.payload,
@@ -104,6 +142,7 @@ export async function GET() {
               threadId: m.threadId,
               subject,
               from,
+              to,
               date: new Date(date).toISOString(),
               snippet: detail.data.snippet,
               body: text || detail.data.snippet || "",
@@ -128,6 +167,49 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const action = searchParams.get("action");
+
+  try {
+    const user = await currentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+    const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
+    const token = await getValidToken(user.id, userEmail);
+
+    if (!token) return NextResponse.json({ error: "Not connected" }, { status: 400 });
+
+    if (action === "emptyTrash") {
+      const gmail = await getGmailClient(token);
+      
+      // Batch delete instead of trash.trash which might not empty it
+      const trashMessages = await gmail.users.messages.list({
+        userId: "me",
+        labelIds: ["TRASH"],
+        maxResults: 500
+      });
+
+      if (trashMessages.data.messages?.length) {
+        await gmail.users.messages.batchDelete({
+          userId: "me",
+          requestBody: {
+            ids: trashMessages.data.messages.map((m: any) => m.id!)
+          }
+        });
+      }
+      
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 
 export async function PATCH(req: Request) {
   try {

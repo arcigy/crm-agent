@@ -62,14 +62,23 @@ export async function createDeal(data: Partial<Deal>) {
   }
 }
 
-export async function updateDeal(id: number, data: Partial<Deal>) {
+export async function updateDeal(id: number, data: Partial<Deal>, expectedDateUpdated?: string) {
   try {
     const email = await getUserEmail();
     if (!email) throw new Error("Unauthorized");
 
-    // Verify ownership
+    // Verify ownership and check optimistic lock
     const current = (await directus.request(readItem("deals", id))) as any;
     if (!isTeamMember(current.user_email)) throw new Error("Access denied");
+
+    // Optimistic locking check
+    if (expectedDateUpdated && current.date_updated !== expectedDateUpdated) {
+        return { 
+            success: false, 
+            error: "CONFLICT",
+            message: "Tento obchod bol medzitým upravený iným používateľom. Prosím, obnovte stránku." 
+        };
+    }
 
     // @ts-ignore
     await directus.request(
@@ -88,17 +97,34 @@ export async function updateDeal(id: number, data: Partial<Deal>) {
 }
 
 /**
- * Special action to handle invoicing
+ * Special action to handle invoicing with atomic sequence number
  */
-export async function invoiceDeal(id: number) {
+export async function invoiceDeal(id: number, expectedDateUpdated?: string) {
   const today = new Date();
   const dueDate = new Date();
   dueDate.setDate(today.getDate() + 14); // 14 days default
 
-  return updateDeal(id, {
-    invoice_date: today.toISOString(),
-    due_date: dueDate.toISOString(),
-  });
+  try {
+    const { db } = await import("@/lib/db");
+    const result = await db.query("SELECT nextval('invoice_number_seq') as num");
+    const invoiceNumber = result.rows[0].num;
+
+    return updateDeal(id, {
+      invoice_date: today.toISOString(),
+      due_date: dueDate.toISOString(),
+      // @ts-ignore
+      invoice_number: invoiceNumber,
+      status: "invoiced"
+    }, expectedDateUpdated);
+  } catch (error) {
+    console.error("Invoicing failed:", error);
+    // Fallback if sequence fails
+    return updateDeal(id, {
+        invoice_date: today.toISOString(),
+        due_date: dueDate.toISOString(),
+        status: "invoiced"
+    }, expectedDateUpdated);
+  }
 }
 
 export async function togglePaid(id: number, currentStatus: boolean) {

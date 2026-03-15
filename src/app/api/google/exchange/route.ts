@@ -48,6 +48,47 @@ export async function POST(req: Request) {
             }));
         }
 
+        // 3. Trigger Gmail Watch Registration
+        try {
+            const { google } = await import('googleapis');
+            const auth = new google.auth.OAuth2(
+                process.env.GOOGLE_CLIENT_ID,
+                process.env.GOOGLE_CLIENT_SECRET
+            );
+            auth.setCredentials({
+                access_token: tokens.access_token,
+                refresh_token: tokens.refresh_token,
+            });
+            const gmail = google.gmail({ version: 'v1', auth });
+            
+            console.log(`[AUTH] Registering Gmail watch for ${userEmail}...`);
+            const watchRes = await gmail.users.watch({
+                userId: 'me',
+                requestBody: {
+                    topicName: process.env.GOOGLE_PUBSUB_TOPIC,
+                    labelIds: ['INBOX']
+                }
+            });
+
+            if (watchRes.data.expiration) {
+                const expirationDate = new Date(parseInt(watchRes.data.expiration)).toISOString();
+                // Update the token record with expiration
+                const latestToken = await directus.request(readItems('google_tokens', {
+                    filter: { user_id: { _eq: user.id } },
+                    limit: 1
+                }));
+                if (Array.isArray(latestToken) && latestToken.length > 0) {
+                    await directus.request(updateItem('google_tokens', latestToken[0].id, {
+                        gmail_watch_expiry: expirationDate
+                    }));
+                }
+                console.log(`[AUTH] Gmail watch registered. Expires: ${expirationDate}`);
+            }
+        } catch (watchErr) {
+            console.error('[AUTH] Failed to register Gmail watch immediately:', watchErr);
+            // Non-critical, cron will catch it later
+        }
+
         return NextResponse.json({ success: true });
 
     } catch (error: any) {

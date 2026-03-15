@@ -5,7 +5,12 @@ import { readItems, updateItems } from '@directus/sdk';
 import { smartLead } from '@/lib/smartlead';
 import { ColdLeadItem } from '@/app/actions/cold-leads';
 
-export async function GET(_request: Request) {
+export async function GET(request: Request) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return new Response('Unauthorized', { status: 401 });
+    }
+
     try {
         // 1. Fetch queued leads (limit 20 per run to be safe)
         const queuedLeads = (await directus.request(readItems('cold_leads', {

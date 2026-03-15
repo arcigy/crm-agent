@@ -130,14 +130,16 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
 
     // Helper: Extract Emails from ANY string
     const extractEmails = (input: string) => {
+        if (!input) return [];
         const found = new Set<string>();
-        // Standard Regex
-        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}/g;
+        
+        // 1. Regex Match
+        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
         const matches = input.match(emailRegex) || [];
         matches.forEach(m => found.add(m.toLowerCase()));
-        
-        // Mailto Regex
-        const mailtoRegex = /mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10})/gi;
+
+        // 2. Mailto Check
+        const mailtoRegex = /mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
         let m;
         while ((m = mailtoRegex.exec(input)) !== null) {
             found.add(m[1].toLowerCase());
@@ -149,6 +151,25 @@ export async function scrapeWebsite(rawUrl: string): Promise<{ text: string, ema
                    !l.includes(".png") && !l.includes(".jpg") && !l.includes(".js") && !l.includes(".gif");
         });
     };
+
+    // --- Social Media & binary file detection ---
+    const isSocialMedia = (urlStr: string) => {
+        const u = urlStr.toLowerCase();
+        return u.includes("facebook.com") || u.includes("instagram.com") || u.includes("linkedin.com") || u.includes("youtube.com") || u.includes("twitter.com");
+    };
+    
+    const isBinaryFile = (urlStr: string) => {
+        const u = urlStr.toLowerCase().split('?')[0];
+        return u.endsWith(".pdf") || u.endsWith(".jpg") || u.endsWith(".png") || u.endsWith(".zip");
+    };
+
+    if (isSocialMedia(url)) {
+        return { text: "", error: "Linky na sociálne siete nie sú podporované pre automatické škrabanie (LinkedIn/FB)." };
+    }
+    
+    if (isBinaryFile(url)) {
+        return { text: "", error: "PDF a obrázky nie sú podporované pre priame škrabanie textu." };
+    }
 
     const fetchAndAnalyze = async (targetUrl: string): Promise<{ text: string, html: string, emails: string[] } | null> => {
         try {

@@ -16,7 +16,16 @@ export async function executeCalendarTool(
   if (!token) {
     return {
       success: false,
-      error: "Google účet nie je prepojený. Prosím pripojte ho v nastaveniach.",
+      error: "GOOGLE_ACCOUNT_NOT_CONNECTED",
+      message: "Google účet nie je prepojený. Prosím pripojte ho v nastaveniach.",
+    };
+  }
+
+  if (token === "MISSING_REFRESH_TOKEN") {
+    return {
+      success: false,
+      error: "MISSING_REFRESH_TOKEN",
+      message: "Tvoje Google pripojenie vypršalo a vyžaduje opätovné schválenie prístupu (consent).",
     };
   }
 
@@ -63,18 +72,38 @@ export async function executeCalendarTool(
       };
 
     case "calendar_schedule_event":
+      const startTime = args.start_time as string;
+      const endTime = args.end_time as string;
+
+      // 1. Conflict Check (Safety Step)
+      const existingRes = await calendar.events.list({
+        calendarId: "primary",
+        timeMin: startTime,
+        timeMax: endTime,
+        singleEvents: true,
+      });
+
+      if (existingRes.data.items && existingRes.data.items.length > 0) {
+        return {
+          success: false,
+          error: "SLOT_OCCUPIED",
+          message: `Nemožno rezervovať termín o ${startTime}, tento čas je už obsadený inou udalosťou: "${existingRes.data.items[0].summary}".`,
+        };
+      }
+
+      // 2. Insert if free
       const newEvent = await calendar.events.insert({
         calendarId: "primary",
         requestBody: {
           summary: args.summary as string,
           description: (args.description as string) || "",
-          start: { dateTime: args.start_time as string },
-          end: { dateTime: args.end_time as string },
+          start: { dateTime: startTime },
+          end: { dateTime: endTime },
         },
       });
 
       // Point to internal CRM calendar view for the event's day
-      const eventDate = (args.start_time as string).split('T')[0];
+      const eventDate = startTime.split('T')[0];
       const internalUrl = `/dashboard/calendar?date=${eventDate}`;
 
       return {

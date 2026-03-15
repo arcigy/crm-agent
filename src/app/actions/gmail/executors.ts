@@ -9,7 +9,27 @@ export async function executeGmailTool(
   userEmail?: string,
 ) {
   try {
-    const gmail = await getGmail(userId, userEmail);
+    const gmailResult = await getGmail(userId, userEmail);
+    
+    if (!gmailResult) {
+      return {
+        success: false,
+        error: "GOOGLE_ACCOUNT_NOT_CONNECTED",
+        message: "Google účet nie je prepojený. Prosím pripojte ho v nastaveniach.",
+      };
+    }
+
+    if (gmailResult === "MISSING_REFRESH_TOKEN") {
+      return {
+        success: false,
+        error: "MISSING_REFRESH_TOKEN",
+        message: "Tvoje Google pripojenie vypršalo a vyžaduje opätovné schválenie prístupu (consent).",
+      };
+    }
+
+    const gmail = gmailResult as any; // Narrowed to Gmail client instance
+
+
     switch (name) {
       case "gmail_fetch_list":
         const list = await gmail.users.messages.list({
@@ -28,7 +48,7 @@ export async function executeGmailTool(
         }
 
         const enrichedMessages = await Promise.all(
-          messages.map(async (m) => {
+          messages.map(async (m: any) => {
             try {
               const detail = await gmail.users.messages.get({
                 userId: "me",
@@ -41,12 +61,12 @@ export async function executeGmailTool(
                 id: m.id,
                 threadId: m.threadId,
                 subject:
-                  msgHeaders?.find((h) => h.name === "Subject")?.value ||
+                  msgHeaders?.find((h: any) => h.name === "Subject")?.value ||
                   "(No Subject)",
                 from:
-                  msgHeaders?.find((h) => h.name === "From")?.value ||
+                  msgHeaders?.find((h: any) => h.name === "From")?.value ||
                   "(Unknown)",
-                date: msgHeaders?.find((h) => h.name === "Date")?.value || "",
+                date: msgHeaders?.find((h: any) => h.name === "Date")?.value || "",
                 snippet: detail.data.snippet,
               };
             } catch (e) {
@@ -73,8 +93,8 @@ export async function executeGmailTool(
           data: {
             id: msg.data.id,
             threadId: msg.data.threadId,
-            subject: headers?.find((h) => h.name === "Subject")?.value,
-            from: headers?.find((h) => h.name === "From")?.value,
+            subject: headers?.find((h: any) => h.name === "Subject")?.value,
+            from: headers?.find((h: any) => h.name === "From")?.value,
             body: msg.data.snippet,
           },
           message: "Detail e-mailu bol úspešne načítaný.",
@@ -123,14 +143,14 @@ export async function executeGmailTool(
         const originalMsg = thread.data.messages?.[0];
         const originalHeaders = originalMsg?.payload?.headers || [];
         const originalFrom =
-          originalHeaders.find((h) => h.name === "From")?.value || "";
+          originalHeaders.find((h: any) => h.name === "From")?.value || "";
         const recipientMatch = originalFrom.match(/<(.+?)>/) || [
           null,
           originalFrom,
         ];
         const recipientEmail = recipientMatch[1]?.trim() || originalFrom;
         const originalSubject =
-          originalHeaders.find((h) => h.name === "Subject")?.value || "";
+          originalHeaders.find((h: any) => h.name === "Subject")?.value || "";
         return {
           success: true,
           action: "open_compose",
@@ -159,7 +179,7 @@ export async function executeGmailTool(
           metadataHeaders: ["Subject"],
         });
         const fwdSubject =
-          fwdMsg.data.payload?.headers?.find((h) => h.name === "Subject")?.value ||
+          fwdMsg.data.payload?.headers?.find((h: any) => h.name === "Subject")?.value ||
           "";
         
         return {
@@ -195,9 +215,10 @@ export async function executeGmailTool(
             message: `S kontaktom ${queryEmail} neboli nájdené žiadne e-maily.`,
           };
         }
-
+        
+        // Use any for messages list mapping
         const eMessages = await Promise.all(
-          cMessages.map(async (m) => {
+          cMessages.map(async (m: any) => {
             const detail = await gmail.users.messages.get({
               userId: "me",
               id: m.id!,
@@ -208,10 +229,10 @@ export async function executeGmailTool(
             return {
               id: m.id,
               threadId: m.threadId,
-              subject: h?.find((x) => x.name === "Subject")?.value || "(No Subject)",
-              from: h?.find((x) => x.name === "From")?.value || "(Unknown)",
-              to: h?.find((x) => x.name === "To")?.value || "(Unknown)",
-              date: h?.find((x) => x.name === "Date")?.value || "",
+              subject: h?.find((x: any) => x.name === "Subject")?.value || "(No Subject)",
+              from: h?.find((x: any) => x.name === "From")?.value || "(Unknown)",
+              to: h?.find((x: any) => x.name === "To")?.value || "(Unknown)",
+              date: h?.find((x: any) => x.name === "Date")?.value || "",
               snippet: detail.data.snippet,
             };
           })

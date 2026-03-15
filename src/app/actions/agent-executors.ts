@@ -158,8 +158,17 @@ export async function executeAtomicTool(
                 const toolArgs = step.arguments || step.args || {};
                 
                 if (!toolName) continue;
-
-                console.log(`[Dispatcher] Running ${toolName}...`);
+                
+                // Security/Stability: Prevent deep recursion (no plans inside plans)
+                if (toolName === "sys_execute_plan") {
+                    console.warn(`[Dispatcher] Blocked nested 'sys_execute_plan' to prevent recursion.`);
+                    results.push({
+                        tool: toolName,
+                        status: "skipped",
+                        error: "Vnáranie plánov (sys_execute_plan) nie je povolené z bezpečnostných dôvodov."
+                    });
+                    continue;
+                }
                 const result = (await executeAtomicTool(toolName, toolArgs as any, user, userFullName)) as any;
                 
                 // Propagate special actions like redirecting to a specific URL

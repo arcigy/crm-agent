@@ -5,7 +5,12 @@ import { readItems, updateItem, updateItems } from '@directus/sdk';
 import { smartLead } from '@/lib/smartlead';
 import { ColdLeadItem } from '@/app/actions/cold-leads';
 
-export async function GET(_request: Request) {
+export async function GET(request: Request) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return new Response('Unauthorized', { status: 401 });
+    }
+
     try {
         // 1. Fetch leads pushed more than 7 days ago that haven't responded yet
         const sevenDaysAgo = new Date();

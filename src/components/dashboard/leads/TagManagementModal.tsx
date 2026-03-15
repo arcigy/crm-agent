@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { X, Plus, Tag, Trash2, Check, Loader2, Pencil } from "lucide-react";
+import { X, Plus, Tag, Trash2, Check, Loader2, Pencil, RefreshCw } from "lucide-react";
 import { GmailMessage } from "@/types/gmail";
+import { syncAllLabelsWithGmail } from "@/app/actions/labels";
+import { toast } from "sonner";
 
 interface TagManagementModalProps {
   isOpen: boolean;
@@ -17,6 +19,7 @@ interface TagManagementModalProps {
   onRenameTag: (oldTag: string, newTag: string) => void;
   onUpdateTagColor: (tag: string, color: string) => void;
 }
+
 
 export function TagManagementModal({
   isOpen,
@@ -37,6 +40,24 @@ export function TagManagementModal({
   const [editValue, setEditValue] = React.useState("");
   const [selectedColor, setSelectedColor] = React.useState("#8b5cf6");
   const [animate, setAnimate] = React.useState(false);
+  const [isSyncing, setIsSyncing] = React.useState(false);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    const toastId = toast.loading("Synchronizujem štítky s Gmailom...");
+    try {
+      const res = await syncAllLabelsWithGmail();
+      if (res.success) {
+        toast.success(`Synchronizácia úspešná: ${(res as any).synced} synchronizovaných, ${(res as any).failed} zlyhalo`, { id: toastId });
+      } else {
+        toast.error(`Synchronizácia zlyhala: ${(res as any).error}`, { id: toastId });
+      }
+    } catch (err) {
+      toast.error("Nepodarilo sa spustiť synchronizáciu", { id: toastId });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const COLORS = [
     // Reds/Pinks
@@ -239,9 +260,24 @@ export function TagManagementModal({
                 <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
                   {email ? "Priradiť štítky" : "Správa štítkov"}
                 </h2>
-                <p className="text-[10px] font-bold text-violet-500 uppercase tracking-widest opacity-60">
-                  {email ? "Spravovať štítky pre mail" : "Globálne nastavenia systému"}
-                </p>
+                <div className="flex items-center gap-2">
+                   <p className="text-[10px] font-bold text-violet-500 uppercase tracking-widest opacity-60">
+                     {email ? "Spravovať štítky pre mail" : "Globálne nastavenia systému"}
+                   </p>
+                   <button 
+                     onClick={handleSync}
+                     disabled={isSyncing}
+                     title="Synchronizovať s Gmailom"
+                     className="flex items-center gap-1.5 px-2 py-0.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 rounded-lg transition-all text-[9px] font-black uppercase tracking-wider disabled:opacity-50"
+                   >
+                     {isSyncing ? (
+                       <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                     ) : (
+                       <RefreshCw className="w-2.5 h-2.5" />
+                     )}
+                     Sync
+                   </button>
+                </div>
               </div>
             </div>
             <button 

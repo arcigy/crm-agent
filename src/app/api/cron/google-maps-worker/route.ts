@@ -31,6 +31,55 @@ const getOrderedLocations = (startLocation: string) => {
 };
 
 export async function GET(request: Request) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return new Response('Unauthorized', { status: 401 });
+    }
+
+    // Safety Cap Check
+    const checkScraperSafetyCap = async (): Promise<boolean> => {
+        try {
+            const { db } = await import('@/lib/db');
+            const result = await db.query(`
+                SELECT COUNT(*) as count FROM cold_leads
+                WHERE deleted_at IS NULL
+            `);
+            
+            const currentCount = parseInt(result.rows[0].count);
+            const CAP = 50000;
+            
+            if (currentCount >= CAP) {
+                console.warn(`[Scraper] Safety cap reached: ${currentCount}/${CAP} leads`);
+                
+                // Log warning to automation_logs
+                await db.query(`
+                    INSERT INTO automation_logs (automation_name, status, result, created_at)
+                    VALUES ('scraper_cap', 'blocked', $1, NOW())
+                `, [JSON.stringify({ current: currentCount, cap: CAP })]);
+                
+                return false; // Do not proceed
+            }
+            
+            // Also warn at 80% capacity
+            if (currentCount >= CAP * 0.8) {
+                console.warn(`[Scraper] Warning: ${currentCount}/${CAP} leads (80% full)`);
+            }
+            
+            return true;
+        } catch (e) {
+            console.error("[Scraper] Safety check failed:", e);
+            return true; // Proceed if check fails to avoid blocking based on a DB error
+        }
+    };
+
+    const safeToRun = await checkScraperSafetyCap();
+    if (!safeToRun) {
+        return NextResponse.json({ 
+            blocked: true, 
+            reason: 'Safety cap of 50,000 leads reached' 
+        }, { status: 429 });
+    }
+
     let currentJobId = null;
     let jobLogs: string[] = [];
     let totalFound = 0;
@@ -166,27 +215,33 @@ export async function GET(request: Request) {
                 }
 
                 // B. Batch Process Details
+                const searchResults = searchResult.results || [];
+                const searchTitles = searchResults.map((p: any) => p.name);
+                
+                // Batch deduplication check by title & job_id (N+1 fix)
+                const existingLeadsByTitle = await directus.request(readItems(LEADS_COLLECTION, {
+                    filter: { 
+                        _and: [
+                            { title: { _in: searchTitles } },
+                            { google_maps_job_id: { _eq: job.id } }
+                        ]
+                    },
+                    limit: -1,
+                    fields: ['title']
+                })) as any[];
+
+                const existingTitles = new Set(existingLeadsByTitle.map(l => l.title));
+
                 let newInThisPage = 0;
                 let processedInThisBatch = 0;
 
-                for (const rawPlace of searchResult.results) {
+                for (const rawPlace of searchResults) {
                     if (totalFound >= job.limit || foundThisRun >= limitPerRun || (Date.now() - startTime) >= MAX_RUNTIME) break;
 
                     processedInThisBatch++;
 
-                    // Quick Deduplication Check (Title only, as source_city doesn't exist)
-                    // We check if this title exists for the current user/job to minimize false positives across the whole DB
-                    const quickCheck: any[] = await directus.request(readItems(LEADS_COLLECTION, {
-                        filter: { 
-                            _and: [
-                                { title: { _eq: rawPlace.name } },
-                                { google_maps_job_id: { _eq: job.id } }
-                            ]
-                        },
-                        limit: 1, fields: ['id']
-                    }));
-
-                    if (quickCheck?.length > 0) {
+                    // Use pre-fetched titles for deduplication
+                    if (existingTitles.has(rawPlace.name)) {
                         continue; 
                     }
 

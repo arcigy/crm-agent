@@ -55,6 +55,26 @@ export function EmailDetailView({
 }: EmailDetailViewProps) {
   const [downloading, setDownloading] = React.useState<string | null>(null);
   const [showFullDetails, setShowFullDetails] = React.useState(false);
+  const [bodyHtml, setBodyHtml] = React.useState<string | null>(email.bodyHtml || null);
+  const [isLoadingBody, setIsLoadingBody] = React.useState(!email.bodyHtml);
+
+  // Load full body if not already present (Optimistic Preview)
+  React.useEffect(() => {
+    if (!email.bodyHtml && email.id) {
+      setIsLoadingBody(true);
+      fetch(`/api/google/gmail?id=${email.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.message?.bodyHtml) {
+            setBodyHtml(data.message.bodyHtml);
+          }
+        })
+        .finally(() => setIsLoadingBody(false));
+    } else {
+      setBodyHtml(email.bodyHtml || null);
+      setIsLoadingBody(false);
+    }
+  }, [email.id, email.bodyHtml]);
 
   const handleDownload = async (attachment: GmailAttachment) => {
     setDownloading(attachment.id);
@@ -303,7 +323,16 @@ export function EmailDetailView({
 
           {/* ── Email Body Content Area ── */}
           <div className="text-[16px] leading-[1.8] text-[#111111] dark:text-zinc-100 whitespace-pre-wrap mb-10 border-b border-black/[0.03] pb-10 select-text">
-            {email.bodyHtml ? (
+            {isLoadingBody ? (
+              <div className="space-y-4 animate-pulse">
+                <div className="h-4 bg-violet-100 dark:bg-violet-900/10 rounded w-3/4" />
+                <div className="h-4 bg-violet-100 dark:bg-violet-900/10 rounded w-5/6" />
+                <div className="h-4 bg-violet-100 dark:bg-violet-900/10 rounded w-2/3" />
+                <div className="mt-8 text-slate-400 text-sm italic font-medium">
+                  {email.snippet || "Načítavam obsah..."}
+                </div>
+              </div>
+            ) : bodyHtml ? (
               <iframe
                 srcDoc={`
                   <!DOCTYPE html>
@@ -328,7 +357,7 @@ export function EmailDetailView({
                         ::-moz-selection { background-color: rgba(124, 58, 237, 0.25); color: inherit; }
                       </style>
                     </head>
-                    <body>${email.bodyHtml}</body>
+                    <body>${bodyHtml}</body>
                   </html>
                 `}
                 className="w-full h-[600px] border-none"

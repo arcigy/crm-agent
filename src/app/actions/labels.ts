@@ -12,15 +12,13 @@ export interface ContactLabel {
   color?: string;
   user_email?: string;
   google_id?: string;
+  gmail_label_id?: string;
 }
 
 export async function getLabels() {
   try {
     const userEmail = await getUserEmail();
     if (!userEmail) throw new Error("Unauthorized");
-
-    // We no longer sync from Google on every fetch to save quota
-    // await syncLabelsFromGoogle().catch(err => console.error("Sync labels failed:", err));
 
     const labels = (await directus.request(
       readItems("contact_labels", {
@@ -76,7 +74,7 @@ export async function syncLabelsFromGoogle() {
           name: group.name,
           user_email: userEmail,
           google_id: group.resourceName,
-          color: "#3b82f6"
+          color: "#8e63ce"
         }));
       } else if (existing.name !== group.name) {
         await directus.request(updateItem("contact_labels", existing.id, {
@@ -100,13 +98,14 @@ export async function createLabel(name: string, color?: string) {
     const label = await directus.request(
       createItem("contact_labels", {
         name,
-        color: color || "#3b82f6",
+        color: color || "#8e63ce",
         user_email: userEmail,
       })
     );
 
-    // Sync to Google
-    await syncLabelToGoogle(label.id);
+    // Sync to Google (Contacts + Gmail)
+    await syncLabelToContacts(label.id);
+    await syncLabelToGmail(label.id);
 
     revalidatePath("/dashboard/contacts");
     return { success: true, data: label };
@@ -120,32 +119,33 @@ export async function updateLabel(id: string | number, name: string, color?: str
     const userEmail = await getUserEmail();
     if (!userEmail) throw new Error("Unauthorized");
 
+    const labelRecord = await directus.request(readItem("contact_labels", id)) as any;
+    
     await directus.request(
       updateItem("contact_labels", id, { name, color })
     );
 
-    await syncLabelToGoogle(id);
-
-    revalidatePath("/dashboard/contacts");
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: getDirectusErrorMessage(error) };
-  }
-}
-
-export async function deleteLabel(id: string | number) {
-  try {
-    const userEmail = await getUserEmail();
-    if (!userEmail) throw new Error("Unauthorized");
-
-    const label = (await directus.request(readItem("contact_labels", id))) as any;
+    await syncLabelToContacts(id);
     
-    // Delete from Google first
-    if (label.google_id) {
-       await deleteGoogleLabel(label.google_id);
+    // Update Gmail label color and name if synced
+    if (labelRecord.gmail_label_id) {
+        const { getValidToken, getGmailClient } = await import("@/lib/google");
+        const user = await currentUser();
+        const token = await getValidToken(user!.id);
+        if (token) {
+            const gmail = await getGmailClient(token);
+            await gmail.users.labels.patch({
+                userId: "me",
+                id: labelRecord.gmail_label_id,
+                requestBody: {
+                    name: `CRM/${name}`,
+                    color: color ? convertHexToGmailColor(color) : undefined
+                }
+            });
+        }
+    } else {
+        await syncLabelToGmail(id);
     }
-
-    await directus.request(deleteItem("contact_labels", id));
 
     revalidatePath("/dashboard/contacts");
     return { success: true };
@@ -207,19 +207,120 @@ export async function removeLabelFromContact(contactId: string | number, labelId
   }
 }
 
-async function syncLabelToGoogle(labelId: string | number) {
+export async function deleteLabel(id: string | number) {
+  try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
+    const label = (await directus.request(readItem("contact_labels", id))) as any;
+    
+    // Delete from Google Contacts
+    if (label.google_id) {
+       await deleteGoogleContactLabel(label.google_id);
+    }
+
+    // Delete from Gmail
+    if (label.gmail_label_id) {
+        const { getValidToken, getGmailClient } = await import("@/lib/google");
+        const user = await currentUser();
+        const token = await getValidToken(user!.id);
+        if (token) {
+            const gmail = await getGmailClient(token);
+            try {
+                await gmail.users.labels.delete({ userId: "me", id: label.gmail_label_id });
+            } catch (err) {
+                console.warn("Gmail label already deleted:", err);
+            }
+        }
+    }
+
+    await directus.request(deleteItem("contact_labels", id));
+
+    revalidatePath("/dashboard/contacts");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: getDirectusErrorMessage(error) };
+  }
+}
+
+// Helper: Sync to Gmail Labels
+export async function syncLabelToGmail(labelId: string | number) {
     try {
         const user = await currentUser();
         if (!user) return;
 
-        const { getValidToken } = await import("@/lib/google");
+        const { getValidToken, getGmailClient } = await import("@/lib/google");
         const token = await getValidToken(user.id);
-
         if (!token) return;
 
-        const { getPeopleClient } = await import("@/lib/google");
-        const people = getPeopleClient(token);
+        const gmail = await getGmailClient(token);
+        const label = (await directus.request(readItem("contact_labels", labelId))) as any;
+        if (!label) return;
 
+        const labelName = `CRM/${label.name}`;
+
+        // Check exists
+        const list = await gmail.users.labels.list({ userId: "me" });
+        const existing = list.data.labels?.find(l => l.name === labelName);
+
+        if (existing) {
+            await directus.request(updateItem("contact_labels", labelId, { gmail_label_id: existing.id }));
+            return existing.id;
+        }
+
+        const gmailColor = convertHexToGmailColor(label.color || "#8e63ce");
+
+        const created = await gmail.users.labels.create({
+            userId: "me",
+            requestBody: {
+                name: labelName,
+                labelListVisibility: "labelShow",
+                messageListVisibility: "show",
+                color: gmailColor
+            }
+        });
+
+        await directus.request(updateItem("contact_labels", labelId, { gmail_label_id: created.data.id }));
+        return created.data.id;
+    } catch (err) {
+        console.error("[Gmail Label Sync] Failed:", err);
+    }
+}
+
+function convertHexToGmailColor(hex: string) {
+    // Gmail supports specific background/text pairs
+    const colors = [
+        { bg: '#000000', text: '#ffffff' },
+        { bg: '#434343', text: '#ffffff' },
+        { bg: '#666666', text: '#ffffff' },
+        { bg: '#999999', text: '#000000' },
+        { bg: '#cccccc', text: '#000000' },
+        { bg: '#4a86e8', text: '#ffffff' }, // blue
+        { bg: '#16a766', text: '#ffffff' }, // green
+        { bg: '#ffad47', text: '#000000' }, // orange
+        { bg: '#cc3a21', text: '#ffffff' }, // red
+        { bg: '#8e63ce', text: '#ffffff' }, // purple (violet)
+        { bg: '#994a64', text: '#ffffff' }, // pink
+        { bg: '#c2c2c2', text: '#000000' }, // grey
+    ];
+
+    // For now, return purple if not easily matched
+    if (hex.toLowerCase() === '#cc3a21' || hex.toLowerCase() === 'red') return { backgroundColor: '#cc3a21', textColor: '#ffffff' };
+    if (hex.toLowerCase() === '#16a766' || hex.toLowerCase() === 'green') return { backgroundColor: '#16a766', textColor: '#ffffff' };
+    
+    return { backgroundColor: '#8e63ce', textColor: '#ffffff' };
+}
+
+async function syncLabelToContacts(labelId: string | number) {
+    try {
+        const user = await currentUser();
+        if (!user) return;
+
+        const { getValidToken, getPeopleClient } = await import("@/lib/google");
+        const token = await getValidToken(user.id);
+        if (!token) return;
+
+        const people = await getPeopleClient(token);
         const label = (await directus.request(readItem("contact_labels", labelId))) as any;
         if (!label) return;
 
@@ -240,23 +341,51 @@ async function syncLabelToGoogle(labelId: string | number) {
             await directus.request(updateItem("contact_labels", labelId, { google_id: googleId }));
         }
     } catch (err) {
-        console.error("[Label Sync] Failed to sync label to Google:", err);
+        console.error("[Contact Label Sync] Failed:", err);
     }
 }
 
-async function deleteGoogleLabel(googleId: string) {
+async function deleteGoogleContactLabel(googleId: string) {
     try {
         const user = await currentUser();
         if (!user) return;
-        const { getValidToken } = await import("@/lib/google");
+        const { getValidToken, getPeopleClient } = await import("@/lib/google");
         const token = await getValidToken(user.id);
         if (!token) return;
-
-        const { getPeopleClient } = await import("@/lib/google");
-        const people = getPeopleClient(token);
-
+        const people = await getPeopleClient(token);
         await people.contactGroups.delete({ resourceName: googleId, deleteContacts: false });
     } catch (err) {
-        console.error("[Label Sync] Failed to delete Google label:", err);
+        console.error("[Contact Label Sync] Failed to delete:", err);
     }
+}
+
+export async function syncAllLabelsWithGmail() {
+  try {
+    const userEmail = await getUserEmail();
+    if (!userEmail) throw new Error("Unauthorized");
+
+    const labels = (await directus.request(
+      readItems("contact_labels", {
+        filter: { user_email: { _eq: userEmail } },
+      })
+    )) as any[];
+
+    const results = { synced: 0, failed: 0 };
+
+    for (const label of labels) {
+      try {
+        await syncLabelToGmail(label.id);
+        results.synced++;
+      } catch (err) {
+        console.error(`Failed to sync label ${label.name}:`, err);
+        results.failed++;
+      }
+    }
+
+    revalidatePath("/dashboard/leads");
+    return { success: true, ...results };
+  } catch (error) {
+    console.error("Batch label sync error:", error);
+    return { success: false, error: String(error) };
+  }
 }

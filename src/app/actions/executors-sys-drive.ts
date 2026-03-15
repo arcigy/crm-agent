@@ -9,12 +9,14 @@ import { clerkClient } from "@clerk/nextjs/server";
  * Reusing auth for Drive since it shared Google scope.
  */
 async function getDrive(userId: string) {
-  const client = await clerkClient();
-  const response = await client.users.getUserOauthAccessToken(userId, "oauth_google");
-  const token = response.data[0]?.token;
-  if (!token) throw new Error("Google account not connected");
+  const { getValidToken, getDriveClient } = await import("@/lib/google");
   
-  const { getDriveClient } = await import("@/lib/google");
+  // Use centralized getValidToken which handles DB refresh + Clerk fallback
+  const token = await getValidToken(userId);
+  if (!token || typeof token !== "string") {
+    throw new Error("Google account not connected or token expired");
+  }
+  
   return await getDriveClient(token);
 }
 

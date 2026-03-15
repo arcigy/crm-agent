@@ -24,6 +24,7 @@ import { useLeadsFetch } from "./leads/useLeadsFetch";
 
 export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const { user, isLoaded } = useCurrentCRMUser();
+  const [selectedTab, setSelectedTab] = React.useState<string>("inbox");
   const {
     customTags, setCustomTags,
     tagColors, setTagColors,
@@ -38,10 +39,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     loading, setLoading,
     isConnected, setIsConnected,
     fetchMessages
-  } = useLeadsFetch(initialMessages, getSmartTags);
+  } = useLeadsFetch(initialMessages, getSmartTags, selectedTab);
 
   const { getMockMessages } = useLeadsMockData();
-  const [selectedTab, setSelectedTab] = React.useState<string>("all");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
   const [contactModalData, setContactModalData] = React.useState<{
@@ -113,8 +113,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
 
   const analyzedIds = React.useRef<Set<string>>(new Set());
 
+  // Initial fetch and periodic sync are now handled in useLeadsFetch
+  // with dependency on selectedTab. We only need periodic background refresh here if desired.
   React.useEffect(() => {
-    fetchMessages();
     const interval = setInterval(() => fetchMessages(true), 15000);
     return () => clearInterval(interval);
   }, []);
@@ -389,10 +390,21 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     currentPage * itemsPerPage
   );
 
-  const handleEmptyTrash = React.useCallback(() => {
-    toast.success("Kôš bol úspešne vyprázdnený");
-    setMessages(prev => prev.filter(m => !(m.labels || []).includes("TRASH")));
-  }, []);
+  const handleEmptyTrash = React.useCallback(async () => {
+    const toastId = toast.loading("Vysypávam kôš...");
+    try {
+      const res = await fetch("/api/google/gmail?action=emptyTrash", { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Kôš bol úspešne vyprázdnený", { id: toastId });
+        // Trigger re-fetch for trash tab
+        fetchMessages();
+      } else {
+        toast.error("Nepodarilo sa vyprázdniť kôš", { id: toastId });
+      }
+    } catch (err) {
+      toast.error("Chyba pri vyprázdňovaní koša", { id: toastId });
+    }
+  }, [fetchMessages]);
 
   const handleToggleTag = React.useCallback((id: string, tag: string) => {
     setMessageTags(prev => {

@@ -3,7 +3,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { createStreamableValue } from "@ai-sdk/rsc";
-import { trackAICall, endCostSession } from "@/lib/ai-cost-tracker";
+import { trackAICall, endCostSession, updateMissionStatus } from "@/lib/ai-cost-tracker";
 import { AIContextBundle } from "@/lib/ai-context";
 import {
   ChatMessage,
@@ -115,6 +115,8 @@ Odpovedz priamo a stručne. Ak sa pýta na tvoje schopnosti, odpovedz áno/nie +
     Date.now() - start,
   );
 
+  updateMissionStatus(userText, true);
+
   superState.done({
     content: output,
     status: "done",
@@ -164,6 +166,8 @@ export async function runFinalReporter(
     superState.update({ status: "thinking", message: "Finalizujem odpoveď...", toolResults: results });
     const verification = await verifyExecutionResults(goal, results, manifest);
     
+    updateMissionStatus(goal, reflection.goalAchieved);
+
     let finalOutput = verification.analysis;
     
     // If reflection found issues, we can append a subtle warning or note

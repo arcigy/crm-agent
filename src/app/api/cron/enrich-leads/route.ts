@@ -1,42 +1,54 @@
 import { NextResponse } from "next/server";
-import directus from "@/lib/directus";
-import { readItems, updateItem, createItem } from "@directus/sdk";
-import { ColdLeadItem } from "@/app/actions/cold-leads";
+import { db } from "@/lib/db";
 import { enrichColdLead } from "@/app/actions/cold-leads";
+import crypto from "crypto";
 
 // This endpoint is designed to be called by a CRON job (e.g., every minute)
-// or recursively by itself until the queue is empty.
 export async function GET(request: Request) {
-    try {
-        // 1. Fetch larger batch for efficiency
-        const BATCH_SIZE = 10; 
-        
-        const pendingLeads = await directus.request(readItems("cold_leads", {
-            filter: {
-                enrichment_status: { _eq: "pending" }
-            },
-            limit: BATCH_SIZE,
-            fields: ["id", "website", "title", "user_email"]
-        })) as unknown as ColdLeadItem[];
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return new Response('Unauthorized', { status: 401 });
+    }
 
-        if (!pendingLeads || pendingLeads.length === 0) {
-            console.log("[ENRICHMENT CRON] No pending leads found. Sleeping.");
+    try {
+        const runId = crypto.randomUUID();
+        
+        // 0. Safety cleanup: release leads stuck in 'processing' for > 30 mins
+        await db.query(`
+          UPDATE cold_leads 
+          SET enrichment_status = 'pending', processing_run_id = NULL
+          WHERE enrichment_status = 'processing' 
+          AND date_updated < NOW() - INTERVAL '30 minutes'
+        `);
+
+        // 1. Atomically claim leads
+        const BATCH_SIZE = 50; 
+        const claimed = await db.query(`
+          UPDATE cold_leads
+          SET enrichment_status = 'processing', processing_run_id = $1, date_updated = NOW()
+          WHERE id IN (
+            SELECT id FROM cold_leads
+            WHERE enrichment_status = 'pending'
+            ORDER BY date_created ASC
+            LIMIT $2
+            FOR UPDATE SKIP LOCKED
+          )
+          RETURNING id, website, title, user_email
+        `, [runId, BATCH_SIZE]);
+
+        const leadsToProcess = claimed.rows;
+
+        if (!leadsToProcess || leadsToProcess.length === 0) {
+            console.log("[ENRICHMENT CRON] No pending leads found.");
             return NextResponse.json({ message: "No pending leads found", count: 0 });
         }
 
-        console.log(`[ENRICHMENT CRON] Starting batch of ${pendingLeads.length} leads...`);
+        console.log(`[ENRICHMENT CRON] Claimed ${leadsToProcess.length} leads with RunId: ${runId}`);
 
-        // 2. Mark as processing
-        await Promise.all(pendingLeads.map(lead => 
-            directus.request(updateItem("cold_leads", lead.id, { 
-                enrichment_status: "processing" 
-            }))
-        ));
-
-        // 3. Process with timeout wrapper to prevent one slow item from hanging everything indefinitely
-        const processItem = async (lead: ColdLeadItem) => {
+        // 2. Process the claimed leads
+        const results = await Promise.all(leadsToProcess.map(async (lead) => {
             try {
-                // 45s timeout limit per item to ensure we stay within serverless limits
+                // 45s timeout limit per item to stay within serverless limits
                 const timeoutPromise = new Promise((_, reject) => 
                     setTimeout(() => reject(new Error("Timeout (45s)")), 45000)
                 );
@@ -46,42 +58,49 @@ export async function GET(request: Request) {
                     timeoutPromise
                 ]);
                 
-                // Update final status
-                await directus.request(updateItem("cold_leads", lead.id, { 
-                    enrichment_status: result.success ? "completed" : "failed",
-                    enrichment_error: result.error || null
-                }));
+                // Update final status and clear run ID
+                await db.query(`
+                    UPDATE cold_leads 
+                    SET enrichment_status = $1, 
+                        enrichment_error = $2, 
+                        processing_run_id = NULL,
+                        date_updated = NOW()
+                    WHERE id = $3
+                `, [result.success ? "completed" : "failed", result.error || null, lead.id]);
 
                 return { id: lead.id, success: result.success, error: result.error };
             } catch (e: any) {
                 console.error(`Error processing lead ${lead.id}:`, e);
-                await directus.request(updateItem("cold_leads", lead.id, { 
-                    enrichment_status: "failed",
-                    enrichment_error: e.message
-                }));
+                await db.query(`
+                    UPDATE cold_leads 
+                    SET enrichment_status = 'failed', 
+                        enrichment_error = $1, 
+                        processing_run_id = NULL,
+                        date_updated = NOW()
+                    WHERE id = $2
+                `, [e.message, lead.id]);
                 return { id: lead.id, success: false, error: e.message };
             }
-        };
-
-        // Execute all in parallel
-        const results = await Promise.all(pendingLeads.map(lead => processItem(lead)));
+        }));
 
         const successCount = results.filter(r => r.success).length;
 
-        // 4. Recursive Call (Turbo Boost)
-        if (pendingLeads.length === BATCH_SIZE) {
+        // 3. Recursive Call if more items might be waiting
+        if (leadsToProcess.length === BATCH_SIZE) {
             const proto = request.headers.get("x-forwarded-proto") || "https";
             const host = request.headers.get("host") || "crm.arcigy.cloud";
             const nextUrl = `${proto}://${host}/api/cron/enrich-leads`;
             
             console.log(`[ENRICHMENT CRON] 🚀 Triggering next batch: ${nextUrl}`);
-            
-            // Fire and forget
-            fetch(nextUrl, { headers: { 'Cache-Control': 'no-cache' }}).catch(e => console.error("[ENRICHMENT CRON] Failed to trigger next batch:", e));
+            fetch(nextUrl, { headers: { 
+                'Cache-Control': 'no-cache',
+                'Authorization': `Bearer ${process.env.CRON_SECRET}`
+            }}).catch(e => console.error("[ENRICHMENT CRON] Failed to trigger next batch:", e));
         }
 
         return NextResponse.json({ 
             success: true, 
+            run_id: runId,
             processed: results.length, 
             successful: successCount,
             results 

@@ -8,12 +8,12 @@ const DIRECTUS_URL =
 
 console.log(`[Directus] Initializing client with URL: ${DIRECTUS_URL}`);
 
+if (!process.env.DIRECTUS_TOKEN) {
+  console.warn("⚠️ [Directus] DIRECTUS_TOKEN is missing! Client may fail unauthorized requests.");
+}
+
 const directus = createDirectus(DIRECTUS_URL)
-  .with(
-    staticToken(
-      process.env.DIRECTUS_TOKEN || "3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE",
-    ),
-  )
+  .with(staticToken(process.env.DIRECTUS_TOKEN || ""))
   .with(rest());
 
 export default directus;

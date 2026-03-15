@@ -214,15 +214,37 @@ export async function executeDbContactTool(
       };
 
     case "db_delete_contact":
+      const contactId = args.contact_id as string;
+      
+      // 1. Archive the contact
       await directus.request(
-        updateItem("contacts", args.contact_id as string, {
+        updateItem("contacts", contactId, {
           status: "archived",
           deleted_at: new Date().toISOString(),
         }),
       );
+
+      // 2. Cascade Soft-Delete: Archive related projects
+      try {
+        const relatedProjects = (await directus.request(readItems("projects", {
+          filter: { contact_id: { _eq: contactId } },
+          fields: ["id"]
+        }))) as any[];
+
+        for (const p of relatedProjects) {
+          await directus.request(updateItem("projects", p.id, {
+            status: "archived",
+            deleted_at: new Date().toISOString()
+          }));
+        }
+        console.log(`[CASCADE] Successfully archived ${relatedProjects.length} projects for contact ${contactId}`);
+      } catch (cascadeErr) {
+        console.error("[CASCADE] Failed to archive related projects:", cascadeErr);
+      }
+
       return {
         success: true,
-        message: "Kontakt bol úspešne archivovaný (zmazaný).",
+        message: "Kontakt aj jeho súvisiace projekty boli úspešne archivované.",
       };
 
     case "db_add_contact_comment":
@@ -399,7 +421,7 @@ export async function executeDbContactTool(
             deleted_at: { _null: true },
             status: { _neq: "archived" }
           },
-          limit: -1,
+          limit: 1000,
         })
       )) as Record<string, any>[];
 
@@ -446,7 +468,7 @@ export async function executeDbContactTool(
             user_email: { _eq: userEmail },
             deleted_at: { _null: true },
           },
-          limit: -1,
+          limit: 1000,
         })
       )) as Record<string, any>[];
 

@@ -6,7 +6,7 @@ import {
   Star, 
   Clock, 
   Send, 
-  File, 
+  FileEdit, 
   Tag, 
   ChevronDown, 
   ChevronUp,
@@ -14,7 +14,8 @@ import {
   PenLine,
   Archive,
   AlertOctagon,
-  Trash2
+  Trash2,
+  ShoppingBag
 } from "lucide-react";
 
 interface LeadsSidebarProps {
@@ -32,19 +33,20 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
   const [isMoreExpanded, setIsMoreExpanded] = React.useState(false);
 
   const mainItems = [
-    { id: "all", label: "Doručené", icon: Inbox, count: unreadCount > 0 ? unreadCount.toLocaleString() : "" },
+    { id: "inbox", label: "Doručené", icon: Inbox, count: unreadCount > 0 ? unreadCount.toLocaleString() : "" },
     { id: "starred", label: "S hviezdičkou", icon: Star },
     { id: "snoozed", label: "Odložené", icon: Clock },
     { id: "sent", label: "Odoslané", icon: Send },
-    { id: "drafts", label: "Koncepty", icon: File, count: draftCount > 0 ? draftCount.toString() : "" },
+    { id: "drafts", label: "Koncepty", icon: FileEdit, count: draftCount > 0 ? draftCount.toString() : "" },
   ];
 
   const moreItems = [
-    { id: "shopping", label: "Nákupy", icon: Tag },
+    { id: "purchases", label: "Nákupy", icon: ShoppingBag },
     { id: "archive", label: "Archív", icon: Archive },
-    { id: "spam", label: "Spam", icon: AlertOctagon },
     { id: "trash", label: "Kôš", icon: Trash2 },
+    { id: "spam", label: "Spam", icon: AlertOctagon },
   ];
+
 
   return (
     <div

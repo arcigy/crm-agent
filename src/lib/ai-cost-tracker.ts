@@ -1,3 +1,6 @@
+import directus from "./directus";
+import { createItem, readItems, aggregate } from "@directus/sdk";
+
 /**
  * AI Cost Tracker - Presné sledovanie nákladov na AI volania
  *
@@ -64,6 +67,7 @@ export interface AICallCost {
 export interface SessionCost {
   sessionId: string;
   userId: string;
+  userEmail: string;
   startTime: Date;
   endTime?: Date;
   calls: AICallCost[];
@@ -75,12 +79,14 @@ export interface SessionCost {
     anthropic: number;
     gemini: number;
   };
+  missionGoal?: string;
+  success?: boolean;
 }
 
 // === GLOBAL SESSION STORAGE ===
 
 let currentSession: SessionCost | null = null;
-const sessionHistory: SessionCost[] = [];
+// No more sessionHistory in memory - we use Directus
 
 // === HELPER FUNCTIONS ===
 
@@ -121,12 +127,13 @@ export function calculateCost(
 /**
  * Začne novú session pre sledovanie nákladov
  */
-export function startCostSession(userId: string): string {
+export function startCostSession(userId: string, userEmail: string = ""): string {
   const sessionId = crypto.randomUUID();
 
   currentSession = {
     sessionId,
     userId,
+    userEmail,
     startTime: new Date(),
     calls: [],
     totalInputTokens: 0,
@@ -137,9 +144,20 @@ export function startCostSession(userId: string): string {
       anthropic: 0,
       gemini: 0,
     },
+    success: true // Default to true, updated on mission end
   };
 
   return sessionId;
+}
+
+/**
+ * Aktualizuje stav misie (popis a úspešnosť)
+ */
+export function updateMissionStatus(goal: string, success: boolean) {
+  if (currentSession) {
+    currentSession.missionGoal = goal;
+    currentSession.success = success;
+  }
 }
 
 /**
@@ -190,15 +208,34 @@ export function trackAICall(
 }
 
 /**
- * Ukončí session a vráti súhrn
+ * Ukončí session a uloží výsledok do DB (asynchrónne na pozadí)
  */
 export function endCostSession(): SessionCost | null {
   if (!currentSession) return null;
 
   currentSession.endTime = new Date();
-  sessionHistory.push({ ...currentSession });
+  const sessionToSave = { ...currentSession };
+  
+  // Persist to Directus
+  const mainModel = sessionToSave.calls.length > 0 
+    ? sessionToSave.calls[sessionToSave.calls.length - 1].model 
+    : "unknown";
 
-  const result = { ...currentSession };
+  directus.request(createItem('ai_audit_logs' as any, {
+    session_id: sessionToSave.sessionId,
+    user_id: sessionToSave.userId || null, // Directus user ID if possible
+    user_email: sessionToSave.userEmail,
+    timestamp: sessionToSave.startTime.toISOString(),
+    model: mainModel,
+    mission_summary: sessionToSave.missionGoal?.substring(0, 1000) || "Conversational",
+    input_tokens: sessionToSave.totalInputTokens,
+    output_tokens: sessionToSave.totalOutputTokens,
+    estimated_cost_usd: sessionToSave.totalCost,
+    tool_calls_count: sessionToSave.calls.filter(c => c.phase === 'orchestrator').length,
+    success: sessionToSave.success !== false
+  } as any)).catch(err => console.error("[CostTracker] Failed to persist AI audit log:", err));
+
+  const result = sessionToSave;
   currentSession = null;
 
   return result;
@@ -212,10 +249,50 @@ export function getCurrentSession(): SessionCost | null {
 }
 
 /**
- * Získa históriu sessions
+ * Získa históriu sessions z Directusu (Step 3 helper)
+ */
+export async function getCostSummary(userId?: string, days: number = 30) {
+  const dateLimit = new Date();
+  dateLimit.setDate(dateLimit.getDate() - days);
+
+  const filter: any = {
+    timestamp: { _gt: dateLimit.toISOString() }
+  };
+  
+  if (userId) {
+    filter.user_id = { _eq: userId };
+  }
+
+  try {
+    const results = await directus.request(readItems('ai_audit_logs' as any, {
+      filter,
+      limit: -1
+    }));
+
+    const totalTokens = results.reduce((sum, r) => sum + (r.input_tokens || 0) + (r.output_tokens || 0), 0);
+    const totalCost = results.reduce((sum, r) => sum + Number(r.estimated_cost_usd || 0), 0);
+    const avgTools = results.length > 0 
+      ? results.reduce((sum, r) => sum + (r.tool_calls_count || 0), 0) / results.length 
+      : 0;
+
+    return {
+      total_cost: totalCost,
+      total_tokens: totalTokens,
+      total_missions: results.length,
+      avg_tools_per_mission: avgTools,
+      history: results
+    };
+  } catch (e) {
+    console.error("[CostTracker] Failed to fetch summary:", e);
+    return null;
+  }
+}
+
+/**
+ * Získa históriu sessions (compat shim)
  */
 export function getSessionHistory(): SessionCost[] {
-  return sessionHistory;
+  return []; // No longer in memory
 }
 
 /**

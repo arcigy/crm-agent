@@ -1,7 +1,8 @@
 const https = require('https');
 
 const DIRECTUS_URL = 'https://directus-buk1-production.up.railway.app';
-const TOKEN = '3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE';
+const TOKEN = process.env.DIRECTUS_TOKEN;
+if (!TOKEN) throw new Error("DIRECTUS_TOKEN env variable is required");
 
 function request(method, path, data = null) {
   return new Promise((resolve, reject) => {

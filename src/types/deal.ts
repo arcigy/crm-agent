@@ -12,6 +12,7 @@ export interface Deal {
   description?: string | null;
   date_created: string;
   date_updated?: string | null;
+  status?: DealStatus;
 
   // Virtual fields for display
   contact_name?: string;

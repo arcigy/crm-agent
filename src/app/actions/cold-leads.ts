@@ -252,7 +252,7 @@ export async function bulkUpdateColdLeads(ids: (string | number)[], data: Partia
     }
 }
 
-export async function enrichColdLead(id: string | number, overrideEmail?: string) {
+export async function enrichColdLead(id: string | number, overrideEmail?: string, skipAI?: boolean) {
     try {
         const userEmail = overrideEmail || await getUserEmail();
         if (!userEmail) throw new Error("Unauthorized");
@@ -298,7 +298,7 @@ export async function enrichColdLead(id: string | number, overrideEmail?: string
             }
         }
 
-        const shouldPersonalize = !!urlToScrape && !debugInfo.error?.includes("unreachable"); // Don't AI if site is dead
+        const shouldPersonalize = !!urlToScrape && !debugInfo.error?.includes("unreachable") && !skipAI;
         const updateData: any = {};
 
         if (shouldPersonalize) {
@@ -344,6 +344,9 @@ export async function enrichColdLead(id: string | number, overrideEmail?: string
                 debugInfo.error = `AI Error: ${aiResult.error}`;
                 updateData.enrichment_error = aiResult.error;
             }
+        } else if (skipAI && urlToScrape) {
+            console.log(`[ENRICHMENT-ACTION] AI skipped for Lead ${id} as per request.`);
+            updateData.enrichment_status = "completed";
         } else if (!urlToScrape) {
             updateData.list_name = "Cold Call";
             updateData.enrichment_status = "completed"; 

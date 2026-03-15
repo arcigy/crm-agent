@@ -7,6 +7,11 @@ import { identifyIndustry, classifyLeadCategory } from "@/lib/enrichment";
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function GET(request: Request) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return new Response('Unauthorized', { status: 401 });
+    }
+
     try {
         const BATCH_SIZE = 10;
         

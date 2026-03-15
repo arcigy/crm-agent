@@ -47,7 +47,8 @@ loadEnv();
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const DIRECTUS_URL = process.env.NEXT_PUBLIC_DIRECTUS_URL || "https://directus-buk1-production.up.railway.app";
-const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN || "3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE";
+const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN;
+if (!DIRECTUS_TOKEN) throw new Error("DIRECTUS_TOKEN env variable is required");
 const USER_EMAIL = "branislav@arcigy.group";
 
 if (!GEMINI_KEY) {

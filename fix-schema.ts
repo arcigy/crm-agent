@@ -2,7 +2,8 @@ import { createDirectus, rest, updateField, readField } from "@directus/sdk";
 
 // We use the public URL and token provided in the rules
 const DIRECTUS_URL = "https://directus-buk1-production.up.railway.app";
-const DIRECTUS_TOKEN = "3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE";
+const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN;
+if (!DIRECTUS_TOKEN) throw new Error("DIRECTUS_TOKEN env variable is required");
 
 const client = createDirectus(DIRECTUS_URL).with(rest({
   onRequest: (options) => {

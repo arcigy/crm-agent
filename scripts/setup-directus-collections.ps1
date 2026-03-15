@@ -2,7 +2,8 @@
 # Creates all necessary collections for CRM
 
 $DIRECTUS_URL = "https://directus-buk1-production.up.railway.app"
-$TOKEN = "3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE"
+$TOKEN = $env:DIRECTUS_TOKEN
+if (-not $TOKEN) { throw "DIRECTUS_TOKEN env variable is required" }
 $headers = @{
     "Authorization" = "Bearer $TOKEN"
     "Content-Type" = "application/json"
