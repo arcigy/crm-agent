@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { GmailMessage } from "@/types/gmail";
 
 export function useLeadsPersistence(
@@ -22,12 +23,18 @@ export function useLeadsPersistence(
   setMessageTags: React.Dispatch<React.SetStateAction<Record<string, string[]>>>,
   states: any
 ) {
+  const searchParams = useSearchParams();
+  const isComposingFromUrl = searchParams?.has("compose");
+  const composeEmail = searchParams?.get("compose");
+
   // Restore logic
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const persistedSession = localStorage.getItem("crm_leads_session");
       const persistedMessages = localStorage.getItem("crm_leads_messages");
       
+      const isComposing = searchParams?.has("compose");
+
       if (persistedMessages) {
         try {
           const parsedMessages = JSON.parse(persistedMessages);
@@ -45,10 +52,19 @@ export function useLeadsPersistence(
           if (state.tagColors) setTagColors(state.tagColors);
           if (state.selectedTab) setSelectedTab(state.selectedTab);
           if (state.searchQuery !== undefined) setSearchQuery(state.searchQuery);
-          if (state.isComposeOpen !== undefined) setIsComposeOpen(state.isComposeOpen);
-          if (state.hasDraft !== undefined) setHasDraft(state.hasDraft);
-          if (state.draftContent !== undefined) setDraftContent(state.draftContent);
-          if (state.draftData) setDraftData(state.draftData);
+          
+          // Compose handling: URL always wins over persistence
+          if (isComposingFromUrl && composeEmail) {
+            setIsComposeOpen(true);
+            setDraftData({ to: composeEmail, subject: "", body: "" });
+            setHasDraft(false);
+          } else {
+            if (state.isComposeOpen !== undefined) setIsComposeOpen(state.isComposeOpen);
+            if (state.hasDraft !== undefined) setHasDraft(state.hasDraft);
+            if (state.draftContent !== undefined) setDraftContent(state.draftContent);
+            if (state.draftData) setDraftData(state.draftData);
+          }
+
           if (state.selectedEmail) setSelectedEmail(state.selectedEmail);
           if (state.currentPage) setCurrentPage(state.currentPage);
           if (state.selectedIds) setSelectedIds(new Set(state.selectedIds));

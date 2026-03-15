@@ -95,9 +95,34 @@ export async function GET(req: Request) {
             console.error('Directus project fetch failed:', e);
         }
 
+        let dealEvents: any[] = [];
+        try {
+            const deals = await directus.request(readItems('deals', {
+                filter: { deleted_at: { _null: true } },
+                fields: ['*', 'contact_id.*'] as any,
+                limit: 100
+            }));
+
+            if (deals) {
+                dealEvents = (deals as any[]).map(d => ({
+                    id: `d-${d.id}`,
+                    title: `💰 deal: ${d.name}`,
+                    start: d.invoice_date || d.date_created,
+                    end: d.invoice_date || d.date_created,
+                    allDay: true,
+                    color: 'deal',
+                    description: `Klient: ${d.contact_id?.first_name || 'Neznámy'} ${d.contact_id?.last_name || ''}\nHodnota: ${d.value} €\nPopis: ${d.description || 'Bez popisu'}`,
+                    type: 'deal',
+                    contact: d.contact_id
+                }));
+            }
+        } catch (e) {
+            console.error('Directus deals fetch failed:', e);
+        }
+
         return NextResponse.json({
             isConnected,
-            events: [...googleEvents, ...projectEvents]
+            events: [...googleEvents, ...projectEvents, ...dealEvents]
         });
 
     } catch (error: any) {

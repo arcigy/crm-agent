@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Link } from "@tiptap/extension-link";
 import { Color } from "@tiptap/extension-color";
@@ -39,7 +39,9 @@ export default function RichTextEditor({
     handleKeyDown,
   } = useAutocomplete();
 
-  const editor = useEditor({
+  const lastContentRef = React.useRef(content);
+
+  const editor: Editor | null = useEditor({
     extensions: [
       StarterKit.configure({
         bold: { HTMLAttributes: { class: "font-bold" } },
@@ -66,15 +68,17 @@ export default function RichTextEditor({
     immediatelyRender: false,
     content: content,
     onUpdate: ({ editor: updatedEditor }) => {
-      onChange(updatedEditor.getHTML());
+      const html = updatedEditor.getHTML();
+      lastContentRef.current = html;
+      onChange(html);
       checkAutocomplete(updatedEditor);
     },
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose-base lg:prose-md xl:prose-lg focus:outline-none max-w-none p-8 min-h-full font-medium text-foreground dark:prose-invert h-auto",
+          "prose prose-sm focus:outline-none max-w-none p-6 min-h-full font-medium text-white dark:prose-invert h-auto [&_p]:my-1",
       },
-      handleKeyDown: (view, event) => {
+      handleKeyDown: (view, event): boolean => {
         if (!editor) return false;
         return handleKeyDown(event, editor);
       },
@@ -102,20 +106,21 @@ export default function RichTextEditor({
   });
 
   React.useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
+    if (editor && content !== lastContentRef.current) {
+      lastContentRef.current = content;
       editor.commands.setContent(content);
     }
   }, [content, editor]);
 
   return (
-    <div className="flex flex-col border border-border rounded-[2.5rem] bg-card shadow-inner min-h-0 flex-1 transition-colors overflow-hidden">
+    <div className="flex flex-col border border-violet-500/20 rounded-[1.5rem] bg-transparent min-h-0 flex-1 transition-colors overflow-hidden">
       <MenuBar editor={editor} onLinkOpen={() => {
         if (editor) {
           editor.chain().focus().insertContent("@").run();
           checkAutocomplete(editor);
         }
       }} />
-      <EditorContent editor={editor} className="flex-1 overflow-y-auto thin-scrollbar min-h-0" />
+      <EditorContent editor={editor} className="flex-1 overflow-y-auto scrollbar-hide min-h-0" />
       <AutocompleteDropdown
         suggestions={suggestions}
         position={position}

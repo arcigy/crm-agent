@@ -14,7 +14,7 @@ export function useLeadsFetch(
   const [loading, setLoading] = React.useState(true);
   const [isConnected, setIsConnected] = React.useState(false);
 
-  const fetchMessages = async (isBackground = false) => {
+  const fetchMessages = async (isBackground = false, tab = "all") => {
     if (!isBackground) setLoading(true);
     try {
       const dbRes = await fetch("/api/notes?type=ai_analysis");
@@ -23,7 +23,7 @@ export function useLeadsFetch(
         if (dbData.success) setDbAnalyses(dbData.notes || []);
       }
 
-      const gmailRes = await fetch("/api/google/gmail", { cache: "no-store" });
+      const gmailRes = await fetch(`/api/google/gmail?tab=${tab}`, { cache: "no-store" });
       if (gmailRes.ok) {
         const gmailData = await gmailRes.json();
         if (gmailData.isConnected && gmailData.messages) {
@@ -61,7 +61,10 @@ export function useLeadsFetch(
           }
         }
       } catch (e) { console.error("Android logs fetch error", e); }
-    } catch (error) { console.error("Failed to fetch inbox:", error); } 
+    } catch (error) { 
+      console.error("Failed to fetch inbox:", error); 
+      setIsConnected(false); // Make button appear on critical failure
+    } 
     finally { setLoading(false); }
   };
 

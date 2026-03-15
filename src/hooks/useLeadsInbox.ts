@@ -43,6 +43,15 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const { getMockMessages } = useLeadsMockData();
   const [selectedTab, setSelectedTab] = React.useState<string>("all");
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = React.useState("");
+
+  // Performance: Debounce search to avoid choppiness
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
   const [contactModalData, setContactModalData] = React.useState<{
     name: string;
@@ -59,15 +68,19 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const [customCommandMode, setCustomCommandMode] = React.useState(false);
   const [customPrompt, setCustomPrompt] = React.useState("");
   const [currentPage, setCurrentPage] = React.useState(1);
+  // IMPORTANT: Initialize as false to prevent hydration mismatch (server vs client)
   const [isComposeOpen, setIsComposeOpen] = React.useState(false);
   const [hasDraft, setHasDraft] = React.useState(false);
-  const [draftData, setDraftData] = React.useState({ to: "", subject: "", body: "" });
+  const [draftData, setDraftData] = React.useState({ 
+    to: "", 
+    subject: "", 
+    body: "" 
+  });
   const [localSentMessages, setLocalSentMessages] = React.useState<GmailMessage[]>([]);
   const [isTagModalOpen, setIsTagModalOpen] = React.useState(false);
   const [tagModalEmail, setTagModalEmail] = React.useState<GmailMessage | null>(null);
-  const [selectedEmail, setSelectedEmail] = React.useState<GmailMessage | null>(
-    null,
-  );
+  const [selectedEmail, setSelectedEmail] = React.useState<GmailMessage | null>(null);
+  const lastComposeEmail = React.useRef<string | null>(null);
   const {
       selectedIds,
       setSelectedIds,
@@ -82,25 +95,25 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       handleDeleteMessage,
       handleArchiveMessage,
       handleSpamMessage,
-      handleMarkUnreadMessage
+      handleMarkUnreadMessage,
+      handleRestoreMessage
   } = useLeadsMessageHandlers(setMessages, setSelectedEmail);
   const itemsPerPage = 50;
   const searchParams = useSearchParams();
 
-  // Listen for 'compose' query param to trigger new email
+  // Sync compose modal with URL search params (runs after hydration)
   React.useEffect(() => {
     const composeEmail = searchParams?.get("compose");
     if (composeEmail) {
-      setDraftData({
-        to: composeEmail,
-        subject: "",
-        body: "",
-      });
-      setIsComposeOpen(true);
-      setHasDraft(false); // Clear previous draft state to focus on new
-      
-      // Clean up URL after processing (optional but cleaner)
-      // window.history.replaceState({}, '', window.location.pathname);
+        // Only open if this is a NEW compose trigger
+        if (composeEmail !== lastComposeEmail.current) {
+            lastComposeEmail.current = composeEmail;
+            setDraftData({ to: composeEmail, subject: "", body: "" });
+            setIsComposeOpen(true);
+            setHasDraft(false);
+        }
+    } else {
+        lastComposeEmail.current = null;
     }
   }, [searchParams]);
 
@@ -114,10 +127,10 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const analyzedIds = React.useRef<Set<string>>(new Set());
 
   React.useEffect(() => {
-    fetchMessages();
-    const interval = setInterval(() => fetchMessages(true), 15000);
+    fetchMessages(false, selectedTab);
+    const interval = setInterval(() => fetchMessages(true, selectedTab), 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedTab]);
 
   // Development Mock Data logic remains in the main hook for visibility but uses the helper
   React.useEffect(() => {
@@ -141,17 +154,23 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     if (!isLoaded || !user) return;
     setLoading(true);
     try {
-      // We need the real clerk user object here. 
-      // If we are in bypass mode, this function shouldn't be called 
-      // because Google connection is handled differently.
       if ((user as any).createExternalAccount) {
         await (user as any).createExternalAccount({
           strategy: "oauth_google",
           redirectUrl: window.location.href,
         });
+      } else {
+        // Fallback for bypass/dev mode: fetch direct auth URL and redirect
+        const res = await fetch("/api/google/auth-url");
+        if (res.ok) {
+          const { url } = await res.json();
+          if (url) window.location.href = url;
+          else throw new Error("No URL returned");
+        } else throw new Error("API call failed");
       }
     } catch (error) {
-      console.error("Failed to connect Google via Clerk:", error);
+      console.error("Failed to connect Google:", error);
+      toast.error("Nepodarilo sa spustiť prepojenie s Google");
       setLoading(false);
     }
   };
@@ -389,10 +408,27 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     currentPage * itemsPerPage
   );
 
-  const handleEmptyTrash = React.useCallback(() => {
-    toast.success("Kôš bol úspešne vyprázdnený");
-    setMessages(prev => prev.filter(m => !(m.labels || []).includes("TRASH")));
-  }, []);
+  const handleEmptyTrash = React.useCallback(async () => {
+    try {
+      setMessages(prev => prev.filter(m => !(m.labels || []).includes("TRASH")));
+      toast.success("Kôš sa vyprázdňuje...");
+      
+      const res = await fetch("/api/google/gmail", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "empty_trash" })
+      });
+      
+      if (res.ok) {
+        toast.success("Kôš bol úspešne vyprázdnený na serveri Gmail");
+      } else {
+        throw new Error("Failed override");
+      }
+    } catch (e) {
+      console.error("Empty trash error:", e);
+      toast.error("Nepodarilo sa úplne vyprázdniť kôš na serveri");
+    }
+  }, [setMessages]);
 
   const handleToggleTag = React.useCallback((id: string, tag: string) => {
     setMessageTags(prev => {
@@ -454,8 +490,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     isConnected,
     loading,
     searchQuery,
+    debouncedSearchQuery,
     onSearchChange: setSearchQuery,
-    onRefresh: fetchMessages,
+    onRefresh: () => fetchMessages(false, selectedTab),
     onConnect: handleConnect,
     totalCount: messages.length + localSentMessages.length + androidLogs.length,
     currentPage,
@@ -499,6 +536,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     handleToggleTag,
     handleRemoveCustomTag,
     handleRenameCustomTag,
+    handleRestoreMessage,
     handleEmptyTrash,
     analyzeEmail,
     handleOpenEmail,

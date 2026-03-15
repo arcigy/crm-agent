@@ -19,4 +19,4 @@ export interface CalendarEvent {
   };
 }
 
-export type CalendarView = "month" | "week" | "day" | "4days" | "year" | "agenda";
+export type CalendarView = "month" | "week" | "day" | "workweek" | "year" | "agenda";

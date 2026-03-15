@@ -1,6 +1,6 @@
 "use client";
 
-import { format } from "date-fns";
+import { format, isToday, isSameMonth, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, setMonth, setYear } from "date-fns";
 import { sk } from "date-fns/locale";
 import {
   ChevronLeft,
@@ -12,9 +12,12 @@ import {
   ChevronDown,
   Plus,
   RefreshCw,
+  Target,
+  Briefcase,
+  Sparkles,
 } from "lucide-react";
 import { CalendarView } from "@/types/calendar";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 
 interface CalendarHeaderProps {
   currentDate: Date;
@@ -26,12 +29,13 @@ interface CalendarHeaderProps {
   onCreateClick?: () => void;
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  showWeekends: boolean;
-  onWeekendsToggle: () => void;
-  showDeclined: boolean;
-  onDeclinedToggle: () => void;
+  onlyDeals: boolean;
+  onOnlyDealsToggle: () => void;
+  highlightFree: boolean;
+  onHighlightFreeToggle: () => void;
   onSettingsClick?: () => void;
   onSyncClick?: () => void;
+  onDateSelect?: (date: Date) => void;
 }
 
 export function CalendarHeader({
@@ -44,28 +48,54 @@ export function CalendarHeader({
   onCreateClick,
   searchTerm,
   onSearchChange,
-  showWeekends,
-  onWeekendsToggle,
-  showDeclined,
-  onDeclinedToggle,
+  onlyDeals,
+  onOnlyDealsToggle,
+  highlightFree,
+  onHighlightFreeToggle,
   onSettingsClick,
   onSyncClick,
+  onDateSelect,
 }: CalendarHeaderProps) {
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isViewSelectorOpen, setIsViewSelectorOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const datePickerRef = useRef<HTMLDivElement>(null);
+  const monthSelectorRef = useRef<HTMLDivElement>(null);
+  const yearSelectorRef = useRef<HTMLDivElement>(null);
   const viewSelectorRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const [pickerDate, setPickerDate] = useState(currentDate);
+  const [isMonthSelectorOpen, setIsMonthSelectorOpen] = useState(false);
+  const [isYearSelectorOpen, setIsYearSelectorOpen] = useState(false);
 
   const views: { id: CalendarView; label: string; shortcut: string }[] = [
     { id: "day", label: "Deň", shortcut: "D" },
-    { id: "week", label: "Týždeň", shortcut: "W" },
+    { id: "workweek", label: "prac týždeň", shortcut: "P" },
     { id: "month", label: "Mesiac", shortcut: "M" },
     { id: "year", label: "Rok", shortcut: "Y" },
-    { id: "4days", label: "4 dni", shortcut: "X" },
+    { id: "week", label: "Týždeň", shortcut: "W" },
   ];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
+      if (
+        datePickerRef.current &&
+        !datePickerRef.current.contains(event.target as Node)
+      ) {
+        setIsDatePickerOpen(false);
+      }
+      if (
+        monthSelectorRef.current &&
+        !monthSelectorRef.current.contains(event.target as Node)
+      ) {
+        setIsMonthSelectorOpen(false);
+      }
+      if (
+        yearSelectorRef.current &&
+        !yearSelectorRef.current.contains(event.target as Node)
+      ) {
+        setIsYearSelectorOpen(false);
+      }
       if (
         viewSelectorRef.current &&
         !viewSelectorRef.current.contains(event.target as Node)
@@ -83,7 +113,24 @@ export function CalendarHeader({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Auto-scroll to active year when opened
+  useEffect(() => {
+    if (isYearSelectorOpen && yearSelectorRef.current) {
+      setTimeout(() => {
+        const activeYear = yearSelectorRef.current?.querySelector('[data-active="true"]');
+        activeYear?.scrollIntoView({ block: 'center', behavior: 'auto' });
+      }, 50);
+    }
+  }, [isYearSelectorOpen]);
+
   const activeViewLabel = views.find((v) => v.id === view)?.label || "Mesiac";
+
+  const isCurrentViewToday = useMemo(() => {
+    const today = new Date();
+    if (view === "month") return isSameMonth(currentDate, today);
+    if (view === "year") return currentDate.getFullYear() === today.getFullYear();
+    return isSameDay(currentDate, today);
+  }, [currentDate, view]);
 
   return (
     <header className="flex items-center justify-between px-8 py-5 bg-[#050507] backdrop-blur-xl border-b border-white/[0.03] shrink-0 relative z-50">
@@ -95,12 +142,146 @@ export function CalendarHeader({
         </div>
 
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-1 bg-white/5 p-1 rounded-2xl border border-white/5">
+          <div className="flex items-center gap-1 bg-white/5 p-1 rounded-2xl border border-white/5 relative">
+            <div className="relative" ref={datePickerRef}>
+              <button
+                onClick={() => {
+                  setPickerDate(currentDate);
+                  setIsDatePickerOpen(!isDatePickerOpen);
+                }}
+                className={`p-2.5 rounded-xl transition-all active:scale-95 flex items-center justify-center ${isDatePickerOpen ? 'bg-violet-500 text-white shadow-[0_0_20px_rgba(124,58,237,0.4)]' : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5'}`}
+                title="Vybrať dátum"
+              >
+                <CalendarIcon size={18} />
+              </button>
+
+              {isDatePickerOpen && (
+                <div className="absolute left-0 mt-3 w-80 bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] p-6 animate-in fade-in zoom-in-95 duration-200">
+                  {/* Selectors */}
+                  <div className="flex items-center gap-2 mb-6 bg-white/[0.03] p-1.5 rounded-2xl border border-white/5 relative">
+                    {/* Month Selector */}
+                    <div className="flex-1 relative" ref={monthSelectorRef}>
+                      <button 
+                        onClick={() => setIsMonthSelectorOpen(!isMonthSelectorOpen)}
+                        className="w-full flex items-center justify-between bg-transparent text-[11px] font-black uppercase italic tracking-widest text-violet-400 outline-none cursor-pointer pl-3 pr-2 py-2"
+                      >
+                        <span className="truncate">{format(pickerDate, 'LLLL', { locale: sk })}</span>
+                        <ChevronDown size={14} className={`text-violet-500 transition-transform duration-300 ${isMonthSelectorOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {isMonthSelectorOpen && (
+                        <div className="absolute top-full left-0 mt-2 w-48 bg-[#0a0a0c] border border-white/10 rounded-2xl shadow-2xl z-[110] py-2 max-h-64 overflow-y-auto scrollbar-hide animate-in fade-in slide-in-from-top-2">
+                          {Array.from({ length: 12 }).map((_, i) => (
+                            <button
+                              key={`month-opt-${i}`}
+                              onClick={() => {
+                                setPickerDate(setMonth(pickerDate, i));
+                                setIsMonthSelectorOpen(false);
+                              }}
+                              className={`w-full text-left px-4 py-2.5 text-[10px] font-black uppercase italic tracking-widest transition-all ${
+                                pickerDate.getMonth() === i 
+                                  ? "bg-violet-500 text-white" 
+                                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+                              }`}
+                            >
+                              {format(new Date(2000, i, 1), 'LLLL', { locale: sk })}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="w-px h-4 bg-white/10" />
+
+                    {/* Year Selector */}
+                    <div className="flex-[0.8] relative" ref={yearSelectorRef}>
+                      <button 
+                        onClick={() => setIsYearSelectorOpen(!isYearSelectorOpen)}
+                        className="w-full flex items-center justify-between bg-transparent text-[11px] font-black italic text-violet-400 outline-none cursor-pointer pl-3 pr-2 py-2"
+                      >
+                        <span>{pickerDate.getFullYear()}</span>
+                        <ChevronDown size={14} className={`text-violet-500 transition-transform duration-300 ${isYearSelectorOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {isYearSelectorOpen && (
+                        <div className="absolute top-full right-0 mt-2 w-32 bg-[#0a0a0c] border border-white/10 rounded-2xl shadow-2xl z-[110] py-2 max-h-64 overflow-y-auto scrollbar-hide animate-in fade-in slide-in-from-top-2">
+                          {Array.from({ length: 41 }).map((_, i) => {
+                            const year = 2006 + i;
+                            return (
+                              <button
+                                key={`year-opt-${year}`}
+                                data-active={pickerDate.getFullYear() === year}
+                                onClick={() => {
+                                  setPickerDate(setYear(pickerDate, year));
+                                  setIsYearSelectorOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2.5 text-[10px] font-black italic transition-all ${
+                                  pickerDate.getFullYear() === year 
+                                    ? "bg-violet-500 text-white shadow-lg shadow-violet-500/20" 
+                                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                }`}
+                              >
+                                {year}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Calendar Grid */}
+                  <div className="space-y-4">
+                    {/* Day Names Row - FLEX for robustness */}
+                    <div className="flex items-center justify-between w-full mb-1">
+                      {['P', 'U', 'S', 'Š', 'P', 'S', 'N'].map((d, i) => (
+                        <div key={`lbl-${i}`} className="w-[calc(100%/7)] text-[10px] font-black text-violet-500 text-center py-1 uppercase italic opacity-70">{d}</div>
+                      ))}
+                    </div>
+
+                    {/* Days Numbers Grid */}
+                    <div className="grid grid-cols-7 gap-1">
+                      {(() => {
+                        const start = startOfWeek(startOfMonth(pickerDate), { weekStartsOn: 1 });
+                        const end = endOfWeek(endOfMonth(pickerDate), { weekStartsOn: 1 });
+                        const days = eachDayOfInterval({ start, end });
+                        
+                        return days.map(day => {
+                          const isSel = isSameDay(day, currentDate);
+                          const isCurMonth = isSameMonth(day, pickerDate);
+                          const dayKey = `d-${day.getTime()}`;
+                          return (
+                            <button
+                              key={dayKey}
+                              onClick={() => {
+                                onDateSelect?.(day);
+                                setIsDatePickerOpen(false);
+                              }}
+                              className={`aspect-square flex items-center justify-center text-[11px] font-black rounded-xl transition-all duration-300
+                                ${isSel ? 'bg-violet-500 text-white shadow-[0_0_20px_rgba(124,58,237,0.6)] scale-110 z-10' : 
+                                  isCurMonth ? 'text-white hover:bg-white/10 hover:scale-105' : 'text-zinc-800 opacity-30'}
+                              `}
+                            >
+                              {format(day, 'd')}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               onClick={onToday}
-              className="px-4 py-2 hover:bg-white/5 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white active:scale-95"
+              className={`p-2.5 rounded-xl transition-all active:scale-95 flex items-center justify-center ${
+                isCurrentViewToday
+                  ? "bg-violet-500/10 text-violet-400 border border-violet-500/20 shadow-[0_0_15px_rgba(124,58,237,0.1)]"
+                  : "text-zinc-500 hover:text-zinc-200 hover:bg-white/5"
+              }`}
+              title="Dnes"
             >
-              Dnes
+              <Target size={18} />
             </button>
             <div className="w-px h-4 bg-white/10 mx-1" />
             <button
@@ -135,7 +316,7 @@ export function CalendarHeader({
           className="flex items-center gap-2.5 px-6 py-2.5 bg-[#7c3aed]/10 text-violet-400 border border-[#7c3aed]/30 rounded-2xl hover:bg-[#7c3aed] hover:text-white hover:border-transparent hover:shadow-[0_0_30px_rgba(124,58,237,0.4)] transition-all active:scale-95 group overflow-hidden relative shadow-[0_0_15px_rgba(124,58,237,0.1)]"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-[#7c3aed]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <Plus size={16} className="relative z-10 group-hover:scale-110 group-hover:rotate-90 transition-transform duration-300" />
+          <Plus size={16} className="relative z-10" />
           <span className="text-[10px] font-black uppercase tracking-[0.2em] italic relative z-10 whitespace-nowrap">Poznámka</span>
         </button>
 
@@ -159,7 +340,7 @@ export function CalendarHeader({
             </button>
 
             {isSettingsOpen && (
-              <div className="absolute right-0 mt-3 w-64 bg-zinc-900/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] py-2 p-2 animate-in fade-in zoom-in-95 duration-200">
+              <div className="absolute right-0 mt-3 w-64 bg-[#0a0a0c] border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] py-2 p-2 animate-in fade-in zoom-in-95 duration-200">
                 <div className="px-4 py-3 border-b border-white/5 mb-2">
                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 italic">Konfigurácia</p>
                 </div>
@@ -202,7 +383,7 @@ export function CalendarHeader({
           </button>
 
           {isViewSelectorOpen && (
-            <div className="absolute right-0 mt-3 w-64 bg-zinc-900/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] py-2 p-2 animate-in fade-in zoom-in-95 duration-200">
+            <div className="absolute right-0 mt-3 w-64 bg-[#0a0a0c] border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] py-2 p-2 animate-in fade-in zoom-in-95 duration-200">
               {views.map((v) => (
                 <button
                   key={v.id}
@@ -225,23 +406,35 @@ export function CalendarHeader({
               <div className="h-px bg-white/5 my-2 mx-2" />
               <div className="px-2 py-2 space-y-1">
                 <button 
-                    onClick={onWeekendsToggle}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-all text-left"
+                    onClick={onOnlyDealsToggle}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                      onlyDeals ? 'text-violet-400 bg-violet-400/5' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+                    }`}
                 >
-                  <div className={`w-4 h-4 rounded border border-white/10 flex items-center justify-center transition-colors ${showWeekends ? 'bg-violet-500 border-violet-500' : ''}`}>
-                    {showWeekends && <div className="w-1.5 h-1.5 rounded-sm bg-white" />}
-                  </div>
-                  Zobrazovať víkendy
+                  <span>Zobraziť len deally</span>
+                  {onlyDeals && <div className="w-1 h-1 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.8)]" />}
                 </button>
                  <button 
-                    onClick={onDeclinedToggle}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-all text-left"
+                    onClick={onHighlightFreeToggle}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                      highlightFree ? 'text-violet-400 bg-violet-400/5' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+                    }`}
                 >
-                  <div className={`w-4 h-4 rounded border border-white/10 flex items-center justify-center transition-colors ${showDeclined ? 'bg-violet-500 border-violet-500' : ''}`}>
-                    {showDeclined && <div className="w-1.5 h-1.5 rounded-sm bg-white" />}
-                  </div>
-                  Odmietnuté udalosti
+                  <span>Voľné sloty</span>
+                  {highlightFree && <div className="w-1 h-1 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.8)]" />}
                 </button>
+
+                <div className="mt-4 pt-4 border-t border-white/5 px-2">
+                  <div className="flex items-start gap-3 opacity-50">
+                    <HelpCircle size={14} className="text-violet-400 mt-0.5 shrink-0" />
+                    <div className="space-y-1.5">
+                      <p className="text-[8px] font-black uppercase tracking-wider text-zinc-300">Ako to funguje?</p>
+                      <p className="text-[8px] font-medium leading-relaxed text-zinc-500">
+                        Systém automaticky zobrazuje deally a projekty z vášho CRM. Ak chcete v Google Kalendári označiť vlastnú biznis udalosť, pridajte do jej názvu <span className="text-violet-400 font-bold">#biznis</span> alebo <span className="text-violet-400 font-bold">#deal</span>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

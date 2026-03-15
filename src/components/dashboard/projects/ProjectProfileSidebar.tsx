@@ -95,6 +95,26 @@ export function ProjectProfileSidebar({
                     border="border-emerald-500/20"
                     glow="rgba(16,185,129,0.5)"
                 />
+                {/* Start Date Row */}
+                <ProjectRow 
+                    icon={<Calendar />}
+                    value={project.date_created ? new Date(project.date_created).toLocaleDateString("sk-SK") : "—"}
+                    label="Začiatok"
+                    color="text-cyan-400"
+                    bg="rgba(6,182,212,0.08)"
+                    border="border-cyan-500/20"
+                    glow="rgba(6,182,212,0.5)"
+                />
+                {/* End Date Row */}
+                <ProjectRow 
+                    icon={<Clock />}
+                    value={project.end_date ? new Date(project.end_date).toLocaleDateString("sk-SK") : "Neurčený"}
+                    label="Koniec"
+                    color="text-amber-400"
+                    bg="rgba(245,158,11,0.08)"
+                    border="border-amber-500/20"
+                    glow="rgba(245,158,11,0.5)"
+                />
             </div>
         </div>
 
@@ -128,7 +148,7 @@ export function ProjectProfileSidebar({
   );
 }
 
-function ProjectRow({ icon, value, color, bg, border, glow, isPulse, onClick }: any) {
+function ProjectRow({ icon, value, label, color, bg, border, glow, isPulse, onClick }: any) {
     return (
         <div 
             className={`p-4 rounded-3xl border transition-all duration-500 relative overflow-hidden group ${onClick ? 'cursor-pointer hover:bg-white/[0.04]' : ''}`}
@@ -149,16 +169,21 @@ function ProjectRow({ icon, value, color, bg, border, glow, isPulse, onClick }: 
                     {React.cloneElement(icon, { className: "w-4.5 h-4.5" })}
                 </div>
                 
-                <div className="flex items-center gap-2 min-w-0">
-                    {isPulse && (
-                        <div className="relative">
-                            <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                            <div className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-current animate-ping opacity-40" />
-                        </div>
+                <div className="flex flex-col min-w-0">
+                    {label && (
+                        <span className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.3em] leading-none mb-1">{label}</span>
                     )}
-                    <p className={`text-[15px] font-black italic tracking-tighter pr-4 ${color} group-hover:text-white transition-colors`}>
-                        {value}
-                    </p>
+                    <div className="flex items-center gap-2">
+                        {isPulse && (
+                            <div className="relative">
+                                <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                <div className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-current animate-ping opacity-40" />
+                            </div>
+                        )}
+                        <p className={`text-[15px] font-black italic tracking-tighter pr-4 ${color} group-hover:text-white transition-colors`}>
+                            {value}
+                        </p>
+                    </div>
                 </div>
             </div>
 

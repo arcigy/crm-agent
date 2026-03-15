@@ -127,10 +127,45 @@ export function useLeadsMessageHandlers(
     }
   };
 
+  const handleRestoreMessage = async (e: React.MouseEvent | null, msg: GmailMessage) => {
+    if (e) e.stopPropagation();
+    const toastId = toast.loading("Obnovujem správu...");
+    
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id === msg.id) {
+          const currentLabels = m.labels || [];
+          return { ...m, labels: [...currentLabels.filter(l => l !== "TRASH"), "INBOX"] };
+        }
+        return m;
+      }),
+    );
+
+    setSelectedEmail(null);
+
+    if (msg.id.startsWith("mock-") || msg.id.startsWith("local-sent-") || msg.id === "local-draft-1") {
+      toast.success("Správa bola obnovená do doručenej pošty", { id: toastId });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/google/gmail", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId: msg.id, action: "untrash" }),
+      });
+      if (res.ok) toast.success("Správa bola obnovená do doručenej pošty", { id: toastId });
+      else throw new Error();
+    } catch (error) {
+      toast.error("Nepodarilo sa obnoviť správu", { id: toastId });
+    }
+  };
+
   return {
     handleDeleteMessage,
     handleArchiveMessage,
     handleSpamMessage,
-    handleMarkUnreadMessage
+    handleMarkUnreadMessage,
+    handleRestoreMessage
   };
 }

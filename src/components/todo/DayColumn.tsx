@@ -5,6 +5,7 @@ import { CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { sk } from "date-fns/locale";
 import { TaskItem } from "./TaskItem";
+import { useDroppable } from "@dnd-kit/core";
 
 interface Task {
   id: string;
@@ -14,6 +15,7 @@ interface Task {
 }
 
 interface DayColumnProps {
+  id: string;
   title: string;
   date: Date;
   tasks: Task[];
@@ -25,6 +27,7 @@ interface DayColumnProps {
 }
 
 export function DayColumn({
+  id,
   title,
   date,
   tasks,
@@ -35,13 +38,17 @@ export function DayColumn({
   onClick,
 }: DayColumnProps) {
   const isCenter = variant === "center";
+  const { isOver, setNodeRef } = useDroppable({
+    id: id,
+  });
 
   return (
     <div
+      ref={setNodeRef}
       onClick={onClick}
       className={`
-        relative flex flex-col h-[320px] rounded-[2.5rem] overflow-hidden flex-shrink-0 transition-all duration-500 border w-full
-        bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl
+        relative flex flex-col h-[450px] md:h-[500px] rounded-[2.5rem] overflow-hidden flex-shrink-0 transition-all duration-500 border w-full
+        ${isOver ? "bg-violet-500/5 ring-2 ring-violet-500/20" : "bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl"}
         ${
           isCenter
             ? "border-violet-500/40 dark:border-violet-500/30 shadow-[0_40px_80px_rgba(0,0,0,0.3)] z-30 scale-[1.03]"
@@ -58,7 +65,7 @@ export function DayColumn({
           <span className={`font-black uppercase tracking-[0.2em] italic text-xs ${isCenter ? "text-violet-500" : "text-zinc-400"}`}>
             {title}
           </span>
-          <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-full">
+          <span className="text-[10px] font-black uppercase text-violet-500 bg-violet-500/10 border border-violet-500/20 px-2.5 py-1 rounded-full italic tracking-widest">
             {tasks.length} {tasks.length === 1 ? 'úloha' : tasks.length < 5 ? 'úlohy' : 'úloh'}
           </span>
         </div>
@@ -73,7 +80,7 @@ export function DayColumn({
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto p-4 pb-4 space-y-3 thin-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 pb-4 space-y-3 scrollbar-hide">
         {tasks.length > 0 ? (
           tasks.map((task) => (
             <TaskItem

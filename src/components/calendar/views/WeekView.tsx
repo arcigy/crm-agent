@@ -10,15 +10,15 @@ interface WeekViewProps {
   onEventClick: (event: CalendarEvent) => void;
   onDateClick?: (date: Date) => void;
   showWeekends?: boolean;
+  highlightFree?: boolean;
 }
 
-export function WeekView({ currentDate, events, onEventClick, onDateClick, showWeekends = true }: WeekViewProps) {
+export function WeekView({ currentDate, events, onEventClick, onDateClick, showWeekends = true, highlightFree = false }: WeekViewProps) {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
-  const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
-    .filter(day => showWeekends || (day.getDay() !== 0 && day.getDay() !== 6));
+  const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
   return (
-    <TimeGridView days={days} events={events} onEventClick={onEventClick} onDateClick={onDateClick} />
+    <TimeGridView days={days} events={events} onEventClick={onEventClick} onDateClick={onDateClick} highlightFree={highlightFree} currentDate={currentDate} />
   );
 }

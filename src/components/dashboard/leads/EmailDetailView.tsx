@@ -3,6 +3,7 @@
 import * as React from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import { sk } from "date-fns/locale";
+
 import {
   ArrowLeft,
   Trash2,
@@ -27,8 +28,17 @@ import {
   Zap,
   Target,
   TrendingUp,
+  User,
+  ListTodo,
+  Ban,
+  RotateCcw,
 } from "lucide-react";
 import { GmailMessage, GmailAttachment } from "@/types/gmail";
+import { toast } from "sonner";
+import { createTask } from "@/app/actions/tasks";
+import { generateTaskTitleFromEmail } from "@/app/actions/tasks";
+import { PremiumDatePicker } from "@/components/ui/PremiumDatePicker";
+import { PremiumTimePicker } from "@/components/ui/PremiumTimePicker";
 
 interface EmailDetailViewProps {
   email: GmailMessage;
@@ -40,6 +50,7 @@ interface EmailDetailViewProps {
   onToggleStar?: (e: React.MouseEvent, email: GmailMessage) => void;
   onReply?: (email: GmailMessage) => void;
   onForward?: (email: GmailMessage) => void;
+  onRestore?: (e: React.MouseEvent | null, email: GmailMessage) => void;
 }
 
 export function EmailDetailView({ 
@@ -51,10 +62,32 @@ export function EmailDetailView({
   onMarkUnread,
   onToggleStar,
   onReply,
-  onForward
+  onForward,
+  onRestore
 }: EmailDetailViewProps) {
   const [downloading, setDownloading] = React.useState<string | null>(null);
   const [showFullDetails, setShowFullDetails] = React.useState(false);
+  const [activeMenu, setActiveMenu] = React.useState<'top' | 'bottom' | null>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenu(null);
+      }
+    };
+    if (activeMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [activeMenu]);
+
+  // Task creation state
+  const [isTaskModalOpen, setIsTaskModalOpen] = React.useState(false);
+  const [taskTitle, setTaskTitle] = React.useState("");
+  const [taskStartDate, setTaskStartDate] = React.useState("");
+  const [taskStartTime, setTaskStartTime] = React.useState("");
+  const [isScanning, setIsScanning] = React.useState(false);
 
   const handleDownload = async (attachment: GmailAttachment) => {
     setDownloading(attachment.id);
@@ -81,6 +114,74 @@ export function EmailDetailView({
       console.error("Failed to download:", error);
     } finally {
       setDownloading(null);
+    }
+  };
+
+  const handleCreateTask = async () => {
+    setActiveMenu(null);
+    setIsScanning(true);
+    
+    // Set default fallback title immediately
+    const senderName = email.from?.split("<")[0]?.trim().replace(/"/g, "") || "Neznámy";
+    const subject = email.subject || "Bez predmetu";
+    setTaskTitle(`Odpovedať na e-mail od: ${senderName}`);
+    setTaskStartDate(""); 
+    setTaskStartTime(""); 
+    setIsTaskModalOpen(true);
+
+    try {
+      // We pass the raw snippet or body text (not HTML)
+      const bodyToAnalyze = email.snippet || email.body || email.bodyHtml?.replace(/<[^>]*>?/gm, '') || "";
+      console.log("Starting AI title generation...");
+      
+      const res = await generateTaskTitleFromEmail(subject, bodyToAnalyze, senderName);
+      console.log("AI title generation result:", res);
+      
+      if (res.success && res.title) {
+        setTaskTitle(res.title);
+      } else if (!res.success) {
+        toast.error("AI nepodarilo sa vygenerovať zadanie: " + res.error);
+      }
+    } catch (error) {
+      console.error("AI Title Generation Error:", error);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const submitTask = async () => {
+    try {
+      if (!taskTitle.trim()) return;
+      const toastId = toast.loading("Vytváram úlohu...");
+      
+      const subject = email.subject || "Bez predmetu";
+      // Format link so it's clickable in the SmartText component
+      const titleWithLink = `${taskTitle.trim()} (<a href="/dashboard/outreach/leads?messageId=${email.id}" class="text-violet-500 hover:text-violet-600 font-bold hover:underline transition-colors" data-email-link="true">E-mail: ${subject}</a>)`;
+      
+      let finalDueDate: string | undefined = undefined;
+      if (taskStartDate) {
+         try {
+           const [sYear, sMonth, sDay] = taskStartDate.split('-').map(Number);
+           const [sHour, sMinute] = (taskStartTime || "00:00").split(':').map(Number);
+           const startDateObj = new Date(sYear, sMonth - 1, sDay, sHour, sMinute);
+           if (!isNaN(startDateObj.getTime())) {
+               finalDueDate = startDateObj.toISOString();
+           }
+         } catch (e) {
+           console.error("Date parsing error", e);
+         }
+      }
+
+      const res = await createTask(titleWithLink, finalDueDate);
+      if (res.success) {
+        toast.success("Úloha bola pridaná do denníka", { id: toastId });
+        setIsTaskModalOpen(false);
+      } else {
+        toast.error("Nepodarilo sa vytvoriť úlohu", { id: toastId });
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Vyskytla sa nečakaná chyba");
     }
   };
 
@@ -126,13 +227,29 @@ export function EmailDetailView({
           >
             <AlertOctagon className="w-5 h-5" />
           </button>
-          <button 
-            onClick={() => onDeleteMessage(email)}
-            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all text-[#444746] hover:text-red-500" 
-            title="Odstrániť"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
+          {email.labels?.includes("TRASH") ? (
+            <button 
+              onClick={() => {
+                onRestore?.(null, email);
+                onClose();
+              }}
+              className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-all text-[#444746] hover:text-green-600" 
+              title="Obnoviť z koša"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </button>
+          ) : (
+            <button 
+              onClick={() => {
+                onDeleteMessage(email);
+                onClose();
+              }}
+              className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all text-[#444746] hover:text-red-500" 
+              title="Odstrániť"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          )}
           <div className="h-5 w-[1px] bg-violet-500/10 mx-1" />
           <button 
             onClick={() => {
@@ -162,9 +279,29 @@ export function EmailDetailView({
           >
             <Tag className="w-5 h-5" />
           </button>
-          <button className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" title="Viac">
-            <MoreVertical className="w-5 h-5" />
-          </button>
+          <div className="relative">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveMenu(activeMenu === 'top' ? null : 'top');
+              }}
+              className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600 focus:outline-none" 
+              title="Viac"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+            {activeMenu === 'top' && (
+              <div ref={menuRef} className="absolute top-full right-0 mt-1 w-64 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 rounded-2xl shadow-xl z-50 py-2 animate-in fade-in zoom-in-95 duration-150">
+                <button onClick={handleCreateTask} className="w-full text-left px-4 py-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-[13px] font-bold text-zinc-700 dark:text-zinc-200 transition-colors flex items-center gap-3">
+                  <ListTodo className="w-4 h-4 text-violet-500" /> Vytvoriť úlohu z tohto e-mailu
+                </button>
+                <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1 mx-2" />
+                <button onClick={() => { onSpam?.(email); import('sonner').then(({ toast }) => toast.success("Odosielateľ zablokovaný a nahlásený ako spam")); setActiveMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-[13px] font-bold text-red-600 transition-colors flex items-center gap-3">
+                  <Ban className="w-4 h-4" /> Zablokovať / Nahlásiť ako spam
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -179,7 +316,7 @@ export function EmailDetailView({
       </div>
 
       <div className="flex-1 overflow-y-auto thin-scrollbar">
-        <div className="max-w-[1200px] min-h-full mx-auto px-12 py-10">
+        <div className="max-w-[1200px] min-h-full mx-auto px-6 md:px-12 py-10">
           {/* ── Subject Area ── */}
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-4">
@@ -264,7 +401,7 @@ export function EmailDetailView({
               <div className="text-[12px] font-bold flex items-center gap-1">
                 {email.date && !isNaN(new Date(email.date).getTime()) ? (
                   <>
-                    <span className="text-violet-600/80 uppercase tracking-tighter">
+                    <span className="text-violet-600/80 font-mono font-bold uppercase tracking-normal">
                       {format(new Date(email.date), "eee d. M. H:mm", { locale: sk })}
                     </span>
                     <span className="opacity-40 font-normal ml-1 text-[11px]">
@@ -288,15 +425,29 @@ export function EmailDetailView({
                 >
                   <Reply className="w-5 h-5 transition-all" />
                 </button>
-                <button 
-                  onClick={() => {
-                    import('sonner').then(({ toast }) => toast.success("Kontakt bol aktualizovaný v CRM"));
-                  }}
-                  title="Viac možností"
-                  className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/30 text-violet-400 hover:text-violet-600 rounded-full transition-all hover:scale-110 active:scale-90"
-                >
-                  <MoreVertical className="w-5 h-5 transition-all" />
-                </button>
+                <div className="relative">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenu(activeMenu === 'bottom' ? null : 'bottom');
+                    }}
+                    title="Viac možností"
+                    className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/30 text-violet-400 hover:text-violet-600 rounded-full transition-all hover:scale-110 active:scale-90 focus:outline-none"
+                  >
+                    <MoreVertical className="w-5 h-5 transition-all" />
+                  </button>
+                  {activeMenu === 'bottom' && (
+                    <div ref={menuRef} className="absolute top-full right-0 mt-1 w-64 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 rounded-2xl shadow-xl z-50 py-2 animate-in fade-in zoom-in-95 duration-150">
+                      <button onClick={handleCreateTask} className="w-full text-left px-4 py-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-[13px] font-bold text-zinc-700 dark:text-zinc-200 transition-colors flex items-center gap-3">
+                        <ListTodo className="w-4 h-4 text-violet-500" /> Vytvoriť úlohu z tohto e-mailu
+                      </button>
+                      <div className="h-[1px] bg-black/5 dark:bg-white/10 my-1 mx-2" />
+                      <button onClick={() => { onSpam?.(email); import('sonner').then(({ toast }) => toast.success("Odosielateľ zablokovaný a nahlásený ako spam")); setActiveMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-[13px] font-bold text-red-600 transition-colors flex items-center gap-3">
+                        <Ban className="w-4 h-4" /> Zablokovať / Nahlásiť ako spam
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -454,6 +605,95 @@ export function EmailDetailView({
           </div>
         </div>
       </div>
+
+      {/* ── Task Creation Modal ── */}
+      {isTaskModalOpen && (
+        <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-3xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 border border-violet-100 dark:border-white/10">
+            <div className="px-6 py-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-violet-50/50 dark:bg-violet-900/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-violet-600/30">
+                  <ListTodo className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-violet-950 dark:text-violet-100 uppercase tracking-tight">
+                    Nová úloha z e-mailu
+                  </h3>
+                  <p className="text-[11px] font-bold text-violet-500 uppercase tracking-widest leading-none mt-1">
+                    Úloha bude obsahovať odkaz na tento e-mail
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div>
+                <label className="block text-[11px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-2 flex items-center justify-between">
+                  <span>Zadanie úlohy</span>
+                  {isScanning && (
+                    <span className="text-violet-500 animate-pulse flex items-center gap-1.5 text-[10px]">
+                      <Sparkles className="w-3 h-3" /> Generujem AI zadanie...
+                    </span>
+                  )}
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                    disabled={isScanning}
+                    className="w-full px-4 py-3 bg-white dark:bg-black border border-violet-200 dark:border-violet-900/50 rounded-xl text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all placeholder:font-medium placeholder:opacity-50 disabled:opacity-60"
+                    placeholder="Napr. Zavolať klientovi..."
+                    autoFocus
+                  />
+                  {isScanning && (
+                    <div className="absolute inset-y-0 right-4 flex items-center justify-center">
+                      <div className="w-4 h-4 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-1 block px-1">
+                    Dátum (Voliteľné)
+                  </label>
+                  <PremiumDatePicker
+                    value={taskStartDate}
+                    onChange={(v) => setTaskStartDate(v)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-1 block px-1">
+                    Čas
+                  </label>
+                  <PremiumTimePicker
+                    value={taskStartTime}
+                    onChange={(v) => setTaskStartTime(v)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-violet-50/50 dark:bg-black/20 flex justify-end gap-3">
+              <button
+                onClick={() => setIsTaskModalOpen(false)}
+                className="px-6 py-2.5 rounded-xl text-zinc-500 dark:text-zinc-400 font-black text-[11px] uppercase tracking-[0.1em] hover:bg-white dark:hover:bg-zinc-800 transition-all"
+              >
+                Zrušiť
+              </button>
+              <button
+                onClick={submitTask}
+                disabled={!taskTitle.trim()}
+                className="px-8 py-2.5 rounded-xl bg-violet-600 text-white font-black text-[11px] uppercase tracking-[0.15em] hover:bg-violet-700 shadow-lg shadow-violet-600/30 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                Vytvoriť a prepojiť
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

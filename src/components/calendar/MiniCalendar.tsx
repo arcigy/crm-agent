@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   format,
   startOfMonth,
@@ -20,10 +20,16 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 interface MiniCalendarProps {
   currentDate: Date;
   onDateSelect: (date: Date) => void;
+  onDateDoubleClick?: (date: Date) => void;
 }
 
-export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
+export function MiniCalendar({ currentDate, onDateSelect, onDateDoubleClick }: MiniCalendarProps) {
   const [viewDate, setViewDate] = useState(currentDate);
+  
+  // Sync with parent date changes (e.g. clicking "Today" in header)
+  useEffect(() => {
+    setViewDate(currentDate);
+  }, [currentDate]);
 
   const monthStart = startOfMonth(viewDate);
   const monthEnd = endOfMonth(monthStart);
@@ -39,7 +45,7 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
   const prevMonth = () => setViewDate(subMonths(viewDate, 1));
 
   return (
-    <div className="w-full bg-[#050507] p-5 lg:p-6 rounded-[2.2rem] border border-white/[0.03] shadow-2xl relative overflow-hidden group">
+    <div className="w-full bg-[#050507] p-4 rounded-[1.8rem] border border-white/[0.03] shadow-2xl relative overflow-hidden group">
       {/* Background ambient glow */}
       <div className="absolute top-1/2 left-1/2 w-[120%] h-[120%] bg-violet-600/5 blur-[80px] -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
@@ -63,11 +69,12 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-7 text-center mb-4 gap-y-3 gap-x-2 relative z-10 px-1">
+      {/* Day Labels - FLEX for robustness */}
+      <div className="flex items-center justify-between mb-4 px-2 relative z-10">
         {["P", "U", "S", "Š", "P", "S", "N"].map((day, index) => (
           <div
-            key={`${day}-${index}`}
-            className="text-[11px] font-black text-zinc-600 uppercase italic tracking-[0.2em]"
+            key={`mini-lbl-${index}`}
+            className="w-[calc(100%/7)] text-center text-[10px] font-black text-zinc-600 uppercase italic tracking-widest"
           >
             {day}
           </div>
@@ -84,12 +91,13 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
             <button
               key={day.toString()}
               onClick={() => onDateSelect(day)}
+              onDoubleClick={() => onDateDoubleClick?.(day)}
               className={`
-                                aspect-square flex items-center justify-center text-[10px] font-black rounded-[0.7rem] transition-all duration-300 relative group/day
+                                aspect-square flex items-center justify-center text-[10px] font-mono font-bold rounded-[0.7rem] transition-all duration-300 relative group/day
                                 ${isSelected ? "bg-[#7c3aed] text-white shadow-[0_0_20px_rgba(124,58,237,0.4)] z-10 scale-[1.05]" : ""}
                                 ${!isSelected && isDayToday ? "text-violet-400 border border-violet-500/30 bg-violet-500/5" : ""}
                                 ${!isSelected && !isDayToday && isCurrentMonth ? "text-zinc-400 hover:text-white" : ""}
-                                ${!isSelected && !isCurrentMonth ? "text-zinc-800" : ""}
+                                ${!isSelected && !isCurrentMonth ? "text-zinc-800 opacity-30" : ""}
                             `}
             >
               {!isSelected && isCurrentMonth && (
@@ -103,4 +111,3 @@ export function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
     </div>
   );
 }
-

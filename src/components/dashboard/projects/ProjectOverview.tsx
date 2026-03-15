@@ -5,7 +5,6 @@ import {
   Coins,
   Activity,
   Clock,
-  Zap,
   Receipt,
   CheckCircle,
   Calendar,
@@ -44,7 +43,7 @@ export function ProjectOverview({ project, onClose }: ProjectOverviewProps) {
   return (
     <div className="h-full overflow-y-auto thin-scrollbar p-8 space-y-12 bg-[#000000]">
       {/* KPI Cards - Static Glassmorphism */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <NeonKpi 
             label="Rozpočet"
             value={project.value ? `${new Intl.NumberFormat('sk-SK').format(project.value)} €` : "Dohodou"}
@@ -64,9 +63,15 @@ export function ProjectOverview({ project, onClose }: ProjectOverviewProps) {
             neonColor="blue"
         />
         <NeonKpi 
-            label="Systémové ID"
-            value={`${project.id}`}
-            icon={Zap}
+            label="Začiatok"
+            value={isValidCreated ? createdDate.toLocaleDateString("sk-SK") : "—"}
+            icon={Calendar}
+            neonColor="cyan"
+        />
+        <NeonKpi 
+            label="Koniec"
+            value={project.end_date ? new Date(project.end_date).toLocaleDateString("sk-SK") : "Neurčený"}
+            icon={Calendar}
             neonColor="amber"
         />
       </div>
@@ -142,6 +147,12 @@ function NeonKpi({ label, value, icon: Icon, neonColor }: any) {
       border: "border-amber-500/30",
       iconBg: "bg-amber-500 shadow-amber-500/40",
       text: "text-amber-400"
+    },
+    cyan: {
+      glow: "bg-cyan-500",
+      border: "border-cyan-500/30",
+      iconBg: "bg-cyan-500 shadow-cyan-500/40",
+      text: "text-cyan-400"
     }
   };
 

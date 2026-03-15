@@ -5,6 +5,8 @@ import { CheckCircle2, Circle, Trash2 } from "lucide-react";
 import { SmartText } from "./SmartText";
 import { ModernTimePicker } from "./ModernTimePicker";
 import { format, parseISO } from "date-fns";
+import { useDraggable } from "@dnd-kit/core";
+import { GripVertical } from "lucide-react";
 
 interface Task {
   id: string;
@@ -34,6 +36,15 @@ export function TaskItem({
   const [isEditing, setIsEditing] = React.useState(false);
   const [editedTitle, setEditedTitle] = React.useState(task.title);
 
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: task.id,
+    disabled: isEditing,
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
   const time =
     task.due_date && task.due_date.includes("T")
       ? format(parseISO(task.due_date), "HH:mm")
@@ -57,11 +68,15 @@ export function TaskItem({
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       onDoubleClick={(e) => {
         e.stopPropagation();
         if (!task.completed) setIsEditing(true);
       }}
-      className={`group relative p-3 rounded-2xl transition-all duration-200 border overflow-visible ${
+      className={`group relative p-[14px] rounded-[1.2rem] transition-all duration-200 border overflow-visible ${
+        isDragging ? "opacity-30 z-50 pointer-events-none shadow-2xl scale-105" : "z-10"
+      } ${
         task.completed
           ? "bg-zinc-50/50 dark:bg-zinc-800/20 border-transparent opacity-50"
           : "bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 shadow-sm hover:border-violet-400/50 dark:hover:border-violet-500/30"
@@ -85,25 +100,31 @@ export function TaskItem({
       )}
 
       <div className="flex items-center gap-3 relative z-10 w-full">
-        <button
-          onClick={handleToggle}
-          className={`flex-shrink-0 transition-all duration-300 transform active:scale-75 ${
-            task.completed ? "text-violet-500" : "text-zinc-300 hover:text-violet-500"
-          }`}
+        <div 
+          className="flex items-center py-1 transition-all"
+          {...attributes}
+          {...listeners}
         >
-          {task.completed ? (
-            <CheckCircle2 size={isCenter ? 22 : 18} strokeWidth={3} className="drop-shadow-[0_0_12px_rgba(139,92,246,0.8)] text-violet-500" />
-          ) : (
-            <Circle size={isCenter ? 22 : 18} strokeWidth={2.5} className="group-hover:text-violet-500 transition-colors" />
-          )}
-        </button>
+          <button
+            onClick={handleToggle}
+            className={`flex-shrink-0 transition-all duration-300 transform active:scale-75 cursor-grab active:cursor-grabbing hover:scale-110 ${
+              task.completed ? "text-violet-500" : "text-zinc-300 hover:text-violet-500"
+            }`}
+          >
+            {task.completed ? (
+              <CheckCircle2 size={isCenter ? 22 : 18} strokeWidth={3} className="drop-shadow-[0_0_12px_rgba(139,92,246,0.8)] text-violet-500" />
+            ) : (
+              <Circle size={isCenter ? 22 : 18} strokeWidth={2.5} className="group-hover:text-violet-500 transition-colors" />
+            )}
+          </button>
+        </div>
 
-        <div className="flex-1 min-w-0 flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0 flex items-center justify-between gap-3 h-full">
           <div className="flex-1 min-w-0">
             {isEditing ? (
               <input
                 autoFocus
-                className="w-full bg-transparent border-none outline-none text-sm font-black text-zinc-900 dark:text-white p-0 m-0 placeholder-zinc-400 leading-none italic"
+                className="w-full bg-transparent border-none outline-none text-[14px] font-black text-zinc-900 dark:text-white p-0 m-0 placeholder-zinc-400 leading-none italic"
                 value={editedTitle}
                 onChange={(e) => setEditedTitle(e.target.value)}
                 onBlur={handleTitleSubmit}
@@ -113,7 +134,7 @@ export function TaskItem({
             ) : (
               <SmartText
                 text={task.title}
-                className={`text-sm font-black tracking-tight leading-none truncate block ${
+                className={`text-[14px] font-black tracking-tight leading-snug truncate block ${
                   task.completed ? "line-through text-zinc-400 italic" : "text-zinc-800 dark:text-zinc-100"
                 }`}
               />

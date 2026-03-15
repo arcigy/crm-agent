@@ -229,6 +229,66 @@ JAZYK (VÝSTUP PRE UŽÍVATEĽA): Všetky vygenerované texty v JSON objekte (na
   }
 }
 
+export async function generateNoteFromPrompt(
+  prompt: string,
+  userEmail?: string
+) {
+  let context = {
+    business_company_name: "",
+  };
+
+  if (userEmail) {
+    context = await getIsolatedAIContext(userEmail, "GLOBAL");
+  }
+
+  const systemPrompt = `
+Si **pokročilý AI stratég a kreatívny editor** pre firmu ${context.business_company_name}. Tvojou úlohou je na základe stručného zadania od používateľa vytvoriť komplexnú, štruktúrovanú a vizuálne atraktívnu poznámku.
+
+Vráť JSON objekt v tomto formáte:
+{
+  "title": "VÝSTIŽNÝ NADPIS POZNÁMKY",
+  "blocks": [
+    { "type": "h1", "content": "HLAVNÝ NADPIS" },
+    { "type": "callout", "content": "Zhrnutie alebo kľúčový insight" },
+    { "type": "hr" },
+    { "type": "h2", "content": "SEKCIA" },
+    { "type": "p", "content": "Text s [color:#6366f1]farebným zvýraznením[/color]." },
+    { "type": "ul", "items": ["Bod 1", "Bod 2"] }
+  ]
+}
+
+PRAVIDLÁ:
+1. **Dizajn:** Používaj farby ([color:#kód]text[/color]), bold (**text**) a odrážky.
+2. **Obsah:** Buď kreatívny. Ak používateľ napíše "Poznámka zo stretnutia o AI", vytvor štruktúru s účastníkmi, bodmi programu a ďalšími krokmi.
+3. **Jazyk:** Výhradne v slovenčine.
+4. **Kategorizácia:** Ak je to možné, navrhni aj vhodnú kategóriu (idea, work, personal).
+
+ZADANIE OD POUŽÍVATEĽA:
+"${prompt}"
+`;
+
+  try {
+    const model = genAI.getGenerativeModel({
+      model: AI_MODELS.REPORT,
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.8,
+      },
+    });
+
+    const response = await model.generateContent(systemPrompt);
+    const result = JSON.parse(response.response.text());
+    
+    return result;
+  } catch (error) {
+    console.error("AI Note Generation Error:", error);
+    return {
+        title: "Nová poznámka (AI)",
+        blocks: [{ type: "p", content: prompt }]
+    };
+  }
+}
+
 /**
  * Fetches relevant CRM context to improve STT accuracy.
  */

@@ -231,7 +231,7 @@ export function CalendarView() {
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 overflow-hidden">
         {/* Agenda Sidebar */}
-        <div className="lg:col-span-1 border-r border-gray-100 bg-gray-50/20 overflow-y-auto p-6 space-y-6">
+        <div className="lg:col-span-1 border-r border-gray-100 bg-gray-50/20 overflow-hidden select-none p-6 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">
               Upcoming
@@ -286,7 +286,7 @@ export function CalendarView() {
         </div>
 
         {/* Grid */}
-        <div className="lg:col-span-4 p-8 bg-white overflow-y-auto relative">
+        <div className="lg:col-span-4 p-8 bg-white overflow-y-auto scrollbar-hide relative">
           <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-3xl border border-gray-200 overflow-hidden shadow-2xl">
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
               <div key={day} className="bg-gray-50/80 p-5 text-center">

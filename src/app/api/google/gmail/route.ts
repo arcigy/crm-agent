@@ -56,8 +56,11 @@ function getMessageBody(payload: any): {
   return { text, html, attachments };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const tab = searchParams.get("tab") || "all";
+    
     const user = await currentUser();
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -70,17 +73,26 @@ export async function GET() {
 
     const gmail = await getGmailClient(token);
 
+    let query = "-category:promotions -category:social";
+    if (tab === "drafts") query = "in:drafts";
+    else if (tab === "sent") query = "in:sent";
+    else if (tab === "starred") query = "is:starred";
+    else if (tab === "snoozed") query = "in:snoozed";
+    else if (tab === "trash") query = "in:trash";
+    else if (tab === "spam") query = "in:spam";
+    else if (tab === "unread") query = "is:unread -category:promotions -category:social";
+
     const listRes = await gmail.users.messages.list({
       userId: "me",
-      maxResults: 20,
-      q: "-category:promotions -category:social",
+      maxResults: 50,
+      q: query,
     });
 
     if (!listRes.data.messages)
       return NextResponse.json({ isConnected: true, messages: [] });
 
     const messages = await Promise.all(
-      listRes.data.messages.map(async (m) => {
+      (listRes.data.messages || []).map(async (m: any) => {
         try {
           const detail = await gmail.users.messages.get({
             userId: "me",
@@ -90,10 +102,10 @@ export async function GET() {
 
           const headers = detail.data.payload?.headers;
           const subject =
-            headers?.find((h) => h.name === "Subject")?.value || "No Subject";
+            headers?.find((h: any) => h.name === "Subject")?.value || "No Subject";
           const from =
-            headers?.find((h) => h.name === "From")?.value || "Unknown";
-          const date = headers?.find((h) => h.name === "Date")?.value || "";
+            headers?.find((h: any) => h.name === "From")?.value || "Unknown";
+          const date = headers?.find((h: any) => h.name === "Date")?.value || "";
 
           const { text, html, attachments } = getMessageBody(
             detail.data.payload,
@@ -161,6 +173,57 @@ export async function PATCH(req: Request) {
           removeLabelIds: ["STARRED"],
         },
       });
+    } else if (action === "trash") {
+      await gmail.users.messages.trash({
+        userId: "me",
+        id: messageId,
+      });
+    } else if (action === "archive") {
+      await gmail.users.messages.modify({
+        userId: "me",
+        id: messageId,
+        requestBody: {
+          removeLabelIds: ["INBOX"],
+        },
+      });
+    } else if (action === "spam") {
+      await gmail.users.messages.modify({
+        userId: "me",
+        id: messageId,
+        requestBody: {
+          addLabelIds: ["SPAM"],
+          removeLabelIds: ["INBOX"],
+        },
+      });
+    } else if (action === "unread") {
+      await gmail.users.messages.modify({
+        userId: "me",
+        id: messageId,
+        requestBody: {
+          addLabelIds: ["UNREAD"],
+        },
+      });
+    } else if (action === "untrash") {
+      await gmail.users.messages.untrash({
+        userId: "me",
+        id: messageId,
+      });
+    } else if (action === "empty_trash") {
+      // List everything in trash
+      const trashList = await gmail.users.messages.list({
+        userId: "me",
+        q: "label:TRASH"
+      });
+      
+      if (trashList.data.messages && trashList.data.messages.length > 0) {
+        // PERMANENT DELETE (Batch)
+        await gmail.users.messages.batchDelete({
+          userId: "me",
+          requestBody: {
+            ids: trashList.data.messages.map((m: any) => m.id as string)
+          }
+        });
+      }
     } else {
       // Default behavior (mark as read)
       await gmail.users.messages.modify({

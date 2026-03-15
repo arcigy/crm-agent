@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Search,
   RefreshCw,
-  X
+  X,
+  Trash2
 } from "lucide-react";
 
 interface LeadsHeaderProps {
@@ -102,6 +103,22 @@ export function LeadsHeader({
           </button>
         </div>
 
+        {/* Visible Empty Trash Button */}
+        {currentTab === "trash" && (
+          <button 
+            onClick={() => {
+              if (window.confirm("Naozaj chcete natrvalo odstrániť všetky správy v koši? Tieto maily už nebude možné obnoviť.")) {
+                onEmptyTrash?.();
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 transition-all text-[11px] font-black uppercase tracking-wider"
+            title="Natrvalo vyprázdniť kôš"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Vysypať kôš
+          </button>
+        )}
+
         {/* 3 Dots Menu */}
         <div className="relative">
           <button 
@@ -182,10 +199,11 @@ export function LeadsHeader({
           )}
         </div>
 
-        {!isConnected && !loading && (
+        {!isConnected && (
           <button
             onClick={onConnect}
-            className="ml-4 px-5 py-2 rounded-[0.9rem] text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 relative overflow-hidden group"
+            disabled={loading}
+            className={`ml-4 px-5 py-2 rounded-[0.9rem] text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 relative overflow-hidden group ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             style={{
               background: "linear-gradient(135deg, rgba(124,58,237,0.35) 0%, rgba(109,40,217,0.25) 100%)",
               border: "1.5px solid rgba(167,139,250,0.5)",
@@ -193,7 +211,7 @@ export function LeadsHeader({
               color: "rgba(255,255,255,0.95)"
             }}
           >
-            Prepojiť Gmail
+            {loading ? "Overujem..." : "Prepojiť Gmail"}
           </button>
         )}
       </div>

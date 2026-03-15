@@ -30,6 +30,7 @@ interface LeadsSidebarProps {
 
 export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftCount = 0, onCompose, customTags = [], tagColors = {}, onManageTags }: LeadsSidebarProps) {
   const [isMoreExpanded, setIsMoreExpanded] = React.useState(false);
+  const [isTagsExpanded, setIsTagsExpanded] = React.useState(false);
 
   const mainItems = [
     { id: "all", label: "Doručené", icon: Inbox, count: unreadCount > 0 ? unreadCount.toLocaleString() : "" },
@@ -48,10 +49,7 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
 
   return (
     <div
-      className="w-full flex flex-col h-full overflow-y-auto thin-scrollbar relative"
-      style={{
-        background: "#000000",
-      }}
+      className="w-full flex flex-col h-full overflow-y-auto thin-scrollbar relative bg-transparent"
     >
 
       {/* Compose Button */}
@@ -76,11 +74,7 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
         </button>
       </div>
 
-      {/* Marble divider */}
-      <div
-        className="mx-4 mb-3 h-[1px]"
-        style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)" }}
-      />
+
 
       {/* Main Navigation */}
       <div className="px-2 flex-1 relative z-10">
@@ -93,6 +87,10 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
           />
         ))}
 
+
+
+
+
         {/* More Toggle */}
         <button
           onClick={() => setIsMoreExpanded(!isMoreExpanded)}
@@ -101,11 +99,11 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
           <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 100%)" }} />
           <div className="flex items-center gap-3">
             {isMoreExpanded ? (
-              <ChevronUp className="w-4 h-4 flex-shrink-0 transition-all duration-200 group-hover:text-violet-400" />
+              <ChevronUp className="w-4 h-4 flex-shrink-0 transition-all duration-200 group-hover:text-white" />
             ) : (
-              <ChevronDown className="w-4 h-4 flex-shrink-0 transition-all duration-200 group-hover:text-violet-400" />
+              <ChevronDown className="w-4 h-4 flex-shrink-0 transition-all duration-200 group-hover:text-white" />
             )}
-            <span className="tracking-wide font-medium text-white/40 group-hover:text-violet-300 transition-colors">
+            <span className="tracking-wide font-medium text-white/40 group-hover:text-white transition-colors">
               {isMoreExpanded ? "Menej" : "Ďalšie"}
             </span>
           </div>
@@ -124,42 +122,53 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
             ))}
           </div>
         )}
-      </div>
 
-      {/* Labels Section */}
-      <div className="px-4 py-4 relative z-10">
-        <div
-          className="h-[1px] mb-4"
-          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)" }}
-        />
-        <div className="flex items-center justify-between mb-3 px-1">
-          <div className="flex items-center">
-            <span
-              className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40"
+        {/* Labels Section (AFTER MORE/EXPANDED ITEMS) */}
+        <div className="py-2 mt-60 mb-2 relative z-10">
+          <div className="flex items-center justify-between mb-2 pl-2 pr-1">
+            <button 
+              onClick={() => setIsTagsExpanded(!isTagsExpanded)}
+              className="flex items-center gap-2 group transition-all"
             >
-              Moje Štítky
-            </span>
+              {isTagsExpanded ? (
+                <ChevronUp className="w-3.5 h-3.5 text-white/40 group-hover:text-white transition-colors" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 text-white/40 group-hover:text-white transition-colors" />
+              )}
+              <span
+                className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40 group-hover:text-white transition-colors"
+              >
+                Moje Štítky
+              </span>
+            </button>
+            
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onManageTags) onManageTags();
+              }}
+              title="Spravovať štítky"
+              className="p-1 rounded-xl transition-all duration-300 hover:bg-white/10 text-white/30 hover:text-white group flex-shrink-0"
+            >
+              <Plus className="w-4 h-4 transition-all" />
+            </button>
           </div>
-          <button
-            onClick={onManageTags}
-            title="Spravovať štítky"
-            className="p-1.5 rounded-xl transition-all duration-300 hover:bg-violet-500/10 text-white/30 hover:text-violet-400 group"
-          >
-            <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
-          </button>
-        </div>
-        <div className="mt-2 -mx-2">
-          {customTags.map((tag) => (
-             <SidebarButton
-               key={`tag:${tag}`}
-               item={{ id: `tag:${tag}`, label: tag, icon: Tag }}
-               isActive={selectedTab === `tag:${tag}`}
-               onClick={() => onTabChange(`tag:${tag}`)}
-               color={tagColors[tag]}
-             />
-          ))}
-          {customTags.length === 0 && (
-             <div className="text-[11px] text-white/30 px-3 py-2 italic font-medium">Žiadne štítky, začnite pridaním cez +</div>
+
+          {isTagsExpanded && (
+            <div className="mt-2 animate-in slide-in-from-top-2 fade-in duration-200">
+              {customTags.map((tag) => (
+                 <SidebarTag
+                   key={`tag:${tag}`}
+                   label={tag}
+                   isActive={selectedTab === `tag:${tag}`}
+                   onClick={() => onTabChange(`tag:${tag}`)}
+                   color={tagColors[tag]}
+                 />
+              ))}
+              {customTags.length === 0 && (
+                 <div className="text-[11px] text-white/30 px-3 py-2 italic font-medium">Žiadne štítky, pridajte prvé cez +</div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -242,6 +251,48 @@ function SidebarButton({ item, isActive, onClick, color }: { item: any; isActive
           {item.count}
         </span>
       )}
+    </button>
+  );
+}
+
+// Helper component specifically for tags (Sleek Mini Neon Text Cards)
+function SidebarTag({ label, isActive, onClick, color }: { label: string; isActive: boolean; onClick: () => void; color?: string }) {
+  const badgeColor = color || "#a78bfa"; // Default to violet if no color
+  
+  return (
+    <button
+      onClick={onClick}
+      className={`group w-full px-3 py-2 mb-1.5 flex items-center rounded-xl transition-all duration-300 relative overflow-hidden backdrop-blur-sm ${isActive ? '' : 'hover:bg-white/5'}`}
+      style={{
+        background: isActive 
+           ? `linear-gradient(90deg, ${badgeColor}10 0%, transparent 100%)` 
+           : `transparent`,
+        border: `1px solid ${isActive ? `${badgeColor}30` : `transparent`}`,
+      }}
+    >
+      {/* Intense but thin indicator line for active card */}
+      {isActive && (
+        <div 
+          className="absolute left-0 top-1 bottom-1 w-[2px] rounded-r-full pointer-events-none"
+          style={{ 
+            background: badgeColor,
+            boxShadow: `0 0 10px 1px ${badgeColor}` 
+          }}
+        />
+      )}
+
+      {/* Pure, clear, smaller Neon Label */}
+      <span 
+        className={`relative z-10 w-full text-left uppercase tracking-widest text-[10px] transition-all duration-300 ml-1 ${isActive ? 'font-black' : 'font-bold opacity-60 group-hover:opacity-100'}`}
+        style={{
+          color: isActive ? '#ffffff' : badgeColor,
+          textShadow: isActive 
+             ? `0 0 8px ${badgeColor}, 0 0 16px ${badgeColor}` 
+             : `0 0 4px ${badgeColor}50`, // Clearer, less aggressive aura
+        }}
+      >
+         {label}
+      </span>
     </button>
   );
 }

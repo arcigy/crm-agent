@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { createCalendarEvent } from "@/app/actions/calendar";
+import { createCalendarEvent, updateCalendarEvent } from "@/app/actions/calendar";
 import {
   getTodoRelations,
   ContactRelation,
@@ -27,12 +27,15 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { MentionNode } from "@/lib/tiptap-mention-node";
 import { useAutocomplete } from "@/hooks/useAutocomplete";
 import { AutocompleteDropdown } from "@/components/editor/AutocompleteDropdown";
+import { PremiumDatePicker } from "@/components/ui/PremiumDatePicker";
+import { PremiumTimePicker } from "@/components/ui/PremiumTimePicker";
 
 interface CreateEventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (event?: any) => void;
   initialDate?: Date;
+  initialEvent?: any;
 }
 
 interface Mention {
@@ -68,6 +71,7 @@ export function CreateEventModal({
   onClose,
   onSuccess,
   initialDate,
+  initialEvent,
 }: CreateEventModalProps) {
   const [loading, setLoading] = React.useState(false);
   const [isAllDay, setIsAllDay] = React.useState(false);
@@ -99,11 +103,11 @@ export function CreateEventModal({
     editorProps: {
       attributes: {
         class:
-          "w-full bg-white/5 border border-white/5 rounded-2xl px-6 py-5 focus:bg-white/10 focus:border-violet-500/30 outline-none transition-all font-black text-white italic placeholder:font-black placeholder:text-zinc-600 placeholder:italic min-h-[70px] text-lg uppercase tracking-tight",
+          "w-full bg-white/5 border border-white/5 rounded-2xl px-5 py-4 focus:bg-white/10 focus:border-violet-500/30 outline-none transition-all font-semibold text-white placeholder:font-medium placeholder:text-zinc-600 min-h-[65px] text-base tracking-normal",
       },
-      handleKeyDown: (view, event) => {
-        if (!editor) return false;
-        return handleAutocompleteKeyDown(event, editor);
+      handleKeyDown: (view, event): boolean => {
+        if (!view || !view.state) return false;
+        return handleAutocompleteKeyDown(event, view as any);
       },
     },
     onUpdate: ({ editor }) => {
@@ -122,10 +126,14 @@ export function CreateEventModal({
   // Load relations
   React.useEffect(() => {
     if (isOpen && editor) {
-      editor.commands.clearContent();
+      if (initialEvent) {
+          editor.commands.setContent(initialEvent.title || initialEvent.summary || "");
+      } else {
+          editor.commands.clearContent();
+      }
       setMentions([]);
     }
-  }, [isOpen, editor]);
+  }, [isOpen, editor, initialEvent]);
 
   const [formData, setFormData] = React.useState({
     description: "",
@@ -138,20 +146,40 @@ export function CreateEventModal({
   });
 
   React.useEffect(() => {
-    if (initialDate) {
-      const dateStr = format(initialDate, "yyyy-MM-dd");
-      setFormData((prev) => ({
-        ...prev,
-        startDate: dateStr,
-        endDate: dateStr,
-        startTime: format(new Date(), "HH:mm"),
-        endTime: format(
-          new Date(new Date().getTime() + 60 * 60 * 1000),
-          "HH:mm",
-        ),
-      }));
+    if (isOpen) {
+      if (initialEvent) {
+        setFormData({
+          description: initialEvent.description || "",
+          location: initialEvent.location || "",
+          recurrence: initialEvent.recurrence?.[0] || "",
+          startDate: format(initialEvent.start, "yyyy-MM-dd"),
+          startTime: format(initialEvent.start, "HH:mm"),
+          endDate: format(initialEvent.end, "yyyy-MM-dd"),
+          endTime: format(initialEvent.end, "HH:mm"),
+        });
+        setIsAllDay(!!initialEvent.allDay);
+      } else if (initialDate) {
+        const dateStr = format(initialDate, "yyyy-MM-dd");
+        
+        // Round current time to nearest 15 minutes for better picker compatibility
+        const now = new Date();
+        const minutes = now.getMinutes();
+        const roundedMinutes = Math.round(minutes / 15) * 15;
+        const start = new Date(now);
+        start.setMinutes(roundedMinutes, 0, 0);
+        
+        const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+        setFormData((prev) => ({
+          ...prev,
+          startDate: dateStr,
+          endDate: dateStr,
+          startTime: format(start, "HH:mm"),
+          endTime: format(end, "HH:mm"),
+        }));
+      }
     }
-  }, [initialDate, isOpen]);
+  }, [initialDate, isOpen, initialEvent]);
 
   // Build the full summary text (for Google Calendar)
   const buildSummaryText = () => {
@@ -162,6 +190,9 @@ export function CreateEventModal({
     if (!editor) return;
 
     selectSuggestion(suggestion, editor);
+
+    // Track mentions for data linking
+    setMentions(prev => [...prev, suggestion]);
 
     // Auto-add to description
     setFormData((prev) => ({
@@ -203,40 +234,84 @@ export function CreateEventModal({
           end = { date: formData.endDate };
         }
       } else {
-        start = {
-          dateTime: new Date(
-            `${formData.startDate}T${formData.startTime}:00`,
-          ).toISOString(),
-        };
-        if (isReminder) {
-          end = { dateTime: start.dateTime };
-        } else {
-          end = {
-            dateTime: new Date(
-              `${formData.endDate}T${formData.endTime}:00`,
-            ).toISOString(),
-          };
+        try {
+          // Robust date parsing from fragments
+          const [sYear, sMonth, sDay] = formData.startDate.split('-').map(Number);
+          const [sHour, sMinute] = formData.startTime.split(':').map(Number);
+          const startDateObj = new Date(sYear, sMonth - 1, sDay, sHour, sMinute);
+          
+          if (isNaN(startDateObj.getTime())) throw new Error("Invalid start date");
+          
+          start = { dateTime: startDateObj.toISOString() };
+
+          if (isReminder) {
+            end = { dateTime: start.dateTime };
+          } else {
+            const [eYear, eMonth, eDay] = formData.endDate.split('-').map(Number);
+            const [eHour, eMinute] = formData.endTime.split(':').map(Number);
+            const endDateObj = new Date(eYear, eMonth - 1, eDay, eHour, eMinute);
+            
+            if (isNaN(endDateObj.getTime())) throw new Error("Invalid end date");
+            
+            end = { dateTime: endDateObj.toISOString() };
+          }
+        } catch (e) {
+          toast.error("Chybný formát dátumu alebo času");
+          setLoading(false);
+          return;
         }
       }
 
-      const res = await createCalendarEvent({
+      const contactMention = mentions.find(m => m.type === 'contact');
+      const projectMention = mentions.find(m => m.type === 'project');
+
+      const extendedProperties = {
+        private: {
+          type: projectMention ? "project" : contactMention ? "contact" : undefined,
+          id: projectMention ? String(projectMention.id) : contactMention ? String(contactMention.id) : undefined,
+          contactId: contactMention ? String(contactMention.id) : undefined
+        }
+      };
+
+      const eventPayload = {
         summary,
         description: formData.description,
         location: formData.location,
         start,
         end,
         recurrence: formData.recurrence ? [formData.recurrence] : undefined,
-      });
+        extendedProperties,
+      };
+
+      const res = initialEvent?.id 
+        ? await updateCalendarEvent(initialEvent.id, eventPayload)
+        : await createCalendarEvent(eventPayload);
 
       if (res.success) {
-        toast.success("Udalosť bola vytvorená");
-        onSuccess();
+        toast.success(initialEvent ? "Udalosť bola upravená" : "Udalosť bola vytvorená");
+        
+        // Log activity to contact timeline if tagged
+        if (contactMention) {
+          try {
+            const { executeDbActivityTool } = await import("@/app/actions/executors-db-activities");
+            await executeDbActivityTool("db_create_activity", {
+              contact_id: Number(contactMention.id),
+              type: "meeting",
+              subject: `Kalendár: ${summary}`,
+              content: `Naplánovaná udalosť v kalendári. ${formData.location ? `Miesto: ${formData.location}` : ''}`,
+            }, "system@arcigy.cloud");
+          } catch (activityError) {
+            console.error("Failed to log calendar activity:", activityError);
+          }
+        }
+
+        onSuccess(res.event);
         onClose();
       } else {
-        toast.error(res.error || "Nepodarilo sa vytvoriť udalosť");
+        toast.error(res.error || `Nepodarilo sa ${initialEvent ? 'upraviť' : 'vytvoriť'} udalosť`);
       }
     } catch (error) {
-      toast.error("Systémová chyba pri vytváraní udalosti");
+      toast.error(`Systémová chyba pri ${initialEvent ? 'upravovaní' : 'vytváraní'} udalosti`);
     } finally {
       setLoading(false);
     }
@@ -250,27 +325,29 @@ export function CreateEventModal({
       />
 
       <div className="bg-[#050507]/95 backdrop-blur-3xl w-full max-w-lg rounded-[2.5rem] shadow-[0_25px_80px_rgba(0,0,0,0.8),0_0_50px_rgba(124,58,237,0.05)] relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-500 border border-white/[0.05] max-h-[95vh]">
-        <div className="p-8 border-b border-white/[0.03] flex items-center justify-between bg-black/40">
-          <div className="flex flex-col">
-            <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic leading-none">
-              Nová Poznámka
+        <div className="p-5 border-b border-white/[0.03] flex items-center justify-between bg-black/40">
+          <div className="flex-1">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-400 italic mb-1">
+              {initialEvent ? 'Upraviť udalosť' : 'Nová udalosť'}
             </h2>
-            <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest italic mt-1.5 opacity-40">Systémový protokol</span>
+            <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest italic">
+              {initialEvent ? 'Zmeňte detaily vašej aktivity' : 'Naplánujte si niečo nové'}
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="p-3 hover:bg-white/5 rounded-2xl transition-all group"
+            className="p-2 hover:bg-white/5 rounded-2xl transition-all group"
           >
-            <X className="w-6 h-6 text-zinc-500 group-hover:text-white transition-colors" />
+            <X className="w-6 h-6 transition-all" />
           </button>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="p-10 space-y-8 overflow-y-auto thin-scrollbar"
+          className="p-5 space-y-3 overflow-y-auto scrollbar-hide"
         >
           <div className="relative">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] italic text-zinc-600 mb-3 block px-1">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-3 block px-1">
               Poznámka do kalendára
             </label>
 
@@ -315,27 +392,23 @@ export function CreateEventModal({
           </div>
 
           {/* Date & Time */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] italic text-zinc-600 mb-1 block px-1">
+              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-1 block px-1">
                 Kedy
               </label>
               <div className="space-y-2">
-                <input
-                  type="date"
-                  className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-2.5 text-[12px] font-black text-white focus:bg-white/10 focus:border-violet-500/20 outline-none italic transition-all"
+                <PremiumDatePicker
                   value={formData.startDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startDate: e.target.value })
+                  onChange={(v) =>
+                    setFormData({ ...formData, startDate: v })
                   }
                 />
                 {!isAllDay && (
-                  <input
-                    type="time"
-                    className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-2.5 text-[12px] font-black text-white focus:bg-white/10 focus:border-violet-500/20 outline-none italic transition-all tabular-nums"
+                  <PremiumTimePicker
                     value={formData.startTime}
-                    onChange={(e) =>
-                      setFormData({ ...formData, startTime: e.target.value })
+                    onChange={(v) =>
+                      setFormData({ ...formData, startTime: v })
                     }
                   />
                 )}
@@ -344,28 +417,21 @@ export function CreateEventModal({
 
             {!isReminder && (
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] italic text-zinc-600 mb-1 block px-1">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-1 block px-1">
                   Do
                 </label>
                 <div className="space-y-2">
-                  <input
-                    type="date"
-                    className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-2.5 text-[12px] font-black text-white focus:bg-white/10 focus:border-violet-500/20 outline-none italic transition-all"
+                  <PremiumDatePicker
                     value={formData.endDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, endDate: e.target.value })
-                    }
-                    disabled={
-                      isAllDay && formData.startDate === formData.endDate
+                    onChange={(v) =>
+                      setFormData({ ...formData, endDate: v })
                     }
                   />
                   {!isAllDay && (
-                    <input
-                      type="time"
-                      className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-2.5 text-[12px] font-black text-white focus:bg-white/10 focus:border-violet-500/20 outline-none italic transition-all tabular-nums"
+                    <PremiumTimePicker
                       value={formData.endTime}
-                      onChange={(e) =>
-                        setFormData({ ...formData, endTime: e.target.value })
+                      onChange={(v) =>
+                        setFormData({ ...formData, endTime: v })
                       }
                     />
                   )}
@@ -375,9 +441,9 @@ export function CreateEventModal({
           </div>
 
           {/* Location & Additional Details */}
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-4">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] italic text-zinc-600 mb-3 block px-1">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-3 block px-1">
                   Lokalita
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -408,7 +474,7 @@ export function CreateEventModal({
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] italic text-zinc-600 mb-3 block px-1">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-3 block px-1">
                   Doplňujúce detaily
                 </label>
                 <div className="relative group/area">
@@ -432,14 +498,14 @@ export function CreateEventModal({
             <button
               disabled={loading}
               type="submit"
-              className="flex-1 h-16 bg-violet-600 hover:bg-violet-500 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] italic shadow-[0_10px_30px_rgba(139,92,246,0.3)] disabled:opacity-50 active:scale-95 transition-all flex items-center justify-center gap-3"
+              className="flex-1 h-12 bg-violet-600 hover:bg-violet-500 text-white rounded-[1.5rem] font-bold uppercase tracking-[0.15em] shadow-[0_10px_30px_rgba(139,92,246,0.3)] disabled:opacity-50 active:scale-95 transition-all flex items-center justify-center gap-3"
             >
               {loading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
                 <>
                     <Check className="w-5 h-5" />
-                    <span>Potvrdiť Poznámku</span>
+                    <span>{initialEvent ? 'Uložiť zmeny' : 'Vytvoriť udalosť'}</span>
                 </>
               )}
             </button>

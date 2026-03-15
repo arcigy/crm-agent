@@ -2,7 +2,7 @@ import * as React from "react";
 import type { Metadata } from "next";
 import { Outfit, Playfair_Display } from "next/font/google"; // Outfit for UI, Playfair for headlines
 
-import { Toaster } from "sonner";
+import { PremiumToaster } from "@/components/ui/PremiumToaster";
 import "./globals.css";
 import { SafeClerkProvider } from "@/components/SafeClerkProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -45,7 +45,7 @@ export default function RootLayout({
             forcedTheme="dark"
           >
             {children}
-            <Toaster richColors position="top-right" />
+            <PremiumToaster />
             <ServiceWorkerRegister />
           </ThemeProvider>
         </body>

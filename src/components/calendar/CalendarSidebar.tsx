@@ -1,7 +1,9 @@
 "use client";
 
 import { MiniCalendar } from "./MiniCalendar";
-import { Plus, Search, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { format } from "date-fns";
+import { sk } from "date-fns/locale";
 import { useState } from "react";
 
 interface CalendarSidebarProps {
@@ -12,6 +14,9 @@ interface CalendarSidebarProps {
   onCreateClick: () => void;
   isConnected?: boolean;
   onConnect?: () => void;
+  onDateDoubleClick?: (date: Date) => void;
+  lastSyncTime?: Date | null;
+  syncCounts?: { google: number; crm: number };
 }
 
 export function CalendarSidebar({
@@ -22,8 +27,11 @@ export function CalendarSidebar({
   onCreateClick,
   isConnected = true,
   onConnect,
+  onDateDoubleClick,
+  lastSyncTime,
+  syncCounts = { google: 0, crm: 0 },
 }: CalendarSidebarProps) {
-  const [isMyCalendarsOpen, setIsMyCalendarsOpen] = useState(true);
+  const [isMyCalendarsOpen, setIsMyCalendarsOpen] = useState(false);
   const [isOtherCalendarsOpen, setIsOtherCalendarsOpen] = useState(false);
 
   const myCalendars: { id: string; name: string; color: string }[] = [
@@ -36,10 +44,10 @@ export function CalendarSidebar({
   ];
 
   return (
-    <aside className="w-full h-full flex flex-col gap-6">
-      {/* Create Button Overlay */}
-      <div className="pt-6">
-        <MiniCalendar currentDate={currentDate} onDateSelect={onDateSelect} />
+    <aside className="w-full h-full flex flex-col gap-4">
+      {/* Mini Calendar */}
+      <div>
+        <MiniCalendar currentDate={currentDate} onDateSelect={onDateSelect} onDateDoubleClick={onDateDoubleClick} />
       </div>
 
       {/* People Search */}
@@ -63,7 +71,7 @@ export function CalendarSidebar({
           onClick={() => setIsMyCalendarsOpen(!isMyCalendarsOpen)}
           className="w-full flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 hover:text-white transition-colors italic"
         >
-          <span>Moje kalendáre</span>
+          Moje kalendáre
           {isMyCalendarsOpen ? (
             <ChevronUp size={14} className="opacity-40" />
           ) : (
@@ -113,7 +121,7 @@ export function CalendarSidebar({
           onClick={() => setIsOtherCalendarsOpen(!isOtherCalendarsOpen)}
           className="w-full flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 hover:text-white transition-colors italic"
         >
-          <span>Externé zdroje</span>
+          Externé zdroje
           {isOtherCalendarsOpen ? (
             <ChevronUp size={14} className="opacity-40" />
           ) : (
@@ -155,24 +163,62 @@ export function CalendarSidebar({
           </div>
         )}
       </div>
-      {/* Connection Status */}
-      {!isConnected && (
-          <div className="mt-auto px-4 py-6 rounded-[1.8rem] bg-violet-600/5 border border-violet-500/10 space-y-4">
-              <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 italic">Demo Režim</span>
-              </div>
-              <p className="text-[9px] font-bold text-zinc-600 leading-relaxed uppercase italic tracking-tight">
-                  Pre ukladanie reálnych poznámok do Google Kalendára musíte prepojiť účet.
-              </p>
-              <button 
-                onClick={onConnect}
-                className="w-full py-3 bg-violet-500/10 hover:bg-violet-500 text-violet-400 hover:text-white border border-violet-500/20 hover:border-transparent rounded-xl text-[10px] font-black uppercase tracking-widest transition-all italic active:scale-95"
-              >
-                Pripojiť Google
-              </button>
+      {/* Sync Status Hub */}
+      <div className="mt-auto p-5 rounded-[2rem] bg-[#0a0a0c] border border-white/5 space-y-5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 blur-2xl rounded-full translate-x-1/2 -translate-y-1/2" />
+          
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-3">
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-amber-500 animate-pulse shadow-[0_0_10px_#f59e0b]'}`} />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 italic">
+                {isConnected ? 'Prepojené' : 'Offline'}
+              </span>
+            </div>
+            <button 
+              onClick={() => onLayerToggle('sync')}
+              disabled={activeLayers.includes('syncing')}
+              className="p-1.5 hover:bg-white/5 rounded-lg transition-all text-zinc-600 hover:text-white disabled:opacity-50"
+              title="Vynútiť synchronizáciu"
+            >
+              <RefreshCw size={14} className={`${activeLayers.includes('syncing') ? 'animate-spin text-violet-500' : ''}`} />
+            </button>
           </div>
-      )}
+
+          <div className="space-y-4 relative z-10">
+            <div className="flex flex-col gap-1.5 px-1">
+              <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest leading-none">Posledná synchronizácia</span>
+              <p className="text-[11px] font-bold text-zinc-200 tabular-nums">
+                {lastSyncTime ? format(lastSyncTime, 'HH:mm:ss', { locale: sk }) : 'Nikdy'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-2xl group/item cursor-help transition-all hover:bg-white/[0.04]">
+                 <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest block text-center mb-1">CRM DATA</span>
+                 <div className="flex flex-col items-center gap-1">
+                    <span className="text-[14px] font-black italic text-violet-400 leading-none">{syncCounts.crm}</span>
+                    <div className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]" />
+                 </div>
+              </div>
+              <div className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-2xl group/item cursor-help transition-all hover:bg-white/[0.04]">
+                 <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest block text-center mb-1">GOOGLE CAL</span>
+                 <div className="flex flex-col items-center gap-1">
+                    <span className="text-[14px] font-black italic text-fuchsia-400 leading-none">{syncCounts.google}</span>
+                    <div className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]" />
+                 </div>
+              </div>
+            </div>
+          </div>
+
+          {!isConnected && (
+            <button 
+              onClick={onConnect}
+              className="w-full py-3 bg-violet-500/10 hover:bg-violet-500 text-violet-400 hover:text-white border border-violet-500/20 hover:border-transparent rounded-xl text-[10px] font-black uppercase tracking-widest transition-all italic active:scale-95 relative z-10"
+            >
+              Aktivovať Sync
+            </button>
+          )}
+      </div>
     </aside>
   );
 }

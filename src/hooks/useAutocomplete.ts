@@ -61,7 +61,23 @@ export function useAutocomplete() {
     const words = textBefore.split(/\s+/);
     const lastWord = words[words.length - 1] || "";
 
-    if (lastWord.length >= 3) {
+    // Trigger on @ or # prefix with at least 1 extra character
+    // Or normally if the word is 3+ characters long
+    if (lastWord.startsWith("@") || lastWord.startsWith("#")) {
+        if (lastWord.length >= 2) {
+            setQuery(lastWord);
+            const coords = editor.view.coordsAtPos(selection.from);
+            if (coords) {
+                setPosition({
+                    top: coords.bottom + 5,
+                    left: coords.left,
+                });
+            }
+        } else {
+            setQuery("");
+            setSuggestions([]);
+        }
+    } else if (lastWord.length >= 3) {
       setQuery(lastWord);
       const coords = editor.view.coordsAtPos(selection.from);
       if (coords) {

@@ -168,7 +168,7 @@ export function LeadsActionPanel({
                       onClick={(e) => onToggleAction(e, email.id)}
                       className="w-14 h-14 bg-white dark:bg-zinc-800 hover:bg-violet-50 dark:hover:bg-violet-900/20 border border-black/[0.03] dark:border-white/5 text-zinc-400 hover:text-violet-600 rounded-2xl flex items-center justify-center transition-all group"
                     >
-                      <X className="w-6 h-6 transition-transform group-hover:rotate-90 group-hover:text-violet-600" />
+                      <X className="w-6 h-6 transition-all group-hover:text-violet-600" />
                     </button>
                   </div>
                   <button

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FileText, Sparkles, Link as LinkIcon, User, FolderKanban, Briefcase, X, Lightbulb, Database, LayoutTemplate } from "lucide-react";
+import { FileText, Sparkles, Link as LinkIcon, User, FolderKanban, Briefcase, X, Lightbulb, Database, LayoutTemplate, Tag, Folder, ChevronDown, Trash2, RefreshCw } from "lucide-react";
 import { Note } from "../types";
 import RichTextEditor from "@/components/dashboard/editor/RichTextEditor";
 import { NoteLinkMenu } from "./NoteLinkMenu";
@@ -11,14 +11,31 @@ interface NoteEditorProps {
   selectedNote: Note | null;
   isSaving: boolean;
   onUpdateNote: (note: Note) => void;
+  customCategories: string[];
+  focusMode?: boolean;
+  onToggleFocus?: () => void;
 }
 
 export function NoteEditor({
   selectedNote,
   isSaving,
   onUpdateNote,
+  customCategories,
+  focusMode,
+  onToggleFocus,
 }: NoteEditorProps) {
   const [showLinkMenu, setShowLinkMenu] = React.useState(false);
+  const [showCategoryMenu, setShowCategoryMenu] = React.useState(false);
+
+  const getCategoryName = (id: string) => {
+    const staticCats: Record<string, string> = {
+        idea: "STRATÉGIA A NÁPADY",
+        work: "PROJEKTOVÉ ÚLOHY",
+        personal: "SÚKROMNÉ",
+    };
+    if (staticCats[id]) return staticCats[id];
+    return id.toUpperCase();
+  };
 
   if (!selectedNote) {
     return (
@@ -115,8 +132,8 @@ export function NoteEditor({
   const jsonData = isJson(selectedNote.content);
 
   return (
-    <div className="flex-1 bg-transparent p-12 flex flex-col relative group min-w-0">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-16 shrink-0 relative">
+    <div className="flex-1 bg-transparent p-5 flex flex-col relative group min-w-0 overflow-hidden">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 shrink-0 relative">
         <div className="flex flex-wrap items-center gap-4">
           {isSaving && (
             <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-violet-500">
@@ -142,6 +159,61 @@ export function NoteEditor({
             {selectedNote.deal_id && (
               <LinkedBadge icon={Briefcase} label="OBCHOD" onRemove={() => handleLink("deal", null)} />
             )}
+          </div>
+
+          {selectedNote.deleted_at && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 rounded-full border border-red-500/20 text-[9px] font-black uppercase tracking-[0.2em] text-red-500 animate-pulse">
+                <Trash2 size={12} />
+                <span>POZNÁMKA V KOŠI</span>
+            </div>
+          )}
+
+          {/* Category Selector */}
+          <div className="relative group/cats">
+              <button 
+                onClick={() => setShowCategoryMenu(!showCategoryMenu)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-violet-500/5 hover:bg-violet-500/10 rounded-full border border-violet-500/10 text-[9px] font-black uppercase tracking-[0.2em] text-violet-500 transition-all"
+              >
+                <Tag size={12} />
+                <span>{getCategoryName(selectedNote.category || "idea")}</span>
+                <ChevronDown size={10} className={`transition-transform duration-300 ${showCategoryMenu ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {showCategoryMenu && (
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-2xl z-40 p-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    {[
+                        { id: 'idea', name: 'STRATÉGIA A NÁPADY', icon: Lightbulb },
+                        { id: 'work', name: 'PROJEKTOVÉ ÚLOHY', icon: Briefcase },
+                        { id: 'personal', name: 'SÚKROMNÉ', icon: User },
+                    ].map(cat => (
+                        <button 
+                            key={cat.id}
+                            onClick={() => {
+                                onUpdateNote({ ...selectedNote, category: cat.id });
+                                setShowCategoryMenu(false);
+                            }}
+                            className="w-full text-left p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl flex items-center gap-3 group/item transition-colors"
+                        >
+                            <cat.icon size={12} className="text-zinc-400 group-hover/item:text-violet-500 transition-colors" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover/item:text-zinc-900 dark:group-hover/item:text-white">{cat.name}</span>
+                        </button>
+                    ))}
+                    <div className="h-[1px] bg-zinc-100 dark:bg-zinc-800 my-1 mx-2" />
+                    {customCategories.map(catName => (
+                        <button 
+                            key={catName}
+                            onClick={() => {
+                                onUpdateNote({ ...selectedNote, category: catName.toLowerCase() });
+                                setShowCategoryMenu(false);
+                            }}
+                            className="w-full text-left p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl flex items-center gap-3 group/item transition-colors"
+                        >
+                            <Folder size={12} className="text-zinc-400 group-hover/item:text-violet-500 transition-colors" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover/item:text-zinc-900 dark:group-hover/item:text-white">{catName}</span>
+                        </button>
+                    ))}
+                  </div>
+              )}
           </div>
         </div>
 
@@ -191,29 +263,42 @@ export function NoteEditor({
               onLink={handleLink}
             />
           </div>
+
+          {selectedNote.deleted_at && (
+            <button 
+                onClick={() => onUpdateNote({ ...selectedNote, deleted_at: null })}
+                className="px-6 py-3 rounded-xl bg-violet-600 text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-violet-700 transition-all shadow-lg shadow-violet-500/20 flex items-center gap-2"
+            >
+                <RefreshCw size={14} />
+                OBNOVIŤ POZNÁMKU
+            </button>
+          )}
         </div>
       </div>
 
-      <input
-        className="text-4xl font-black tracking-widest text-foreground mb-12 outline-none bg-transparent border-none focus:ring-0 leading-none uppercase placeholder:text-zinc-100 dark:placeholder:text-zinc-800"
-        value={selectedNote.title}
-        onChange={(e) => onUpdateNote({ ...selectedNote, title: e.target.value })}
-        placeholder="TITULOK POZNÁMKY..."
-      />
+      <div className={`flex-1 flex flex-col transition-all duration-700 ${focusMode ? 'max-w-4xl mx-auto w-full pt-10' : 'w-full'} ${selectedNote.deleted_at ? 'opacity-50 pointer-events-none' : ''}`}>
+        <input
+          className="text-2xl font-black tracking-widest text-foreground mb-3 outline-none bg-transparent border-none focus:ring-0 leading-none uppercase placeholder:text-zinc-200 dark:placeholder:text-zinc-700"
+          value={selectedNote.title}
+          disabled={!!selectedNote.deleted_at}
+          onChange={(e) => onUpdateNote({ ...selectedNote, title: e.target.value })}
+          placeholder="TITULOK POZNÁMKY..."
+        />
 
-      <div className="flex-1 px-1 min-h-0 pb-6 flex flex-col">
-        {jsonData ? (
-          <NoteTemplateRenderer 
-            data={jsonData} 
-            onUpdate={(updatedData) => onUpdateNote({ ...selectedNote, content: JSON.stringify(updatedData) })}
-          />
-        ) : (
-          <RichTextEditor
-            content={selectedNote.content}
-            onChange={(content) => onUpdateNote({ ...selectedNote, content })}
-            placeholder="Začnite písať..."
-          />
-        )}
+        <div className="flex-1 px-1 min-h-0 pb-2 flex flex-col">
+          {jsonData ? (
+            <NoteTemplateRenderer 
+              data={jsonData} 
+              onUpdate={(updatedData) => onUpdateNote({ ...selectedNote, content: JSON.stringify(updatedData) })}
+            />
+          ) : (
+            <RichTextEditor
+              content={selectedNote.content}
+              onChange={(content) => onUpdateNote({ ...selectedNote, content })}
+              placeholder="Začnite písať..."
+            />
+          )}
+        </div>
       </div>
     </div>
   );

@@ -8,15 +8,18 @@ interface DayViewProps {
   events: CalendarEvent[];
   onEventClick: (event: CalendarEvent) => void;
   onDateClick?: (date: Date) => void;
+  highlightFree?: boolean;
 }
 
-export function DayView({ currentDate, events, onEventClick, onDateClick }: DayViewProps) {
+export function DayView({ currentDate, events, onEventClick, onDateClick, highlightFree = false }: DayViewProps) {
   return (
     <TimeGridView
       days={[currentDate]}
       events={events}
       onEventClick={onEventClick}
       onDateClick={onDateClick}
+      highlightFree={highlightFree}
+      currentDate={currentDate}
     />
   );
 }
