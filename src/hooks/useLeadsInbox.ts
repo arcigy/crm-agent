@@ -37,7 +37,10 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     loading, setLoading,
     isConnected, setIsConnected,
     fetchMessages,
-    userLabels: gmailLabels
+    userLabels: gmailLabels,
+    inboxStats,
+    totalMessages: gmailTotalMessages,
+    nextPageToken
   } = useLeadsFetch(initialMessages, getSmartTags, selectedTab);
 
   const { getMockMessages } = useLeadsMockData();
@@ -401,11 +404,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     messages, localSentMessages, androidLogs, searchQuery, selectedTab, messageTags, hasDraft, draftData
   );
 
-  const totalPages = Math.ceil(allItems.length / itemsPerPage);
-  const paginatedItems = allItems.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  // When using server pagination, allItems already represents the data for current page
+  const paginatedItems = allItems;
   const handleEmptyTrash = React.useCallback(async () => {
     const toastId = toast.loading("Vysypávam kôš...");
     try {
@@ -453,12 +453,21 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     onSearchChange: setSearchQuery,
     onRefresh: () => fetchMessages(false, selectedTab),
     onConnect: handleConnect,
-    totalCount: messages.length + localSentMessages.length + androidLogs.length,
-    currentPage,
-    totalPages: Math.ceil((messages.length + localSentMessages.length + androidLogs.length) / itemsPerPage),
-    onPageChange: setCurrentPage,
     allItems,
     paginatedItems,
+    currentPage,
+    onPageChange: (page: number) => {
+      if (page > currentPage && nextPageToken) {
+        // Fetch next page from Gmail
+        fetchMessages(false, selectedTab, nextPageToken);
+      } else if (page === 1 && currentPage > 1) {
+        // Fetch fresh first page
+        fetchMessages(false, selectedTab);
+      }
+      setCurrentPage(page);
+    },
+    totalCount: (gmailTotalMessages || 0) + androidLogs.length,
+    totalPages: Math.ceil(((gmailTotalMessages || 0) + androidLogs.length) / itemsPerPage),
     selectedEmail,
     setSelectedEmail,
     isContactModalOpen,
@@ -536,6 +545,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       } as any;
       setLocalSentMessages(prev => [newSentMsg, ...prev]);
     },
-    gmailLabels
+    gmailLabels,
+    inboxStats
   };
 }

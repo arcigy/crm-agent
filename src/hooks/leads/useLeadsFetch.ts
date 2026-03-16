@@ -15,48 +15,73 @@ export function useLeadsFetch(
   const [loading, setLoading] = React.useState(true);
   const [isConnected, setIsConnected] = React.useState(false);
   const [userLabels, setUserLabels] = React.useState<any[]>([]);
+  const [inboxStats, setInboxStats] = React.useState<Record<string, { total: number, unread: number }>>({});
+  const [totalMessages, setTotalMessages] = React.useState(0);
+  const [nextPageToken, setNextPageToken] = React.useState<string | undefined>(undefined);
 
   // FIX 3: Client-side tab cache
   const emailCache = React.useRef<Record<string, {
     data: GmailMessage[],
-    fetchedAt: number
+    fetchedAt: number,
+    nextPageToken?: string,
+    totalMessages?: number
   }>>({});
   
-  const CACHE_TTL = 60000; // 60 seconds
+  const CACHE_TTL = 30000; // Reduced to 30s for more "live" feel
 
-  const fetchMessages = async (isBackground = false, tabParam?: string) => {
+  const fetchMessages = async (isBackground = false, tabParam?: string, pageToken?: string) => {
     const activeTab = tabParam || selectedTab;
     const category = activeTab.startsWith("tag:") ? activeTab.replace("tag:", "") : activeTab;
     const now = Date.now();
     const cached = emailCache.current[category];
 
-    // Return cache immediately if fresh and not a manual/background refresh
-    if (!isBackground && cached && (now - cached.fetchedAt) < CACHE_TTL) {
+    // Return cache immediately if fresh and not a manual/background refresh AND NOT page change
+    if (!isBackground && !pageToken && cached && (now - cached.fetchedAt) < CACHE_TTL) {
       setMessages(cached.data);
+      setNextPageToken(cached.nextPageToken);
+      setTotalMessages(cached.totalMessages || 0);
       setLoading(false);
       
       // Silently refresh in background
       fetchFresh(category, true).then(result => {
         if (result && result.messages) {
-          emailCache.current[category] = { data: result.messages, fetchedAt: Date.now() };
+          emailCache.current[category] = { 
+            data: result.messages, 
+            fetchedAt: Date.now(),
+            nextPageToken: result.nextPageToken,
+            totalMessages: result.totalMessages
+          };
           setMessages(result.messages);
+          setNextPageToken(result.nextPageToken);
+          setTotalMessages(result.totalMessages || 0);
           if (result.userLabels) setUserLabels(result.userLabels);
+          if (result.stats) setInboxStats(result.stats);
         }
       });
       return;
     }
 
     if (!isBackground) setLoading(true);
-    const result = await fetchFresh(category, isBackground);
+    const result = await fetchFresh(category, isBackground, pageToken);
     if (result && result.messages) {
-      emailCache.current[category] = { data: result.messages, fetchedAt: Date.now() };
+      // If it's a page fetch, we might want to APPEND, but usually replacing for simple pagination is better
+      // Unless we want "Infinite Scroll" feel. User said "switcher... older page", so standard replacement.
+      emailCache.current[category] = { 
+        data: result.messages, 
+        fetchedAt: Date.now(),
+        nextPageToken: result.nextPageToken,
+        totalMessages: result.totalMessages
+      };
       setMessages(result.messages);
+      setNextPageToken(result.nextPageToken);
+      setTotalMessages(result.totalMessages || 0);
       if (result.userLabels) setUserLabels(result.userLabels);
+      if (result.stats) setInboxStats(result.stats);
     }
     setLoading(false);
   };
 
-  const fetchFresh = async (category: string, isBackground: boolean): Promise<{ messages: GmailMessage[], userLabels?: any[] } | null> => {
+  const fetchFresh = async (category: string, isBackground: boolean, pageToken?: string): Promise<{ messages: GmailMessage[], userLabels?: any[], stats?: any, nextPageToken?: string, totalMessages?: number } | null> => {
     try {
       const dbRes = await fetch("/api/notes?type=ai_analysis");
       let currentAnalyses = dbAnalyses;
@@ -68,7 +93,8 @@ export function useLeadsFetch(
         }
       }
 
-      const gmailRes = await fetch(`/api/google/gmail?tab=${category}&t=${Date.now()}`, { cache: "no-store" });
+      const pageQuery = pageToken ? `&pageToken=${pageToken}` : '';
+      const gmailRes = await fetch(`/api/google/gmail?tab=${category}${pageQuery}&t=${Date.now()}`, { cache: "no-store" });
       if (gmailRes.ok) {
         const gmailData = await gmailRes.json();
         if (gmailData.isConnected && gmailData.messages) {
@@ -91,7 +117,13 @@ export function useLeadsFetch(
             return newMsg;
           });
 
-          return { messages: processedMessages, userLabels: gmailData.userLabels };
+          return { 
+            messages: processedMessages, 
+            userLabels: gmailData.userLabels,
+            stats: gmailData.stats,
+            nextPageToken: gmailData.nextPageToken,
+            totalMessages: gmailData.totalMessages
+          };
         } else if (gmailData.isConnected === false) {
            setIsConnected(false);
         }
@@ -152,6 +184,9 @@ export function useLeadsFetch(
     loading, setLoading,
     isConnected, setIsConnected,
     fetchMessages,
-    userLabels
+    userLabels,
+    inboxStats,
+    totalMessages,
+    nextPageToken
   };
 }

@@ -59,6 +59,8 @@ function getMessageBody(payload: any): {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tab = searchParams.get("tab") || searchParams.get("category") || "inbox";
+  const pageToken = searchParams.get("pageToken") || undefined;
+  const maxResults = parseInt(searchParams.get("pageSize") || "50");
 
   const CATEGORY_QUERIES: Record<string, any> = {
     inbox: { labelIds: ["INBOX"], q: "-category:promotions -category:social" },
@@ -110,7 +112,8 @@ export async function GET(request: Request) {
     try {
       listRes = await gmail.users.messages.list({
         userId: "me",
-        maxResults: 100, // Always fetch 100
+        maxResults,
+        pageToken,
         ...query,
       });
     } catch (err: any) {
@@ -119,7 +122,8 @@ export async function GET(request: Request) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         listRes = await gmail.users.messages.list({
           userId: "me",
-          maxResults: 100,
+          maxResults,
+          pageToken,
           ...query,
         });
       } else {
@@ -131,6 +135,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ 
         isConnected: true, 
         messages: [],
+        totalMessages: 0,
         message: `No emails in tab: ${tab}` 
       });
 
@@ -188,7 +193,9 @@ export async function GET(request: Request) {
       .filter((l: any) => l.type === "user" && !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'IMPORTANT'].includes(l.id))
       .map((l: any) => ({
         name: l.name,
-        color: l.color?.backgroundColor
+        color: l.color?.backgroundColor,
+        messagesTotal: l.messagesTotal || 0,
+        messagesUnread: l.messagesUnread || 0
       }))
       .sort((a: any, b: any) => {
         // CRM labels first
@@ -199,9 +206,46 @@ export async function GET(request: Request) {
         return a.name.localeCompare(b.name);
       });
 
+    // Create stats object for quick access to system label counts
+    const systemLabels = (labelsRes.data.labels || []).filter((l: any) => l.type === "system");
+    const stats: Record<string, { total: number, unread: number }> = {};
+    systemLabels.forEach((l: any) => {
+      stats[l.id.toLowerCase()] = {
+        total: l.messagesTotal || 0,
+        unread: l.messagesUnread || 0
+      };
+    });
+
+    // Fetch specific label stats for total count if possible
+    let totalMessages = listRes.data.resultSizeEstimate || 0;
+    let unreadMessages = 0;
+
+    const labelId = query.labelIds?.[0];
+    if (labelId) {
+      try {
+        const labelStats = await gmail.users.labels.get({ userId: "me", id: labelId });
+        totalMessages = labelStats.data.messagesTotal || totalMessages;
+        unreadMessages = labelStats.data.messagesUnread || 0;
+      } catch (e) {}
+    } else if (tab !== "all" && tab !== "archive") {
+      // Try to find label by name if it's a custom tag
+      const targetLabel = (labelsRes.data.labels || []).find((l: any) => l.name === tab || l.name === `CRM/${tab}`);
+      if (targetLabel) {
+        try {
+          const labelStats = await gmail.users.labels.get({ userId: "me", id: targetLabel.id });
+          totalMessages = labelStats.data.messagesTotal || totalMessages;
+          unreadMessages = labelStats.data.messagesUnread || 0;
+        } catch (e) {}
+      }
+    }
+
     return NextResponse.json({
       isConnected: true,
       messages: messages.filter((m) => m !== null),
+      nextPageToken: listRes.data.nextPageToken,
+      totalMessages,
+      unreadMessages,
+      stats,
       userLabels
     });
   } catch (error: any) {

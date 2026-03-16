@@ -25,26 +25,27 @@ interface LeadsSidebarProps {
   draftCount?: number;
   onCompose: () => void;
   gmailLabels?: any[];
-  onManageTags?: () => void;
+  inboxStats?: Record<string, { total: number, unread: number }>;
+  onManageTags?: React.Dispatch<React.SetStateAction<void>>;
 }
 
-export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftCount = 0, onCompose, gmailLabels = [], onManageTags }: LeadsSidebarProps) {
+export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftCount = 0, onCompose, gmailLabels = [], inboxStats, onManageTags }: LeadsSidebarProps) {
   const [isMoreExpanded, setIsMoreExpanded] = React.useState(false);
   const [isTagsExpanded, setIsTagsExpanded] = React.useState(false);
 
   const mainItems = [
-    { id: "inbox", label: "Doručené", icon: Inbox, count: unreadCount > 0 ? unreadCount.toLocaleString() : "" },
-    { id: "starred", label: "S hviezdičkou", icon: Star },
+    { id: "inbox", label: "Doručené", icon: Inbox, count: (inboxStats?.['inbox']?.unread || unreadCount) > 0 ? (inboxStats?.['inbox']?.unread || unreadCount).toLocaleString() : "" },
+    { id: "starred", label: "S hviezdičkou", icon: Star, count: inboxStats?.['starred']?.total ? inboxStats['starred'].total.toLocaleString() : "" },
     { id: "snoozed", label: "Odložené", icon: Clock },
     { id: "sent", label: "Odoslané", icon: Send },
-    { id: "drafts", label: "Koncepty", icon: FileEdit, count: draftCount > 0 ? draftCount.toString() : "" },
+    { id: "drafts", label: "Koncepty", icon: FileEdit, count: (inboxStats?.['draft']?.total || draftCount) > 0 ? (inboxStats?.['draft']?.total || draftCount).toString() : "" },
   ];
 
   const moreItems = [
     { id: "purchases", label: "Nákupy", icon: ShoppingBag },
     { id: "archive", label: "Archív", icon: Archive },
-    { id: "trash", label: "Kôš", icon: Trash2 },
-    { id: "spam", label: "Spam", icon: AlertOctagon },
+    { id: "trash", label: "Kôš", icon: Trash2, count: inboxStats?.['trash']?.total ? inboxStats['trash'].total.toString() : "" },
+    { id: "spam", label: "Spam", icon: AlertOctagon, count: inboxStats?.['spam']?.total ? inboxStats['spam'].total.toString() : "" },
   ];
 
 
@@ -259,7 +260,7 @@ function SidebarButton({ item, isActive, onClick, color }: { item: any; isActive
 }
 
 // Helper component specifically for tags (Sleek Mini Neon Text Cards)
-function SidebarTag({ label, isActive, onClick, color }: { label: string; isActive: boolean; onClick: () => void; color?: string }) {
+function SidebarTag({ label, isActive, onClick, color, count }: { label: string; isActive: boolean; onClick: () => void; color?: string; count?: number }) {
   const badgeColor = color || "#a78bfa"; // Default to violet if no color
   
   return (
@@ -294,8 +295,19 @@ function SidebarTag({ label, isActive, onClick, color }: { label: string; isActi
              : `0 0 4px ${badgeColor}50`, // Clearer, less aggressive aura
         }}
       >
-         {label}
-      </span>
+          {label}
+        </span>
+        
+        {count !== undefined && count > 0 && (
+           <span 
+             className={`ml-auto text-[9px] px-1.5 py-0.5 rounded-md tabular-nums min-w-[18px] text-center transition-all duration-300 ${isActive ? 'bg-white/20 text-white font-black' : 'bg-white/5 text-white/40 font-bold group-hover:bg-white/10 group-hover:text-white/60'}`}
+             style={{
+               border: isActive ? `1px solid ${badgeColor}40` : `1px solid transparent`
+             }}
+           >
+             {count}
+           </span>
+        )}
     </button>
   );
 }

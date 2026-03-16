@@ -89,6 +89,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             inbox.setIsComposeOpen(true);
           }}
           gmailLabels={inbox.gmailLabels}
+          inboxStats={inbox.inboxStats}
           onManageTags={() => {
             inbox.setTagModalEmail(null);
             inbox.setIsTagModalOpen(true);
