@@ -45,6 +45,7 @@ interface LeadsListContentProps {
   setTagModalEmail: (email: GmailMessage) => void;
   messageTags: Record<string, string[]>;
   gmailLabels?: any[];
+  isBuffering: boolean;
 }
 
 export function LeadsListContent({
@@ -86,6 +87,7 @@ export function LeadsListContent({
   setTagModalEmail,
   messageTags,
   gmailLabels = [],
+  isBuffering,
 }: LeadsListContentProps) {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -112,6 +114,7 @@ export function LeadsListContent({
         onEmptyTrash={handleEmptyTrash}
         currentTab={selectedTab}
         gmailLabels={gmailLabels}
+        isBuffering={isBuffering}
       />
 
       <div className="flex-1 overflow-y-auto px-4 pb-8 thin-scrollbar relative scroll-smooth bg-transparent transform-gpu">

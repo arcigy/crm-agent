@@ -12,7 +12,8 @@ import {
   Search,
   RefreshCw,
   X,
-  Trash2
+  Trash2,
+  Zap
 } from "lucide-react";
 
 interface LeadsHeaderProps {
@@ -35,6 +36,7 @@ interface LeadsHeaderProps {
   onEmptyTrash?: () => void;
   currentTab?: string;
   gmailLabels?: any[];
+  isBuffering?: boolean;
 }
 
 export function LeadsHeader({
@@ -57,6 +59,7 @@ export function LeadsHeader({
   onEmptyTrash,
   currentTab,
   gmailLabels = [],
+  isBuffering = false,
 }: LeadsHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isTagSubMenuOpen, setIsTagSubMenuOpen] = React.useState(false);
@@ -299,11 +302,19 @@ export function LeadsHeader({
 
       {/* Right Actions / Pagination */}
       <div className="flex items-center gap-4 flex-shrink-0">
-        <div className="text-[11px] font-black text-[#444746] dark:text-zinc-500 uppercase tracking-widest tabular-nums">
-          {totalCount > 0 
-            ? `Strana ${currentPage} z ${totalPages}` 
-            : "Strana 0 z 0"
-          }
+        <div className="flex items-center gap-2">
+          {isBuffering && (
+            <div className="flex items-center gap-1.5 animate-pulse" title="Načítavanie archívu na pozadí...">
+              <Zap className="w-3.5 h-3.5 text-violet-500 fill-violet-500/20" />
+              <span className="text-[10px] font-black text-violet-500/60 uppercase tracking-tighter">Syncing</span>
+            </div>
+          )}
+          <div className="text-[11px] font-black text-[#444746] dark:text-zinc-500 uppercase tracking-widest tabular-nums">
+            {totalCount > 0 
+              ? `Strana ${currentPage} z ${totalPages}` 
+              : "Strana 0 z 0"
+            }
+          </div>
         </div>
         <div className="flex items-center gap-0.5">
           <button 

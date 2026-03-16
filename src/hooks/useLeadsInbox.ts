@@ -40,7 +40,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     userLabels: gmailLabels,
     inboxStats,
     totalMessages: gmailTotalMessages,
-    nextPageToken
+    nextPageToken,
+    isBuffering
   } = useLeadsFetch(initialMessages, getSmartTags, selectedTab);
 
   const { getMockMessages } = useLeadsMockData();
@@ -456,6 +457,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     allItems,
     paginatedItems,
     currentPage,
+    isBuffering,
     onPageChange: (page: number) => {
       if (page > currentPage && nextPageToken) {
         // Fetch next page from Gmail

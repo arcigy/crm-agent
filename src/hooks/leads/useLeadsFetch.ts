@@ -18,6 +18,7 @@ export function useLeadsFetch(
   const [inboxStats, setInboxStats] = React.useState<Record<string, { total: number, unread: number }>>({});
   const [totalMessages, setTotalMessages] = React.useState(0);
   const [nextPageToken, setNextPageToken] = React.useState<string | undefined>(undefined);
+  const [isBuffering, setIsBuffering] = React.useState(false);
 
   // FIX 3: Client-side tab cache
   const emailCache = React.useRef<Record<string, {
@@ -27,58 +28,70 @@ export function useLeadsFetch(
     totalMessages?: number
   }>>({});
   
-  const CACHE_TTL = 30000; // Reduced to 30s for more "live" feel
+  const CACHE_TTL = 900000; // 15 minutes - keep data long during session
+  const MAX_BUFFER_SIZE = 1000;
 
-  const fetchMessages = async (isBackground = false, tabParam?: string, pageToken?: string) => {
+  const fetchMessages = async (isBackground = false, tabParam?: string, pageToken?: string, isAppend = false) => {
     const activeTab = tabParam || selectedTab;
     const category = activeTab.startsWith("tag:") ? activeTab.replace("tag:", "") : activeTab;
     const now = Date.now();
     const cached = emailCache.current[category];
 
     // Return cache immediately if fresh and not a manual/background refresh AND NOT page change
+    // If it's a page change but we already HAVE the emails for it, don't fetch
     if (!isBackground && !pageToken && cached && (now - cached.fetchedAt) < CACHE_TTL) {
       setMessages(cached.data);
       setNextPageToken(cached.nextPageToken);
       setTotalMessages(cached.totalMessages || 0);
       setLoading(false);
       
-      // Silently refresh in background
-      fetchFresh(category, true).then(result => {
-        if (result && result.messages) {
-          emailCache.current[category] = { 
-            data: result.messages, 
-            fetchedAt: Date.now(),
-            nextPageToken: result.nextPageToken,
-            totalMessages: result.totalMessages
-          };
-          setMessages(result.messages);
-          setNextPageToken(result.nextPageToken);
-          setTotalMessages(result.totalMessages || 0);
-          if (result.userLabels) setUserLabels(result.userLabels);
-          if (result.stats) setInboxStats(result.stats);
-        }
-      });
+      // Silently refresh in background (don't force if we have lots of data)
+      if (cached.data.length < 100) {
+        fetchFresh(category, true).then(result => {
+          if (result && result.messages) {
+            updateCache(category, result.messages, result.nextPageToken, result.totalMessages, false, result.stats, result.userLabels);
+          }
+        });
+      }
       return;
     }
 
     if (!isBackground) setLoading(true);
     const result = await fetchFresh(category, isBackground, pageToken);
     if (result && result.messages) {
-      // If it's a page fetch, we might want to APPEND, but usually replacing for simple pagination is better
-      // Unless we want "Infinite Scroll" feel. User said "switcher... older page", so standard replacement.
-      emailCache.current[category] = { 
-        data: result.messages, 
-        fetchedAt: Date.now(),
-        nextPageToken: result.nextPageToken,
-        totalMessages: result.totalMessages
-      };
-      setMessages(result.messages);
-      setNextPageToken(result.nextPageToken);
-      setTotalMessages(result.totalMessages || 0);
-      if (result.userLabels) setUserLabels(result.userLabels);
-      if (result.stats) setInboxStats(result.stats);
+      updateCache(category, result.messages, result.nextPageToken, result.totalMessages, isAppend, result.stats, result.userLabels);
     }
     setLoading(false);
+  };
+
+  const updateCache = (
+    category: string, 
+    newMessages: GmailMessage[], 
+    token?: string, 
+    total?: number, 
+    append = false,
+    stats?: any,
+    labels?: any[]
+  ) => {
+    const existing = emailCache.current[category]?.data || [];
+    const merged = append 
+      ? [...existing, ...newMessages.filter(m => !existing.some(em => em.id === m.id))]
+      : newMessages;
+    
+    emailCache.current[category] = { 
+      data: merged, 
+      fetchedAt: Date.now(),
+      nextPageToken: token,
+      totalMessages: total
+    };
+
+    if (category === (selectedTab.startsWith("tag:") ? selectedTab.replace("tag:", "") : selectedTab)) {
+      setMessages(merged);
+      setNextPageToken(token);
+      setTotalMessages(total || 0);
+      if (labels) setUserLabels(labels);
+      if (stats) setInboxStats(stats);
+    }
   };
 
   const fetchFresh = async (category: string, isBackground: boolean, pageToken?: string): Promise<{ messages: GmailMessage[], userLabels?: any[], stats?: any, nextPageToken?: string, totalMessages?: number } | null> => {
@@ -171,6 +184,24 @@ export function useLeadsFetch(
     });
   }, [selectedTab]);
 
+  // Buffer background pages
+  React.useEffect(() => {
+    if (loading || !isConnected || !nextPageToken || messages.length >= MAX_BUFFER_SIZE) {
+      if (isBuffering) setIsBuffering(false);
+      return;
+    }
+
+    const category = selectedTab.startsWith("tag:") ? selectedTab.replace("tag:", "") : selectedTab;
+    
+    // Safety: ensure we only buffer for the ACTIVE tab
+    const bufferTimeout = setTimeout(() => {
+      setIsBuffering(true);
+      fetchMessages(true, selectedTab, nextPageToken, true);
+    }, 5000); // 5s interval to not hammer the API
+
+    return () => clearTimeout(bufferTimeout);
+  }, [selectedTab, nextPageToken, messages.length, loading, isConnected]);
+
   // Re-fetch when category changes
   React.useEffect(() => {
     // Only fetch if we don't have fresh data for this tab
@@ -187,6 +218,7 @@ export function useLeadsFetch(
     userLabels,
     inboxStats,
     totalMessages,
-    nextPageToken
+    nextPageToken,
+    isBuffering
   };
 }
