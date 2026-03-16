@@ -73,7 +73,12 @@ export async function GET(request: Request) {
     unread: { q: "is:unread -category:promotions -category:social" }
   };
 
-  const query = CATEGORY_QUERIES[tab] || CATEGORY_QUERIES.inbox;
+  let query = CATEGORY_QUERIES[tab];
+  
+  // If tab is not a predefined category, assume it's a specific label name/query
+  if (!query) {
+    query = { q: `label:"${tab}"` };
+  }
 
   try {
     const user = await currentUser();

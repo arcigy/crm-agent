@@ -26,7 +26,7 @@ export function useLeadsFetch(
 
   const fetchMessages = async (isBackground = false, tabParam?: string) => {
     const activeTab = tabParam || selectedTab;
-    const category = activeTab.startsWith("tag:") ? "inbox" : activeTab;
+    const category = activeTab.startsWith("tag:") ? activeTab.replace("tag:", "") : activeTab;
     const now = Date.now();
     const cached = emailCache.current[category];
 
