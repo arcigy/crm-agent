@@ -83,9 +83,18 @@ export function useLeadsFetch(
 
   const fetchFresh = async (category: string, isBackground: boolean, page: number): Promise<{ messages: GmailMessage[], userLabels?: any[], stats?: any, totalMessages?: number } | null> => {
     try {
-      const dbRes = await fetch("/api/notes?type=ai_analysis");
+      const pageQuery = `&page=${page}&limit=50`;
+      const gmailUrl = `/api/google/gmail?tab=${category}${pageQuery}&t=${Date.now()}`;
+      
+      // Parallelize all fetches to avoid 1s waterfall delay
+      const [gmailRes, dbRes, androidRes] = await Promise.all([
+        fetch(gmailUrl, { cache: "no-store" }),
+        fetch("/api/notes?type=ai_analysis"),
+        !isBackground ? fetch("/api/android-logs") : Promise.resolve(null)
+      ]);
+
       let currentAnalyses = dbAnalyses;
-      if (dbRes.ok) {
+      if (dbRes?.ok) {
         const dbData = await dbRes.json();
         if (dbData.success) {
           setDbAnalyses(dbData.notes || []);
@@ -93,31 +102,28 @@ export function useLeadsFetch(
         }
       }
 
-      const pageQuery = `&page=${page}&limit=50`;
-      const gmailRes = await fetch(`/api/google/gmail?tab=${category}${pageQuery}&t=${Date.now()}`, { cache: "no-store" });
+      if (androidRes?.ok) {
+        const androidData = await androidRes.json();
+        if (androidData.success) setAndroidLogs(androidData.logs);
+      }
+
       if (gmailRes.ok) {
         const gmailData = await gmailRes.json();
         if (gmailData.isConnected && gmailData.messages) {
           setIsConnected(true);
           
+          // Map AI findings efficiently
           const processedMessages = gmailData.messages.map((newMsg: GmailMessage) => {
-            const existing = messages.find((p) => p.id === newMsg.id);
-            let classification = existing?.classification;
-            if (!classification) {
-              const dbMatch = currentAnalyses.find((a) => a.metadata?.gmail_id === newMsg.id);
-              if (dbMatch) classification = dbMatch.metadata.classification;
-              else {
-                const saved = typeof window !== 'undefined' ? localStorage.getItem(`ai_classify_${newMsg.id}`) : null;
-                if (saved) classification = JSON.parse(saved);
-              }
-            }
-            if (classification) {
-              return { ...newMsg, classification };
-            }
+            const dbMatch = currentAnalyses.find((a) => a.metadata?.gmail_id === newMsg.id);
+            if (dbMatch) return { ...newMsg, classification: dbMatch.metadata.classification };
+            
+            const saved = typeof window !== 'undefined' ? localStorage.getItem(`ai_classify_${newMsg.id}`) : null;
+            if (saved) return { ...newMsg, classification: JSON.parse(saved) };
+            
             return newMsg;
           });
 
-            if (gmailData.sync) setSyncStatus(gmailData.sync);
+          if (gmailData.sync) setSyncStatus(gmailData.sync);
 
           return { 
             messages: processedMessages, 
@@ -127,18 +133,6 @@ export function useLeadsFetch(
           };
         } else if (gmailData.isConnected === false) {
            setIsConnected(false);
-        }
-      }
-
-      if (!isBackground) {
-        try {
-          const androidRes = await fetch("/api/android-logs");
-          if (androidRes.ok) {
-            const androidData = await androidRes.json();
-            if (androidData.success) setAndroidLogs(androidData.logs);
-          }
-        } catch (e) {
-          console.error("Android logs fetch error", e);
         }
       }
     } catch (error) { 

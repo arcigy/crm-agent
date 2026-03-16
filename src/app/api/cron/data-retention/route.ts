@@ -60,11 +60,25 @@ export async function GET(request: Request) {
     results.activities_compressed = activitiesCompressed.rowCount || 0;
 
     // 5. directus_activity — keep 60 days
-    const directusDeleted = await db.query(`
-      DELETE FROM directus_activity
-      WHERE timestamp < NOW() - INTERVAL '60 days'
+    try {
+      const directusDeleted = await db.query(`
+        DELETE FROM directus_activity
+        WHERE timestamp < NOW() - INTERVAL '60 days'
+      `);
+      results.directus_activity = directusDeleted.rowCount || 0;
+    } catch (e) {
+      results.directus_activity = 0;
+    }
+
+    // 6. gmail_messages — clear body_text after 90 days
+    const gmailCompressed = await db.query(`
+      UPDATE gmail_messages
+      SET body_text = NULL
+      WHERE received_at < NOW() - INTERVAL '90 days'
+      AND body_text IS NOT NULL
+      RETURNING id
     `);
-    results.directus_activity = directusDeleted.rowCount || 0;
+    results.gmail_compressed = gmailCompressed.rowCount || 0;
 
     // 6. Log the cleanup results
     try {
