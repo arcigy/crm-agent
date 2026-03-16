@@ -269,7 +269,15 @@ export async function performFullSync(
 
         const rows = details
           .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
-          .map(r => parseGmailMessage((r as PromiseFulfilledResult<any>).value.data, userEmail));
+          .map(r => {
+            try {
+              return parseGmailMessage((r as PromiseFulfilledResult<any>).value.data, userEmail);
+            } catch (e) {
+              console.error(`[Gmail Sync] Failed to parse message:`, e);
+              return null;
+            }
+          })
+          .filter((r): r is any => r !== null);
 
         await upsertMessageBatch(rows);
         totalSynced += rows.length;
