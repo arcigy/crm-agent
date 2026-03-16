@@ -137,11 +137,29 @@ export async function GET(request: Request) {
       LIMIT $3 OFFSET $4
     `, labelId === 'archive' ? [userEmail, limit, offset] : [userEmail, labelId, limit, offset]);
 
-    const syncState = await db.query(`
+    const syncStateRes = await db.query(`
       SELECT sync_status, synced_messages, total_messages, last_full_sync
       FROM gmail_sync_state
       WHERE user_email = $1 AND label_id = 'INBOX'
     `, [userEmail]);
+
+    const state = syncStateRes.rows[0];
+
+    // Lazy Trigger: If sync has never started, start it in background
+    if (!state) {
+      console.log(`[Gmail API] No sync state for ${userEmail}, triggering full sync...`);
+      const { triggerFullSyncForUser } = await import("@/lib/gmail-sync-engine");
+      await triggerFullSyncForUser(userEmail); // Now awaits the sync initialization
+    } else if (state.sync_status === 'completed' && state.last_full_sync) {
+      // If it's been more than 24 hours, maybe check if something missed? 
+      // (Optional, mostly we rely on webhooks, but let's keep it robust)
+      const lastSync = new Date(state.last_full_sync).getTime();
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      if (lastSync < oneDayAgo) {
+        const { triggerFullSyncForUser } = await import("@/lib/gmail-sync-engine");
+        triggerFullSyncForUser(userEmail).catch(err => console.error(err));
+      }
+    }
 
     // Format for existing Frontend component compatibility
     const formattedEmails = emailsResult.rows.map(row => ({
@@ -167,7 +185,7 @@ export async function GET(request: Request) {
         totalPages: Math.ceil(totalCount / limit),
         hasMore: offset + limit < totalCount
       },
-      sync: syncState.rows[0] || { sync_status: 'pending' },
+      sync: syncStateRes.rows[0] || { sync_status: 'pending' },
       
       // Provide dynamic stubs required by LeadsSidebar if db stats don't exist yet
       stats: {}, 

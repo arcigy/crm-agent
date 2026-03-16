@@ -191,8 +191,17 @@ async function refreshLabelCounts(userEmail: string) {
 }
 
 export async function triggerFullSyncForUser(userEmail: string, labelId: string = 'INBOX') {
+  // 1. Initialize sync state synchronously to ensure it exists
+  await updateSyncState(userEmail, labelId, { 
+    sync_status: 'syncing',
+    last_full_sync: new Date().toISOString(),
+    synced_messages: 0,
+    total_messages: 0
+  });
+
+  // 2. Run the actual work in background
   performFullSync(userEmail, labelId).catch(err => {
-    console.error(`[Gmail Sync] Full sync error for ${userEmail}:`, err);
+    console.error(`[Gmail Sync] Full sync background worker error for ${userEmail}:`, err);
   });
 }
 
@@ -200,17 +209,13 @@ export async function performFullSync(
   userEmail: string,
   labelId: string = 'INBOX'
 ): Promise<SyncResult> {
-  console.log(`[Gmail Sync] Starting full sync for ${userEmail} / ${labelId}`);
+  console.log(`[Gmail Sync] performFullSync called for ${userEmail} / ${labelId}`);
   
   const gmail = await getClientForUser(userEmail);
+  console.log(`[Gmail Sync] Got Gmail client for ${userEmail}`);
   let pageToken: string | undefined;
   let totalSynced = 0;
   let totalMessages = 0;
-
-  await updateSyncState(userEmail, labelId, { 
-    sync_status: 'syncing',
-    last_full_sync: new Date().toISOString()
-  });
 
   try {
     do {
@@ -228,6 +233,8 @@ export async function performFullSync(
       const messages = listResponse.data.messages || [];
       totalMessages = listResponse.data.resultSizeEstimate || 0;
       pageToken = listResponse.data.nextPageToken || undefined;
+
+      console.log(`[Gmail Sync] Found ${messages.length} messages on current page. Total estimate: ${totalMessages}`);
 
       if (!messages.length) break;
 
@@ -248,11 +255,17 @@ export async function performFullSync(
                 userId: 'me',
                 id,
                 format: 'full',
-                fields: 'id,threadId,labelIds,snippet,sizeEstimate,payload,internalDate'
+                fields: 'id,threadId,labelIds,snippet,sizeEstimate,payload,internalDate,historyId'
               })
             )
           )
         );
+
+        // Capture history_id from the first (most recent) message in the first batch
+        if (!totalSynced && details[0]?.status === 'fulfilled') {
+          const firstMsg = (details[0] as PromiseFulfilledResult<any>).value.data;
+          await updateSyncState(userEmail, labelId, { history_id: firstMsg.historyId });
+        }
 
         const rows = details
           .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
@@ -266,8 +279,7 @@ export async function performFullSync(
 
       await updateSyncState(userEmail, labelId, {
         synced_messages: totalSynced,
-        total_messages: totalMessages,
-        history_id: listResponse.data.messages?.[0]?.id || null
+        total_messages: totalMessages
       });
 
       if (pageToken) await sleep(RATE_LIMIT_DELAY * 2);
