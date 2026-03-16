@@ -37,6 +37,11 @@ interface LeadsHeaderProps {
   currentTab?: string;
   gmailLabels?: any[];
   isBuffering?: boolean;
+  syncStatus?: {
+    sync_status: string;
+    synced_messages: number;
+    total_messages: number;
+  } | null;
 }
 
 export function LeadsHeader({
@@ -60,6 +65,7 @@ export function LeadsHeader({
   currentTab,
   gmailLabels = [],
   isBuffering = false,
+  syncStatus = null,
 }: LeadsHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isTagSubMenuOpen, setIsTagSubMenuOpen] = React.useState(false);
@@ -312,9 +318,19 @@ export function LeadsHeader({
           <div className="text-[11px] font-black text-[#444746] dark:text-zinc-500 uppercase tracking-widest tabular-nums">
             {totalCount > 0 
               ? `${(currentPage - 1) * 50 + 1}-${Math.min(currentPage * 50, totalCount)} z ${totalCount}` 
-              : "0 z 0"
+              : syncStatus?.sync_status === 'syncing' 
+                ? `${syncStatus.synced_messages} z ${syncStatus.total_messages || '...'}`
+                : "0 z 0"
             }
           </div>
+          {syncStatus?.sync_status === 'syncing' && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-violet-500/10 border border-violet-500/20 animate-pulse">
+              <div className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce" />
+              <span className="text-[9px] font-black text-violet-500 uppercase tracking-tighter">
+                Synchronizujem {syncStatus.total_messages > 0 ? `${Math.round((syncStatus.synced_messages / syncStatus.total_messages) * 100)}%` : ''}
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-0.5">
           <button 

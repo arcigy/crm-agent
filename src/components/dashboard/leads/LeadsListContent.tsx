@@ -123,6 +123,7 @@ export function LeadsListContent({
         currentTab={selectedTab}
         gmailLabels={gmailLabels}
         isBuffering={isBuffering}
+        syncStatus={syncStatus}
       />
 
       <div className="flex-1 overflow-y-auto px-4 pb-8 thin-scrollbar relative scroll-smooth bg-transparent transform-gpu">
