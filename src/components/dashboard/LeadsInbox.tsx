@@ -101,6 +101,8 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         {inbox.selectedEmail ? (
           <EmailDetailView
             email={inbox.selectedEmail}
+            currentIndex={inbox.currentIndex}
+            totalCount={inbox.totalCount}
             onClose={() => inbox.setSelectedEmail(null)}
             onDeleteMessage={(email) => inbox.handleDeleteMessage(null, email)}
             onArchive={inbox.handleArchiveMessage}

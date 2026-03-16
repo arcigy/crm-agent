@@ -221,16 +221,23 @@ export async function GET(request: Request) {
     let unreadMessages = 0;
 
     const labelId = query.labelIds?.[0];
-    if (labelId) {
+    
+    // If we have a query 'q', labels.get(id).messagesTotal will likely overcount 
+    // because it ignores the filter (e.g. it includes promotions/social in INBOX).
+    // In that case, resultSizeEstimate is a better (though still rough) guess.
+    const hasQuery = !!query.q;
+
+    if (labelId && !hasQuery) {
       try {
         const labelStats = await gmail.users.labels.get({ userId: "me", id: labelId });
         totalMessages = labelStats.data.messagesTotal || totalMessages;
         unreadMessages = labelStats.data.messagesUnread || 0;
       } catch (e) {}
     } else if (tab !== "all" && tab !== "archive") {
-      // Try to find label by name if it's a custom tag
+      // For filtered views like 'Inbox' (with category filters), we might want to try to find 
+      // the closest label info for stats, but prioritize the list estimate if it's smaller.
       const targetLabel = (labelsRes.data.labels || []).find((l: any) => l.name === tab || l.name === `CRM/${tab}`);
-      if (targetLabel) {
+      if (targetLabel && !hasQuery) {
         try {
           const labelStats = await gmail.users.labels.get({ userId: "me", id: targetLabel.id });
           totalMessages = labelStats.data.messagesTotal || totalMessages;

@@ -51,6 +51,8 @@ interface EmailDetailViewProps {
   onReply?: (email: GmailMessage) => void;
   onForward?: (email: GmailMessage) => void;
   onRestore?: (e: React.MouseEvent | null, email: GmailMessage) => void;
+  currentIndex?: number;
+  totalCount?: number;
 }
 
 export function EmailDetailView({ 
@@ -63,7 +65,9 @@ export function EmailDetailView({
   onToggleStar,
   onReply,
   onForward,
-  onRestore
+  onRestore,
+  currentIndex = 0,
+  totalCount = 0,
 }: EmailDetailViewProps) {
   const [downloading, setDownloading] = React.useState<string | null>(null);
   const [showFullDetails, setShowFullDetails] = React.useState(false);
@@ -326,7 +330,9 @@ export function EmailDetailView({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-[12px] text-[#444746] mr-4">1 z 1 333</span>
+          <span className="text-[12px] text-[#444746] mr-4 whitespace-nowrap">
+            {currentIndex > 0 ? `${currentIndex} z ${totalCount}` : `— z ${totalCount}`}
+          </span>
           <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746] opacity-50" disabled title="Predchádzajúca správa">
             <ChevronLeft className="w-5 h-5" />
           </button>

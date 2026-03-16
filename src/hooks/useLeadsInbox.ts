@@ -461,6 +461,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     paginatedItems,
     currentPage,
     isBuffering,
+    currentIndex: (selectedEmail && allItems.length > 0) 
+      ? allItems.findIndex(i => i.id === selectedEmail.id) + 1 
+      : 0,
     onPageChange: (page: number) => {
       // Optimization: Only fetch if we don't have this page in local buffer yet
       const neededItems = page * itemsPerPage;
