@@ -18,11 +18,12 @@ async function kickstartSync() {
     }
     
     const userEmail = tokens.rows[0].user_email;
-    console.log(`🚀 Manually triggering full sync for ${userEmail}...`);
+    const userId = tokens.rows[0].user_id;
+    console.log(`🚀 Manually triggering full sync for ${userEmail} (ID: ${userId})...`);
     
     // We await it here so we can see the result in console for debugging
     const { performFullSync } = await import('../src/lib/gmail-sync-engine');
-    const result = await performFullSync(userEmail, 'INBOX');
+    const result = await performFullSync(userEmail, 'INBOX', userId);
     
     console.log('✅ Sync result:', result);
   } catch (err) {

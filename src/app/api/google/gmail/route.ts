@@ -144,12 +144,12 @@ export async function GET(request: Request) {
     `, [userEmail]);
 
     const state = syncStateRes.rows[0];
-
+ 
     // Lazy Trigger: If sync has never started, start it in background
     if (!state) {
-      console.log(`[Gmail API] No sync state for ${userEmail}, triggering full sync...`);
+      console.log(`[Gmail API] No sync state for ${userEmail}, triggering full sync for user ${user.id}...`);
       const { triggerFullSyncForUser } = await import("@/lib/gmail-sync-engine");
-      await triggerFullSyncForUser(userEmail); // Now awaits the sync initialization
+      await triggerFullSyncForUser(userEmail, 'INBOX', user.id); // Passing Clerk User ID
     } else if (state.sync_status === 'completed' && state.last_full_sync) {
       // If it's been more than 24 hours, maybe check if something missed? 
       // (Optional, mostly we rely on webhooks, but let's keep it robust)
@@ -157,7 +157,7 @@ export async function GET(request: Request) {
       const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
       if (lastSync < oneDayAgo) {
         const { triggerFullSyncForUser } = await import("@/lib/gmail-sync-engine");
-        triggerFullSyncForUser(userEmail).catch(err => console.error(err));
+        triggerFullSyncForUser(userEmail, 'INBOX', user.id).catch(err => console.error(err));
       }
     }
 

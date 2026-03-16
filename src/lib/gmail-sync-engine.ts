@@ -51,9 +51,14 @@ async function retryWithBackoff<T>(
   throw new Error('Max retries exceeded');
 }
 
-async function getClientForUser(userEmail: string) {
-  const token = await getValidToken("", userEmail);
-  if (!token) throw new Error(`No valid Google token found for ${userEmail}`);
+async function getClientForUser(userEmail: string, clerkUserId: string = "") {
+  console.log(`[getClientForUser] Fetching token for ${userEmail} (ID: ${clerkUserId})...`);
+  const token = await getValidToken(clerkUserId, userEmail);
+  if (!token) {
+    console.error(`[getClientForUser] FAILED to get token for ${userEmail}`);
+    throw new Error(`No valid Google token found for ${userEmail}`);
+  }
+  console.log(`[getClientForUser] SUCCESS: Got token for ${userEmail}`);
   return getGmailClient(token);
 }
 
@@ -190,7 +195,11 @@ async function refreshLabelCounts(userEmail: string) {
   `, [userEmail]);
 }
 
-export async function triggerFullSyncForUser(userEmail: string, labelId: string = 'INBOX') {
+export async function triggerFullSyncForUser(
+  userEmail: string,
+  labelId: string = 'INBOX',
+  clerkUserId: string = ""
+) {
   // 1. Initialize sync state synchronously to ensure it exists
   await updateSyncState(userEmail, labelId, { 
     sync_status: 'syncing',
@@ -200,18 +209,19 @@ export async function triggerFullSyncForUser(userEmail: string, labelId: string 
   });
 
   // 2. Run the actual work in background
-  performFullSync(userEmail, labelId).catch(err => {
+  performFullSync(userEmail, labelId, clerkUserId).catch(err => {
     console.error(`[Gmail Sync] Full sync background worker error for ${userEmail}:`, err);
   });
 }
 
 export async function performFullSync(
   userEmail: string,
-  labelId: string = 'INBOX'
+  labelId: string = 'INBOX',
+  clerkUserId: string = ""
 ): Promise<SyncResult> {
-  console.log(`[Gmail Sync] performFullSync called for ${userEmail} / ${labelId}`);
+  console.log(`[Gmail Sync] performFullSync called for ${userEmail} (ID: ${clerkUserId}) / ${labelId}`);
   
-  const gmail = await getClientForUser(userEmail);
+  const gmail = await getClientForUser(userEmail, clerkUserId);
   console.log(`[Gmail Sync] Got Gmail client for ${userEmail}`);
   let pageToken: string | undefined;
   let totalSynced = 0;

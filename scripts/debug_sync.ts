@@ -7,6 +7,9 @@ loadEnvConfig(resolve(process.cwd()));
 
 async function debugSync() {
   const { db } = await import('../src/lib/db');
+  const { default: directus } = await import('../src/lib/directus');
+  
+  console.log('Directus URL in use:', directus.url);
   
   try {
     const messagesCount = await db.query('SELECT count(*) FROM gmail_messages');
@@ -19,15 +22,12 @@ async function debugSync() {
     console.log('Total messages in DB:', messagesCount.rows[0].count);
     console.log('Sync States:', JSON.stringify(syncState.rows, null, 2));
     console.log('Label Counts:', JSON.stringify(labelCounts.rows, null, 2));
-    
-    if (syncState.rows.length === 0) {
-      console.log('⚠️ No sync state found. Sync has never started.');
-    } else {
-      syncState.rows.forEach(s => {
-        if (s.status === 'error') {
-          console.error(`❌ Sync error for ${s.user_email}:`, s.error_message);
-        }
-      });
+
+    if (googleTokens.rows.length > 0) {
+      console.log('--- TRIGGERING LOCAL DEBUG SYNC ---');
+      const { performFullSync } = await import('../src/lib/gmail-sync-engine');
+      const result = await performFullSync(googleTokens.rows[0].user_email, 'INBOX');
+      console.log('Sync Result:', result);
     }
   } catch (err) {
     console.error('Error debugging sync:', err);
