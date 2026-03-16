@@ -6,8 +6,7 @@ import { GmailMessage } from "@/types/gmail";
 
 export function useLeadsBulkActions(
   setMessages: React.Dispatch<React.SetStateAction<GmailMessage[]>>,
-  setMessageTags: React.Dispatch<React.SetStateAction<Record<string, string[]>>>,
-  setCustomTags: React.Dispatch<React.SetStateAction<string[]>>
+  setMessageTags: React.Dispatch<React.SetStateAction<Record<string, string[]>>>
 ) {
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
 
@@ -61,12 +60,8 @@ export function useLeadsBulkActions(
         console.error("Bulk sync error:", err);
     });
 
-    setCustomTags(prev => {
-      if (!prev.includes(tag)) return [...prev, tag].sort();
-      return prev;
-    });
     clearSelection();
-  }, [setMessageTags, setCustomTags, clearSelection]);
+  }, [setMessageTags, clearSelection]);
 
   return {
     selectedIds,

@@ -24,13 +24,11 @@ interface LeadsSidebarProps {
   unreadCount?: number;
   draftCount?: number;
   onCompose: () => void;
-  customTags?: string[];
   gmailLabels?: any[];
-  tagColors?: Record<string, string>;
   onManageTags?: () => void;
 }
 
-export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftCount = 0, onCompose, customTags = [], gmailLabels = [], tagColors = {}, onManageTags }: LeadsSidebarProps) {
+export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftCount = 0, onCompose, gmailLabels = [], onManageTags }: LeadsSidebarProps) {
   const [isMoreExpanded, setIsMoreExpanded] = React.useState(false);
   const [isTagsExpanded, setIsTagsExpanded] = React.useState(false);
 

@@ -42,7 +42,6 @@ interface LeadsListItemProps {
   isSelected?: boolean;
   onToggleSelection?: (e: React.MouseEvent, id: string) => void;
   tags?: string[];
-  tagColors?: Record<string, string>;
   onToggleTag?: (e: React.MouseEvent, msg: GmailMessage) => void;
 }
 
@@ -85,7 +84,6 @@ export const LeadsListItem = React.memo(({
   isSelected,
   onToggleSelection,
   tags = [],
-  tagColors = {},
   onToggleTag
 }: LeadsListItemProps) => {
 
@@ -108,7 +106,7 @@ export const LeadsListItem = React.memo(({
     // Priority order: NALIEHAVÉ > URGENTNÉ > any other tag
     const PRIORITY_TAGS = ["NALIEHAVÉ", "URGENTNÉ"];
     const priorityTag = PRIORITY_TAGS.find(t => tags.includes(t)) ?? null;
-    const baseColor = priorityTag ? (tagColors[priorityTag] || null) : null;
+    const baseColor = priorityTag ? (msg.googleLabelColors?.[priorityTag] || null) : null;
 
     // Status bar color: unread = vivid, read = darker solid
     const barColor  = baseColor

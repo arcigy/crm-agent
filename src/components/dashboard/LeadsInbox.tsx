@@ -88,9 +88,7 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             inbox.setDraftData({ to: "", subject: "", body: "" });
             inbox.setIsComposeOpen(true);
           }}
-          customTags={inbox.customTags}
-          gmailLabels={inbox.userLabels}
-          tagColors={inbox.tagColors}
+          gmailLabels={inbox.gmailLabels}
           onManageTags={() => {
             inbox.setTagModalEmail(null);
             inbox.setIsTagModalOpen(true);

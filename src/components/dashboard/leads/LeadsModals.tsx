@@ -28,14 +28,10 @@ interface LeadsModalsProps {
   isTagModalOpen: boolean;
   setIsTagModalOpen: (open: boolean) => void;
   tagModalEmail: any;
-  customTags: string[];
-  setCustomTags: any;
-  tagColors: any;
-  setTagColors: any;
+  gmailLabels: any[];
   messageTags: any;
   handleToggleTag: any;
-  handleRemoveCustomTag: any;
-  handleRenameCustomTag: any;
+  onRefresh: () => void;
   onCloseCompose: () => void;
 }
 
@@ -59,14 +55,10 @@ export function LeadsModals({
   isTagModalOpen,
   setIsTagModalOpen,
   tagModalEmail,
-  customTags,
-  setCustomTags,
-  tagColors,
-  setTagColors,
+  gmailLabels,
   messageTags,
   handleToggleTag,
-  handleRemoveCustomTag,
-  handleRenameCustomTag,
+  onRefresh,
   onCloseCompose,
 }: LeadsModalsProps) {
   return (
@@ -134,17 +126,10 @@ export function LeadsModals({
         isOpen={isTagModalOpen}
         onClose={() => setIsTagModalOpen(false)}
         email={tagModalEmail}
-        customTags={customTags}
-        tagColors={tagColors}
+        gmailLabels={gmailLabels}
         messageTags={messageTags}
-        onAddTag={(tag, color) => {
-          setCustomTags((prev: any) => [...new Set([...prev, tag])].sort());
-          setTagColors((prev: any) => ({ ...prev, [tag]: color || "#8b5cf6" }));
-        }}
         onToggleTag={handleToggleTag}
-        onRemoveCustomTag={handleRemoveCustomTag}
-        onRenameTag={handleRenameCustomTag}
-        onUpdateTagColor={(tag, color) => setTagColors((prev: any) => ({ ...prev, [tag]: color }))}
+        onRefresh={onRefresh}
       />
     </>
   );

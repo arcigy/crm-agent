@@ -18,8 +18,6 @@ export function useLeadsPersistence(
   setActiveActionId: React.Dispatch<React.SetStateAction<string | null>>,
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>,
   setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>,
-  setCustomTags: React.Dispatch<React.SetStateAction<string[]>>,
-  setTagColors: React.Dispatch<React.SetStateAction<Record<string, string>>>,
   setMessageTags: React.Dispatch<React.SetStateAction<Record<string, string[]>>>,
   states: any
 ) {
@@ -45,11 +43,6 @@ export function useLeadsPersistence(
       if (persistedSession) {
         try {
           const state = JSON.parse(persistedSession);
-          const CANONICAL_TAGS = ["NALIEHAVÉ", "URGENTNÉ", "NOVÝ OBCHOD", "SERVIS", "VYBAVOVAČKY"];
-          
-          if (state.customTags) setCustomTags(Array.from(new Set([...state.customTags.map((t:any)=>t.toUpperCase()), ...CANONICAL_TAGS])).sort());
-          if (state.messageTags) setMessageTags(state.messageTags);
-          if (state.tagColors) setTagColors(state.tagColors);
           if (state.selectedTab) setSelectedTab(state.selectedTab);
           if (state.searchQuery !== undefined) setSearchQuery(state.searchQuery);
           
@@ -68,6 +61,7 @@ export function useLeadsPersistence(
           if (state.selectedEmail) setSelectedEmail(state.selectedEmail);
           if (state.currentPage) setCurrentPage(state.currentPage);
           if (state.selectedIds) setSelectedIds(new Set(state.selectedIds));
+          if (state.messageTags) setMessageTags(state.messageTags);
         } catch(e) {}
       }
     }

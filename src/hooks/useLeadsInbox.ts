@@ -26,8 +26,6 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const { user, isLoaded } = useCurrentCRMUser();
   const [selectedTab, setSelectedTab] = React.useState<string>("inbox");
   const {
-    customTags, setCustomTags,
-    tagColors, setTagColors,
     messageTags, setMessageTags,
     getSmartTags,
     applySmartTagging
@@ -39,7 +37,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     loading, setLoading,
     isConnected, setIsConnected,
     fetchMessages,
-    userLabels
+    userLabels: gmailLabels
   } = useLeadsFetch(initialMessages, getSmartTags, selectedTab);
 
   const { getMockMessages } = useLeadsMockData();
@@ -90,7 +88,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       clearSelection,
       handleBulkArchive,
       handleBulkTag
-  } = useLeadsBulkActions(setMessages, setMessageTags, setCustomTags);
+  } = useLeadsBulkActions(setMessages, setMessageTags);
 
   const {
       handleDeleteMessage,
@@ -121,9 +119,25 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   useLeadsPersistence(
     setMessages, setSelectedTab, setSearchQuery, setIsComposeOpen, setHasDraft,
     setDraftContent, setDraftData, setSelectedEmail, setCustomPrompt, setCustomCommandMode,
-    setActiveActionId, setCurrentPage, setSelectedIds, setCustomTags, setTagColors, setMessageTags,
-    { selectedTab, searchQuery, isComposeOpen, hasDraft, draftData, draftContent, selectedEmail, customPrompt, customCommandMode, activeActionId, currentPage, selectedIds: Array.from(selectedIds), customTags, tagColors, messageTags }
+    setActiveActionId, setCurrentPage, setSelectedIds, setMessageTags,
+    { selectedTab, searchQuery, isComposeOpen, hasDraft, draftData, draftContent, selectedEmail, customPrompt, customCommandMode, activeActionId, currentPage, selectedIds: Array.from(selectedIds), messageTags }
   );
+
+  // Sync messageTags with fetched messages from Gmail
+  React.useEffect(() => {
+    if (messages.length > 0) {
+      const newTags: Record<string, string[]> = {};
+      messages.forEach(msg => {
+        if (msg.googleLabels && msg.googleLabels.length > 0) {
+          // Filter out system labels to keep messageTags focused on user labels
+          newTags[msg.id] = msg.googleLabels.filter(l => 
+            !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.toUpperCase())
+          );
+        }
+      });
+      setMessageTags(prev => ({ ...prev, ...newTags }));
+    }
+  }, [messages, setMessageTags]);
 
   const analyzedIds = React.useRef<Set<string>>(new Set());
 
@@ -133,25 +147,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     // Initial fetch and periodic sync are now primarily handled in useLeadsFetch
     const interval = setInterval(() => fetchMessages(true, selectedTab), 15000);
     return () => clearInterval(interval);
-  }, [selectedTab]);
-
-  // Development Mock Data logic remains in the main hook for visibility but uses the helper
-  React.useEffect(() => {
-      if (process.env.NODE_ENV === "development" && messages.length === 0 && !loading) {
-        const smartTagsBatch: Record<string, string[]> = {};
-        const mocks = getMockMessages(getSmartTags);
-
-        mocks.forEach(m => {
-          const tags = getSmartTags(m.classification);
-          if (tags.length > 0) smartTagsBatch[m.id] = tags;
-        });
-
-        setMessages(mocks);
-        if (Object.keys(smartTagsBatch).length > 0) {
-          setMessageTags(prev => ({ ...prev, ...smartTagsBatch }));
-        }
-      }
-  }, [messages.length, loading, getMockMessages, getSmartTags, setMessages, setMessageTags]);
+  }, [selectedTab, fetchMessages]);
 
   const handleConnect = async () => {
     if (!isLoaded || !user) return;
@@ -448,51 +444,6 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     }
   }, [setMessageTags]);
 
-  const handleRemoveCustomTag = React.useCallback((tag: string) => {
-    setCustomTags(prev => prev.filter(t => t !== tag));
-    setTagColors(prev => {
-      const next = { ...prev };
-      delete next[tag];
-      return next;
-    });
-    setMessageTags(prev => {
-      const next = { ...prev };
-      Object.keys(next).forEach(id => {
-        next[id] = next[id].filter(t => t !== tag);
-      });
-      return next;
-    });
-    toast.success(`Štítok '${tag}' bol odstránený`);
-  }, [setCustomTags, setTagColors, setMessageTags]);
-
-  const handleRenameCustomTag = React.useCallback((oldTag: string, newTag: string) => {
-    if (!newTag.trim() || oldTag === newTag) return;
-    
-    setCustomTags(prev => {
-      const next = prev.map(t => t === oldTag ? newTag : t);
-      return [...new Set(next)].sort();
-    });
-
-    setTagColors(prev => {
-      const next = { ...prev };
-      if (next[oldTag]) {
-        next[newTag] = next[oldTag];
-        delete next[oldTag];
-      }
-      return next;
-    });
-    
-    setMessageTags(prev => {
-      const next = { ...prev };
-      Object.keys(next).forEach(id => {
-        next[id] = next[id].map(t => t === oldTag ? newTag : t);
-      });
-      return next;
-    });
-    
-    toast.success(`Štítok '${oldTag}' premenovaný na '${newTag}'`);
-  }, [setCustomTags, setTagColors, setMessageTags]);
-
   return {
     messages,
     isConnected,
@@ -542,8 +493,6 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     handleBulkArchive,
     handleBulkTag,
     handleToggleTag,
-    handleRemoveCustomTag,
-    handleRenameCustomTag,
     handleRestoreMessage,
     handleEmptyTrash,
     analyzeEmail,
@@ -554,10 +503,6 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     handleDraftReply,
     handleExecuteCustomCommand,
     handleSaveContact,
-    customTags,
-    setCustomTags,
-    tagColors,
-    setTagColors,
     messageTags,
     setMessageTags,
     isTagModalOpen,
@@ -591,6 +536,6 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       } as any;
       setLocalSentMessages(prev => [newSentMsg, ...prev]);
     },
-    userLabels
+    gmailLabels
   };
 }

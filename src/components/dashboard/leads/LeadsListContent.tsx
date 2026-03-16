@@ -44,7 +44,7 @@ interface LeadsListContentProps {
   setIsTagModalOpen: (open: boolean) => void;
   setTagModalEmail: (email: GmailMessage) => void;
   messageTags: Record<string, string[]>;
-  tagColors: Record<string, string>;
+  gmailLabels?: any[];
 }
 
 export function LeadsListContent({
@@ -85,7 +85,7 @@ export function LeadsListContent({
   setIsTagModalOpen,
   setTagModalEmail,
   messageTags,
-  tagColors,
+  gmailLabels = [],
 }: LeadsListContentProps) {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -111,6 +111,7 @@ export function LeadsListContent({
         onBulkTag={(tag) => handleBulkTag(Array.from(selectedIds), tag)}
         onEmptyTrash={handleEmptyTrash}
         currentTab={selectedTab}
+        gmailLabels={gmailLabels}
       />
 
       <div className="flex-1 overflow-y-auto px-4 pb-8 thin-scrollbar relative scroll-smooth bg-transparent transform-gpu">
@@ -160,7 +161,6 @@ export function LeadsListContent({
                     setIsTagModalOpen(true);
                   }}
                   tags={messageTags[(item as any).id] || []}
-                  tagColors={tagColors}
                 />
               ))}
             </div>

@@ -34,6 +34,7 @@ interface LeadsHeaderProps {
   onBulkTag?: (tag: string) => void;
   onEmptyTrash?: () => void;
   currentTab?: string;
+  gmailLabels?: any[];
 }
 
 export function LeadsHeader({
@@ -55,8 +56,10 @@ export function LeadsHeader({
   onBulkTag,
   onEmptyTrash,
   currentTab,
+  gmailLabels = [],
 }: LeadsHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isTagSubMenuOpen, setIsTagSubMenuOpen] = React.useState(false);
 
   return (
     <div className="px-6 h-14 flex items-center justify-between bg-transparent relative z-20 gap-8">
@@ -68,11 +71,11 @@ export function LeadsHeader({
               onClearSelection?.();
               import('sonner').then(({ toast }) => toast.success("Výber zrušený"));
             } else {
-              import('sonner').then(({ toast }) => toast.info("Vyberte si správy", { description: "Klikajte priamo na malý štvorček pri konkrétnom maily." }));
+              onToggleSelectAll?.();
             }
           }}
           className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/40 rounded-full transition-all text-[#444746] dark:text-zinc-400 group"
-          title={selectedCount > 0 ? "Zrušiť všetok výber" : "Hromadný výber (Deaktivovaný)"}
+          title={selectedCount > 0 ? "Zrušiť všetok výber" : "Hromadný výber"}
         >
           {selectedCount === 0 ? (
             <Square className="w-5 h-5 group-hover:text-violet-600 transition-colors opacity-50" />
@@ -84,7 +87,7 @@ export function LeadsHeader({
         {/* Refresh button with glowing spinner state */}
         <div className="relative">
           {loading && (
-             <div className="absolute inset-0 bg-violet-500 rounded-full blur-[8px] animate-pulse opacity-40"></div>
+            <div className="absolute inset-0 bg-violet-500 rounded-full blur-[8px] animate-pulse opacity-40"></div>
           )}
           <button 
             onClick={() => {
@@ -122,7 +125,10 @@ export function LeadsHeader({
         {/* 3 Dots Menu */}
         <div className="relative">
           <button 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            onClick={() => {
+              setIsMenuOpen(!isMenuOpen);
+              setIsTagSubMenuOpen(false);
+            }}
             className={`p-2 rounded-full transition-all group ${isMenuOpen ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/50' : 'hover:bg-violet-50 dark:hover:bg-violet-900/40 text-[#444746] dark:text-zinc-400'}`}
             title="Ďalšie možnosti"
           >
@@ -131,7 +137,7 @@ export function LeadsHeader({
 
           {isMenuOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
+              <div className="fixed inset-0 z-40" onClick={() => { setIsMenuOpen(false); setIsTagSubMenuOpen(false); }} />
               <div className="absolute top-full lg:left-0 left-0 mt-2 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                 <button 
                   onClick={() => {
@@ -154,10 +160,10 @@ export function LeadsHeader({
                 <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1 mx-2"></div>
                 <button 
                   onClick={() => {
-                    setIsMenuOpen(false);
                     if (selectedCount > 0) {
                       onBulkArchive?.();
                       onClearSelection?.();
+                      setIsMenuOpen(false);
                     } else import('sonner').then(({ toast }) => toast.error("Najprv vyberte aspoň jednu správu."));
                   }} 
                   className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-zinc-700 dark:text-zinc-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-700 transition-colors flex items-center justify-between"
@@ -165,21 +171,71 @@ export function LeadsHeader({
                   Hromadný archív
                   {selectedCount > 0 && <span className="bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded text-[10px]">{selectedCount}</span>}
                 </button>
-                <button 
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    if (selectedCount > 0) {
-                      const newTag = window.prompt("Zadaj názov štítku:");
-                      if (newTag && newTag.trim() && onBulkTag) {
-                        onBulkTag(newTag.trim());
-                      }
-                    } else import('sonner').then(({ toast }) => toast.error("Najprv vyberte aspoň jednu správu."));
-                  }} 
-                  className="w-full text-left px-4 py-2.5 text-[13px] font-bold text-zinc-700 dark:text-zinc-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-700 transition-colors flex items-center justify-between"
-                >
-                  Označiť štítkom
-                  {selectedCount > 0 && <span className="bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded text-[10px]">{selectedCount}</span>}
-                </button>
+                
+                <div className="relative">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (selectedCount > 0) {
+                        setIsTagSubMenuOpen(!isTagSubMenuOpen);
+                      } else import('sonner').then(({ toast }) => toast.error("Najprv vyberte aspoň jednu správu."));
+                    }} 
+                    onMouseEnter={() => selectedCount > 0 && setIsTagSubMenuOpen(true)}
+                    className={`w-full text-left px-4 py-2.5 text-[13px] font-bold transition-colors flex items-center justify-between ${isTagSubMenuOpen ? 'bg-violet-50 text-violet-700 dark:bg-violet-900/20' : 'text-zinc-700 dark:text-zinc-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-700'}`}
+                  >
+                    Označiť štítkom
+                    {selectedCount > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded text-[10px]">{selectedCount}</span>
+                        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isTagSubMenuOpen ? 'rotate-90' : ''}`} />
+                      </div>
+                    )}
+                  </button>
+
+                  {isTagSubMenuOpen && selectedCount > 0 && (
+                    <div 
+                      className="absolute left-full top-0 ml-1 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl py-2 z-[60] animate-in fade-in slide-in-from-left-2 duration-200 max-h-[300px] overflow-y-auto thin-scrollbar"
+                      onMouseLeave={() => setIsTagSubMenuOpen(false)}
+                    >
+                      <div className="px-4 py-1 mb-1">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Existujúce štítky</span>
+                      </div>
+                      {gmailLabels.length === 0 ? (
+                        <div className="px-4 py-2 text-[11px] italic text-zinc-500 text-center">Žiadne štítky</div>
+                      ) : (
+                        gmailLabels.map((label: any) => (
+                          <button
+                            key={label.name}
+                            onClick={() => {
+                              onBulkTag?.(label.name);
+                              setIsMenuOpen(false);
+                              setIsTagSubMenuOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2 text-[12px] font-bold text-zinc-600 dark:text-zinc-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600 transition-colors flex items-center gap-2"
+                          >
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: label.color || '#8b5cf6' }} />
+                            <span className="truncate">{label.name}</span>
+                          </button>
+                        ))
+                      )}
+                      <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1 mx-2"></div>
+                      <button
+                        onClick={() => {
+                          const newTag = window.prompt("Zadaj názov nového štítku:");
+                          if (newTag && newTag.trim() && onBulkTag) {
+                            onBulkTag(newTag.trim());
+                            setIsMenuOpen(false);
+                            setIsTagSubMenuOpen(false);
+                          }
+                        }}
+                        className="w-full text-left px-4 py-2 text-[12px] font-black uppercase text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
+                      >
+                        + Nový štítok
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {currentTab === "trash" && (
                   <>
                     <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1 mx-2"></div>
