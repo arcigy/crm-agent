@@ -17,88 +17,66 @@ export function useLeadsFetch(
   const [userLabels, setUserLabels] = React.useState<any[]>([]);
   const [inboxStats, setInboxStats] = React.useState<Record<string, { total: number, unread: number }>>({});
   const [totalMessages, setTotalMessages] = React.useState(0);
-  const [nextPageToken, setNextPageToken] = React.useState<string | undefined>(undefined);
   const [isBuffering, setIsBuffering] = React.useState(false);
 
-  // FIX 3: Client-side tab cache
+  // FIX 3: Client-side tab cache mapped by category and page
   const emailCache = React.useRef<Record<string, {
     data: GmailMessage[],
     fetchedAt: number,
-    nextPageToken?: string,
     totalMessages?: number
   }>>({});
   
   const CACHE_TTL = 900000; // 15 minutes - keep data long during session
-  const MAX_BUFFER_SIZE = 1000;
 
-  const fetchMessages = async (isBackground = false, tabParam?: string, pageToken?: string, isAppend = false) => {
+  const fetchMessages = async (isBackground = false, tabParam?: string, page: number = 1) => {
     const activeTab = tabParam || selectedTab;
     const category = activeTab.startsWith("tag:") ? activeTab.replace("tag:", "") : activeTab;
     const now = Date.now();
-    const cached = emailCache.current[category];
+    const cacheKey = `${category}_${page}`;
+    const cached = emailCache.current[cacheKey];
 
-    // Return cache immediately if fresh and not a manual/background refresh AND NOT page change
-    // If it's a page change but we already HAVE the emails for it, don't fetch
-    if (!isBackground && !pageToken && cached && (now - cached.fetchedAt) < CACHE_TTL) {
+    if (!isBackground && cached && (now - cached.fetchedAt) < CACHE_TTL) {
       setMessages(cached.data);
-      setNextPageToken(cached.nextPageToken);
       setTotalMessages(cached.totalMessages || 0);
       setLoading(false);
-      
-      // Silently refresh in background (don't force if we have lots of data)
-      if (cached.data.length < 100) {
-        fetchFresh(category, true).then(result => {
-          if (result && result.messages) {
-            updateCache(category, result.messages, result.nextPageToken, result.totalMessages, false, result.stats, result.userLabels);
-          }
-        });
-      }
       return;
     }
 
     if (!isBackground) setLoading(true);
-    const result = await fetchFresh(category, isBackground, pageToken);
-    
-    // Automatically append if pageToken is used, otherwise replace (unless explicitly append)
-    const shouldAppend = isAppend || !!pageToken;
+    const result = await fetchFresh(category, isBackground, page);
 
+    
     if (result && result.messages) {
-      updateCache(category, result.messages, result.nextPageToken, result.totalMessages, shouldAppend, result.stats, result.userLabels);
+      updateCache(category, page, result.messages, result.totalMessages, result.stats, result.userLabels);
     }
     setLoading(false);
   };
 
   const updateCache = (
     category: string, 
+    page: number,
     newMessages: GmailMessage[], 
-    token?: string, 
     total?: number, 
-    append = false,
     stats?: any,
     labels?: any[]
   ) => {
-    const existing = emailCache.current[category]?.data || [];
-    const merged = append 
-      ? [...existing, ...newMessages.filter(m => !existing.some(em => em.id === m.id))]
-      : newMessages;
+    const cacheKey = `${category}_${page}`;
     
-    emailCache.current[category] = { 
-      data: merged, 
+    emailCache.current[cacheKey] = { 
+      data: newMessages, 
       fetchedAt: Date.now(),
-      nextPageToken: token,
       totalMessages: total
     };
 
     if (category === (selectedTab.startsWith("tag:") ? selectedTab.replace("tag:", "") : selectedTab)) {
-      setMessages(merged);
-      setNextPageToken(token);
+      setMessages(newMessages);
       setTotalMessages(total || 0);
       if (labels) setUserLabels(labels);
       if (stats) setInboxStats(stats);
     }
   };
 
-  const fetchFresh = async (category: string, isBackground: boolean, pageToken?: string): Promise<{ messages: GmailMessage[], userLabels?: any[], stats?: any, nextPageToken?: string, totalMessages?: number } | null> => {
+  const fetchFresh = async (category: string, isBackground: boolean, page: number): Promise<{ messages: GmailMessage[], userLabels?: any[], stats?: any, totalMessages?: number } | null> => {
     try {
       const dbRes = await fetch("/api/notes?type=ai_analysis");
       let currentAnalyses = dbAnalyses;
@@ -110,7 +88,7 @@ export function useLeadsFetch(
         }
       }
 
-      const pageQuery = pageToken ? `&pageToken=${pageToken}` : '';
+      const pageQuery = `&page=${page}&limit=50`;
       const gmailRes = await fetch(`/api/google/gmail?tab=${category}${pageQuery}&t=${Date.now()}`, { cache: "no-store" });
       if (gmailRes.ok) {
         const gmailData = await gmailRes.json();
@@ -138,8 +116,7 @@ export function useLeadsFetch(
             messages: processedMessages, 
             userLabels: gmailData.userLabels,
             stats: gmailData.stats,
-            nextPageToken: gmailData.nextPageToken,
-            totalMessages: gmailData.totalMessages
+            totalMessages: gmailData.pagination?.total || gmailData.totalMessages
           };
         } else if (gmailData.isConnected === false) {
            setIsConnected(false);
@@ -176,11 +153,12 @@ export function useLeadsFetch(
     const tabsToPreload = PRELOAD_TABS[selectedTab] || [];
     tabsToPreload.forEach(tab => {
       const now = Date.now();
-      const cached = emailCache.current[tab];
+      const cacheKey = `${tab}_1`;
+      const cached = emailCache.current[cacheKey];
       if (!cached || (now - cached.fetchedAt) > CACHE_TTL) {
-        fetchFresh(tab, true).then(result => {
+        fetchFresh(tab, true, 1).then(result => {
           if (result && result.messages) {
-            emailCache.current[tab] = { data: result.messages, fetchedAt: Date.now() };
+            emailCache.current[cacheKey] = { data: result.messages, fetchedAt: Date.now() };
             if (result.userLabels) setUserLabels(result.userLabels);
           }
         });
@@ -188,23 +166,7 @@ export function useLeadsFetch(
     });
   }, [selectedTab]);
 
-  // Buffer background pages
-  React.useEffect(() => {
-    if (loading || !isConnected || !nextPageToken || messages.length >= MAX_BUFFER_SIZE) {
-      if (isBuffering) setIsBuffering(false);
-      return;
-    }
-
-    const category = selectedTab.startsWith("tag:") ? selectedTab.replace("tag:", "") : selectedTab;
-    
-    // Safety: ensure we only buffer for the ACTIVE tab
-    const bufferTimeout = setTimeout(() => {
-      setIsBuffering(true);
-      fetchMessages(true, selectedTab, nextPageToken, true);
-    }, 5000); // 5s interval to not hammer the API
-
-    return () => clearTimeout(bufferTimeout);
-  }, [selectedTab, nextPageToken, messages.length, loading, isConnected]);
+  // Removed old buffering logic since we now read instantly from local mirror DB.
 
   // Re-fetch when category changes
   React.useEffect(() => {
@@ -222,7 +184,6 @@ export function useLeadsFetch(
     userLabels,
     inboxStats,
     totalMessages,
-    nextPageToken,
     isBuffering
   };
 }

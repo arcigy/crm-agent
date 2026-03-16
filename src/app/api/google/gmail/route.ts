@@ -58,205 +58,124 @@ function getMessageBody(payload: any): {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const tab = searchParams.get("tab") || searchParams.get("category") || "inbox";
-  const pageToken = searchParams.get("pageToken") || undefined;
-  const maxResults = parseInt(searchParams.get("pageSize") || "50");
-
-  const CATEGORY_QUERIES: Record<string, any> = {
-    inbox: { labelIds: ["INBOX"], q: "-category:promotions -category:social" },
-    starred: { labelIds: ["STARRED"] },
-    sent: { labelIds: ["SENT"] },
-    drafts: { labelIds: ["DRAFT"] },
-    spam: { labelIds: ["SPAM"] },
-    trash: { labelIds: ["TRASH"] },
-    purchases: { q: "category:purchases" },
-    archive: { q: "-in:inbox -in:trash -in:spam" },
-    snoozed: { labelIds: ["SNOOZED"] },
-    unread: { q: "is:unread -category:promotions -category:social" }
-  };
-
-  let query = CATEGORY_QUERIES[tab];
-  
-  // If tab is not a predefined category, assume it's a specific label name/query
-  if (!query) {
-    query = { q: `label:"${tab}"` };
-  }
+  const messageId = searchParams.get("id");
 
   try {
     const user = await currentUser();
-    if (!user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const userEmail = user.emailAddresses[0]?.emailAddress;
-    const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
-    const token = await getValidToken(user.id, userEmail);
+    if (!userEmail) return NextResponse.json({ error: "No primary email" }, { status: 400 });
 
-    if (!token) return NextResponse.json({ isConnected: false, error: "Google account not linked or token expired" });
+    // Single message fetch for EmailDetailView (fetch HTML body directly from Gmail)
+    if (messageId) {
+      const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
+      const token = await getValidToken(user.id, userEmail);
+      if (!token) return NextResponse.json({ error: "Not Google connected" }, { status: 400 });
 
-    const gmail = await getGmailClient(token);
-    
-    // Fetch labels map to show human-readable names and colors
-    const labelsRes = await gmail.users.labels.list({ userId: "me" });
-    const labelInfoMap: Record<string, { name: string, color?: { backgroundColor: string, textColor: string } }> = {};
-    (labelsRes.data.labels || []).forEach((l: any) => {
-      if (l.id && l.name) {
-        labelInfoMap[l.id] = { 
-          name: l.name, 
-          color: l.color 
-        };
-      }
-    });
-
-    // FIX 1.4: Retry logic for fetch failures
-    let listRes;
-    try {
-      listRes = await gmail.users.messages.list({
+      const gmail = await getGmailClient(token);
+      const detail = await gmail.users.messages.get({
         userId: "me",
-        maxResults,
-        pageToken,
-        ...query,
+        id: messageId,
+        format: "full",
       });
-    } catch (err: any) {
-      if (err.status >= 500) {
-        // Retry once after 1s
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        listRes = await gmail.users.messages.list({
-          userId: "me",
-          maxResults,
-          pageToken,
-          ...query,
-        });
-      } else {
-        throw err;
-      }
+      const { html } = getMessageBody(detail.data.payload);
+      return NextResponse.json({ message: { bodyHtml: html } });
     }
 
-    if (!listRes.data.messages)
-      return NextResponse.json({ 
-        isConnected: true, 
-        messages: [],
-        totalMessages: 0,
-        message: `No emails in tab: ${tab}` 
-      });
-
-    const messages = await Promise.all(
-      (listRes.data.messages || []).map(async (m: any) => {
-        try {
-          const detail = await gmail.users.messages.get({
-            userId: "me",
-            id: m.id!,
-            format: "full",
-          });
-
-          const headers = detail.data.payload?.headers;
-          const subject =
-            headers?.find((h: any) => h.name === "Subject")?.value || "No Subject";
-          const from =
-            headers?.find((h: any) => h.name === "From")?.value || "Unknown";
-          const date = headers?.find((h: any) => h.name === "Date")?.value || "";
-          const to = headers?.find((h: any) => h.name === "To")?.value || "";
-
-          const { text, html, attachments } = getMessageBody(
-            detail.data.payload,
-          );
-
-            return {
-              id: m.id,
-              threadId: m.threadId,
-              subject,
-              from,
-              to,
-              date: new Date(date).toISOString(),
-              snippet: detail.data.snippet,
-              body: text || detail.data.snippet || "",
-              bodyHtml: html,
-              attachments,
-              isRead: !detail.data.labelIds?.includes("UNREAD"),
-              isStarred: detail.data.labelIds?.includes("STARRED"),
-              labels: detail.data.labelIds || [],
-              googleLabels: (detail.data.labelIds || []).map((id: string) => labelInfoMap[id]?.name || id),
-              googleLabelColors: (detail.data.labelIds || []).reduce((acc: any, id: string) => {
-                const info = labelInfoMap[id];
-                if (info?.color) {
-                  acc[info.name] = info.color.backgroundColor;
-                }
-                return acc;
-              }, {})
-            };
-        } catch (e) {
-          return null;
-        }
-      }),
-    );
-
-    const userLabels = (labelsRes.data.labels || [])
-      .filter((l: any) => l.type === "user" && !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'IMPORTANT'].includes(l.id))
-      .map((l: any) => ({
-        name: l.name,
-        color: l.color?.backgroundColor,
-        messagesTotal: l.messagesTotal || 0,
-        messagesUnread: l.messagesUnread || 0
-      }))
-      .sort((a: any, b: any) => {
-        // CRM labels first
-        const aCrm = a.name.startsWith("CRM/");
-        const bCrm = b.name.startsWith("CRM/");
-        if (aCrm && !bCrm) return -1;
-        if (!aCrm && bCrm) return 1;
-        return a.name.localeCompare(b.name);
-      });
-
-    // Create stats object for quick access to system label counts
-    const systemLabels = (labelsRes.data.labels || []).filter((l: any) => l.type === "system");
-    const stats: Record<string, { total: number, unread: number }> = {};
-    systemLabels.forEach((l: any) => {
-      stats[l.id.toLowerCase()] = {
-        total: l.messagesTotal || 0,
-        unread: l.messagesUnread || 0
-      };
-    });
-
-    // Fetch specific label stats for total count if possible
-    let totalMessages = listRes.data.resultSizeEstimate || 0;
-    let unreadMessages = 0;
-
-    const labelId = query.labelIds?.[0];
+    // List fetching from local DB
+    const { db } = await import("@/lib/db");
     
-    // If we have a query 'q', labels.get(id).messagesTotal will likely overcount 
-    // because it ignores the filter (e.g. it includes promotions/social in INBOX).
-    // In that case, resultSizeEstimate is a better (though still rough) guess.
-    const hasQuery = !!query.q;
+    const category = searchParams.get("tab") || searchParams.get("category") || "inbox";
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || searchParams.get("pageSize") || "50");
+    const offset = (page - 1) * limit;
 
-    if (labelId && !hasQuery) {
-      try {
-        const labelStats = await gmail.users.labels.get({ userId: "me", id: labelId });
-        totalMessages = labelStats.data.messagesTotal || totalMessages;
-        unreadMessages = labelStats.data.messagesUnread || 0;
-      } catch (e) {}
-    } else if (tab !== "all" && tab !== "archive") {
-      // For filtered views like 'Inbox' (with category filters), we might want to try to find 
-      // the closest label info for stats, but prioritize the list estimate if it's smaller.
-      const targetLabel = (labelsRes.data.labels || []).find((l: any) => l.name === tab || l.name === `CRM/${tab}`);
-      if (targetLabel && !hasQuery) {
-        try {
-          const labelStats = await gmail.users.labels.get({ userId: "me", id: targetLabel.id });
-          totalMessages = labelStats.data.messagesTotal || totalMessages;
-          unreadMessages = labelStats.data.messagesUnread || 0;
-        } catch (e) {}
-      }
-    }
+    const LABEL_MAP: Record<string, string> = {
+      inbox: "INBOX",
+      starred: "STARRED",
+      sent: "SENT",
+      drafts: "DRAFT",
+      spam: "SPAM",
+      trash: "TRASH",
+      important: "IMPORTANT",
+      unread: "UNREAD",
+      purchases: "CATEGORY_PROMOTIONS",
+      archive: "archive",
+    };
+    const labelId = LABEL_MAP[category] || category; // For custom labels, we'll assume the category is the exact label name for now.
+
+    const countResult = await db.query(`
+      SELECT total_count, unread_count 
+      FROM gmail_label_counts
+      WHERE user_email = $1 AND label_id = $2
+    `, [userEmail, labelId]);
+
+    const totalCount = countResult.rows[0]?.total_count || 0;
+    const unreadCount = countResult.rows[0]?.unread_count || 0;
+
+    const emailsResult = await db.query(`
+      SELECT 
+        gmail_message_id as id,
+        gmail_thread_id as thread_id,
+        subject,
+        from_email as from,
+        to_emails,
+        snippet,
+        received_at as date,
+        is_read as "isRead",
+        is_starred as "isStarred",
+        has_attachments as "hasAttachments",
+        label_ids as labels,
+        ai_intent,
+        ai_priority,
+        ai_summary,
+        body_text as body
+      FROM gmail_messages
+      WHERE user_email = $1
+      ${labelId === 'archive' ? 'AND NOT (label_ids @> ARRAY[\'INBOX\'] OR label_ids @> ARRAY[\'TRASH\'] OR label_ids @> ARRAY[\'SPAM\'])' : 'AND label_ids @> ARRAY[$2]'}
+      ORDER BY received_at DESC
+      LIMIT $3 OFFSET $4
+    `, labelId === 'archive' ? [userEmail, limit, offset] : [userEmail, labelId, limit, offset]);
+
+    const syncState = await db.query(`
+      SELECT sync_status, synced_messages, total_messages, last_full_sync
+      FROM gmail_sync_state
+      WHERE user_email = $1 AND label_id = 'INBOX'
+    `, [userEmail]);
+
+    // Format for existing Frontend component compatibility
+    const formattedEmails = emailsResult.rows.map(row => ({
+      ...row,
+      googleLabels: row.labels,
+      to: row.to_emails?.join(', ') || '',
+      classification: row.ai_intent ? {
+        intent: row.ai_intent,
+        priority: row.ai_priority,
+        summary: row.ai_summary
+      } : undefined
+    }));
 
     return NextResponse.json({
       isConnected: true,
-      messages: messages.filter((m) => m !== null),
-      nextPageToken: listRes.data.nextPageToken,
-      totalMessages,
-      unreadMessages,
-      stats,
-      userLabels
+      emails: formattedEmails,
+      messages: formattedEmails, // legacy fallback for existing generic components
+      pagination: {
+        total: totalCount,
+        unread: unreadCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+        hasMore: offset + limit < totalCount
+      },
+      sync: syncState.rows[0] || { sync_status: 'pending' },
+      
+      // Provide dynamic stubs required by LeadsSidebar if db stats don't exist yet
+      stats: {}, 
+      userLabels: []
     });
+
   } catch (error: any) {
-    console.error("Gmail API Error:", error);
+    console.error("Gmail API DB Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

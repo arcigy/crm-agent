@@ -40,7 +40,6 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     userLabels: gmailLabels,
     inboxStats,
     totalMessages: gmailTotalMessages,
-    nextPageToken,
     isBuffering
   } = useLeadsFetch(initialMessages, getSmartTags, selectedTab);
 
@@ -405,10 +404,11 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     messages, localSentMessages, androidLogs, searchQuery, selectedTab, messageTags, hasDraft, draftData
   );
 
-  const paginatedItems = allItems.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const paginatedItems = allItems;
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedTab]);
 
   const handleEmptyTrash = React.useCallback(async () => {
     const toastId = toast.loading("Vysypávam kôš...");
@@ -462,20 +462,10 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     currentPage,
     isBuffering,
     currentIndex: (selectedEmail && allItems.length > 0) 
-      ? allItems.findIndex(i => i.id === selectedEmail.id) + 1 
+      ? ((currentPage - 1) * itemsPerPage) + allItems.findIndex(i => i.id === selectedEmail.id) + 1 
       : 0,
     onPageChange: (page: number) => {
-      // Optimization: Only fetch if we don't have this page in local buffer yet
-      const neededItems = page * itemsPerPage;
-      const hasEnoughLocally = allItems.length >= neededItems;
-
-      if (page > currentPage && !hasEnoughLocally && nextPageToken) {
-        // Fetch more from Gmail server
-        fetchMessages(false, selectedTab, nextPageToken);
-      } else if (page === 1 && currentPage > 1) {
-        // Optional: refresh page 1 if needed, but for "instant" just setCurrentPage is enough
-        // setCurrentPage(1); 
-      }
+      fetchMessages(false, selectedTab, page);
       setCurrentPage(page);
     },
     totalCount: (gmailTotalMessages || 0) + androidLogs.length,
