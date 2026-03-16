@@ -223,17 +223,19 @@ export const LeadsListItem = React.memo(({
                 .map((label: string) => {
                   const isCrmTag = label.startsWith("CRM/");
                   const displayLabel = label.replace(/^CRM\//, '');
-                  const color = isCrmTag ? "#a78bfa" : "#94a3b8"; // Violet for CRM tags, Slate for others
+                  
+                  // Priority: 1. Native Gmail color, 2. CRM default violet, 3. Standard slate
+                  const color = msg.googleLabelColors?.[label] || (isCrmTag ? "#a78bfa" : "#94a3b8");
                   
                   return (
                     <span
                       key={label}
-                      className="px-2 py-[2px] rounded-md text-[9px] font-black tracking-widest uppercase border whitespace-nowrap"
+                      className="px-2 py-[2px] rounded-md text-[9px] font-black tracking-widest uppercase border whitespace-nowrap transition-all duration-300"
                       style={{ 
                         borderColor: `${color}40`,
                         backgroundColor: `${color}15`,
                         color: color,
-                        textShadow: isCrmTag ? `0 0 8px ${color}60` : 'none'
+                        textShadow: (isCrmTag || msg.googleLabelColors?.[label]) ? `0 0 8px ${color}60` : 'none'
                       }}
                     >
                       {displayLabel}

@@ -25,7 +25,7 @@ interface LeadsSidebarProps {
   draftCount?: number;
   onCompose: () => void;
   customTags?: string[];
-  gmailLabels?: string[];
+  gmailLabels?: any[];
   tagColors?: Record<string, string>;
   onManageTags?: () => void;
 }
@@ -160,13 +160,13 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
           {isTagsExpanded && (
             <div className="mt-2 animate-in slide-in-from-top-2 fade-in duration-200">
               {/* Native Gmail Labels ONLY as requested */}
-              {(gmailLabels || []).map((label: string) => (
+              {(gmailLabels || []).map((l: any) => (
                  <SidebarTag
-                   key={`label:${label}`}
-                   label={label}
-                   isActive={selectedTab === `tag:${label}`}
-                   onClick={() => onTabChange(`tag:${label}`)}
-                   color={label.startsWith("CRM/") ? "#a78bfa" : undefined}
+                   key={`label:${l.name}`}
+                   label={l.name}
+                   isActive={selectedTab === `tag:${l.name}`}
+                   onClick={() => onTabChange(`tag:${l.name}`)}
+                   color={l.color || (l.name.startsWith("CRM/") ? "#a78bfa" : undefined)}
                  />
               ))}
 

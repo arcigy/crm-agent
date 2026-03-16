@@ -93,11 +93,16 @@ export async function GET(request: Request) {
 
     const gmail = await getGmailClient(token);
     
-    // Fetch labels map to show human-readable names
+    // Fetch labels map to show human-readable names and colors
     const labelsRes = await gmail.users.labels.list({ userId: "me" });
-    const labelMap: Record<string, string> = {};
+    const labelInfoMap: Record<string, { name: string, color?: { backgroundColor: string, textColor: string } }> = {};
     (labelsRes.data.labels || []).forEach((l: any) => {
-      if (l.id && l.name) labelMap[l.id] = l.name;
+      if (l.id && l.name) {
+        labelInfoMap[l.id] = { 
+          name: l.name, 
+          color: l.color 
+        };
+      }
     });
 
     // FIX 1.4: Retry logic for fetch failures
@@ -164,7 +169,14 @@ export async function GET(request: Request) {
               isRead: !detail.data.labelIds?.includes("UNREAD"),
               isStarred: detail.data.labelIds?.includes("STARRED"),
               labels: detail.data.labelIds || [],
-              googleLabels: (detail.data.labelIds || []).map((id: string) => labelMap[id] || id),
+              googleLabels: (detail.data.labelIds || []).map((id: string) => labelInfoMap[id]?.name || id),
+              googleLabelColors: (detail.data.labelIds || []).reduce((acc: any, id: string) => {
+                const info = labelInfoMap[id];
+                if (info?.color) {
+                  acc[info.name] = info.color.backgroundColor;
+                }
+                return acc;
+              }, {})
             };
         } catch (e) {
           return null;
@@ -174,14 +186,17 @@ export async function GET(request: Request) {
 
     const userLabels = (labelsRes.data.labels || [])
       .filter((l: any) => l.type === "user" && !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'IMPORTANT'].includes(l.id))
-      .map((l: any) => l.name)
-      .sort((a: string, b: string) => {
+      .map((l: any) => ({
+        name: l.name,
+        color: l.color?.backgroundColor
+      }))
+      .sort((a: any, b: any) => {
         // CRM labels first
-        const aCrm = a.startsWith("CRM/");
-        const bCrm = b.startsWith("CRM/");
+        const aCrm = a.name.startsWith("CRM/");
+        const bCrm = b.name.startsWith("CRM/");
         if (aCrm && !bCrm) return -1;
         if (!aCrm && bCrm) return 1;
-        return a.localeCompare(b);
+        return a.name.localeCompare(b.name);
       });
 
     return NextResponse.json({

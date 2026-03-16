@@ -22,6 +22,7 @@ export interface GmailMessage {
     isStarred?: boolean;
     labels: string[]; // Internal Gmail IDs
     googleLabels?: string[]; // Human readable names
+    googleLabelColors?: Record<string, string>; // Label names mapped to background colors
     classification?: EmailClassification;
     isAnalyzing?: boolean;
 }

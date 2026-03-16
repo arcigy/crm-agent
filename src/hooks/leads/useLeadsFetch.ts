@@ -14,7 +14,7 @@ export function useLeadsFetch(
   const [androidLogs, setAndroidLogs] = React.useState<AndroidLog[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isConnected, setIsConnected] = React.useState(false);
-  const [userLabels, setUserLabels] = React.useState<string[]>([]);
+  const [userLabels, setUserLabels] = React.useState<any[]>([]);
 
   // FIX 3: Client-side tab cache
   const emailCache = React.useRef<Record<string, {
@@ -56,7 +56,7 @@ export function useLeadsFetch(
     setLoading(false);
   };
 
-  const fetchFresh = async (category: string, isBackground: boolean): Promise<{ messages: GmailMessage[], userLabels?: string[] } | null> => {
+  const fetchFresh = async (category: string, isBackground: boolean): Promise<{ messages: GmailMessage[], userLabels?: any[] } | null> => {
     try {
       const dbRes = await fetch("/api/notes?type=ai_analysis");
       let currentAnalyses = dbAnalyses;
