@@ -1,7 +1,5 @@
 import { db } from "./db";
 import { getValidToken, getGmailClient } from "./google";
-import { classifyEmail } from "@/app/actions/ai";
-import { applyAILabelToGmail } from "@/lib/gmail-processor";
 
 const BATCH_SIZE = 100;        // Gmail API max per request
 const DETAIL_BATCH_SIZE = 50;  // Parallel detail fetches

@@ -9,8 +9,17 @@ export async function POST(request: Request) {
   try {
     const user = await currentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userEmail = user.emailAddresses[0]?.emailAddress;
-    if (!userEmail) return NextResponse.json({ error: "No primary email" }, { status: 400 });
+    
+    // Get the actually linked Google email for this user
+    const linkedToken = await db.query(
+      'SELECT user_email FROM google_tokens WHERE user_id = $1 LIMIT 1',
+      [user.id]
+    );
+    
+    const userEmail = linkedToken.rows[0]?.user_email?.toLowerCase() || 
+                      user.emailAddresses[0]?.emailAddress?.toLowerCase();
+                      
+    if (!userEmail) return NextResponse.json({ error: "No email identified" }, { status: 400 });
 
     // Check if already syncing
     const stateRes = await db.query(`
@@ -33,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     // Start sync in background (don't await)
-    performFullSync(userEmail, 'INBOX').catch(err => {
+    performFullSync(userEmail, 'INBOX', user.id).catch(err => {
       console.error('[Gmail Sync] Full sync background error:', err);
     });
 
@@ -51,8 +60,17 @@ export async function GET(request: Request) {
   try {
     const user = await currentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userEmail = user.emailAddresses[0]?.emailAddress;
-    if (!userEmail) return NextResponse.json({ error: "No primary email" }, { status: 400 });
+    
+    // Get the actually linked Google email for this user
+    const linkedToken = await db.query(
+      'SELECT user_email FROM google_tokens WHERE user_id = $1 LIMIT 1',
+      [user.id]
+    );
+    
+    const userEmail = linkedToken.rows[0]?.user_email?.toLowerCase() || 
+                      user.emailAddresses[0]?.emailAddress?.toLowerCase();
+                      
+    if (!userEmail) return NextResponse.json({ error: "No email identified" }, { status: 400 });
     
     const states = await db.query(`
       SELECT * FROM gmail_sync_state

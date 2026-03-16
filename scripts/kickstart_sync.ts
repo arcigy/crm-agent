@@ -11,7 +11,7 @@ async function kickstartSync() {
   
   try {
     // Get the user from google_tokens
-    const tokens = await db.query('SELECT user_email FROM google_tokens LIMIT 1');
+    const tokens = await db.query('SELECT user_id, user_email FROM google_tokens LIMIT 1');
     if (tokens.rows.length === 0) {
       console.error('❌ No user connected to Google found in google_tokens table.');
       process.exit(1);

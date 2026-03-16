@@ -63,8 +63,20 @@ export async function GET(request: Request) {
   try {
     const user = await currentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userEmail = user.emailAddresses[0]?.emailAddress;
-    if (!userEmail) return NextResponse.json({ error: "No primary email" }, { status: 400 });
+    
+    // List fetching from local DB
+    const { db } = await import("@/lib/db");
+    
+    // IMPORTANT: Get the actually linked Google email for this user
+    const linkedToken = await db.query(
+      'SELECT user_email FROM google_tokens WHERE user_id = $1 LIMIT 1',
+      [user.id]
+    );
+    
+    const userEmail = linkedToken.rows[0]?.user_email?.toLowerCase() || 
+                      user.emailAddresses[0]?.emailAddress?.toLowerCase();
+                      
+    if (!userEmail) return NextResponse.json({ error: "No email identified" }, { status: 400 });
 
     // Single message fetch for EmailDetailView (fetch HTML body directly from Gmail)
     if (messageId) {
@@ -83,8 +95,6 @@ export async function GET(request: Request) {
     }
 
     // List fetching from local DB
-    const { db } = await import("@/lib/db");
-    
     const category = searchParams.get("tab") || searchParams.get("category") || "inbox";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || searchParams.get("pageSize") || "50");

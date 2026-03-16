@@ -23,11 +23,8 @@ async function debugSync() {
     console.log('Sync States:', JSON.stringify(syncState.rows, null, 2));
     console.log('Label Counts:', JSON.stringify(labelCounts.rows, null, 2));
 
-    if (googleTokens.rows.length > 0) {
-      console.log('--- TRIGGERING LOCAL DEBUG SYNC ---');
-      const { performFullSync } = await import('../src/lib/gmail-sync-engine');
-      const result = await performFullSync(googleTokens.rows[0].user_email, 'INBOX');
-      console.log('Sync Result:', result);
+    if (syncState.rows.length === 0) {
+      console.log('⚠️ No sync state found. Sync has never started.');
     }
   } catch (err) {
     console.error('Error debugging sync:', err);
