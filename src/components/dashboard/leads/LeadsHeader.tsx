@@ -311,8 +311,8 @@ export function LeadsHeader({
           )}
           <div className="text-[11px] font-black text-[#444746] dark:text-zinc-500 uppercase tracking-widest tabular-nums">
             {totalCount > 0 
-              ? `Strana ${currentPage} z ${totalPages}` 
-              : "Strana 0 z 0"
+              ? `${(currentPage - 1) * 50 + 1}-${Math.min(currentPage * 50, totalCount)} z ${totalCount}` 
+              : "0 z 0"
             }
           </div>
         </div>

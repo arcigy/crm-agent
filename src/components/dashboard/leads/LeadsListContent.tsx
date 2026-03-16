@@ -17,6 +17,7 @@ interface LeadsListContentProps {
   paginatedItems: any[];
   currentPage: number;
   totalPages: number;
+  totalCount: number;
   onPageChange: (p: number) => void;
   selectedIds: Set<string>;
   selectAll: (ids: string[]) => void;
@@ -59,6 +60,7 @@ export function LeadsListContent({
   paginatedItems,
   currentPage,
   totalPages,
+  totalCount,
   onPageChange,
   selectedIds,
   selectAll,
@@ -98,7 +100,7 @@ export function LeadsListContent({
         onSearchChange={onSearchChange}
         onRefresh={onRefresh}
         onConnect={onConnect}
-        totalCount={allItems.length}
+        totalCount={totalCount}
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={onPageChange}
@@ -121,9 +123,10 @@ export function LeadsListContent({
         <div className="sticky top-0 left-0 right-0 h-4 bg-gradient-to-b from-black/20 to-transparent z-20 pointer-events-none" />
         
         <div className="bg-white/5 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-white/5 shadow-[0_20px_40px_-8px_rgba(0,0,0,0.2)] overflow-hidden transition-all duration-700 relative">
-          {loading && allItems.length === 0 ? (
+          {(loading && allItems.length === 0) || (loading && paginatedItems.length === 0 && totalCount > 0) ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="w-10 h-10 border-[3px] border-violet-500/10 border-t-violet-500 rounded-full animate-spin"></div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-violet-500/40 animate-pulse">Načítavam stranu {currentPage}...</p>
             </div>
           ) : allItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center px-12">

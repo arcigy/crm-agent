@@ -58,8 +58,12 @@ export function useLeadsFetch(
 
     if (!isBackground) setLoading(true);
     const result = await fetchFresh(category, isBackground, pageToken);
+    
+    // Automatically append if pageToken is used, otherwise replace (unless explicitly append)
+    const shouldAppend = isAppend || !!pageToken;
+
     if (result && result.messages) {
-      updateCache(category, result.messages, result.nextPageToken, result.totalMessages, isAppend, result.stats, result.userLabels);
+      updateCache(category, result.messages, result.nextPageToken, result.totalMessages, shouldAppend, result.stats, result.userLabels);
     }
     setLoading(false);
   };
