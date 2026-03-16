@@ -29,16 +29,8 @@ export function useLeadsPersistence(
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const persistedSession = localStorage.getItem("crm_leads_session");
-      const persistedMessages = localStorage.getItem("crm_leads_messages");
       
       const isComposing = searchParams?.has("compose");
-
-      if (persistedMessages) {
-        try {
-          const parsedMessages = JSON.parse(persistedMessages);
-          if (Array.isArray(parsedMessages)) setMessages(parsedMessages);
-        } catch(e) {}
-      }
 
       if (persistedSession) {
         try {

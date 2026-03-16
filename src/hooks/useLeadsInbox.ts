@@ -149,9 +149,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   // with dependency on selectedTab. We only need periodic background refresh here if desired.
   React.useEffect(() => {
     // Initial fetch and periodic sync are now primarily handled in useLeadsFetch
-    const interval = setInterval(() => fetchMessages(true, selectedTab), 15000);
+    const interval = setInterval(() => fetchMessages(true, selectedTab, currentPage), 15000);
     return () => clearInterval(interval);
-  }, [selectedTab, fetchMessages]);
+  }, [selectedTab, fetchMessages, currentPage]);
 
   const handleConnect = async () => {
     if (!isLoaded || !user) return;
