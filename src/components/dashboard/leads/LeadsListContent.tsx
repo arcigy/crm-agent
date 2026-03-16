@@ -47,6 +47,11 @@ interface LeadsListContentProps {
   messageTags: Record<string, string[]>;
   gmailLabels?: any[];
   isBuffering: boolean;
+  syncStatus: {
+    sync_status: string;
+    synced_messages: number;
+    total_messages: number;
+  } | null;
 }
 
 export function LeadsListContent({
@@ -90,6 +95,7 @@ export function LeadsListContent({
   messageTags,
   gmailLabels = [],
   isBuffering,
+  syncStatus,
 }: LeadsListContentProps) {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -127,6 +133,21 @@ export function LeadsListContent({
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="w-10 h-10 border-[3px] border-violet-500/10 border-t-violet-500 rounded-full animate-spin"></div>
               <p className="text-[10px] font-black uppercase tracking-widest text-violet-500/40 animate-pulse">Načítavam stranu {currentPage}...</p>
+            </div>
+          ) : allItems.length === 0 && syncStatus?.sync_status === 'syncing' ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center px-12">
+               <div className="w-16 h-16 bg-violet-500/5 rounded-2xl flex items-center justify-center mb-6 border border-violet-500/10 animate-pulse">
+                <div className="w-8 h-8 border-2 border-violet-500/20 border-t-violet-500 rounded-full animate-spin" />
+              </div>
+              <h3 className="text-lg font-black text-foreground italic uppercase">Sťahujem tvoje e-maily...</h3>
+              <div className="text-muted-foreground/60 text-sm font-bold mt-2">
+                <p>Pripravujem tvoj inbox pre bleskové prehliadanie.</p>
+                {syncStatus && syncStatus.total_messages > 0 && (
+                  <span className="block mt-1 text-violet-500/60">
+                    Spracované: {syncStatus.synced_messages} z {syncStatus.total_messages}
+                  </span>
+                )}
+              </div>
             </div>
           ) : allItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center px-12">

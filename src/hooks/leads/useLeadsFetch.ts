@@ -18,6 +18,11 @@ export function useLeadsFetch(
   const [inboxStats, setInboxStats] = React.useState<Record<string, { total: number, unread: number }>>({});
   const [totalMessages, setTotalMessages] = React.useState(0);
   const [isBuffering, setIsBuffering] = React.useState(false);
+  const [syncStatus, setSyncStatus] = React.useState<{
+    sync_status: string;
+    synced_messages: number;
+    total_messages: number;
+  } | null>(null);
 
   // FIX 3: Client-side tab cache mapped by category and page
   const emailCache = React.useRef<Record<string, {
@@ -112,6 +117,8 @@ export function useLeadsFetch(
             return newMsg;
           });
 
+            if (gmailData.sync) setSyncStatus(gmailData.sync);
+
           return { 
             messages: processedMessages, 
             userLabels: gmailData.userLabels,
@@ -184,6 +191,7 @@ export function useLeadsFetch(
     userLabels,
     inboxStats,
     totalMessages,
-    isBuffering
+    isBuffering,
+    syncStatus
   };
 }
