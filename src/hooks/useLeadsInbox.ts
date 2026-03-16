@@ -38,7 +38,8 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     androidLogs, setAndroidLogs,
     loading, setLoading,
     isConnected, setIsConnected,
-    fetchMessages
+    fetchMessages,
+    userLabels
   } = useLeadsFetch(initialMessages, getSmartTags, selectedTab);
 
   const { getMockMessages } = useLeadsMockData();
@@ -589,6 +590,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         }
       } as any;
       setLocalSentMessages(prev => [newSentMsg, ...prev]);
-    }
+    },
+    userLabels
   };
 }

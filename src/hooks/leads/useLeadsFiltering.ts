@@ -40,8 +40,9 @@ export function useLeadsFiltering(
     if (selectedTab.startsWith("tag:")) {
       const tag = selectedTab.replace("tag:", "");
       const msgTags = messageTags[msg.id] || [];
+      const hasGmailLabel = (msg as any).googleLabels?.includes(tag) || (msg as any).googleLabels?.includes(`CRM/${tag}`);
       const hasGmailTag = msg.labels?.includes(tag) || msg.labels?.includes(`CRM/${tag}`);
-      return matchesSearch && (hasGmailTag || msgTags.includes(tag));
+      return matchesSearch && (hasGmailLabel || hasGmailTag || msgTags.includes(tag));
     }
 
     if (["leads", "more", "archive", "all"].includes(selectedTab)) return matchesSearch;

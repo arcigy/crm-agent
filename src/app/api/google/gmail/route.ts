@@ -167,9 +167,22 @@ export async function GET(request: Request) {
       }),
     );
 
+    const userLabels = (labelsRes.data.labels || [])
+      .filter((l: any) => l.type === "user" && !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'IMPORTANT'].includes(l.id))
+      .map((l: any) => l.name)
+      .sort((a: string, b: string) => {
+        // CRM labels first
+        const aCrm = a.startsWith("CRM/");
+        const bCrm = b.startsWith("CRM/");
+        if (aCrm && !bCrm) return -1;
+        if (!aCrm && bCrm) return 1;
+        return a.localeCompare(b);
+      });
+
     return NextResponse.json({
       isConnected: true,
       messages: messages.filter((m) => m !== null),
+      userLabels
     });
   } catch (error: any) {
     console.error("Gmail API Error:", error);

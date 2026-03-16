@@ -14,6 +14,7 @@ export function useLeadsFetch(
   const [androidLogs, setAndroidLogs] = React.useState<AndroidLog[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isConnected, setIsConnected] = React.useState(false);
+  const [userLabels, setUserLabels] = React.useState<string[]>([]);
 
   // FIX 3: Client-side tab cache
   const emailCache = React.useRef<Record<string, {
@@ -35,25 +36,27 @@ export function useLeadsFetch(
       setLoading(false);
       
       // Silently refresh in background
-      fetchFresh(category, true).then(fresh => {
-        if (fresh) {
-          emailCache.current[category] = { data: fresh, fetchedAt: Date.now() };
-          setMessages(fresh);
+      fetchFresh(category, true).then(result => {
+        if (result && result.messages) {
+          emailCache.current[category] = { data: result.messages, fetchedAt: Date.now() };
+          setMessages(result.messages);
+          if (result.userLabels) setUserLabels(result.userLabels);
         }
       });
       return;
     }
 
     if (!isBackground) setLoading(true);
-    const freshData = await fetchFresh(category, isBackground);
-    if (freshData) {
-      emailCache.current[category] = { data: freshData, fetchedAt: Date.now() };
-      setMessages(freshData);
+    const result = await fetchFresh(category, isBackground);
+    if (result && result.messages) {
+      emailCache.current[category] = { data: result.messages, fetchedAt: Date.now() };
+      setMessages(result.messages);
+      if (result.userLabels) setUserLabels(result.userLabels);
     }
     setLoading(false);
   };
 
-  const fetchFresh = async (category: string, isBackground: boolean) => {
+  const fetchFresh = async (category: string, isBackground: boolean): Promise<{ messages: GmailMessage[], userLabels?: string[] } | null> => {
     try {
       const dbRes = await fetch("/api/notes?type=ai_analysis");
       let currentAnalyses = dbAnalyses;
@@ -88,7 +91,7 @@ export function useLeadsFetch(
             return newMsg;
           });
 
-          return processedMessages;
+          return { messages: processedMessages, userLabels: gmailData.userLabels };
         } else if (gmailData.isConnected === false) {
            setIsConnected(false);
         }
@@ -126,9 +129,10 @@ export function useLeadsFetch(
       const now = Date.now();
       const cached = emailCache.current[tab];
       if (!cached || (now - cached.fetchedAt) > CACHE_TTL) {
-        fetchFresh(tab, true).then(data => {
-          if (data) {
-            emailCache.current[tab] = { data, fetchedAt: Date.now() };
+        fetchFresh(tab, true).then(result => {
+          if (result && result.messages) {
+            emailCache.current[tab] = { data: result.messages, fetchedAt: Date.now() };
+            if (result.userLabels) setUserLabels(result.userLabels);
           }
         });
       }
@@ -147,7 +151,7 @@ export function useLeadsFetch(
     androidLogs, setAndroidLogs,
     loading, setLoading,
     isConnected, setIsConnected,
-    fetchMessages
+    fetchMessages,
+    userLabels
   };
 }
-

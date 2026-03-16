@@ -214,39 +214,34 @@ export const LeadsListItem = React.memo(({
             )}
           </div>
 
-          {/* Tags - always visible, no layout shift */}
-          {(tags.length > 0 || (msg.googleLabels && msg.googleLabels.length > 0)) && (
+          {/* Real Gmail Labels ONLY as requested - always visible */}
+          {msg.googleLabels && msg.googleLabels.length > 0 && (
             <div className="flex items-center gap-1.5 ml-4 mr-6 flex-shrink-0 justify-end max-w-[200px] flex-wrap">
-              {/* CRM Tags */}
-              {tags.slice(0, 2).map((tag) => {
-                const color = tagColors[tag] || "#8b5cf6";
-                return (
-                  <span
-                    key={tag}
-                    className="px-2 py-[2px] rounded-md text-[10px] font-black tracking-widest uppercase border whitespace-nowrap"
-                    style={{ 
-                      borderColor: `${color}40`,
-                      backgroundColor: `${color}15`,
-                      color: color,
-                      textShadow: `0 0 8px ${color}60`
-                    }}
-                  >
-                    {tag}
-                  </span>
-                );
-              })}
-              
-              {/* Google Labels (filtered) */}
-              {msg.googleLabels?.filter(l => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.toUpperCase())).slice(0, 2).map((label) => (
-                <span
-                  key={label}
-                  className="px-2 py-[2px] rounded-md text-[9px] font-bold tracking-tight bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 whitespace-nowrap"
-                >
-                  {label.replace(/^CRM\//, '')}
-                </span>
-              ))}
+              {msg.googleLabels
+                .filter(l => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.toUpperCase()))
+                .slice(0, 3)
+                .map((label: string) => {
+                  const isCrmTag = label.startsWith("CRM/");
+                  const displayLabel = label.replace(/^CRM\//, '');
+                  const color = isCrmTag ? "#a78bfa" : "#94a3b8"; // Violet for CRM tags, Slate for others
+                  
+                  return (
+                    <span
+                      key={label}
+                      className="px-2 py-[2px] rounded-md text-[9px] font-black tracking-widest uppercase border whitespace-nowrap"
+                      style={{ 
+                        borderColor: `${color}40`,
+                        backgroundColor: `${color}15`,
+                        color: color,
+                        textShadow: isCrmTag ? `0 0 8px ${color}60` : 'none'
+                      }}
+                    >
+                      {displayLabel}
+                    </span>
+                  );
+                })}
 
-              {(tags.length + (msg.googleLabels?.length || 0)) > 4 && (
+              {msg.googleLabels?.filter(l => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.toUpperCase())).length > 3 && (
                 <span className="text-[9px] font-black text-white/30">...</span>
               )}
             </div>

@@ -25,11 +25,12 @@ interface LeadsSidebarProps {
   draftCount?: number;
   onCompose: () => void;
   customTags?: string[];
+  gmailLabels?: string[];
   tagColors?: Record<string, string>;
   onManageTags?: () => void;
 }
 
-export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftCount = 0, onCompose, customTags = [], tagColors = {}, onManageTags }: LeadsSidebarProps) {
+export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftCount = 0, onCompose, customTags = [], gmailLabels = [], tagColors = {}, onManageTags }: LeadsSidebarProps) {
   const [isMoreExpanded, setIsMoreExpanded] = React.useState(false);
   const [isTagsExpanded, setIsTagsExpanded] = React.useState(false);
 
@@ -125,8 +126,8 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
           </div>
         )}
 
-        {/* Labels Section (AFTER MORE/EXPANDED ITEMS) */}
-        <div className="py-2 mt-60 mb-2 relative z-10">
+        {/* Gmail Labels Section */}
+        <div className="py-2 mt-6 mb-2 relative z-10">
           <div className="flex items-center justify-between mb-2 pl-2 pr-1">
             <button 
               onClick={() => setIsTagsExpanded(!isTagsExpanded)}
@@ -140,7 +141,7 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
               <span
                 className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40 group-hover:text-white transition-colors"
               >
-                Moje Štítky
+                Gmail Štítky
               </span>
             </button>
             
@@ -158,17 +159,19 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
 
           {isTagsExpanded && (
             <div className="mt-2 animate-in slide-in-from-top-2 fade-in duration-200">
-              {customTags.map((tag) => (
+              {/* Native Gmail Labels ONLY as requested */}
+              {(gmailLabels || []).map((label: string) => (
                  <SidebarTag
-                   key={`tag:${tag}`}
-                   label={tag}
-                   isActive={selectedTab === `tag:${tag}`}
-                   onClick={() => onTabChange(`tag:${tag}`)}
-                   color={tagColors[tag]}
+                   key={`label:${label}`}
+                   label={label}
+                   isActive={selectedTab === `tag:${label}`}
+                   onClick={() => onTabChange(`tag:${label}`)}
+                   color={label.startsWith("CRM/") ? "#a78bfa" : undefined}
                  />
               ))}
-              {customTags.length === 0 && (
-                 <div className="text-[11px] text-white/30 px-3 py-2 italic font-medium">Žiadne štítky, pridajte prvé cez +</div>
+
+              {(gmailLabels || []).length === 0 && (
+                 <div className="text-[11px] text-white/30 px-3 py-2 italic font-medium">Žiadne štítky v Gmaile</div>
               )}
             </div>
           )}
