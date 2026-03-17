@@ -25,6 +25,7 @@ import { useLeadsFetch } from "./leads/useLeadsFetch";
 export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const { user, isLoaded } = useCurrentCRMUser();
   const [selectedTab, setSelectedTab] = React.useState<string>("inbox");
+  const [view, setView] = React.useState<"threads" | "messages">("threads");
   const {
     messageTags, setMessageTags,
     getSmartTags,
@@ -74,7 +75,14 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   // IMPORTANT: Initialize as false to prevent hydration mismatch (server vs client)
   const [isComposeOpen, setIsComposeOpen] = React.useState(false);
   const [hasDraft, setHasDraft] = React.useState(false);
-  const [draftData, setDraftData] = React.useState({ 
+  const [draftData, setDraftData] = React.useState<{
+    to: string;
+    subject: string;
+    body: string;
+    threadId?: string;
+    inReplyTo?: string;
+    references?: string;
+  }>({ 
     to: "", 
     subject: "", 
     body: "" 
@@ -143,15 +151,21 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     }
   }, [messages, setMessageTags]);
 
+  // Trigger server-side search
+  React.useEffect(() => {
+    fetchMessages(false, selectedTab, 1, view, debouncedSearchQuery);
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, selectedTab, view]);
+
   const analyzedIds = React.useRef<Set<string>>(new Set());
 
   // Initial fetch and periodic sync are now handled in useLeadsFetch
   // with dependency on selectedTab. We only need periodic background refresh here if desired.
   React.useEffect(() => {
     // Initial fetch and periodic sync are now primarily handled in useLeadsFetch
-    const interval = setInterval(() => fetchMessages(true, selectedTab, currentPage), 15000);
+    const interval = setInterval(() => fetchMessages(true, selectedTab, currentPage, view, debouncedSearchQuery), 15000);
     return () => clearInterval(interval);
-  }, [selectedTab, fetchMessages, currentPage]);
+  }, [selectedTab, fetchMessages, currentPage, view, debouncedSearchQuery]);
 
   const handleConnect = async () => {
     if (!isLoaded || !user) return;
@@ -203,6 +217,27 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         });
       } catch (error) {
         console.error("Failed to mark as read:", error);
+      }
+    }
+
+    // Load full body if missing (for replies/forwards)
+    if (!msg.bodyHtml || msg.bodyHtml.length < 50) {
+      try {
+        const res = await fetch(`/api/google/gmail?id=${msg.id}`);
+        const data = await res.json();
+        if (data.message?.bodyHtml) {
+          const updatedMsg = { 
+            ...msg, 
+            bodyHtml: data.message.bodyHtml, 
+            messageIdHeader: data.message.messageIdHeader,
+            referencesHeader: data.message.referencesHeader,
+            isRead: true 
+          };
+          setSelectedEmail(updatedMsg);
+          setMessages(prev => prev.map(m => m.id === msg.id ? updatedMsg : m));
+        }
+      } catch (err) {
+        console.error("Failed to fetch full body:", err);
       }
     }
   };
@@ -401,6 +436,36 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     setIsContactModalOpen(true);
   };
 
+  const [isDealModalOpen, setIsDealModalOpen] = React.useState(false);
+  const [dealModalData, setDealModalData] = React.useState<{
+    name: string;
+    value: number;
+    contact_id?: string;
+    contact_email?: string;
+    description: string;
+  } | null>(null);
+
+  const handleCreateDeal = async (e: React.MouseEvent, msg: GmailMessage) => {
+    e.stopPropagation();
+    const aiEntities = msg.classification?.entities;
+    const estimatedBudget = msg.classification?.estimated_budget || "";
+    
+    // Extract numeric value from budget string
+    const budgetValue = parseFloat(estimatedBudget.replace(/[^0-9.]/g, '')) || 0;
+    
+    const name = aiEntities?.company_name && aiEntities.company_name !== "—" 
+      ? `Obchod: ${aiEntities.company_name}`
+      : `Obchod: ${msg.subject || "(bez predmetu)"}`;
+
+    setDealModalData({
+      name,
+      value: budgetValue,
+      contact_email: aiEntities?.email || msg.from,
+      description: `Vytvorené z e-mailu: ${msg.subject}\n\n${msg.snippet}`
+    });
+    setIsDealModalOpen(true);
+  };
+
   const { allItems } = useLeadsFiltering(
     messages, localSentMessages, androidLogs, searchQuery, selectedTab, messageTags, hasDraft, draftData
   );
@@ -466,7 +531,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       ? ((currentPage - 1) * itemsPerPage) + allItems.findIndex(i => i.id === selectedEmail.id) + 1 
       : 0,
     onPageChange: (page: number) => {
-      fetchMessages(false, selectedTab, page);
+      fetchMessages(false, selectedTab, page, view, debouncedSearchQuery);
       setCurrentPage(page);
     },
     totalCount: (gmailTotalMessages || 0) + androidLogs.length,
@@ -515,6 +580,11 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     handleDraftReply,
     handleExecuteCustomCommand,
     handleSaveContact,
+    handleCreateDeal,
+    isDealModalOpen,
+    setIsDealModalOpen,
+    dealModalData,
+    setDealModalData,
     messageTags,
     setMessageTags,
     isTagModalOpen,
@@ -523,6 +593,18 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     setTagModalEmail,
     selectedTab,
     setSelectedTab,
+    view,
+    setView: (v: "threads" | "messages") => {
+       setView(v);
+       fetchMessages(false, selectedTab, 1, v, debouncedSearchQuery);
+       setCurrentPage(1);
+    },
+    setSelectedTabWithReset: (tab: string) => {
+        setSelectedTab(tab);
+        setSelectedEmail(null);
+        setCurrentPage(1);
+        fetchMessages(false, tab, 1, view, debouncedSearchQuery);
+    },
     handleAddLocalSentMessage: (data: { to: string; subject: string; body: string }) => {
       const newSentMsg = {
         id: `local-sent-${Date.now()}`,

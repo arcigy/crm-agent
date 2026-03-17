@@ -288,6 +288,8 @@ export async function performFullSync(
           .filter((r): r is any => r !== null);
 
         await upsertMessageBatch(rows);
+        // Trigger AI categorization for newly ingested messages
+        runAiLabelingForMessages(userEmail, rows).catch(e => console.error("AI tagging error (background):", e));
         totalSynced += rows.length;
 
         await sleep(RATE_LIMIT_DELAY);
@@ -367,6 +369,8 @@ export async function performIncrementalSync(
           .map(r => parseGmailMessage((r as PromiseFulfilledResult<any>).value.data, userEmail));
           
         await upsertMessageBatch(rows);
+        // Trigger AI categorization for newly ingested messages
+        runAiLabelingForMessages(userEmail, rows).catch(e => console.error("AI tagging error (background):", e));
       }
 
       if (event.messagesDeleted) {
@@ -429,3 +433,47 @@ export async function performIncrementalSync(
     }
   }
 }
+
+/**
+ * Runs AI categorization for a batch of messages based on user-defined label prompts
+ */
+async function runAiLabelingForMessages(userEmail: string, messages: any[]) {
+  try {
+    const { getAiLabels } = await import("@/app/actions/labels");
+    const aiLabels = await getAiLabels(userEmail);
+    if (!aiLabels || aiLabels.length === 0) return;
+
+    const { categorizeEmailByUserPrompts } = await import("@/app/actions/ai");
+    const { syncMessageTagsToGmail } = await import("@/app/actions/gmail-labels");
+
+    for (const msg of messages) {
+      // Use snippet and body for analysis
+      const contentToAnalyze = `${msg.subject}\n\n${msg.snippet}\n\n${msg.body_text || ""}`;
+      
+      const labelsToApply = await categorizeEmailByUserPrompts(
+        contentToAnalyze, 
+        aiLabels.map(l => ({ name: l.name, prompt: l.ai_prompt || "" }))
+      );
+
+      if (labelsToApply && labelsToApply.length > 0) {
+        console.log(`[AI Labeling] Applying labels ${labelsToApply.join(", ")} to message ${msg.gmail_message_id}`);
+        
+        // Sync to Gmail
+        await syncMessageTagsToGmail(msg.gmail_message_id, labelsToApply);
+        
+        // Update local DB
+        await db.query(`
+          UPDATE gmail_messages 
+          SET label_ids = CASE 
+            WHEN label_ids @> $1 THEN label_ids 
+            ELSE label_ids || $1 
+          END
+          WHERE gmail_message_id = $2 AND user_email = $3
+        `, [labelsToApply, msg.gmail_message_id, userEmail]);
+      }
+    }
+  } catch (err) {
+    console.error("[AI Labeling] Batch processing failed:", err);
+  }
+}
+

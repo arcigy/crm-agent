@@ -10,10 +10,16 @@ import {
   renameGmailLabel, 
   updateGmailLabelColor 
 } from "@/app/actions/gmail-labels";
+import { updateLabel } from "@/app/actions/labels";
+import { Sparkles, Save, Brain, ChevronDown, ChevronUp } from "lucide-react";
 
 interface GmailLabelObj {
+  id: string;
   name: string;
   color?: string;
+  ai_enabled?: boolean;
+  ai_prompt?: string;
+  db_id?: string | number;
 }
 
 interface TagManagementModalProps {
@@ -44,6 +50,9 @@ export function TagManagementModal({
   const [animate, setAnimate] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [activePicker, setActivePicker] = React.useState<string | "new" | null>(null);
+  const [expandingAi, setExpandingAi] = React.useState<string | null>(null);
+  const [aiPrompts, setAiPrompts] = React.useState<Record<string, string>>({});
+  const [aiEnabled, setAiEnabled] = React.useState<Record<string, boolean>>({});
 
   React.useEffect(() => {
     if (isOpen) {
@@ -114,6 +123,31 @@ export function TagManagementModal({
       onRefresh();
     } else {
       toast.error(`Chyba: ${res.error}`);
+    }
+    setIsSyncing(false);
+  };
+
+  const handleUpdateAiSettings = async (label: GmailLabelObj) => {
+    if (!label.db_id) {
+        toast.error("Štítok nie je zosynchronizovaný s databázou");
+        return;
+    }
+    
+    setIsSyncing(true);
+    const res = await updateLabel(
+        label.db_id, 
+        label.name, 
+        label.color, 
+        aiEnabled[label.id] ?? label.ai_enabled, 
+        aiPrompts[label.id] ?? label.ai_prompt
+    );
+    
+    if (res.success) {
+        toast.success("AI nastavenia uložené");
+        setExpandingAi(null);
+        onRefresh();
+    } else {
+        toast.error(`Chyba: ${res.error}`);
     }
     setIsSyncing(false);
   };
@@ -248,51 +282,99 @@ export function TagManagementModal({
                 const isPicking = activePicker === tag;
 
                 return (
-                  <div 
-                    key={tag}
-                    className={`group flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 ${email && !isEditing ? 'cursor-pointer' : 'cursor-default'} ${isActive ? 'shadow-lg' : 'bg-slate-50 dark:bg-zinc-800/50 border-transparent hover:border-violet-500/30'} ${isPicking ? 'ring-2 ring-violet-500 shadow-xl' : ''}`}
-                    style={isActive ? { backgroundColor: tagColor, borderColor: tagColor, boxShadow: `0 10px 15px -3px ${tagColor}40` } : {}}
-                    onClick={() => !isEditing && email && onToggleTag(email.id, tag)}
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <div 
-                        className="w-4 h-4 rounded-full border-2 border-white/20 transition-transform hover:scale-125 cursor-pointer"
-                        style={{ backgroundColor: tagColor }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActivePicker(isPicking ? null : tag);
-                        }}
-                      />
-                      {isEditing ? (
-                        <input
-                          autoFocus
-                          type="text"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onBlur={handleRenameLabel}
-                          onKeyDown={(e) => e.key === 'Enter' && handleRenameLabel()}
-                          className="bg-transparent border-b border-white/50 text-white outline-none w-full text-sm font-black"
+                  <div key={l.id} className="space-y-2">
+                    <div 
+                      className={`group flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 ${email && !isEditing ? 'cursor-pointer' : 'cursor-default'} ${isActive ? 'shadow-lg' : 'bg-slate-50 dark:bg-zinc-800/50 border-transparent hover:border-violet-500/30'} ${isPicking ? 'ring-2 ring-violet-500 shadow-xl' : ''}`}
+                      style={isActive ? { backgroundColor: tagColor, borderColor: tagColor, boxShadow: `0 10px 15px -3px ${tagColor}40` } : {}}
+                      onClick={() => !isEditing && email && onToggleTag(email.id, tag)}
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <div 
+                          className="w-4 h-4 rounded-full border-2 border-white/20 transition-transform hover:scale-125 cursor-pointer"
+                          style={{ backgroundColor: tagColor }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActivePicker(isPicking ? null : tag);
+                          }}
                         />
-                      ) : (
-                        <span className={`text-sm font-black tracking-tight ${isActive ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
-                          {tag}
-                        </span>
-                      )}
+                        {isEditing ? (
+                          <input
+                            autoFocus
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={handleRenameLabel}
+                            onKeyDown={(e) => e.key === 'Enter' && handleRenameLabel()}
+                            className="bg-transparent border-b border-white/50 text-white outline-none w-full text-sm font-black"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-black tracking-tight ${isActive ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                              {tag}
+                            </span>
+                            {l.ai_enabled && <Sparkles className={`w-3 h-3 ${isActive ? 'text-white' : 'text-amber-400'}`} />}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-1">
+                         {isActive && !isEditing && <Check className="w-4 h-4 text-white p-0.5" />}
+                         {!isEditing && (
+                           <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all">
+                             <button 
+                               onClick={(e) => { 
+                                 e.stopPropagation(); 
+                                 setExpandingAi(expandingAi === l.id ? null : l.id); 
+                                 if (expandingAi !== l.id) {
+                                   setAiEnabled(prev => ({ ...prev, [l.id]: l.ai_enabled || false }));
+                                   setAiPrompts(prev => ({ ...prev, [l.id]: l.ai_prompt || "" }));
+                                 }
+                               }} 
+                               className={`p-2 rounded-xl transition-all ${isActive ? 'hover:bg-white/20 text-white/60 hover:text-white' : 'hover:bg-violet-100 text-slate-300 hover:text-violet-600'}`}
+                             >
+                               {expandingAi === l.id ? <ChevronUp className="w-3.5 h-3.5" /> : <Sparkles className={`w-3.5 h-3.5 ${l.ai_enabled ? 'text-amber-400' : ''}`} />}
+                             </button>
+                             <button onClick={(e) => { e.stopPropagation(); setEditingTag(tag); setEditValue(tag); }} className={`p-2 rounded-xl transition-all ${isActive ? 'hover:bg-white/20 text-white/60 hover:text-white' : 'hover:bg-violet-100 text-slate-300 hover:text-violet-600'}`}>
+                               <Pencil className="w-3.5 h-3.5" />
+                             </button>
+                             <button onClick={(e) => { e.stopPropagation(); handleDeleteLabel(tag); }} className={`p-2 rounded-xl transition-all ${isActive ? 'hover:bg-white/20 text-white/60 hover:text-white' : 'hover:bg-red-50 text-slate-300 hover:text-red-500'}`}>
+                               <Trash2 className="w-3.5 h-3.5" />
+                             </button>
+                           </div>
+                         )}
+                      </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                       {isActive && !isEditing && <Check className="w-4 h-4 text-white" />}
-                       {!isEditing && (
-                         <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all">
-                           <button onClick={(e) => { e.stopPropagation(); setEditingTag(tag); setEditValue(tag); }} className={`p-2 rounded-xl transition-all ${isActive ? 'hover:bg-white/20 text-white/60 hover:text-white' : 'hover:bg-violet-100 text-slate-300 hover:text-violet-600'}`}>
-                             <Pencil className="w-4 h-4" />
-                           </button>
-                           <button onClick={(e) => { e.stopPropagation(); handleDeleteLabel(tag); }} className={`p-2 rounded-xl transition-all ${isActive ? 'hover:bg-white/20 text-white/60 hover:text-white' : 'hover:bg-red-50 text-slate-300 hover:text-red-500'}`}>
-                             <Trash2 className="w-4 h-4" />
-                           </button>
+
+                    {expandingAi === l.id && (
+                      <div className="p-4 bg-violet-500/5 rounded-2xl border border-violet-500/20 animate-in slide-in-from-top-2 flex flex-col gap-3">
+                         <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                               <Brain className="w-3 h-3 text-violet-400" />
+                               <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest">AI Kategorizácia</span>
+                            </div>
+                            <button 
+                              onClick={() => setAiEnabled(prev => ({ ...prev, [l.id]: !prev[l.id] }))}
+                              className={`w-8 h-4 rounded-full transition-all relative ${aiEnabled[l.id] ? 'bg-violet-500' : 'bg-slate-300'}`}
+                            >
+                               <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${aiEnabled[l.id] ? 'left-4.5' : 'left-0.5'}`} />
+                            </button>
                          </div>
-                       )}
-                    </div>
+                         <textarea 
+                           className="w-full h-24 p-3 bg-white dark:bg-zinc-900 border border-violet-500/10 rounded-xl text-[11px] font-medium text-slate-600 dark:text-zinc-300 outline-none focus:border-violet-500/40 transition-all resize-none"
+                           placeholder="Opíš pravidlo pre tento štítok. Napr: 'Email s dopytom na fotovoltiku od klienta z Bratislavy'"
+                           value={aiPrompts[l.id] ?? ""}
+                           onChange={(e) => setAiPrompts(prev => ({ ...prev, [l.id]: e.target.value }))}
+                         />
+                         <button 
+                           onClick={() => handleUpdateAiSettings(l)}
+                           disabled={isSyncing}
+                           className="w-full h-10 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-violet-500/20"
+                         >
+                            {isSyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                            Uložiť AI Pravidlo
+                         </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}

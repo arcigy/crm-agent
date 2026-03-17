@@ -4,6 +4,7 @@ import directus from "@/lib/directus";
 import { readItems, readItem } from "@directus/sdk";
 import { getAuthorizedEmails } from "@/lib/auth";
 import { ContactItem, Project, Deal, Activity } from "@/types/contact";
+import { db } from "@/lib/db";
 
 export async function getContact(id: string | number) {
   try {
@@ -46,9 +47,34 @@ export async function getContact(id: string | number) {
       ),
     ]);
 
+    const emailsResult = await db.query(`
+      SELECT 
+        gmail_message_id as id,
+        subject as subject,
+        from_email as from,
+        snippet as content,
+        received_at as date,
+        label_ids as labels,
+        body_text
+      FROM gmail_messages
+      WHERE user_email = $1 AND (from_email ILIKE $2 OR $2 = ANY(to_emails) OR $2 = ANY(cc_emails))
+      ORDER BY received_at DESC
+      LIMIT 100
+    `, [contact.user_email, contact.email || "NO_EMAIL"]);
+
+    const emailActivities = emailsResult.rows.map((row: any): Activity => ({
+      type: "email",
+      subject: row.subject,
+      content: row.content || row.body_text?.substring(0, 100) || "",
+      date: row.date
+    }));
+
     contact.projects = projects as unknown as Project[];
     contact.deals = deals as unknown as Deal[];
-    contact.activities = activities as unknown as Activity[];
+    contact.activities = [
+      ...(activities as unknown as Activity[]),
+      ...emailActivities
+    ].sort((a: any, b: any) => new Date(b.date || b.activity_date).getTime() - new Date(a.date || a.activity_date).getTime());
 
     return { success: true, data: contact };
   } catch (error) {

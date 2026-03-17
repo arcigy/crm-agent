@@ -5,7 +5,8 @@ import { ContactExtractionModal } from "@/components/dashboard/ContactExtraction
 import { QuickComposerModal } from "@/components/dashboard/QuickComposerModal";
 import { ComposeModal } from "@/components/dashboard/ComposeModal";
 import { TagManagementModal } from "./TagManagementModal";
-import { agentCreateContact } from "@/app/actions/agent";
+import { DealExtractionModal } from "./DealExtractionModal";
+import { agentCreateContact, agentCreateDeal } from "@/app/actions/agent";
 import { toast } from "sonner";
 
 interface LeadsModalsProps {
@@ -13,6 +14,10 @@ interface LeadsModalsProps {
   setIsContactModalOpen: (open: boolean) => void;
   contactModalData: any;
   contactModalEmailBody: string;
+  isDealModalOpen: boolean;
+  setIsDealModalOpen: (open: boolean) => void;
+  dealModalData: any;
+  setDealModalData: (data: any) => void;
   draftingEmail: any;
   setDraftingEmail: (email: any) => void;
   draftContent: string;
@@ -40,6 +45,10 @@ export function LeadsModals({
   setIsContactModalOpen,
   contactModalData,
   contactModalEmailBody,
+  isDealModalOpen,
+  setIsDealModalOpen,
+  dealModalData,
+  setDealModalData,
   draftingEmail,
   setDraftingEmail,
   draftContent,
@@ -85,6 +94,28 @@ export function LeadsModals({
           }}
         />
       )}
+      
+      {isDealModalOpen && dealModalData && (
+        <DealExtractionModal
+          isOpen={isDealModalOpen}
+          onClose={() => setIsDealModalOpen(false)}
+          extractedData={dealModalData}
+          onConfirm={async (data) => {
+            const toastId = toast.loading("Vytváram obchod...");
+            try {
+              const res = await agentCreateDeal(data);
+              if (res.success) {
+                toast.success("Obchod úspešne vytvorený", { id: toastId });
+              } else {
+                toast.error(`Chyba: ${res.error}`, { id: toastId });
+              }
+            } catch (err) {
+              console.error(err);
+              toast.error("Nepodarilo sa vytvoriť obchod", { id: toastId });
+            }
+          }}
+        />
+      )}
 
       {draftingEmail && (
         <QuickComposerModal
@@ -108,16 +139,32 @@ export function LeadsModals({
         onMinimizeAction={() => setHasDraft(true)}
         onDraftDelete={() => {
           setHasDraft(false);
-          setDraftData({ to: "", subject: "", body: "" });
+          setDraftData({ to: "", subject: "", body: "", threadId: undefined, inReplyTo: undefined, references: undefined });
         }}
-        onSend={(data) => {
-          console.log("Sending composed email:", data);
-          handleAddLocalSentMessage(data);
-          toast.success("Správa bola odoslaná do kategórie Odoslané!");
-          onCloseCompose();
-          setHasDraft(false);
-          setDraftData({ to: "", subject: "", body: "" });
-          setSelectedTab("sent");
+        onSend={async (data) => {
+          const toastId = toast.loading("Odosielam e-mail...");
+          try {
+            const { sendGeneralEmail } = await import("@/app/actions/google-email");
+            const res = await sendGeneralEmail({
+              ...data,
+              threadId: draftData.threadId,
+              inReplyTo: draftData.inReplyTo,
+              references: draftData.references
+            });
+
+            if (res.success) {
+              toast.success("E-mail bol úspešne odoslaný", { id: toastId });
+              handleAddLocalSentMessage(data);
+              onCloseCompose();
+              setHasDraft(false);
+              setDraftData({ to: "", subject: "", body: "", threadId: undefined, inReplyTo: undefined, references: undefined });
+              setSelectedTab("sent");
+            } else {
+              toast.error(`Chyba pri odosielaní: ${res.error}`, { id: toastId });
+            }
+          } catch (err: any) {
+            toast.error(`Neočakávaná chyba: ${err.message}`, { id: toastId });
+          }
         }}
         recentEmails={recentEmails}
       />

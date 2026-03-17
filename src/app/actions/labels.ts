@@ -13,6 +13,8 @@ export interface ContactLabel {
   user_email?: string;
   google_id?: string;
   gmail_label_id?: string;
+  ai_enabled?: boolean;
+  ai_prompt?: string;
 }
 
 export async function getLabels() {
@@ -31,6 +33,25 @@ export async function getLabels() {
   } catch (error) {
     console.error("Failed to fetch labels:", error);
     return { success: false, error: String(error) };
+  }
+}
+
+export async function getAiLabels(userEmail: string) {
+  try {
+    const labels = (await directus.request(
+      readItems("contact_labels", {
+        filter: {
+          _and: [
+            { user_email: { _eq: userEmail } },
+            { ai_enabled: { _eq: true } }
+          ]
+        }
+      })
+    )) as unknown as ContactLabel[];
+    return labels;
+  } catch (e) {
+    console.error("Failed to fetch AI labels", e);
+    return [];
   }
 }
 
@@ -100,6 +121,8 @@ export async function createLabel(name: string, color?: string) {
         name,
         color: color || "#8e63ce",
         user_email: userEmail,
+        ai_enabled: false,
+        ai_prompt: ""
       })
     );
 
@@ -114,7 +137,7 @@ export async function createLabel(name: string, color?: string) {
   }
 }
 
-export async function updateLabel(id: string | number, name: string, color?: string) {
+export async function updateLabel(id: string | number, name: string, color?: string, ai_enabled?: boolean, ai_prompt?: string) {
   try {
     const userEmail = await getUserEmail();
     if (!userEmail) throw new Error("Unauthorized");
@@ -122,7 +145,12 @@ export async function updateLabel(id: string | number, name: string, color?: str
     const labelRecord = await directus.request(readItem("contact_labels", id)) as any;
     
     await directus.request(
-      updateItem("contact_labels", id, { name, color })
+      updateItem("contact_labels", id, { 
+        name, 
+        color,
+        ai_enabled: ai_enabled === undefined ? labelRecord.ai_enabled : ai_enabled,
+        ai_prompt: ai_prompt === undefined ? labelRecord.ai_prompt : ai_prompt
+      })
     );
 
     await syncLabelToContacts(id);

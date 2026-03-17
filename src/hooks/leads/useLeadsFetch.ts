@@ -33,11 +33,11 @@ export function useLeadsFetch(
   
   const CACHE_TTL = 900000; // 15 minutes - keep data long during session
 
-  const fetchMessages = async (isBackground = false, tabParam?: string, page: number = 1) => {
+  const fetchMessages = async (isBackground = false, tabParam?: string, page: number = 1, view: string = "threads", search: string = "") => {
     const activeTab = tabParam || selectedTab;
     const category = activeTab.startsWith("tag:") ? activeTab.replace("tag:", "") : activeTab;
     const now = Date.now();
-    const cacheKey = `${category}_${page}`;
+    const cacheKey = `${category}_${page}_${view}_${search}`;
     const cached = emailCache.current[cacheKey];
 
     if (!isBackground && cached && (now - cached.fetchedAt) < CACHE_TTL) {
@@ -48,11 +48,11 @@ export function useLeadsFetch(
     }
 
     if (!isBackground) setLoading(true);
-    const result = await fetchFresh(category, isBackground, page);
+    const result = await fetchFresh(category, isBackground, page, view, search);
 
     
     if (result && result.messages) {
-      updateCache(category, page, result.messages, result.totalMessages, result.stats, result.userLabels);
+      updateCache(category, page, view, search, result.messages, result.totalMessages, result.stats, result.userLabels);
     }
     setLoading(false);
   };
@@ -60,12 +60,14 @@ export function useLeadsFetch(
   const updateCache = (
     category: string, 
     page: number,
+    view: string,
+    search: string,
     newMessages: GmailMessage[], 
     total?: number, 
     stats?: any,
     labels?: any[]
   ) => {
-    const cacheKey = `${category}_${page}`;
+    const cacheKey = `${category}_${page}_${view}_${search}`;
     
     emailCache.current[cacheKey] = { 
       data: newMessages, 
@@ -81,9 +83,9 @@ export function useLeadsFetch(
     }
   };
 
-  const fetchFresh = async (category: string, isBackground: boolean, page: number): Promise<{ messages: GmailMessage[], userLabels?: any[], stats?: any, totalMessages?: number } | null> => {
+  const fetchFresh = async (category: string, isBackground: boolean, page: number, view: string = "threads", search: string = ""): Promise<{ messages: GmailMessage[], userLabels?: any[], stats?: any, totalMessages?: number } | null> => {
     try {
-      const pageQuery = `&page=${page}&limit=50`;
+      const pageQuery = `&page=${page}&limit=50&view=${view}${search ? `&search=${encodeURIComponent(search)}` : ""}`;
       const gmailUrl = `/api/google/gmail?tab=${category}${pageQuery}&t=${Date.now()}`;
       
       // Parallelize all fetches to avoid 1s waterfall delay

@@ -91,13 +91,27 @@ export async function GET(request: Request) {
         format: "full",
       });
       const { html } = getMessageBody(detail.data.payload);
-      return NextResponse.json({ message: { bodyHtml: html } });
+      
+      const headers = detail.data.payload?.headers || [];
+      const messageIdHeader = headers.find((h: any) => h.name.toLowerCase() === 'message-id')?.value;
+      const referencesHeader = headers.find((h: any) => h.name.toLowerCase() === 'references')?.value;
+
+      return NextResponse.json({ 
+        message: { 
+          bodyHtml: html,
+          messageIdHeader,
+          referencesHeader
+        } 
+      });
     }
 
     // List fetching from local DB
     const category = searchParams.get("tab") || searchParams.get("category") || "inbox";
+    const view = searchParams.get("view"); // 'threads' or 'messages'
+    const threadId = searchParams.get("threadId");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || searchParams.get("pageSize") || "50");
+    const search = searchParams.get("search") || "";
     const offset = (page - 1) * limit;
 
     const LABEL_MAP: Record<string, string> = {
@@ -112,49 +126,201 @@ export async function GET(request: Request) {
       purchases: "CATEGORY_PROMOTIONS",
       archive: "archive",
     };
-    const labelId = LABEL_MAP[category] || category; // For custom labels, we'll assume the category is the exact label name for now.
+    const labelId = LABEL_MAP[category] || category;
 
-    const countResult = await db.query(`
-      SELECT total_count, unread_count 
-      FROM gmail_label_counts
-      WHERE user_email = $1 AND label_id = $2
-    `, [userEmail, labelId]);
+    // Single thread detail fetch
+    if (threadId) {
+      // ... (existing thread logic)
+    }
 
-    const totalCount = countResult.rows[0]?.total_count || 0;
-    const unreadCount = countResult.rows[0]?.unread_count || 0;
+    let emailsPromise: Promise<any>;
+    let countPromise: Promise<any>;
 
-    const emailsResult = await db.query(`
-      SELECT 
-        gmail_message_id as id,
-        gmail_thread_id as thread_id,
-        subject,
-        from_email as from,
-        to_emails,
-        snippet,
-        received_at as date,
-        is_read as "isRead",
-        is_starred as "isStarred",
-        has_attachments as "hasAttachments",
-        label_ids as labels,
-        ai_intent,
-        ai_priority,
-        ai_summary,
-        body_text as body
-      FROM gmail_messages
-      WHERE user_email = $1
-      ${labelId === 'archive' ? 'AND NOT (label_ids @> ARRAY[\'INBOX\'] OR label_ids @> ARRAY[\'TRASH\'] OR label_ids @> ARRAY[\'SPAM\'])' : 'AND label_ids @> ARRAY[$2]'}
-      ORDER BY received_at DESC
-      LIMIT $3 OFFSET $4
-    `, labelId === 'archive' ? [userEmail, limit, offset] : [userEmail, labelId, limit, offset]);
+    if (search) {
+      const searchPattern = `%${search}%`;
+      if (view === 'threads') {
+        emailsPromise = db.query(`
+          SELECT 
+            gmail_thread_id as id,
+            gmail_thread_id as thread_id,
+            COUNT(*) as message_count,
+            MAX(received_at) as date,
+            (array_agg(subject ORDER BY received_at DESC))[1] as subject,
+            (array_agg(from_email ORDER BY received_at DESC))[1] as "from",
+            (array_agg(from_name ORDER BY received_at DESC))[1] as from_name,
+            (array_agg(snippet ORDER BY received_at DESC))[1] as snippet,
+            (array_agg(gmail_message_id ORDER BY received_at DESC))[1] as latest_message_id,
+            bool_or(NOT is_read) as "hasUnread",
+            bool_or(is_starred) as "isStarred",
+            array_agg(DISTINCT from_name) as participants,
+            array_agg(DISTINCT l) as labels
+          FROM gmail_messages, unnest(label_ids) l
+          WHERE user_email = $1
+            AND (subject ILIKE $2 OR from_email ILIKE $2 OR to_emails @> ARRAY[$3] OR body_text ILIKE $2 OR snippet ILIKE $2)
+          GROUP BY gmail_thread_id
+          ORDER BY date DESC
+          LIMIT $4 OFFSET $5
+        `, [userEmail, searchPattern, search, limit, offset]);
 
-    const syncStateRes = await db.query(`
+        countPromise = db.query(`
+          SELECT COUNT(DISTINCT gmail_thread_id) as total_count, 0 as unread_count
+          FROM gmail_messages
+          WHERE user_email = $1
+            AND (subject ILIKE $2 OR from_email ILIKE $2 OR to_emails @> ARRAY[$3] OR body_text ILIKE $2 OR snippet ILIKE $2)
+        `, [userEmail, searchPattern, search]);
+      } else {
+        emailsPromise = db.query(`
+          SELECT 
+            gmail_message_id as id,
+            gmail_thread_id as thread_id,
+            subject,
+            from_email as from,
+            to_emails as "toEmails",
+            snippet,
+            received_at as date,
+            is_read as "isRead",
+            is_starred as "isStarred",
+            has_attachments as "hasAttachments",
+            label_ids as labels,
+            ai_intent,
+            ai_priority,
+            ai_summary,
+            body_text as body
+          FROM gmail_messages
+          WHERE user_email = $1
+            AND (subject ILIKE $2 OR from_email ILIKE $2 OR to_emails @> ARRAY[$3] OR body_text ILIKE $2 OR snippet ILIKE $2)
+          ORDER BY received_at DESC
+          LIMIT $4 OFFSET $5
+        `, [userEmail, searchPattern, search, limit, offset]);
+
+        countPromise = db.query(`
+          SELECT COUNT(*) as total_count, 0 as unread_count
+          FROM gmail_messages
+          WHERE user_email = $1
+            AND (subject ILIKE $2 OR from_email ILIKE $2 OR to_emails @> ARRAY[$3] OR body_text ILIKE $2 OR snippet ILIKE $2)
+        `, [userEmail, searchPattern, search]);
+      }
+    } else {
+      countPromise = db.query(`
+        SELECT total_count, unread_count 
+        FROM gmail_label_counts
+        WHERE user_email = $1 AND label_id = $2
+      `, [userEmail, labelId]);
+
+      if (view === 'threads') {
+        emailsPromise = db.query(`
+          SELECT 
+            gmail_thread_id as id,
+            gmail_thread_id as thread_id,
+            COUNT(*) as message_count,
+            MAX(received_at) as date,
+            (array_agg(subject ORDER BY received_at DESC))[1] as subject,
+            (array_agg(from_email ORDER BY received_at DESC))[1] as "from",
+            (array_agg(from_name ORDER BY received_at DESC))[1] as from_name,
+            (array_agg(snippet ORDER BY received_at DESC))[1] as snippet,
+            (array_agg(gmail_message_id ORDER BY received_at DESC))[1] as latest_message_id,
+            bool_or(NOT is_read) as "hasUnread",
+            bool_or(is_starred) as "isStarred",
+            array_agg(DISTINCT from_name) as participants,
+            array_agg(DISTINCT l) as labels
+          FROM gmail_messages, unnest(label_ids) l
+          WHERE user_email = $1
+            ${labelId === 'archive' ? 'AND NOT (label_ids @> ARRAY[\'INBOX\'] OR label_ids @> ARRAY[\'TRASH\'] OR label_ids @> ARRAY[\'SPAM\'])' : 'AND label_ids @> ARRAY[$2]'}
+          GROUP BY gmail_thread_id
+          ORDER BY date DESC
+          LIMIT $3 OFFSET $4
+        `, labelId === 'archive' ? [userEmail, limit, offset] : [userEmail, labelId, limit, offset]);
+      } else {
+        emailsPromise = db.query(`
+          SELECT 
+            gmail_message_id as id,
+            gmail_thread_id as thread_id,
+            subject,
+            from_email as from,
+            to_emails as "toEmails",
+            snippet,
+            received_at as date,
+            is_read as "isRead",
+            is_starred as "isStarred",
+            has_attachments as "hasAttachments",
+            label_ids as labels,
+            ai_intent,
+            ai_priority,
+            ai_summary,
+            body_text as body
+          FROM gmail_messages
+          WHERE user_email = $1
+          ${labelId === 'archive' ? 'AND NOT (label_ids @> ARRAY[\'INBOX\'] OR label_ids @> ARRAY[\'TRASH\'] OR label_ids @> ARRAY[\'SPAM\'])' : 'AND label_ids @> ARRAY[$2]'}
+          ORDER BY received_at DESC
+          LIMIT $3 OFFSET $4
+        `, labelId === 'archive' ? [userEmail, limit, offset] : [userEmail, labelId, limit, offset]);
+      }
+    }
+
+    const syncStatePromise = db.query(`
       SELECT sync_status, synced_messages, total_messages, last_full_sync
       FROM gmail_sync_state
       WHERE user_email = $1 AND label_id = 'INBOX'
     `, [userEmail]);
 
+    const labelsPromise = (async () => {
+      try {
+        const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
+        const token = await getValidToken(user.id, userEmail);
+        if (token) {
+          const gmail = await getGmailClient(token);
+          const { data } = await gmail.users.labels.list({ userId: 'me' });
+          const labels = data.labels || [];
+          
+          return labels
+            .filter((l: any) => l.type === 'user' || l.id.startsWith('Label_'))
+            .map((l: any) => ({
+              id: l.id,
+              name: l.name,
+              color: l.color?.backgroundColor || undefined,
+              type: l.type
+            }));
+        }
+      } catch (e) {
+        console.error("Failed to fetch labels", e);
+      }
+      return [];
+    })();
+
+    const dbLabelsPromise = (async () => {
+      try {
+        const { getLabels } = await import("@/app/actions/labels");
+        const res = await getLabels();
+        return res.success ? (res.data || []) : [];
+      } catch (e) {
+        console.error("Failed to fetch DB labels", e);
+        return [];
+      }
+    })();
+
+    const [countResult, emailsResult, syncStateRes, gmailLabelsRaw, dbLabels] = await Promise.all([
+      countPromise,
+      emailsPromise,
+      syncStatePromise,
+      labelsPromise,
+      dbLabelsPromise
+    ]);
+
+    // Merge gmail labels with DB labels to include AI settings
+    const userLabels = gmailLabelsRaw.map((gl: any) => {
+      const dbl = dbLabels.find((dl: any) => dl.gmail_label_id === gl.id || dl.name === gl.name);
+      return {
+        ...gl,
+        ai_enabled: dbl?.ai_enabled || false,
+        ai_prompt: dbl?.ai_prompt || "",
+        db_id: dbl?.id
+      };
+    });
+
+    const totalCount = countResult.rows[0]?.total_count || 0;
+    const unreadCount = countResult.rows[0]?.unread_count || 0;
     const state = syncStateRes.rows[0];
- 
+
     // Lazy Trigger: If sync has never started, start it in background
     if (!state) {
       console.log(`[Gmail API] No sync state for ${userEmail}, triggering full sync for user ${user.id}...`);
@@ -199,7 +365,7 @@ export async function GET(request: Request) {
       
       // Provide dynamic stubs required by LeadsSidebar if db stats don't exist yet
       stats: {}, 
-      userLabels: []
+      userLabels: userLabels
     });
 
   } catch (error: any) {
@@ -352,36 +518,81 @@ export async function PATCH(req: Request) {
 }
 
 export async function POST(req: Request) {
-  // Attachment Download Logic
   try {
-    const { messageId, attachmentId } = await req.json();
     const user = await currentUser();
     if (!user) return new Response("Unauthorized", { status: 401 });
 
-    const userEmail = user.emailAddresses[0]?.emailAddress;
+    const body = await req.json();
+    const { messageId, attachmentId, action, ids, labelName } = body;
+
+    const { db } = await import("@/lib/db");
     const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
+    
+    // Get user email
+    const linkedToken = await db.query('SELECT user_email FROM google_tokens WHERE user_id = $1 LIMIT 1', [user.id]);
+    const userEmail = linkedToken.rows[0]?.user_email || user.emailAddresses[0]?.emailAddress;
     const token = await getValidToken(user.id, userEmail);
+    if (!token) return new Response("Google not connected", { status: 400 });
 
-    if (!token) return new Response("Google account not linked or token expired", { status: 400 });
+    const gmail = await getGmailClient(token);
 
-    const gmail = await getGmailClient(token || "");
+    // CASE 1: BULK ACTIONS
+    if (action && ids && Array.isArray(ids)) {
+      const addLabelIds: string[] = [];
+      const removeLabelIds: string[] = [];
 
-    const attRes = await gmail.users.messages.attachments.get({
-      userId: "me",
-      messageId,
-      id: attachmentId,
-    });
+      if (action === "archive") {
+        removeLabelIds.push("INBOX");
+      } else if (action === "trash") {
+        await Promise.all(ids.map(id => gmail.users.messages.trash({ userId: "me", id })));
+      } else if (action === "read") {
+        removeLabelIds.push("UNREAD");
+      } else if (action === "unread") {
+        addLabelIds.push("UNREAD");
+      } else if (action === "addLabel" && labelName) {
+        addLabelIds.push(labelName);
+      }
 
-    const data = attRes.data.data;
-    if (!data) throw new Error("No data");
+      if (addLabelIds.length > 0 || removeLabelIds.length > 0) {
+        await gmail.users.messages.batchModify({
+          userId: "me",
+          requestBody: { ids, addLabelIds, removeLabelIds }
+        });
+      }
 
-    const safeData = data && typeof data === "string" ? data : "";
-    const buffer = Buffer.from(
-      safeData.replace(/-/g, "+").replace(/_/g, "/"),
-      "base64",
-    );
-    return new Response(buffer);
+      // Local DB Sync
+      if (action === "archive") {
+         await db.query(`UPDATE gmail_messages SET label_ids = array_remove(label_ids, 'INBOX') WHERE user_email = $1 AND gmail_message_id = ANY($2)`, [userEmail, ids]);
+      } else if (action === "trash") {
+         await db.query(`UPDATE gmail_messages SET label_ids = array_append(label_ids, 'TRASH') WHERE user_email = $1 AND gmail_message_id = ANY($2)`, [userEmail, ids]);
+      } else if (action === "read") {
+         await db.query(`UPDATE gmail_messages SET is_read = true, label_ids = array_remove(label_ids, 'UNREAD') WHERE user_email = $1 AND gmail_message_id = ANY($2)`, [userEmail, ids]);
+      } else if (action === "unread") {
+         await db.query(`UPDATE gmail_messages SET is_read = false, label_ids = array_append(label_ids, 'UNREAD') WHERE user_email = $1 AND gmail_message_id = ANY($2)`, [userEmail, ids]);
+      }
+
+      return NextResponse.json({ success: true, count: ids.length });
+    }
+
+    // CASE 2: ATTACHMENT DOWNLOAD
+    if (attachmentId && messageId) {
+      const attRes = await gmail.users.messages.attachments.get({
+        userId: "me",
+        messageId,
+        id: attachmentId,
+      });
+
+      const data = attRes.data.data;
+      if (!data) throw new Error("No data");
+
+      const safeData = data && typeof data === "string" ? data : "";
+      const buffer = Buffer.from(safeData.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+      return new Response(buffer);
+    }
+
+    return new Response("Invalid request", { status: 400 });
   } catch (error: any) {
+    console.error("POST Error:", error);
     return new Response(error.message, { status: 500 });
   }
 }

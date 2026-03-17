@@ -30,37 +30,55 @@ export function useLeadsBulkActions(
     setSelectedIds(new Set());
   }, []);
 
-  const handleBulkArchive = React.useCallback((idsToArchive: string[]) => {
-    toast.success(`Archivovaných ${idsToArchive.length} správ`);
-    setMessages(prev => 
-      prev.map(m => idsToArchive.includes(m.id) ? { ...m, labels: [...(m.labels || []), "ARCHIVE"].filter(l => l !== "INBOX") } : m)
-    );
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      idsToArchive.forEach(id => next.delete(id));
-      return next;
-    });
+  const handleBulkArchive = React.useCallback(async (idsToArchive: string[]) => {
+    try {
+      const res = await fetch("/api/google/gmail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "archive", ids: idsToArchive })
+      });
+      
+      if (!res.ok) throw new Error("API error");
+
+      toast.success(`Archivovaných ${idsToArchive.length} správ`);
+      setMessages(prev => 
+        prev.map(m => idsToArchive.includes(m.id) ? { ...m, labels: [...(m.labels || []), "ARCHIVE"].filter(l => l !== "INBOX") } : m)
+      );
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        idsToArchive.forEach(id => next.delete(id));
+        return next;
+      });
+    } catch (err) {
+      toast.error("Chyba pri hromadnej archivácii");
+    }
   }, [setMessages]);
 
   const handleBulkTag = React.useCallback(async (idsToTag: string[], tag: string) => {
-    toast.success(`Štítok '${tag}' pridaný na ${idsToTag.length} správ`);
-    
-    // Update local state
-    setMessageTags(prev => {
-      const next = { ...prev };
-      idsToTag.forEach(id => {
-        next[id] = [...new Set([...(next[id] || []), tag])];
+    try {
+      const res = await fetch("/api/google/gmail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "addLabel", ids: idsToTag, labelName: tag })
       });
-      return next;
-    });
 
-    // Update Gmail in background
-    const { syncMessageTagsToGmail } = await import("@/app/actions/gmail-labels");
-    Promise.all(idsToTag.map(id => syncMessageTagsToGmail(id, [tag]))).catch(err => {
-        console.error("Bulk sync error:", err);
-    });
+      if (!res.ok) throw new Error("API error");
 
-    clearSelection();
+      toast.success(`Štítok '${tag}' pridaný na ${idsToTag.length} správ`);
+      
+      // Update local state
+      setMessageTags(prev => {
+        const next = { ...prev };
+        idsToTag.forEach(id => {
+          next[id] = [...new Set([...(next[id] || []), tag])];
+        });
+        return next;
+      });
+
+      clearSelection();
+    } catch (err) {
+      toast.error(`Chyba pri pridávaní štítka '${tag}'`);
+    }
   }, [setMessageTags, clearSelection]);
 
   return {

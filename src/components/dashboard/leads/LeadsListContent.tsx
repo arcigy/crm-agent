@@ -4,6 +4,7 @@ import * as React from "react";
 import { Mail } from "lucide-react";
 import { LeadsHeader } from "./LeadsHeader";
 import { LeadsListItem } from "./LeadsListItem";
+import { ThreadListItem } from "./ThreadListItem";
 import { GmailMessage } from "@/types/gmail";
 
 interface LeadsListContentProps {
@@ -52,6 +53,8 @@ interface LeadsListContentProps {
     synced_messages: number;
     total_messages: number;
   } | null;
+  view: "threads" | "messages";
+  onViewChange: (v: "threads" | "messages") => void;
 }
 
 export function LeadsListContent({
@@ -96,6 +99,8 @@ export function LeadsListContent({
   gmailLabels = [],
   isBuffering,
   syncStatus,
+  view,
+  onViewChange,
 }: LeadsListContentProps) {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -124,6 +129,8 @@ export function LeadsListContent({
         gmailLabels={gmailLabels}
         isBuffering={isBuffering}
         syncStatus={syncStatus}
+        view={view}
+        onViewChange={onViewChange}
       />
 
       <div className="flex-1 overflow-y-auto px-4 pb-8 thin-scrollbar relative scroll-smooth bg-transparent transform-gpu">
@@ -161,35 +168,46 @@ export function LeadsListContent({
           ) : (
             <div className="divide-y divide-black/[0.02] dark:divide-white/[0.02]">
               {paginatedItems.map((item) => (
-                <LeadsListItem
-                  key={`${(item as any).itemType}-${(item as any).id}`}
-                  item={item}
-                  isActionOpen={activeActionId === (item as any).id}
-                  isGeneratingDraft={isGeneratingDraft}
-                  customCommandMode={customCommandMode}
-                  customPrompt={customPrompt}
-                  setCustomPrompt={setCustomPrompt}
-                  setCustomCommandMode={setCustomCommandMode}
-                  onOpenEmail={handleOpenEmail}
-                  onToggleStar={handleToggleStar}
-                  onToggleAction={handleToggleAction}
-                  onManualAnalyze={handleManualAnalyze}
-                  onSaveContact={handleSaveContact}
-                  onDraftReply={handleDraftReply}
-                  onExecuteCustomCommand={() => {
-                    const msg = item as unknown as GmailMessage;
-                    handleExecuteCustomCommand(msg, customPrompt);
-                  }}
-                  onDeleteMessage={handleDeleteMessage}
-                  onRestoreMessage={handleRestoreMessage}
-                  isSelected={selectedIds.has((item as any).id)}
-                  onToggleSelection={(e, id) => toggleSelection(id)}
-                  onToggleTag={(e, msg) => {
-                    setTagModalEmail(msg);
-                    setIsTagModalOpen(true);
-                  }}
-                  tags={messageTags[(item as any).id] || []}
-                />
+                view === "threads" && (item as any).itemType === "email" ? (
+                  <ThreadListItem 
+                    key={`thread-${(item as any).id}`}
+                    item={item as any}
+                    isSelected={selectedIds.has((item as any).id)}
+                    onToggleSelection={(e, id) => toggleSelection(id)}
+                    onOpenThread={(id) => handleOpenEmail(item as any)}
+                    tags={messageTags[(item as any).id] || []}
+                  />
+                ) : (
+                  <LeadsListItem
+                    key={`${(item as any).itemType}-${(item as any).id}`}
+                    item={item}
+                    isActionOpen={activeActionId === (item as any).id}
+                    isGeneratingDraft={isGeneratingDraft}
+                    customCommandMode={customCommandMode}
+                    customPrompt={customPrompt}
+                    setCustomPrompt={setCustomPrompt}
+                    setCustomCommandMode={setCustomCommandMode}
+                    onOpenEmail={handleOpenEmail}
+                    onToggleStar={handleToggleStar}
+                    onToggleAction={handleToggleAction}
+                    onManualAnalyze={handleManualAnalyze}
+                    onSaveContact={handleSaveContact}
+                    onDraftReply={handleDraftReply}
+                    onExecuteCustomCommand={() => {
+                      const msg = item as unknown as GmailMessage;
+                      handleExecuteCustomCommand(msg, customPrompt);
+                    }}
+                    onDeleteMessage={handleDeleteMessage}
+                    onRestoreMessage={handleRestoreMessage}
+                    isSelected={selectedIds.has((item as any).id)}
+                    onToggleSelection={(e, id) => toggleSelection(id)}
+                    onToggleTag={(e, msg) => {
+                      setTagModalEmail(msg);
+                      setIsTagModalOpen(true);
+                    }}
+                    tags={messageTags[(item as any).id] || []}
+                  />
+                )
               ))}
             </div>
           )}

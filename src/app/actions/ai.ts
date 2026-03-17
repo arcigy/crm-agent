@@ -396,3 +396,50 @@ PROJEKTY: ${context.projectList || "Žiadne aktuálne projekty"}
     }
   }
 }
+
+export async function categorizeEmailByUserPrompts(
+  content: string,
+  userLabels: { name: string; prompt: string }[]
+) {
+  if (!userLabels || userLabels.length === 0) return [];
+
+  const labelsContext = userLabels
+    .map((l, i) => `LABEL ${i+1}: "${l.name}"\nPROMPT: ${l.prompt}`)
+    .join("\n\n");
+
+  const systemPrompt = `
+Si asistent pre automatickú kategorizáciu e-mailov. Tvojou úlohou je priradiť e-mail k jednému alebo viacerým štítkom na základe ich definícií.
+
+DOSTUPNÉ ŠTÍTKY A ICH PRAVIDLÁ:
+${labelsContext}
+
+E-MAIL NA ANALÝZU:
+"""
+${content}
+"""
+
+POKYNY:
+1. Rozhodni, ktoré štítky sa hodia k tomuto e-mailu podľa ich PROMPT inštrukcií.
+2. Vráť pole mien štítkov (string[]), ktoré priraďuješ.
+3. Ak sa nehodí žiaden, vráť prázdne pole [].
+4. Vráť LEN čistý JSON (napríklad ["Štítok1", "Štítok2"]).
+`;
+
+  try {
+    const model = genAI.getGenerativeModel({
+      model: AI_MODELS.REPORT, // Use the fast model for this
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0,
+      },
+    });
+
+    const response = await model.generateContent(systemPrompt);
+    const text = response.response.text();
+    const result = JSON.parse(text || "[]");
+    return result as string[];
+  } catch (error) {
+    console.error("AI Labeling Error (Gemini):", error);
+    return [];
+  }
+}

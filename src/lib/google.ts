@@ -206,11 +206,17 @@ export async function sendEmail({
     to,
     subject,
     body,
+    threadId,
+    inReplyTo,
+    references,
 }: {
     accessToken: string;
     to: string;
     subject: string;
     body: string;
+    threadId?: string;
+    inReplyTo?: string;
+    references?: string;
 }) {
     const gmail = await getGmailClient(accessToken);
     const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString("base64")}?=`;
@@ -219,9 +225,14 @@ export async function sendEmail({
         `Content-Type: text/html; charset=utf-8`,
         `MIME-Version: 1.0`,
         `Subject: ${utf8Subject}`,
-        "",
-        body,
     ];
+
+    if (inReplyTo) messageParts.push(`In-Reply-To: ${inReplyTo}`);
+    if (references) messageParts.push(`References: ${references}`);
+    
+    messageParts.push("");
+    messageParts.push(body);
+
     const message = messageParts.join("\n");
     const encodedMessage = Buffer.from(message)
         .toString("base64")
@@ -231,6 +242,9 @@ export async function sendEmail({
 
     await gmail.users.messages.send({
         userId: "me",
-        requestBody: { raw: encodedMessage },
+        requestBody: { 
+            raw: encodedMessage,
+            threadId: threadId
+        },
     });
 }

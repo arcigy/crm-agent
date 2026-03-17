@@ -17,6 +17,8 @@ export interface GmailMessage {
     date: string;
     body: string;
     bodyHtml?: string;
+    messageIdHeader?: string;
+    referencesHeader?: string;
     attachments?: GmailAttachment[];
     isRead: boolean;
     isStarred?: boolean;

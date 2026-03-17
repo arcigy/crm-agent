@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { X, Send, Paperclip, MoreVertical, Minimize2, Maximize2, Trash2, Minus } from "lucide-react";
+import { X, Send, Paperclip, MoreVertical, Minimize2, Maximize2, Trash2, Minus, Sparkles, FileText, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import RichTextEditor from "./editor/RichTextEditor";
+import { getEmailTemplates, type EmailTemplate } from "@/app/actions/email-templates";
 
 interface ComposeModalProps {
   isOpen: boolean;
@@ -35,6 +36,8 @@ export function ComposeModal({
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const [isProcessingAI, setIsProcessingAI] = React.useState(false);
   const [showMoreMenu, setShowMoreMenu] = React.useState(false);
+  const [templates, setTemplates] = React.useState<EmailTemplate[]>([]);
+  const [showTemplates, setShowTemplates] = React.useState(false);
   const [attachments, setAttachments] = React.useState<File[]>([]);
   const suggestionsRef = React.useRef<HTMLDivElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -44,6 +47,16 @@ export function ComposeModal({
   const [activeTransition, setActiveTransition] = React.useState("all 0.4s cubic-bezier(0.16, 1, 0.3, 1)");
 
   const lastAppliedEmail = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    const loadTemplates = async () => {
+      const res = await getEmailTemplates();
+      if (res.success && res.data) {
+        setTemplates(res.data);
+      }
+    };
+    loadTemplates();
+  }, []);
 
   React.useEffect(() => {
     if (!isOpen) {
@@ -60,8 +73,8 @@ export function ComposeModal({
         
         lastAppliedEmail.current = initialData.to || "";
         setTo(cleanTo);
-        // FORCE EMPTY SUBJECT - User requested "nedavaj nic do predmetu"
-        setSubject(""); 
+        // Use provided subject (reply/forward) or empty it as requested for new emails
+        setSubject(initialData.subject || ""); 
         setBody(initialData.body || "");
         setShowSuggestions(false);
         
@@ -464,6 +477,44 @@ export function ComposeModal({
             </button>
             
             <button 
+              onClick={() => setShowTemplates(!showTemplates)}
+              className={`p-2 transition-all duration-200 ${showTemplates ? 'text-violet-400 bg-violet-500/10' : 'text-white/40 hover:text-white hover:bg-white/10'} rounded-full relative`}
+              title="Použiť šablónu"
+            >
+              <FileText className="w-4 h-4" />
+              {showTemplates && (
+                <div className="absolute bottom-full left-0 mb-2 w-64 rounded-xl bg-[#0f0f14] border border-white/10 shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-bottom-2 max-h-[300px] overflow-y-auto thin-scrollbar">
+                  <div className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-violet-500/60 border-b border-white/5 mb-1">
+                    Moje Šablóny
+                  </div>
+                  {templates.length === 0 ? (
+                    <div className="px-4 py-3 text-[12px] text-white/30 italic">Žiadne šablóny</div>
+                  ) : (
+                    templates.map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          setSubject(t.subject);
+                          setBody(t.body);
+                          setShowTemplates(false);
+                          toast.success(`Šablóna '${t.name}' použitá`);
+                        }}
+                        className="w-full px-4 py-2.5 text-left hover:bg-white/5 group transition-colors"
+                      >
+                        <div className="text-[13px] font-bold text-white group-hover:text-violet-400 transition-colors truncate">
+                          {t.name}
+                        </div>
+                        <div className="text-[11px] text-white/40 truncate">
+                          {t.subject}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </button>
+
+            <button 
               onClick={handleAIRefine}
               disabled={isProcessingAI}
               className={`p-2 ml-2 transition-all duration-200 text-white/40 hover:text-white hover:bg-white/10 rounded-full ${isProcessingAI ? 'animate-pulse' : ''}`}
@@ -528,21 +579,3 @@ export function ComposeModal({
   );
 }
 
-function ChevronDown(props: any) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}

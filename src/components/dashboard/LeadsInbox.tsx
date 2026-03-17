@@ -78,14 +78,19 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         <LeadsSidebar 
           selectedTab={inbox.selectedTab} 
           onTabChange={(tab: any) => {
-            inbox.setSelectedTab(tab);
-            inbox.setSelectedEmail(null);
-            inbox.onPageChange(1);
+            inbox.setSelectedTabWithReset(tab);
           }} 
           unreadCount={inbox.messages.filter((m: any) => !m.isRead).length}
           draftCount={inbox.hasDraft ? 1 : 0}
           onCompose={() => {
-            inbox.setDraftData({ to: "", subject: "", body: "" });
+            inbox.setDraftData({ 
+              to: "", 
+              subject: "", 
+              body: "", 
+              threadId: undefined, 
+              inReplyTo: undefined, 
+              references: undefined 
+            });
             inbox.setIsComposeOpen(true);
           }}
           gmailLabels={inbox.gmailLabels}
@@ -110,21 +115,48 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             onMarkUnread={inbox.handleMarkUnreadMessage}
             onRestore={inbox.handleRestoreMessage}
             onToggleStar={inbox.handleToggleStar}
+            onSaveContact={inbox.handleSaveContact}
+            onCreateDeal={inbox.handleCreateDeal}
             onReply={(email) => {
               const formattedDate = email.date ? new Date(email.date).toLocaleString('sk-SK') : '';
+              const cleanBody = (email.bodyHtml || email.body || email.snippet || "")
+                .replace(/<style[^>]*>[\s\S]*?<\/style>/gm, '')
+                .replace(/<[^>]*>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+              
+              const subject = email.subject?.toLowerCase().startsWith("re:") 
+                ? email.subject 
+                : `Re: ${email.subject || ""}`;
+
               inbox.setDraftData({
                 to: email.from,
-                subject: "", 
-                body: `\n\n\nDňa ${formattedDate} ${email.from} napísal(a):\n> ${email.snippet.replace(/\n/g, '\n> ')}`
+                subject: subject, 
+                body: `<br><br><br>Dňa ${formattedDate} ${email.from} napísal(a):<br><blockquote>${cleanBody}</blockquote>`,
+                threadId: email.threadId,
+                inReplyTo: email.messageIdHeader,
+                references: email.referencesHeader 
+                  ? `${email.referencesHeader} ${email.messageIdHeader || ''}`.trim()
+                  : email.messageIdHeader
               });
               inbox.setIsComposeOpen(true);
             }}
             onForward={(email) => {
               const formattedDate = email.date ? new Date(email.date).toLocaleString('sk-SK') : '';
+              const cleanBody = (email.bodyHtml || email.body || email.snippet || "")
+                .replace(/<style[^>]*>[\s\S]*?<\/style>/gm, '')
+                .replace(/<[^>]*>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+              
+              const subject = email.subject?.toLowerCase().startsWith("fwd:") 
+                ? email.subject 
+                : `Fwd: ${email.subject || ""}`;
+
               inbox.setDraftData({
                 to: "",
-                subject: "", 
-                body: `\n\n\n---------- Preposlaná správa ----------\nOd: ${email.from}\nDátum: ${formattedDate}\nPredmet: ${email.subject}\n\n${email.snippet}`
+                subject: subject, 
+                body: `<br><br><br>---------- Preposlaná správa ----------<br>Od: ${email.from}<br>Dátum: ${formattedDate}<br>Predmet: ${email.subject}<br><br>${cleanBody}`
               });
               inbox.setIsComposeOpen(true);
             }}
@@ -132,6 +164,8 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
         ) : (
           <LeadsListContent 
             {...inbox}
+            view={inbox.view}
+            onViewChange={inbox.setView}
             onSearchChange={inbox.onSearchChange}
             onRefresh={inbox.onRefresh}
             onConnect={inbox.onConnect}

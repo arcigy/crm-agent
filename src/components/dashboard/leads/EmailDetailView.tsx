@@ -32,6 +32,8 @@ import {
   ListTodo,
   Ban,
   RotateCcw,
+  UserPlus,
+  Briefcase
 } from "lucide-react";
 import { GmailMessage, GmailAttachment } from "@/types/gmail";
 import { toast } from "sonner";
@@ -51,6 +53,8 @@ interface EmailDetailViewProps {
   onReply?: (email: GmailMessage) => void;
   onForward?: (email: GmailMessage) => void;
   onRestore?: (e: React.MouseEvent | null, email: GmailMessage) => void;
+  onSaveContact?: (e: React.MouseEvent, email: GmailMessage) => void;
+  onCreateDeal?: (e: React.MouseEvent, email: GmailMessage) => void;
   currentIndex?: number;
   totalCount?: number;
 }
@@ -66,6 +70,8 @@ export function EmailDetailView({
   onReply,
   onForward,
   onRestore,
+  onSaveContact,
+  onCreateDeal,
   currentIndex = 0,
   totalCount = 0,
 }: EmailDetailViewProps) {
@@ -465,6 +471,12 @@ export function EmailDetailView({
                   </button>
                   {activeMenu === 'bottom' && (
                     <div ref={menuRef} className="absolute top-full right-0 mt-1 w-64 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 rounded-2xl shadow-xl z-50 py-2 animate-in fade-in zoom-in-95 duration-150">
+                      <button onClick={(e) => { onSaveContact?.(e, email); setActiveMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-[13px] font-bold text-zinc-700 dark:text-zinc-200 transition-colors flex items-center gap-3">
+                        <UserPlus className="w-4 h-4 text-violet-500" /> Vytvoriť kontakt z e-mailu
+                      </button>
+                      <button onClick={(e) => { onCreateDeal?.(e, email); setActiveMenu(null); }} className="w-full text-left px-4 py-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-[13px] font-bold text-zinc-700 dark:text-zinc-200 transition-colors flex items-center gap-3">
+                        <Briefcase className="w-4 h-4 text-violet-500" /> Vytvoriť obchod (Deal)
+                      </button>
                       <button onClick={handleCreateTask} className="w-full text-left px-4 py-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-[13px] font-bold text-zinc-700 dark:text-zinc-200 transition-colors flex items-center gap-3">
                         <ListTodo className="w-4 h-4 text-violet-500" /> Vytvoriť úlohu z tohto e-mailu
                       </button>

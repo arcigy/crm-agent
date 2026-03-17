@@ -8,9 +8,19 @@ interface SendEmailParams {
   to: string;
   subject: string;
   body: string;
+  threadId?: string;
+  inReplyTo?: string;
+  references?: string;
 }
 
-export async function sendGeneralEmail({ to, subject, body }: SendEmailParams) {
+export async function sendGeneralEmail({ 
+  to, 
+  subject, 
+  body, 
+  threadId, 
+  inReplyTo, 
+  references 
+}: SendEmailParams) {
   try {
     const user = await currentUser();
     if (!user) throw new Error("Unauthorized");
@@ -27,6 +37,9 @@ export async function sendGeneralEmail({ to, subject, body }: SendEmailParams) {
       to,
       subject,
       body,
+      threadId,
+      inReplyTo,
+      references
     });
 
     return { success: true };
