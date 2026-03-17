@@ -17,83 +17,108 @@ export function useLeadsFetch(
   const [userLabels, setUserLabels] = React.useState<any[]>([]);
   const [inboxStats, setInboxStats] = React.useState<Record<string, { total: number, unread: number }>>({});
   const [totalMessages, setTotalMessages] = React.useState(0);
-  const [isBuffering, setIsBuffering] = React.useState(false);
+  const [isBuffering] = React.useState(false);
   const [syncStatus, setSyncStatus] = React.useState<{
     sync_status: string;
     synced_messages: number;
     total_messages: number;
   } | null>(null);
 
-  // FIX 3: Client-side tab cache mapped by category and page
+  // Cache: keyed by category_page_view_search
   const emailCache = React.useRef<Record<string, {
     data: GmailMessage[],
     fetchedAt: number,
-    totalMessages?: number
+    totalMessages?: number,
+    userLabels?: any[],
+    stats?: any
   }>>({});
-  
-  const CACHE_TTL = 900000; // 15 minutes - keep data long during session
 
-  const fetchMessages = async (isBackground = false, tabParam?: string, page: number = 1, view: string = "threads", search: string = "") => {
+  // AbortControllers keyed by cacheKey — cancel stale requests
+  const abortControllers = React.useRef<Record<string, AbortController>>({});
+
+  // Track which request is "current" to discard stale results
+  const currentRequestId = React.useRef<string>('');
+
+  const CACHE_TTL = 30_000; // 30s — fast switching uses cache, background refresh keeps it fresh
+
+  // ─── Core fetch function ──────────────────────────────────────────────────
+  const fetchMessages = React.useCallback(async (
+    isBackground = false,
+    tabParam?: string,
+    page: number = 1,
+    view: string = "threads",
+    search: string = ""
+  ) => {
     const activeTab = tabParam || selectedTab;
     const category = activeTab.startsWith("tag:") ? activeTab.replace("tag:", "") : activeTab;
     const now = Date.now();
     const cacheKey = `${category}_${page}_${view}_${search}`;
     const cached = emailCache.current[cacheKey];
 
-    if (!isBackground && cached && (now - cached.fetchedAt) < CACHE_TTL) {
+    // ── FIX 1: Show cached data IMMEDIATELY, never block UI ─────────────────
+    if (cached) {
+      // Show cached data instantly regardless of freshness
       setMessages(cached.data);
       setTotalMessages(cached.totalMessages || 0);
+      if (cached.userLabels) setUserLabels(cached.userLabels);
+      if (cached.stats) setInboxStats(cached.stats);
       setLoading(false);
+
+      // Cache still fresh? Done — no refetch needed
+      if (now - cached.fetchedAt < CACHE_TTL) {
+        console.log(`[fetch] cache hit (${Date.now() - now}ms)`, cacheKey);
+        return;
+      }
+
+      // Cache stale — refetch silently in background (no loading spinner)
+      fetchFresh(category, true /* silent */, page, view, search, cacheKey);
       return;
     }
 
+    // No cache — show loading and fetch
     if (!isBackground) setLoading(true);
-    const result = await fetchFresh(category, isBackground, page, view, search);
+    await fetchFresh(category, isBackground, page, view, search, cacheKey);
+  }, [selectedTab]); // eslint-disable-line
 
-    
-    if (result && result.messages) {
-      updateCache(category, page, view, search, result.messages, result.totalMessages, result.stats, result.userLabels);
-    }
-    setLoading(false);
-  };
-
-  const updateCache = (
-    category: string, 
+  // ─── Fresh fetch with abort + race condition protection ───────────────────
+  const fetchFresh = React.useCallback(async (
+    category: string,
+    isBackground: boolean,
     page: number,
     view: string,
     search: string,
-    newMessages: GmailMessage[], 
-    total?: number, 
-    stats?: any,
-    labels?: any[]
-  ) => {
-    const cacheKey = `${category}_${page}_${view}_${search}`;
-    
-    emailCache.current[cacheKey] = { 
-      data: newMessages, 
-      fetchedAt: Date.now(),
-      totalMessages: total
-    };
+    cacheKey: string
+  ): Promise<void> => {
+    // ── FIX 2: Abort previous request for same key ───────────────────────────
+    abortControllers.current[cacheKey]?.abort();
+    const controller = new AbortController();
+    abortControllers.current[cacheKey] = controller;
 
-    if (category === (selectedTab.startsWith("tag:") ? selectedTab.replace("tag:", "") : selectedTab)) {
-      setMessages(newMessages);
-      setTotalMessages(total || 0);
-      if (labels) setUserLabels(labels);
-      if (stats) setInboxStats(stats);
-    }
-  };
+    // ── FIX 2: Unique ID to discard stale results ────────────────────────────
+    const requestId = `${cacheKey}-${Date.now()}`;
+    if (!isBackground) currentRequestId.current = requestId;
 
-  const fetchFresh = async (category: string, isBackground: boolean, page: number, view: string = "threads", search: string = ""): Promise<{ messages: GmailMessage[], userLabels?: any[], stats?: any, totalMessages?: number } | null> => {
+    const t0 = Date.now();
+    console.log('[fetch] start', category, page, view);
+
     try {
       const pageQuery = `&page=${page}&limit=50&view=${view}${search ? `&search=${encodeURIComponent(search)}` : ""}`;
-      const gmailUrl = `/api/google/gmail?tab=${category}${pageQuery}&t=${Date.now()}`;
-      
-      // Parallelize all fetches to avoid 1s waterfall delay
+      const gmailUrl = `/api/google/gmail?tab=${category}${pageQuery}`;
+
+      // Only fetch android logs on foreground initial load
       const [gmailRes, dbRes, androidRes] = await Promise.all([
-        fetch(gmailUrl, { cache: "no-store" }),
-        fetch("/api/notes?type=ai_analysis"),
+        fetch(gmailUrl, { signal: controller.signal }),
+        fetch("/api/notes?type=ai_analysis", { signal: controller.signal }),
         !isBackground ? fetch("/api/android-logs") : Promise.resolve(null)
       ]);
+
+      console.log('[fetch] got response', Date.now() - t0, 'ms');
+
+      // ── FIX 2: Discard if another foreground request came in ─────────────
+      if (!isBackground && currentRequestId.current !== requestId) {
+        console.log('[fetch] discarding stale result for', category);
+        return;
+      }
 
       let currentAnalyses = dbAnalyses;
       if (dbRes?.ok) {
@@ -113,69 +138,77 @@ export function useLeadsFetch(
         const gmailData = await gmailRes.json();
         if (gmailData.isConnected && gmailData.messages) {
           setIsConnected(true);
-          
-          // Map AI findings efficiently
+
           const processedMessages = gmailData.messages.map((newMsg: GmailMessage) => {
             const dbMatch = currentAnalyses.find((a) => a.metadata?.gmail_id === newMsg.id);
             if (dbMatch) return { ...newMsg, classification: dbMatch.metadata.classification };
-            
             const saved = typeof window !== 'undefined' ? localStorage.getItem(`ai_classify_${newMsg.id}`) : null;
-            if (saved) return { ...newMsg, classification: JSON.parse(saved) };
-            
+            if (saved) try { return { ...newMsg, classification: JSON.parse(saved) }; } catch {}
             return newMsg;
           });
 
           if (gmailData.sync) setSyncStatus(gmailData.sync);
 
-          return { 
-            messages: processedMessages, 
+          // Store in cache
+          emailCache.current[cacheKey] = {
+            data: processedMessages,
+            fetchedAt: Date.now(),
+            totalMessages: gmailData.pagination?.total || gmailData.totalMessages,
             userLabels: gmailData.userLabels,
-            stats: gmailData.stats,
-            totalMessages: gmailData.pagination?.total || gmailData.totalMessages
+            stats: gmailData.stats
           };
+
+          // ── FIX 2: Only update state if this tab is still active ──────────
+          const activeCategory = selectedTab.startsWith("tag:") ? selectedTab.replace("tag:", "") : selectedTab;
+          if (category === activeCategory || isBackground) {
+            setMessages(processedMessages);
+            setTotalMessages(gmailData.pagination?.total || gmailData.totalMessages || 0);
+            if (gmailData.userLabels) setUserLabels(gmailData.userLabels);
+            if (gmailData.stats) setInboxStats(gmailData.stats);
+          }
+
+          console.log('[fetch] state updated', Date.now() - t0, 'ms total');
+
         } else if (gmailData.isConnected === false) {
-           setIsConnected(false);
+          setIsConnected(false);
         }
       }
-    } catch (error) { 
-      console.error("Failed to fetch fresh messages:", error);
-      setIsConnected(false); // Make button appear on critical failure
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('[fetch] aborted for', cacheKey);
+        return;
+      }
+      console.error("Failed to fetch messages:", error);
+      setIsConnected(false);
+    } finally {
+      if (!isBackground) setLoading(false);
     }
-    return null;
-  };
+  }, [selectedTab, dbAnalyses]); // eslint-disable-line
 
-  // Preload adjacent tabs
+  // ─── Preload adjacent tabs silently ──────────────────────────────────────
   React.useEffect(() => {
     const PRELOAD_TABS: Record<string, string[]> = {
       inbox: ['starred', 'sent'],
       starred: ['inbox'],
       sent: ['inbox'],
-      trash: [], 
+      trash: [],
     };
-
     const tabsToPreload = PRELOAD_TABS[selectedTab] || [];
     tabsToPreload.forEach(tab => {
       const now = Date.now();
-      const cacheKey = `${tab}_1`;
+      const cacheKey = `${tab}_1_threads_`;
       const cached = emailCache.current[cacheKey];
       if (!cached || (now - cached.fetchedAt) > CACHE_TTL) {
-        fetchFresh(tab, true, 1).then(result => {
-          if (result && result.messages) {
-            emailCache.current[cacheKey] = { data: result.messages, fetchedAt: Date.now() };
-            if (result.userLabels) setUserLabels(result.userLabels);
-          }
-        });
+        // Background preload — no loading state
+        fetchFresh(tab, true, 1, "threads", "", cacheKey);
       }
     });
-  }, [selectedTab]);
+  }, [selectedTab]); // eslint-disable-line
 
-  // Removed old buffering logic since we now read instantly from local mirror DB.
-
-  // Re-fetch when category changes
+  // ─── Re-fetch when tab changes ────────────────────────────────────────────
   React.useEffect(() => {
-    // Only fetch if we don't have fresh data for this tab
     fetchMessages(false, selectedTab);
-  }, [selectedTab]);
+  }, [selectedTab]); // eslint-disable-line
 
   return {
     messages, setMessages,
@@ -196,6 +229,21 @@ export function useLeadsFetch(
       } else {
         emailCache.current = {};
       }
+    },
+    // ── FIX 3: Optimistic star update in all cache entries ─────────────────
+    updateCachedStar: (messageId: string, isStarred: boolean) => {
+      Object.keys(emailCache.current).forEach(key => {
+        const cached = emailCache.current[key];
+        if (cached) {
+          cached.data = cached.data.map(m =>
+            m.id === messageId ? { ...m, isStarred } : m
+          );
+        }
+      });
+      // Invalidate starred tab so next visit shows fresh data
+      Object.keys(emailCache.current).forEach(key => {
+        if (key.startsWith('starred_')) delete emailCache.current[key];
+      });
     },
     syncStatus
   };

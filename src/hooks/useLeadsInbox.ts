@@ -43,6 +43,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     totalMessages: gmailTotalMessages,
     isBuffering,
     invalidateCache,
+    updateCachedStar,
     syncStatus
   } = useLeadsFetch(initialMessages, getSmartTags, selectedTab);
 
@@ -266,6 +267,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     if (msg.id.startsWith("mock-")) return;
     
     try {
+      // 1. Update all caches immediately
+      updateCachedStar(msg.id, newIsStarred);
+
       await fetch("/api/google/gmail", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -275,14 +279,13 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         }),
       });
       
-      // Invalidate cache for starred tab so it reflects changes on click
-      invalidateCache('starred');
     } catch (error) {
       console.error("Failed to toggle star:", error);
       // Revert on failure
       setMessages((prev) =>
         prev.map((m) => (m.id === msg.id ? { ...m, isStarred: !newIsStarred } : m)),
       );
+      updateCachedStar(msg.id, !newIsStarred);
       toast.error("Nepodarilo sa zmeniť stav hviezdičky");
     }
   };
@@ -604,10 +607,13 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
        setCurrentPage(1);
     },
     setSelectedTabWithReset: (tab: string) => {
+        console.time(`tab-switch-to-${tab}`);
         setSelectedTab(tab);
         setSelectedEmail(null);
         setCurrentPage(1);
-        fetchMessages(false, tab, 1, view, debouncedSearchQuery);
+        fetchMessages(false, tab, 1, view, debouncedSearchQuery).then(() => {
+          console.timeEnd(`tab-switch-to-${tab}`);
+        });
     },
     handleAddLocalSentMessage: (data: { to: string; subject: string; body: string }) => {
       const newSentMsg = {
