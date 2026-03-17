@@ -342,16 +342,32 @@ export async function GET(request: Request) {
     }
 
     // Format for existing Frontend component compatibility
-    const formattedEmails = emailsResult.rows.map(row => ({
-      ...row,
-      googleLabels: row.labels,
-      to: row.to_emails?.join(', ') || '',
-      classification: row.ai_intent ? {
-        intent: row.ai_intent,
-        priority: row.ai_priority,
-        summary: row.ai_summary
-      } : undefined
-    }));
+    const formattedEmails = emailsResult.rows.map((row: any) => {
+      // Handle isRead for both views:
+      // - Thread view: SQL returns `hasUnread` (bool_or(NOT is_read)), so isRead = !hasUnread
+      // - Message view: SQL returns `is_read as "isRead"`, but pg driver may return lowercase `isread`
+      let isRead: boolean;
+      if ('hasUnread' in row) {
+        // Thread view
+        isRead = !row.hasUnread;
+      } else {
+        // Message view — handle both camelCase and lowercase from pg driver
+        const rawIsRead = row.isRead ?? row.isread ?? row.is_read;
+        isRead = rawIsRead === true || rawIsRead === 't' || rawIsRead === 'true';
+      }
+
+      return {
+        ...row,
+        isRead,
+        googleLabels: row.labels,
+        to: row.to_emails?.join(', ') || '',
+        classification: row.ai_intent ? {
+          intent: row.ai_intent,
+          priority: row.ai_priority,
+          summary: row.ai_summary
+        } : undefined
+      };
+    });
 
     return NextResponse.json({
       isConnected: true,
