@@ -18,6 +18,7 @@
 - **Jednotná téma:** Používaj VÝHRADNE Violet/Fialovú farbovú schému (napr. `violet-500`, `violet-600` pre CTA).
 - **Glassmorphism:** Komponenty používajú polotransparentné pozadia (`bg-slate-900`, `bg-[#0f1115]`), jemné rohy (`rounded-xl`) a okraje (`border-violet-900/30`).
 - **Knižnice:** Ikony musia byť **VÝHRADNE** z `lucide-react`. Styling **VÝHRADNE** cez Tailwind CSS (žiadne inline styles).
+- **Dashboard Primary Size (CRITICAL):** Hlavné widgety na nástenke (`Tasks`, `Calendar`, `Quick Action`, `Pipeline`) majú primárnu výšku **340px** (`md:h-[340px]`). Na menších oknách sa systém NESMIE pokúšať bubliny zmenšovať – namiesto toho sa musí povoliť skrolovanie celej stránky.
 
 ## 🧩 4. VIBE CODE PROTOKOL: "Anti-Spaghetti"
 - **Prísny limit:** Súbor nesmie presiahnuť **150 riadkov**. Ak je dlhší, musí sa rozdeliť na menšie, nezávislé moduly.

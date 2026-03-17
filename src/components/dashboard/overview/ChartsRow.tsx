@@ -36,7 +36,7 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
   }, [projects]);
 
   return (
-    <div className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl px-5 md:px-8 pt-2 md:pt-3 pb-4 md:pb-6 rounded-none md:rounded-[2.5rem] border-b md:border border-violet-500/20 dark:border-violet-500/20 flex flex-col overflow-hidden relative group transition-all duration-300 ${isExpanded ? 'h-full' : 'h-auto md:h-full shadow-sm hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-1.5'}`}>
+    <div className={`bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl px-4 md:px-6 pt-2 md:pt-3 pb-3 md:pb-4 rounded-none md:rounded-[2.5rem] border-b md:border border-violet-500/20 dark:border-violet-500/20 flex flex-col overflow-hidden relative group transition-all duration-300 h-full ${isExpanded ? 'fixed inset-0 z-[100] h-full rounded-none' : 'shadow-sm hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-1.5'}`}>
       <div className="absolute -top-6 -left-6 w-24 h-24 bg-violet-500/20 rounded-full blur-[40px] pointer-events-none group-hover:bg-violet-500/30 transition-all duration-300" />
       
       <Link 
@@ -57,8 +57,8 @@ export function ChartsRow({ deals, projects }: { deals: any[]; projects: any[] }
         </div>
       </Link>
       
-      <div className={`flex-1 flex flex-col min-h-0 transition-all duration-500 ${isExpanded ? 'opacity-100 block' : 'hidden md:block opacity-0 md:opacity-100'}`}>
-        <div className="space-y-1 md:space-y-1.5 relative z-10 overflow-hidden">
+      <div className={`flex-1 flex flex-col min-h-0 transition-opacity duration-500 ${isExpanded ? 'opacity-100' : 'opacity-100'}`}>
+        <div className={`relative z-10 overflow-hidden flex flex-col justify-between h-full ${isExpanded ? 'space-y-4' : 'space-y-2 md:space-y-3'}`}>
           {pipelineStages.map((stage, i) => (
             <div key={i} className="bg-white/60 dark:bg-zinc-900/40 py-0.5 md:py-1 px-4 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
               <div className="flex justify-between text-[9px] font-black mb-1 transition-all">

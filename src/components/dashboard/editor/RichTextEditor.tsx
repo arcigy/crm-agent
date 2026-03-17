@@ -76,7 +76,7 @@ export default function RichTextEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm focus:outline-none max-w-none p-6 min-h-full font-medium text-white dark:prose-invert h-auto [&_p]:my-1",
+          "prose prose-sm focus:outline-none max-w-none p-4 min-h-full font-medium text-zinc-900 dark:text-zinc-100 dark:prose-invert h-auto [&_p]:my-1 bg-transparent",
       },
       handleKeyDown: (view, event): boolean => {
         if (!editor) return false;
@@ -107,20 +107,22 @@ export default function RichTextEditor({
 
   React.useEffect(() => {
     if (editor && content !== lastContentRef.current) {
+      // Small optimization: only set content if it's significantly different 
+      // or if it's a completely different note (which we track via lastContentRef)
       lastContentRef.current = content;
-      editor.commands.setContent(content);
+      editor.commands.setContent(content, { emitUpdate: false });
     }
   }, [content, editor]);
 
   return (
-    <div className="flex flex-col border border-violet-500/20 rounded-[1.5rem] bg-transparent min-h-0 flex-1 transition-colors overflow-hidden">
+    <div className="flex flex-col border border-violet-500/10 rounded-[1.5rem] bg-transparent min-h-0 flex-1 transition-colors overflow-hidden">
       <MenuBar editor={editor} onLinkOpen={() => {
         if (editor) {
           editor.chain().focus().insertContent("@").run();
           checkAutocomplete(editor);
         }
       }} />
-      <EditorContent editor={editor} className="flex-1 overflow-y-auto scrollbar-hide min-h-0" />
+      <EditorContent editor={editor} className="flex-1 overflow-y-auto scrollbar-hide min-h-0 bg-transparent [&_.tiptap]:bg-transparent [&_.ProseMirror]:bg-transparent" />
       <AutocompleteDropdown
         suggestions={suggestions}
         position={position}

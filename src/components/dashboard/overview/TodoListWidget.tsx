@@ -90,7 +90,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
   return (
     <div className={`
       bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl 
-      px-5 md:px-8 pt-2 md:pt-3 pb-4 md:pb-6 
+      px-4 md:px-6 pt-2 md:pt-3 pb-3 md:pb-4 
       rounded-none md:rounded-[2.5rem] 
       border-b md:border border-emerald-500/20 dark:border-emerald-500/20 
       flex flex-col relative group transition-all duration-300 
@@ -103,15 +103,15 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
       <Link 
         href="/dashboard/todo"
         prefetch={true}
-        className="flex items-center justify-between w-full md:cursor-pointer relative z-20 md:mb-3 transition-transform hover:scale-[1.02] origin-left group/header"
+        className="flex items-center justify-between w-full md:cursor-pointer relative z-20 md:mb-1 transition-transform hover:scale-[1.02] origin-left group/header"
       >
         <div className="flex items-center gap-3 w-full">
           <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl md:bg-emerald-500/10 bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 md:border-emerald-500/20">
             <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
           </div>
           <div className="flex flex-col items-start text-left flex-1 min-w-0">
-            <h3 className="text-sm md:text-lg font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">{title}</h3>
-            <span className="text-[7px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Dnešný zoznam úloh</span>
+            <h3 className="text-sm md:text-xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">{title}</h3>
+            <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Dnešný zoznam úloh</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -137,7 +137,7 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
               return (
                 <div 
                   key={task.id} 
-                  className={`flex items-center gap-4 p-[14px] rounded-[1.2rem] transition-all relative overflow-hidden group/item border shadow-none
+                  className={`flex items-center gap-2 p-2.5 rounded-[1rem] transition-all relative overflow-hidden group/item border shadow-none
                     ${isDone 
                       ? 'bg-emerald-500/10 border-emerald-500/20' 
                       : 'bg-white/60 dark:bg-zinc-900/40 border-black/10 dark:border-white/5 hover:bg-[#16a34a]/10 hover:border-[#16a34a]/30 cursor-pointer'}
@@ -154,11 +154,11 @@ export function TodoListWidget({ tasks, mode = "today" }: TodoListWidgetProps) {
                     <div className={`transition-all duration-300 flex-1 truncate
                       ${isDone ? 'text-emerald-700 dark:text-emerald-400 line-through decoration-emerald-500/50 decoration-2' : 'text-foreground font-black'}
                     `}>
-                      <SmartText text={task.title} className="text-[14px] md:text-[15px] tracking-tight leading-none truncate block" />
+                      <SmartText text={task.title} className="text-[15px] md:text-[17px] tracking-tight leading-none truncate block" />
                     </div>
                     
                     {showTime && (
-                      <div className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest transition-colors flex-shrink-0 text-muted-foreground`}>
+                      <div className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-widest transition-colors flex-shrink-0 text-muted-foreground`}>
                         <Icon className="w-2.5 h-2.5" />
                         {format(new Date(task.due_date), mode === "today" ? "HH:mm" : "eee HH:mm", { locale: sk })}
                       </div>

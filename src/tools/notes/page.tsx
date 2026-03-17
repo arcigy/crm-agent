@@ -26,6 +26,8 @@ export default function NotesTool() {
     customCategories,
     createCategory,
     deleteCategory,
+    sortBy,
+    setSortBy,
   } = useNotes();
   const [focusMode, setFocusMode] = React.useState(false);
   const [showAiPrompt, setShowAiPrompt] = React.useState(false);
@@ -70,17 +72,6 @@ export default function NotesTool() {
             <Stat label="CELKOVO" value={notes.length} color="text-zinc-900 dark:text-white" />
             <div className="w-[1px] h-4 bg-zinc-100 dark:bg-zinc-800" />
             <Stat label="DNES" value={notes.filter(n => new Date(n.date_created || "").toDateString() === new Date().toDateString()).length} color="text-violet-500" />
-          </div>
-
-          <div className="relative flex-1 sm:flex-none">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="VYHĽADAŤ..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-48 pl-9 pr-4 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-violet-500/10 transition-all text-foreground"
-            />
           </div>
 
           <button
@@ -137,7 +128,7 @@ export default function NotesTool() {
       )}
 
       {/* Content Area */}
-      <div className="flex-1 flex gap-4 overflow-hidden min-h-0">
+      <div className="flex-1 flex gap-4 overflow-x-auto lg:overflow-hidden min-h-0 thin-scrollbar pb-2">
         {!focusMode && (
           <>
             <NoteCategorySidebar
@@ -156,6 +147,10 @@ export default function NotesTool() {
               onDeleteNote={deleteNote}
               selectedCategory={selectedCategory}
               onEmptyTrash={emptyTrash}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
             />
           </>
         )}

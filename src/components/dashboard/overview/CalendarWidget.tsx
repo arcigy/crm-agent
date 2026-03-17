@@ -71,7 +71,7 @@ export function CalendarWidget({ events, scopeError }: { events: any[], scopeErr
   return (
     <div className={`
       bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl 
-      px-5 md:px-8 pt-2 md:pt-3 pb-4 md:pb-6 
+      px-4 md:px-6 pt-2 md:pt-3 pb-3 md:pb-4 
       rounded-none md:rounded-[2.5rem] 
       border-b md:border border-indigo-500/20 dark:border-indigo-500/20 
       flex flex-col relative group transition-all duration-300 
@@ -85,15 +85,15 @@ export function CalendarWidget({ events, scopeError }: { events: any[], scopeErr
         onClick={() => {
           if (window.innerWidth < 768) setIsExpanded(!isExpanded);
         }}
-        className="flex items-center justify-between w-full md:cursor-default relative z-20 cursor-pointer md:cursor-auto mb-2 md:mb-3"
+        className="flex items-center justify-between w-full md:cursor-default relative z-20 cursor-pointer md:cursor-auto mb-1 md:mb-2"
       >
         <Link href="/dashboard/calendar" prefetch={true} className="flex flex-1 items-center gap-3 transition-transform hover:scale-[1.02] origin-left">
           <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl md:bg-indigo-100 md:dark:bg-indigo-900/30 bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 md:border-indigo-500/20">
             <CalendarIcon className="w-4 h-4 md:w-5 md:h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div className="flex flex-col items-start text-left">
-            <h3 className="text-sm md:text-lg font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Kalendár</h3>
-            <span className="text-[7px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Dnešné plány</span>
+            <h3 className="text-sm md:text-xl font-black uppercase italic tracking-tighter text-indigo-950 dark:text-indigo-100">Kalendár</h3>
+            <span className="text-[8px] text-zinc-500 font-black uppercase tracking-widest md:hidden opacity-60">Dnešné plány</span>
           </div>
         </Link>
         
@@ -112,14 +112,14 @@ export function CalendarWidget({ events, scopeError }: { events: any[], scopeErr
           <button onClick={() => changeWeek(1)} className="p-2 text-foreground"><ChevronRight className="w-4 h-4" /></button>
         </div>
 
-        <div className="grid grid-cols-7 gap-1.5 mb-6">
+        <div className="grid grid-cols-7 gap-1.5 mb-3 md:mb-4">
           {weekDays.map((day, i) => {
             const isSelected = isSameDay(day, selectedDate);
             const isToday = isSameDay(day, new Date());
             return (
               <button key={i} onClick={() => setSelectedDate(day)} className="flex flex-col items-center group/day">
                 <span className={`text-[9px] font-black mb-1.5 transition-colors tracking-widest ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-400 group-hover/day:text-zinc-600'}`}>{SK_DAYS[i]}</span>
-                <div className={`w-9 h-9 flex items-center justify-center rounded-2xl text-[11px] font-mono font-bold transition-all duration-200 ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 scale-110' : isToday ? 'border-2 border-indigo-600/30 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/10' : 'bg-white/40 dark:bg-zinc-900/30 hover:bg-white text-zinc-600 border border-transparent hover:border-black/5'}`}>{format(day, "d")}</div>
+                <div className={`w-9 h-9 flex items-center justify-center rounded-2xl text-[13px] font-mono font-bold transition-all duration-200 ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 scale-110' : isToday ? 'border-2 border-indigo-600/30 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/10' : 'bg-white/40 dark:bg-zinc-900/30 hover:bg-white text-zinc-600 border border-transparent hover:border-black/5'}`}>{format(day, "d")}</div>
               </button>
             );
           })}
@@ -135,13 +135,13 @@ export function CalendarWidget({ events, scopeError }: { events: any[], scopeErr
                <GoogleConnectButton label="Opraviť prepojenie" isScopeFix={true} />
             </div>
           ) : dailyEvents.length > 0 ? dailyEvents.map((event, i) => (
-            <div key={i} className="group flex items-stretch gap-4 p-3 bg-white/60 dark:bg-zinc-900/40 rounded-[1.2rem] border border-white/40 dark:border-white/5 hover:bg-white hover:border-indigo-100 transition-all shadow-sm">
+            <div key={i} className="group flex items-stretch gap-3 p-2.5 bg-white/60 dark:bg-zinc-900/40 rounded-[1.2rem] border border-white/40 dark:border-white/5 hover:bg-white hover:border-indigo-100 transition-all shadow-sm">
               <div className="flex flex-col items-center justify-center w-14 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100/50 dark:border-indigo-800/30 flex-shrink-0 group-hover:bg-indigo-50 transition-colors">
                 <span className="text-[12px] font-mono font-bold text-indigo-900 dark:text-indigo-300 tracking-tight leading-none tabular-nums">{event.start?.dateTime ? format(new Date(event.start.dateTime), "HH:mm") : "Celý deň"}</span>
               </div>
               <div className="flex-1 min-w-0 flex flex-col justify-center py-0.5">
-                <h4 className="text-[13px] font-bold text-zinc-800 dark:text-zinc-100 truncate leading-tight mb-1 group-hover:text-indigo-700 transition-colors">{cleanSummary(event.summary)}</h4>
-                {event.description && <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 truncate opacity-80">{cleanDescription(event.description)}</p>}
+                <h4 className="text-[15px] font-bold text-zinc-800 dark:text-zinc-100 truncate leading-tight mb-1 group-hover:text-indigo-700 transition-colors">{cleanSummary(event.summary)}</h4>
+                {event.description && <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 truncate opacity-80">{cleanDescription(event.description)}</p>}
               </div>
             </div>
           )) : (

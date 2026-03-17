@@ -60,7 +60,7 @@ export function StageBadge({
     }
   }
 
-  const dot = getDotStyles(stage);
+  const dot = getDotStyles(stageInfo.value);
 
   return (
     <div className={`relative h-7 flex items-center ${isOpen ? 'z-[200]' : 'z-auto'}`}>
@@ -69,7 +69,7 @@ export function StageBadge({
             e.stopPropagation();
             setIsOpen(!isOpen);
         }}
-        className={`inline-flex items-center gap-2.5 px-4 h-8 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all active:scale-95 group/stage ${getNeonStyles(stage)}`}
+        className={`inline-flex items-center gap-2.5 px-4 h-8 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all active:scale-95 group/stage ${getNeonStyles(stageInfo.value)}`}
       >
         <div className="flex items-center gap-2.5">
             {loading ? (
@@ -77,7 +77,7 @@ export function StageBadge({
             ) : (
             <>
                 <div 
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${stage === 'in_progress' ? 'animate-pulse' : ''}`} 
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${stageInfo.value === 'in_progress' ? 'animate-pulse' : ''}`} 
                   style={{ 
                     backgroundColor: dot.bg,
                     background: dot.bg,

@@ -19,6 +19,7 @@ export function useDealsTable(
   const [stageFilter, setStageFilter] = React.useState<string>("all");
   const [priceFilter, setPriceFilter] = React.useState<string>("all");
   const [uninvoicedOnly, setUninvoicedOnly] = React.useState(false);
+  const [invoicedOnly, setInvoicedOnly] = React.useState(false);
 
   // Modals state
   const [invoicingProject, setInvoicingProject] =
@@ -74,6 +75,7 @@ export function useDealsTable(
       if (stageFilter !== "all" && item.project?.stage !== stageFilter)
         return false;
       if (uninvoicedOnly && item.invoice_date) return false;
+      if (invoicedOnly && !item.invoice_date) return false;
 
       if (priceFilter !== "all") {
         const val = item.value || 0;
@@ -93,6 +95,7 @@ export function useDealsTable(
     stageFilter,
     priceFilter,
     uninvoicedOnly,
+    invoicedOnly,
   ]);
 
   const handleUpdateProjectStage = async (id: number, newStage: ProjectStage) => {
@@ -150,6 +153,7 @@ export function useDealsTable(
     setStageFilter("all");
     setPriceFilter("all");
     setUninvoicedOnly(false);
+    setInvoicedOnly(false);
   };
 
   return {
@@ -164,6 +168,8 @@ export function useDealsTable(
     setPriceFilter,
     uninvoicedOnly,
     setUninvoicedOnly,
+    invoicedOnly,
+    setInvoicedOnly,
     invoicingProject,
     setInvoicingProject,
     payingProject,

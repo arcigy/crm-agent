@@ -26,6 +26,12 @@ export function NoteEditor({
 }: NoteEditorProps) {
   const [showLinkMenu, setShowLinkMenu] = React.useState(false);
   const [showCategoryMenu, setShowCategoryMenu] = React.useState(false);
+  const [localTitle, setLocalTitle] = React.useState(selectedNote?.title || "");
+
+  // Sync local title when note changes
+  React.useEffect(() => {
+    setLocalTitle(selectedNote?.title || "");
+  }, [selectedNote?.id]);
 
   const getCategoryName = (id: string) => {
     const staticCats: Record<string, string> = {
@@ -180,7 +186,7 @@ export function NoteEditor({
               </button>
               
               {showCategoryMenu && (
-                  <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-2xl z-40 p-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-2xl z-[100] p-2 animate-in fade-in slide-in-from-top-2 duration-300">
                     {[
                         { id: 'idea', name: 'STRATÉGIA A NÁPADY', icon: Lightbulb },
                         { id: 'work', name: 'PROJEKTOVÉ ÚLOHY', icon: Briefcase },
@@ -278,12 +284,17 @@ export function NoteEditor({
 
       <div className={`flex-1 flex flex-col transition-all duration-700 ${focusMode ? 'max-w-4xl mx-auto w-full pt-10' : 'w-full'} ${selectedNote.deleted_at ? 'opacity-50 pointer-events-none' : ''}`}>
         <input
-          className="text-2xl font-black tracking-widest text-foreground mb-3 outline-none bg-transparent border-none focus:ring-0 leading-none uppercase placeholder:text-zinc-200 dark:placeholder:text-zinc-700"
-          value={selectedNote.title}
+          className="w-full text-2xl font-black tracking-widest text-foreground py-2 outline-none !bg-transparent border-none focus:ring-0 leading-none uppercase placeholder:text-zinc-300 dark:placeholder:text-zinc-700 transition-all"
+          value={localTitle}
           disabled={!!selectedNote.deleted_at}
-          onChange={(e) => onUpdateNote({ ...selectedNote, title: e.target.value })}
+          onChange={(e) => {
+            const val = e.target.value;
+            setLocalTitle(val);
+            onUpdateNote({ ...selectedNote, title: val });
+          }}
           placeholder="TITULOK POZNÁMKY..."
         />
+        <div className="h-px w-full bg-gradient-to-r from-violet-500/30 via-violet-500/10 to-transparent mb-6" />
 
         <div className="flex-1 px-1 min-h-0 pb-2 flex flex-col">
           {jsonData ? (

@@ -35,6 +35,7 @@ PWA Manifest: Musí existovať manifest.json s ikonami a display: standalone.
 No-Mac Dev: Všetko UI musí fungovať v Safari na iOS bez adresného riadku.
 
 Click-to-Call: Telefónne čísla v CRM musia byť vždy ako <a href="tel:...">.
+- **Dashboard Primary Size (CRITICAL):** Hlavné widgety na nástenke (`Tasks`, `Calendar`, `Quick Action`, `Pipeline`) majú primárnu výšku **340px** (Tailwind: `md:h-[340px]`). Na menších oknách sa systém NESMIE pokúšať bubliny zmenšovať – namiesto toho sa musí povoliť skrolovanie celej stránky.
 
 🧩 5. VIBE CODE PROTOKOL: "Anti-Spaghetti"
 AI (Cursor/Gemini) nesmie generovať dlhé súbory.

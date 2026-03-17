@@ -13,6 +13,7 @@ export function useNotes() {
   const [isSaving, setIsSaving] = React.useState(false);
   const [customCategories, setCustomCategories] = React.useState<string[]>([]);
   const [categoryNoteId, setCategoryNoteId] = React.useState<string | null>(null);
+  const [sortBy, setSortBy] = React.useState<"newest" | "oldest" | "title" | "title-desc">("newest");
 
   const fetchNotes = async () => {
     try {
@@ -74,23 +75,32 @@ export function useNotes() {
     }
   };
 
-  const saveNote = async (updatedNote: Note) => {
-    setIsSaving(true);
-    try {
-      const res = await fetch("/api/notes", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedNote),
-      });
+  const saveNoteDebounced = React.useRef<NodeJS.Timeout | null>(null);
 
-      if (res.ok) {
-        setNotes(notes.map((n) => (n.id === updatedNote.id ? updatedNote : n)));
+  const saveNote = async (updatedNote: Note) => {
+    // 1. Immediate local state update (Functional)
+    setNotes(prev => prev.map((n) => (n.id === updatedNote.id ? updatedNote : n)));
+    setSelectedNote(prev => prev?.id === updatedNote.id ? updatedNote : prev);
+
+    // 2. Debounce the API call
+    if (saveNoteDebounced.current) clearTimeout(saveNoteDebounced.current);
+    
+    saveNoteDebounced.current = setTimeout(async () => {
+      setIsSaving(true);
+      try {
+        const res = await fetch("/api/notes", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedNote),
+        });
+
+        if (!res.ok) throw new Error();
+      } catch {
+        toast.error("Chyba pri synchronizácii - zmeny sú len lokálne");
+      } finally {
+        setIsSaving(false);
       }
-    } catch {
-      toast.error("Chyba pri ukladaní");
-    } finally {
-      setIsSaving(false);
-    }
+    }, 1000); // 1s debounce
   };
 
   const deleteNote = async (e: React.MouseEvent, id: string) => {
@@ -125,8 +135,13 @@ export function useNotes() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id, deleted_at }),
         });
-        if (!res.ok) throw new Error();
-        toast.success("Poznámka presunutá do koša");
+        if (res.ok) {
+          toast.success("Poznámka presunutá do koša");
+          if (selectedNote?.id === id) {
+              setSelectedNote(updatedNote);
+          }
+          setNotes(prev => prev.map(n => n.id === id ? updatedNote : n));
+        } else throw new Error();
       } catch {
         setNotes(notes.map(n => n.id === id ? noteToDelete : n));
         toast.error("Chyba pri presúvaní do koša");
@@ -227,6 +242,18 @@ export function useNotes() {
     if (selectedCategory === "linked") return matchesSearch && (n.contact_id || n.project_id || n.deal_id);
     
     return matchesSearch && n.category === selectedCategory;
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case "oldest":
+        return new Date(a.date_created).getTime() - new Date(b.date_created).getTime();
+      case "title":
+        return a.title.localeCompare(b.title);
+      case "title-desc":
+        return b.title.localeCompare(a.title);
+      case "newest":
+      default:
+        return new Date(b.date_created).getTime() - new Date(a.date_created).getTime();
+    }
   });
 
   return {
@@ -247,5 +274,7 @@ export function useNotes() {
     customCategories,
     createCategory,
     deleteCategory,
+    sortBy,
+    setSortBy,
   };
 }

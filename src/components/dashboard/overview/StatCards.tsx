@@ -27,7 +27,7 @@ function StatCard({ label, value, icon: Icon, trend, glowColor, borderColor, ico
       transition-all duration-300 ease-out
       hover:-translate-y-1.5 hover:scale-[1.02]
       active:scale-95 cursor-pointer block focus:outline-none focus:ring-2 focus:ring-violet-500/50
-      px-3 py-5 md:py-6
+      px-3 py-2.5 md:py-3.5
       group
     `}>
       {/* ── Neon glow in top-left corner ── */}
@@ -39,7 +39,7 @@ function StatCard({ label, value, icon: Icon, trend, glowColor, borderColor, ico
 
       {/* ── Icon pill ── */}
       <div className={`
-        relative z-10 w-9 h-9 rounded-2xl flex items-center justify-center mb-3
+        relative z-10 w-7 h-7 md:w-8 md:h-8 rounded-2xl flex items-center justify-center mb-1.5
         ${iconBg}
         shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-6deg]
       `}>
@@ -47,7 +47,7 @@ function StatCard({ label, value, icon: Icon, trend, glowColor, borderColor, ico
       </div>
 
       {/* ── Label ── */}
-      <span className="relative z-10 text-[8px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.2em] leading-none mb-1.5">
+      <span className="relative z-10 text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.2em] leading-none mb-1.5">
         {label}
       </span>
 
@@ -71,7 +71,7 @@ function StatCard({ label, value, icon: Icon, trend, glowColor, borderColor, ico
 
 export function DashboardStats({ stats }: { stats: any }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5 mb-3 pt-4 px-2 md:px-4 relative z-30 w-[calc(100%-16px)] md:w-full mx-auto">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-2 pt-1 px-2 md:px-4 relative z-30 w-[calc(100%-16px)] md:w-full mx-auto">
       <StatCard
         label="Kontakty"
         value={stats.contactsCount || 0}

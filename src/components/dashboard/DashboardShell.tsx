@@ -148,7 +148,7 @@ export function DashboardShell({
       <aside
         className={`
           fixed inset-y-0 left-0 z-[2000] bg-white/95 dark:bg-zinc-950 border-r border-white/10 flex flex-col transition-transform duration-200 ease-out will-change-transform
-          ${isMenuOpen ? "lg:w-80 w-72 translate-x-0 shadow-[20px_0_60px_rgba(0,0,0,0.2)]" : "lg:w-80 w-72 -translate-x-full"}
+          ${isMenuOpen ? "lg:w-72 w-64 translate-x-0 shadow-[20px_0_60px_rgba(0,0,0,0.2)]" : "lg:w-72 w-64 -translate-x-full"}
         `}
       >
         <div className="flex flex-col h-full overflow-hidden relative">
@@ -218,8 +218,8 @@ export function DashboardShell({
       >
           {/* Spacer so content never goes under the fixed top bar */}
           <div className="h-14 flex-shrink-0" />
-          <div className="flex-1 min-h-0 overflow-y-auto px-2 md:px-6 pb-4 md:pb-6 scrollbar-hide scroll-smooth">
-             <div className="w-full h-full">
+          <div className="flex-1 min-h-0 overflow-y-auto px-2 md:px-4 pb-0 scrollbar-hide scroll-smooth">
+             <div className="w-full min-h-full">
                 {!completed && onboardingScene ? onboardingScene : children}
              </div>
           </div>

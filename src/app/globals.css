@@ -23,24 +23,24 @@
 
 /* Global Scaling Engine */
 html {
-  font-size: 16px; /* Primary base for standard 1080p/2K/4K monitors */
+  font-size: 16px; /* Standard base */
 }
 
 @media (max-width: 1440px) {
   html {
-    font-size: 15.5px; /* Slight adjustment for high-DPI laptops (MacBook) */
+    font-size: 16px; /* Keep full size on Pro laptops */
   }
 }
 
 @media (max-width: 1366px) {
   html {
-    font-size: 15px; /* Standard laptop adjustment - comfortable but not 'too big' */
+    font-size: 16px; /* Ensure it stays readable, no shrinking */
   }
 }
 
-@media (min-width: 2560px) {
+@media (max-width: 1200px) {
   html {
-    font-size: 16px; /* Keep consistent 16px base for ultra-wide unless specifically asked to enlarge */
+    font-size: 15.5px; /* Subtle adjustment for very small laptops only */
   }
 }
 
@@ -106,7 +106,7 @@ body {
 .dark input,
 .dark textarea,
 .dark select {
-  background-color: #09090b !important;
+  background-color: #09090b;
   color: #fafafa !important;
   border-color: #27272a !important;
 }

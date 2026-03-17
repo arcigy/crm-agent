@@ -63,6 +63,8 @@ export function DealsTable({
     setPriceFilter,
     uninvoicedOnly,
     setUninvoicedOnly,
+    invoicedOnly,
+    setInvoicedOnly,
     invoicingProject,
     setInvoicingProject,
     payingProject,
@@ -370,6 +372,8 @@ export function DealsTable({
           setPriceFilter={setPriceFilter}
           uninvoicedOnly={uninvoicedOnly}
           setUninvoicedOnly={setUninvoicedOnly}
+          invoicedOnly={invoicedOnly}
+          setInvoicedOnly={setInvoicedOnly}
           onReset={resetFilters}
           onNewClick={() => {}}
         />

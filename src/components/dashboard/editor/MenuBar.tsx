@@ -25,7 +25,7 @@ export const MenuBar = ({ editor, onLinkOpen }: MenuBarProps) => {
   if (!editor) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 p-3 bg-zinc-950/40 backdrop-blur-md border-b border-violet-500/10 rounded-t-[2.5rem] transition-colors relative z-50">
+    <div className="flex flex-wrap items-center gap-1.5 p-3 bg-white/5 dark:bg-black/20 backdrop-blur-xl border-b border-violet-500/10 rounded-t-[2.5rem] transition-colors relative z-50">
       <div className="flex items-center gap-1.5 px-2">
         <ToolbarBtn
           onClick={() => editor.chain().focus().toggleBold().run()}

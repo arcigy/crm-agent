@@ -34,7 +34,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
   return (
     <div className={`
       bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl 
-      px-5 md:px-8 pt-2 md:pt-3 pb-4 md:pb-6 
+      px-4 md:px-6 pt-2 md:pt-3 pb-3 md:pb-4 
       rounded-none md:rounded-[2.5rem] 
       border-b md:border border-blue-500/20 dark:border-blue-500/20 
       flex flex-col relative group transition-all duration-300 
@@ -46,7 +46,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
       <Link 
         href="/dashboard/contacts" 
         prefetch={true}
-        className="flex items-center justify-between w-full relative z-20 md:mb-3 transition-transform hover:scale-[1.02] origin-left group/header"
+        className="flex items-center justify-between w-full relative z-20 md:mb-1 transition-transform hover:scale-[1.02] origin-left group/header"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl md:bg-blue-500/10 bg-blue-500/20 flex items-center justify-center border border-blue-500/30 md:border-blue-500/20 shadow-none">
@@ -63,12 +63,12 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
       </Link>
 
       <div className="flex-1 flex flex-col min-h-0 mt-2">
-        <div className={`flex-1 min-h-0 space-y-2.5 pr-1 scrollbar-hide relative z-10 overscroll-contain ${focusData.length > 0 ? 'overflow-y-auto' : 'flex items-center justify-center'}`}>
+        <div className={`flex-1 min-h-0 space-y-2 pr-1 scrollbar-hide relative z-10 overscroll-contain ${focusData.length > 0 ? 'overflow-y-auto' : 'flex items-center justify-center'}`}>
           {focusData.length > 0 ? (
             focusData.map((item, i) => (
               <div 
                 key={i} 
-                className="bg-white/60 dark:bg-zinc-900/40 p-4 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-md flex items-center justify-between group/item hover:border-blue-500/40 transition-all hover:translate-x-1 shadow-none"
+                className="bg-white/60 dark:bg-zinc-900/40 p-3 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-md flex items-center justify-between group/item hover:border-blue-500/40 transition-all hover:translate-x-1 shadow-none"
               >
                 <div className="flex flex-col min-w-0">
                   <span className="text-[10px] font-black text-blue-500 uppercase italic tracking-[0.2em] mb-1">
@@ -76,7 +76,7 @@ export function AnalyticsSection({ contacts, projects }: AnalyticsSectionProps) 
                   </span>
                   <Link 
                     href={`/dashboard/contacts?id=${item.contactId?.id || item.contactId}`}
-                    className="text-sm font-black text-foreground truncate tracking-tight hover:text-blue-500 transition-colors"
+                    className="text-base font-black text-foreground truncate tracking-tight hover:text-blue-500 transition-colors"
                   >
                     {item.contactName}
                   </Link>

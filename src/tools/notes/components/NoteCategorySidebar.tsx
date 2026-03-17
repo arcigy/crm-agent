@@ -61,8 +61,8 @@ export function NoteCategorySidebar({
   };
 
   return (
-    <div className="w-64 shrink-0 flex flex-col gap-10 pr-6 border-r border-zinc-100 dark:border-zinc-800/50 h-full overflow-y-auto thin-scrollbar">
-      <div className="space-y-4">
+    <div className="w-72 min-w-[280px] shrink-0 flex flex-col gap-6 pr-4 border-r border-zinc-100 dark:border-zinc-800/50 h-full overflow-y-auto thin-scrollbar pb-10">
+      <div className="space-y-3">
         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400 px-2">
           ORGANIZÁCIA
         </p>
@@ -78,7 +78,7 @@ export function NoteCategorySidebar({
                   group flex items-center justify-between p-3 rounded-2xl transition-all duration-300
                   ${isActive 
                     ? "bg-violet-600 text-white shadow-xl shadow-violet-500/20" 
-                    : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-500 hover:text-zinc-900"
+                    : "hover:bg-violet-500/10 dark:hover:bg-violet-500/10 text-zinc-500 hover:text-violet-600 dark:hover:text-violet-400"
                   }
                 `}
               >
@@ -86,14 +86,14 @@ export function NoteCategorySidebar({
                   <span className={`${isActive ? "text-white" : "text-violet-500/60"}`}>
                     {cat.icon}
                   </span>
-                  <span className="text-[11px] font-black uppercase tracking-widest leading-none">
+                  <span className="text-[11px] font-black uppercase tracking-widest leading-none truncate">
                     {cat.name}
                   </span>
                 </div>
                 
                 <span className={`
-                  text-[9px] font-black px-2 py-0.5 rounded-lg
-                  ${isActive ? "bg-white/20 text-white" : "bg-zinc-50 dark:bg-zinc-800/50 text-zinc-400"}
+                  text-[9px] font-black px-2 py-0.5 rounded-lg transition-colors
+                  ${isActive ? "bg-white/20 text-white" : "bg-zinc-50 dark:bg-zinc-800/50 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white"}
                 `}>
                   {getCount(cat.id)}
                 </span>
@@ -147,7 +147,7 @@ export function NoteCategorySidebar({
                         group flex items-center justify-between p-3 rounded-2xl transition-all duration-300
                         ${isActive 
                             ? "bg-violet-600 text-white shadow-xl shadow-violet-500/20" 
-                            : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-500 hover:text-zinc-900"
+                            : "hover:bg-violet-500/10 dark:hover:bg-violet-500/10 text-zinc-500 hover:text-violet-600 dark:hover:text-violet-400"
                         }
                         `}
                     >
@@ -162,8 +162,8 @@ export function NoteCategorySidebar({
                         
                         <div className="flex items-center gap-2">
                             <span className={`
-                            text-[9px] font-black px-2 py-0.5 rounded-lg
-                            ${isActive ? "bg-white/20 text-white" : "bg-zinc-50 dark:bg-zinc-800/50 text-zinc-400"}
+                            text-[9px] font-black px-2 py-0.5 rounded-lg transition-colors
+                            ${isActive ? "bg-white/20 text-white" : "bg-zinc-50 dark:bg-zinc-800/50 text-zinc-400 group-hover:text-violet-500"}
                             `}>
                             {getCount(id)}
                             </span>
