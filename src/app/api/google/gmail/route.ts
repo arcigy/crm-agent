@@ -384,6 +384,7 @@ export async function DELETE(req: Request) {
 
     const userEmail = user.emailAddresses[0]?.emailAddress;
     const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
+    const { db } = await import("@/lib/db");
     const token = await getValidToken(user.id, userEmail);
 
     if (!token) return NextResponse.json({ error: "Not connected" }, { status: 400 });
@@ -392,17 +393,20 @@ export async function DELETE(req: Request) {
       const gmail = await getGmailClient(token);
       
       // Batch delete instead of trash.trash which might not empty it
-      const trashMessages = await gmail.users.messages.list({
-        userId: "me",
-        labelIds: ["TRASH"],
-        maxResults: 500
-      });
+      const trashResult = await db.query(`
+        SELECT gmail_message_id 
+        FROM gmail_messages
+        WHERE user_email = $1
+          AND label_ids @> ARRAY['TRASH']
+        LIMIT 500
+      `, [userEmail]);
+      const ids = trashResult.rows.map((r: any) => r.gmail_message_id);
 
-      if (trashMessages.data.messages?.length) {
+      if (ids.length) {
         await gmail.users.messages.batchDelete({
           userId: "me",
           requestBody: {
-            ids: trashMessages.data.messages.map((m: any) => m.id!)
+            ids
           }
         });
       }
@@ -427,6 +431,7 @@ export async function PATCH(req: Request) {
     const { messageId, action } = body;
     const userEmail = user.emailAddresses[0]?.emailAddress;
     const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
+    const { db } = await import("@/lib/db");
     const token = await getValidToken(user.id, userEmail);
 
     if (!token) return NextResponse.json({ error: "Google account not linked or token expired" }, { status: 400 });
@@ -485,18 +490,21 @@ export async function PATCH(req: Request) {
         id: messageId,
       });
     } else if (action === "empty_trash") {
-      // List everything in trash
-      const trashList = await gmail.users.messages.list({
-        userId: "me",
-        q: "label:TRASH"
-      });
+      const trashResult = await db.query(`
+        SELECT gmail_message_id 
+        FROM gmail_messages
+        WHERE user_email = $1
+          AND label_ids @> ARRAY['TRASH']
+        LIMIT 500
+      `, [userEmail]);
       
-      if (trashList.data.messages && trashList.data.messages.length > 0) {
+      const ids = trashResult.rows.map((r: any) => r.gmail_message_id);
+      if (ids.length > 0) {
         // PERMANENT DELETE (Batch)
         await gmail.users.messages.batchDelete({
           userId: "me",
           requestBody: {
-            ids: trashList.data.messages.map((m: any) => m.id as string)
+            ids
           }
         });
       }

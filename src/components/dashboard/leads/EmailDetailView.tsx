@@ -11,6 +11,7 @@ import {
   AlertOctagon,
   Mail,
   FolderInput,
+  FolderUp,
   Tag,
   MoreVertical,
   Printer,
@@ -41,6 +42,7 @@ import { createTask } from "@/app/actions/tasks";
 import { generateTaskTitleFromEmail } from "@/app/actions/tasks";
 import { PremiumDatePicker } from "@/components/ui/PremiumDatePicker";
 import { PremiumTimePicker } from "@/components/ui/PremiumTimePicker";
+import { SaveToDriveModal } from "./SaveToDriveModal";
 
 interface EmailDetailViewProps {
   email: GmailMessage;
@@ -79,6 +81,7 @@ export function EmailDetailView({
   const [showFullDetails, setShowFullDetails] = React.useState(false);
   const [bodyHtml, setBodyHtml] = React.useState<string | null>(email.bodyHtml || null);
   const [isLoadingBody, setIsLoadingBody] = React.useState(!email.bodyHtml);
+  const [saveToDriveOpen, setSaveToDriveOpen] = React.useState(false);
 
   // Load full body if not already present (Optimistic Preview)
   React.useEffect(() => {
@@ -444,6 +447,16 @@ export function EmailDetailView({
                 ) : ""}
               </div>
               <div className="flex items-center gap-2">
+                {email.attachments && email.attachments.length > 0 && (
+                  <button
+                    onClick={() => setSaveToDriveOpen(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-[12px] rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors font-black uppercase tracking-wide"
+                    title="Uložiť prílohy do Google Drive"
+                  >
+                    <FolderUp className="w-4 h-4" />
+                    Uložiť do súborov
+                  </button>
+                )}
                 <button 
                   onClick={(e) => onToggleStar?.(e, email)}
                   title={email.isStarred ? "Odobrať hviezdičku" : "Pridať hviezdičku"}
@@ -741,6 +754,14 @@ export function EmailDetailView({
             </div>
           </div>
         </div>
+      )}
+
+      {saveToDriveOpen && email.attachments && (
+        <SaveToDriveModal
+          email={email}
+          attachments={email.attachments}
+          onClose={() => setSaveToDriveOpen(false)}
+        />
       )}
     </div>
   );

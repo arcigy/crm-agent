@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import fs, { createReadStream } from "fs";
+import path from "path";
+import { createGunzip } from "zlib";
 import { backupDatabase } from '@/lib/backup';
 import { db } from '@/lib/db';
 
@@ -15,6 +18,48 @@ export async function GET(request: Request) {
   try {
     const result = await backupDatabase();
     const duration = Date.now() - start;
+
+    // Backup integrity verification (best-effort; required for production safety)
+    // Step 1: Check file is not suspiciously small
+    const backupFilename = (result as any)?.filename as string | undefined;
+    const filepath = backupFilename
+      ? path.join(process.cwd(), "tmp", backupFilename)
+      : null;
+
+    if (filepath && fs.existsSync(filepath)) {
+      const stats = fs.statSync(filepath);
+      if (stats.size < 1024) {
+        throw new Error(`Backup file too small: ${stats.size} bytes`);
+      }
+
+      // Step 2: Verify gzip contains PostgreSQL dump signature
+      let foundCreateTable = false;
+      let bytesRead = 0;
+
+      await new Promise<void>((resolve, reject) => {
+        createReadStream(filepath)
+          .pipe(createGunzip())
+          .on("data", (chunk: Buffer) => {
+            bytesRead += chunk.length;
+            if (bytesRead < 100000 && !foundCreateTable) {
+              const text = chunk.toString("utf8");
+              if (text.includes("CREATE TABLE") || text.includes("PostgreSQL database dump")) {
+                foundCreateTable = true;
+              }
+            }
+          })
+          .on("end", resolve)
+          .on("error", reject);
+      });
+
+      if (!foundCreateTable) {
+        throw new Error("Backup integrity check FAILED: no CREATE TABLE found");
+      }
+
+      console.log("[Backup] Integrity check PASSED");
+    } else {
+      console.warn("[Backup] Integrity check skipped: local backup file not found");
+    }
 
     // Log the backup event to database if possible
     try {

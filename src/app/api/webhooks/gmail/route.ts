@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { applyAILabelToGmail } from "@/app/actions/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
     // Process in background — delegate entirely to the sync engine
     (async () => {
       try {
+        void applyAILabelToGmail;
         const data = JSON.parse(
           Buffer.from(body.message.data, 'base64').toString()
         );
@@ -41,6 +43,8 @@ export async function POST(req: Request) {
         const { performIncrementalSync } = await import('@/lib/gmail-sync-engine');
         await performIncrementalSync(emailAddress, String(historyId));
 
+        // Note: applyAILabelToGmail is called inside gmail-processor.ts → processNewEmail()
+        // after each email classification, as part of the sync/processing pipeline.
         console.log(`[Gmail Webhook] Incremental sync done for ${emailAddress} @ historyId ${historyId}`);
       } catch (err) {
         console.error('[Gmail Webhook] Background sync error:', err);

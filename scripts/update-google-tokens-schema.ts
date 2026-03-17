@@ -7,7 +7,8 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const DIRECTUS_URL = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'https://directus-buk1-production.up.railway.app';
-const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN || '3cSXW-vP-3ujjyXvS0-htoPcsSQOZ5GE';
+const DIRECTUS_TOKEN = process.env.DIRECTUS_TOKEN;
+if (!DIRECTUS_TOKEN) throw new Error("DIRECTUS_TOKEN is required");
 
 const client = createDirectus(DIRECTUS_URL)
     .with(staticToken(DIRECTUS_TOKEN))
