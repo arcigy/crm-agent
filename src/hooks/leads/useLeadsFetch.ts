@@ -188,6 +188,15 @@ export function useLeadsFetch(
     inboxStats,
     totalMessages,
     isBuffering,
+    invalidateCache: (category?: string) => {
+      if (category) {
+        Object.keys(emailCache.current).forEach(key => {
+          if (key.startsWith(`${category}_`)) delete emailCache.current[key];
+        });
+      } else {
+        emailCache.current = {};
+      }
+    },
     syncStatus
   };
 }

@@ -42,6 +42,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     inboxStats,
     totalMessages: gmailTotalMessages,
     isBuffering,
+    invalidateCache,
     syncStatus
   } = useLeadsFetch(initialMessages, getSmartTags, selectedTab);
 
@@ -273,6 +274,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
           action: newIsStarred ? "star" : "unstar" 
         }),
       });
+      
+      // Invalidate cache for starred tab so it reflects changes on click
+      invalidateCache('starred');
     } catch (error) {
       console.error("Failed to toggle star:", error);
       // Revert on failure

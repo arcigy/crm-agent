@@ -210,48 +210,55 @@ export async function GET(request: Request) {
       if (view === 'threads') {
         emailsPromise = db.query(`
           SELECT 
-            gmail_thread_id as id,
-            gmail_thread_id as thread_id,
+            gm.gmail_thread_id as id,
+            gm.gmail_thread_id as thread_id,
             COUNT(*) as message_count,
-            MAX(received_at) as date,
-            (array_agg(subject ORDER BY received_at DESC))[1] as subject,
-            (array_agg(from_email ORDER BY received_at DESC))[1] as "from",
-            (array_agg(from_name ORDER BY received_at DESC))[1] as from_name,
-            (array_agg(snippet ORDER BY received_at DESC))[1] as snippet,
-            (array_agg(gmail_message_id ORDER BY received_at DESC))[1] as latest_message_id,
-            bool_or(NOT is_read) as "hasUnread",
-            bool_or(is_starred) as "isStarred",
-            array_agg(DISTINCT from_name) as participants,
-            array_agg(DISTINCT l) as labels
-          FROM gmail_messages, unnest(label_ids) l
-          WHERE user_email = $1
-            ${labelId === 'archive' ? 'AND NOT (label_ids @> ARRAY[\'INBOX\'] OR label_ids @> ARRAY[\'TRASH\'] OR label_ids @> ARRAY[\'SPAM\'])' : 'AND label_ids @> ARRAY[$2]'}
-          GROUP BY gmail_thread_id
+            MAX(gm.received_at) as date,
+            (array_agg(gm.subject ORDER BY gm.received_at DESC))[1] as subject,
+            (array_agg(gm.from_email ORDER BY gm.received_at DESC))[1] as "from",
+            (array_agg(gm.from_name ORDER BY gm.received_at DESC))[1] as from_name,
+            (array_agg(gm.snippet ORDER BY gm.received_at DESC))[1] as snippet,
+            (array_agg(gm.gmail_message_id ORDER BY gm.received_at DESC))[1] as latest_message_id,
+            bool_or(NOT gm.is_read) as "hasUnread",
+            bool_or(gm.is_starred) as "isStarred",
+            array_agg(DISTINCT gm.from_name) as participants,
+            array_agg(DISTINCT l) as labels,
+            bool_or(gm.has_attachments) as "hasAttachments",
+            COUNT(DISTINCT df.id) as drive_files_count
+          FROM gmail_messages gm
+          LEFT JOIN drive_files df ON df.gmail_message_id = gm.gmail_message_id,
+          unnest(gm.label_ids) l
+          WHERE gm.user_email = $1
+            ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'] OR gm.label_ids @> ARRAY[\'TRASH\'] OR gm.label_ids @> ARRAY[\'SPAM\'])' : 'AND gm.label_ids @> ARRAY[$2]'}
+          GROUP BY gm.gmail_thread_id
           ORDER BY date DESC
           LIMIT $3 OFFSET $4
         `, labelId === 'archive' ? [userEmail, limit, offset] : [userEmail, labelId, limit, offset]);
       } else {
         emailsPromise = db.query(`
           SELECT 
-            gmail_message_id as id,
-            gmail_thread_id as thread_id,
-            subject,
-            from_email as from,
-            to_emails as "toEmails",
-            snippet,
-            received_at as date,
-            is_read as "isRead",
-            is_starred as "isStarred",
-            has_attachments as "hasAttachments",
-            label_ids as labels,
-            ai_intent,
-            ai_priority,
-            ai_summary,
-            body_text as body
-          FROM gmail_messages
-          WHERE user_email = $1
-          ${labelId === 'archive' ? 'AND NOT (label_ids @> ARRAY[\'INBOX\'] OR label_ids @> ARRAY[\'TRASH\'] OR label_ids @> ARRAY[\'SPAM\'])' : 'AND label_ids @> ARRAY[$2]'}
-          ORDER BY received_at DESC
+            gm.gmail_message_id as id,
+            gm.gmail_thread_id as thread_id,
+            gm.subject,
+            gm.from_email as from,
+            gm.to_emails as "toEmails",
+            gm.snippet,
+            gm.received_at as date,
+            gm.is_read as "isRead",
+            gm.is_starred as "isStarred",
+            gm.has_attachments as "hasAttachments",
+            gm.label_ids as labels,
+            gm.ai_intent,
+            gm.ai_priority,
+            gm.ai_summary,
+            gm.body_text as body,
+            COUNT(DISTINCT df.id) as drive_files_count
+          FROM gmail_messages gm
+          LEFT JOIN drive_files df ON df.gmail_message_id = gm.gmail_message_id
+          WHERE gm.user_email = $1
+          ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'] OR gm.label_ids @> ARRAY[\'TRASH\'] OR gm.label_ids @> ARRAY[\'SPAM\'])' : 'AND gm.label_ids @> ARRAY[$2]'}
+          GROUP BY gm.gmail_message_id
+          ORDER BY gm.received_at DESC
           LIMIT $3 OFFSET $4
         `, labelId === 'archive' ? [userEmail, limit, offset] : [userEmail, labelId, limit, offset]);
       }
@@ -446,6 +453,23 @@ export async function PATCH(req: Request) {
           addLabelIds: ["STARRED"],
         },
       });
+      // Immediate local DB update for better UX
+      await db.query(`
+        UPDATE gmail_messages
+        SET 
+          is_starred = true,
+          label_ids = CASE 
+            WHEN NOT (label_ids @> ARRAY['STARRED'])
+            THEN array_append(label_ids, 'STARRED')
+            ELSE label_ids
+          END,
+          synced_at = NOW()
+        WHERE user_email = $1 
+        AND gmail_message_id = $2
+      `, [userEmail, messageId]);
+      
+      const { refreshLabelCounts } = await import("@/lib/gmail-sync-engine");
+      await refreshLabelCounts(userEmail);
     } else if (action === "unstar") {
       await gmail.users.messages.modify({
         userId: "me",
@@ -454,7 +478,21 @@ export async function PATCH(req: Request) {
           removeLabelIds: ["STARRED"],
         },
       });
-    } else if (action === "trash") {
+      // Immediate local DB update
+      await db.query(`
+        UPDATE gmail_messages
+        SET 
+          is_starred = false,
+          label_ids = array_remove(label_ids, 'STARRED'),
+          synced_at = NOW()
+        WHERE user_email = $1 
+        AND gmail_message_id = $2
+      `, [userEmail, messageId]);
+
+      const { refreshLabelCounts } = await import("@/lib/gmail-sync-engine");
+      await refreshLabelCounts(userEmail);
+    }
+    else if (action === "trash") {
       await gmail.users.messages.trash({
         userId: "me",
         id: messageId,

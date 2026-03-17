@@ -20,6 +20,8 @@ export interface GmailMessage {
     messageIdHeader?: string;
     referencesHeader?: string;
     attachments?: GmailAttachment[];
+    hasAttachments?: boolean;
+    drive_files_count?: number;
     isRead: boolean;
     isStarred?: boolean;
     labels: string[]; // Internal Gmail IDs

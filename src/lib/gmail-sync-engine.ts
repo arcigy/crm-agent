@@ -173,7 +173,7 @@ async function upsertMessageBatch(rows: any[]) {
   `, [JSON.stringify(rows.map(r => ({ ...r, synced_at: new Date().toISOString() })))]);
 }
 
-async function refreshLabelCounts(userEmail: string) {
+export async function refreshLabelCounts(userEmail: string) {
   await db.query(`
     INSERT INTO gmail_label_counts (user_email, label_id, total_count, unread_count, updated_at)
     SELECT 
@@ -198,18 +198,37 @@ export async function triggerFullSyncForUser(
   labelId: string = 'INBOX',
   clerkUserId: string = ""
 ) {
-  // 1. Initialize sync state synchronously to ensure it exists
-  await updateSyncState(userEmail, labelId, { 
-    sync_status: 'syncing',
-    last_full_sync: new Date().toISOString(),
-    synced_messages: 0,
-    total_messages: 0
-  });
+  const LABELS_TO_SYNC = ['INBOX', 'SENT', 'STARRED', 'TRASH', 'SPAM', 'DRAFT'];
 
-  // 2. Run the actual work in background
-  performFullSync(userEmail, labelId, clerkUserId).catch(err => {
-    console.error(`[Gmail Sync] Full sync background worker error for ${userEmail}:`, err);
-  });
+  // If we are triggering for INBOX (default), we want to ensure all core labels are synced
+  if (labelId === 'INBOX') {
+    for (const lid of LABELS_TO_SYNC) {
+      // 1. Initialize sync state synchronously to ensure it exists
+      await updateSyncState(userEmail, lid, { 
+        sync_status: 'syncing',
+        last_full_sync: new Date().toISOString(),
+        synced_messages: 0,
+        total_messages: 0
+      });
+
+      // 2. Run the actual work in background
+      performFullSync(userEmail, lid, clerkUserId).catch(err => {
+        console.error(`[Gmail Sync] Full sync background worker error for ${userEmail} (${lid}):`, err);
+      });
+    }
+  } else {
+    // Single label trigger
+    await updateSyncState(userEmail, labelId, { 
+      sync_status: 'syncing',
+      last_full_sync: new Date().toISOString(),
+      synced_messages: 0,
+      total_messages: 0
+    });
+
+    performFullSync(userEmail, labelId, clerkUserId).catch(err => {
+      console.error(`[Gmail Sync] Full sync background worker error for ${userEmail} (${labelId}):`, err);
+    });
+  }
 }
 
 export async function performFullSync(
