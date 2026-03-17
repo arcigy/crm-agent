@@ -224,9 +224,8 @@ export async function GET(request: Request) {
             array_agg(DISTINCT gm.from_name) as participants,
             array_agg(DISTINCT l) as labels,
             bool_or(gm.has_attachments) as "hasAttachments",
-            COUNT(DISTINCT df.id) as drive_files_count
-          FROM gmail_messages gm
-          LEFT JOIN drive_files df ON df.gmail_message_id = gm.gmail_message_id,
+            (SELECT COUNT(*) FROM drive_files df WHERE df.gmail_message_id = ANY(array_agg(gm.gmail_message_id))) as drive_files_count
+          FROM gmail_messages gm,
           unnest(gm.label_ids) l
           WHERE gm.user_email = $1
             ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'] OR gm.label_ids @> ARRAY[\'TRASH\'] OR gm.label_ids @> ARRAY[\'SPAM\'])' : 'AND gm.label_ids @> ARRAY[$2]'}
@@ -252,12 +251,10 @@ export async function GET(request: Request) {
             gm.ai_priority,
             gm.ai_summary,
             gm.body_text as body,
-            COUNT(DISTINCT df.id) as drive_files_count
+            (SELECT COUNT(*) FROM drive_files df WHERE df.gmail_message_id = gm.gmail_message_id) as drive_files_count
           FROM gmail_messages gm
-          LEFT JOIN drive_files df ON df.gmail_message_id = gm.gmail_message_id
           WHERE gm.user_email = $1
           ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'] OR gm.label_ids @> ARRAY[\'TRASH\'] OR gm.label_ids @> ARRAY[\'SPAM\'])' : 'AND gm.label_ids @> ARRAY[$2]'}
-          GROUP BY gm.gmail_message_id
           ORDER BY gm.received_at DESC
           LIMIT $3 OFFSET $4
         `, labelId === 'archive' ? [userEmail, limit, offset] : [userEmail, labelId, limit, offset]);
