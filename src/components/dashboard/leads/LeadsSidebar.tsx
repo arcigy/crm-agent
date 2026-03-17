@@ -159,15 +159,19 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
           {isTagsExpanded && (
             <div className="mt-2 animate-in slide-in-from-top-2 fade-in duration-200">
               {/* Native Gmail Labels ONLY as requested */}
-              {(gmailLabels || []).map((l: any) => (
-                 <SidebarTag
-                   key={`label:${l.name}`}
-                   label={l.name}
-                   isActive={selectedTab === `tag:${l.name}`}
-                   onClick={() => onTabChange(`tag:${l.name}`)}
-                   color={l.color || (l.name.startsWith("CRM/") ? "#a78bfa" : undefined)}
-                 />
-              ))}
+              {(gmailLabels || []).map((l: any) => {
+                 const displayLabel = l.name.replace(/^CRM\//, '');
+                 const color = l.color || (l.name.startsWith("CRM/") ? "#a78bfa" : "#8e63ce");
+                 return (
+                   <SidebarTag
+                     key={`label:${l.name}`}
+                     label={displayLabel}
+                     isActive={selectedTab === `tag:${l.name}`}
+                     onClick={() => onTabChange(`tag:${l.name}`)}
+                     color={color}
+                   />
+                 );
+              })}
 
               {(gmailLabels || []).length === 0 && (
                  <div className="text-[11px] text-white/30 px-3 py-2 italic font-medium">Žiadne štítky v Gmaile</div>

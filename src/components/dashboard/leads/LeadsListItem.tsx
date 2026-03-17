@@ -43,6 +43,7 @@ interface LeadsListItemProps {
   onToggleSelection?: (e: React.MouseEvent, id: string) => void;
   tags?: string[];
   onToggleTag?: (e: React.MouseEvent, msg: GmailMessage) => void;
+  gmailLabels?: { id: string, name: string, color?: string, type?: string }[];
 }
 
 // Darken a hex color by multiplying each channel by `factor` (0 = black, 1 = unchanged)
@@ -84,7 +85,8 @@ export const LeadsListItem = React.memo(({
   isSelected,
   onToggleSelection,
   tags = [],
-  onToggleTag
+  onToggleTag,
+  gmailLabels = []
 }: LeadsListItemProps) => {
 
   // Performance optimization: Pre-format date
@@ -232,11 +234,13 @@ export const LeadsListItem = React.memo(({
                 .filter(l => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.toUpperCase()))
                 .slice(0, 3)
                 .map((label: string) => {
-                  const isCrmTag = label.startsWith("CRM/");
-                  const displayLabel = label.replace(/^CRM\//, '');
+                  const labelObj = gmailLabels.find(l => l.id === label);
+                  const name = labelObj ? labelObj.name : label;
+                  const isCrmTag = name.startsWith("CRM/");
+                  const displayLabel = name.replace(/^CRM\//, '');
                   
-                  // Priority: 1. Native Gmail color, 2. CRM default violet, 3. Standard slate
-                  const color = msg.googleLabelColors?.[label] || (isCrmTag ? "#a78bfa" : "#94a3b8");
+                  // Priority: 1. Native Gmail color from labelObj, 2. Previous color mapping, 3. User requested default violet
+                  const color = labelObj?.color || msg.googleLabelColors?.[label] || "#8e63ce";
                   
                   return (
                     <span
@@ -246,7 +250,7 @@ export const LeadsListItem = React.memo(({
                         borderColor: `${color}40`,
                         backgroundColor: `${color}15`,
                         color: color,
-                        textShadow: (isCrmTag || msg.googleLabelColors?.[label]) ? `0 0 8px ${color}60` : 'none'
+                        textShadow: (isCrmTag || labelObj?.color || msg.googleLabelColors?.[label]) ? `0 0 8px ${color}60` : 'none'
                       }}
                     >
                       {displayLabel}

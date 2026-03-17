@@ -108,6 +108,8 @@ export function LeadsInbox({ initialMessages = [] }: LeadsInboxProps) {
             email={inbox.selectedEmail}
             currentIndex={inbox.currentIndex}
             totalCount={inbox.totalCount}
+            tags={inbox.messageTags[inbox.selectedEmail.id] || []}
+            gmailLabels={inbox.gmailLabels}
             onClose={() => inbox.setSelectedEmail(null)}
             onDeleteMessage={(email) => inbox.handleDeleteMessage(null, email)}
             onArchive={inbox.handleArchiveMessage}

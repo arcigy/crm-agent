@@ -59,6 +59,8 @@ interface EmailDetailViewProps {
   onCreateDeal?: (e: React.MouseEvent, email: GmailMessage) => void;
   currentIndex?: number;
   totalCount?: number;
+  tags?: string[];
+  gmailLabels?: any[];
 }
 
 export function EmailDetailView({ 
@@ -76,6 +78,8 @@ export function EmailDetailView({
   onCreateDeal,
   currentIndex = 0,
   totalCount = 0,
+  tags = [],
+  gmailLabels = [],
 }: EmailDetailViewProps) {
   const [downloading, setDownloading] = React.useState<string | null>(null);
   const [showFullDetails, setShowFullDetails] = React.useState(false);
@@ -359,9 +363,28 @@ export function EmailDetailView({
               <h2 className="text-[28px] font-black tracking-tight text-[#2d1b4e] dark:text-zinc-100 leading-tight select-text">
                 {email.subject || "(Bez predmetu)"}
               </h2>
-              <span className="px-3 py-1 bg-violet-100 text-violet-700 text-[11px] rounded-full flex items-center gap-1 font-black uppercase tracking-widest shadow-[0_0_15px_rgba(139,92,246,0.2)] border border-violet-200/50 select-none cursor-default">
-                Doručené <span className="opacity-40 text-[10px] font-bold">x</span>
-              </span>
+              {tags.map((tag: string) => {
+                const labelObj = gmailLabels.find(l => l.id === tag);
+                const name = labelObj ? labelObj.name : tag;
+                const isCrmTag = name.startsWith("CRM/");
+                const displayLabel = name.replace(/^CRM\//, '');
+                const color = labelObj?.color || email.googleLabelColors?.[tag] || "#8e63ce";
+
+                return (
+                  <span
+                    key={tag}
+                    className="px-3 py-1 text-[11px] rounded-full flex items-center gap-1 font-black uppercase tracking-widest border transition-all duration-300"
+                    style={{ 
+                      borderColor: `${color}40`,
+                      backgroundColor: `${color}15`,
+                      color: color,
+                      textShadow: (isCrmTag || labelObj?.color || email.googleLabelColors?.[tag]) ? `0 0 8px ${color}60` : 'none'
+                    }}
+                  >
+                    {displayLabel}
+                  </span>
+                );
+              })}
             </div>
             <div className="flex items-center gap-4 text-violet-400 group select-none">
               <button 

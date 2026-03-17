@@ -23,6 +23,7 @@ interface ThreadListItemProps {
   onToggleSelection: (e: React.MouseEvent, id: string) => void;
   onOpenThread: (threadId: string) => void;
   tags?: string[];
+  gmailLabels?: { id: string, name: string, color?: string, type?: string }[];
 }
 
 export const ThreadListItem = React.memo(({
@@ -30,7 +31,8 @@ export const ThreadListItem = React.memo(({
   isSelected,
   onToggleSelection,
   onOpenThread,
-  tags = []
+  tags = [],
+  gmailLabels = []
 }: ThreadListItemProps) => {
 
   const formattedDate = React.useMemo(() => {
@@ -90,11 +92,20 @@ export const ThreadListItem = React.memo(({
           </span>
           {/* Tags */}
           <div className="flex gap-1">
-             {tags.slice(0, 2).map(tag => (
-               <span key={tag} className="px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-600 text-[9px] font-black rounded uppercase border border-violet-200/50">
-                 {tag}
-               </span>
-             ))}
+             {tags.slice(0, 2).map(tag => {
+               const labelObj = gmailLabels.find(l => l.id === tag);
+               const name = labelObj ? labelObj.name.replace(/^CRM\//, '') : tag;
+               const bgColor = labelObj?.color || "#8e63ce";
+               return (
+                 <span 
+                   key={tag} 
+                   className="px-1.5 py-0.5 text-white text-[9px] font-black rounded uppercase"
+                   style={{ backgroundColor: bgColor }}
+                 >
+                   {name}
+                 </span>
+               );
+             })}
           </div>
         </div>
         <span className="text-[12px] text-zinc-500 dark:text-zinc-500 truncate font-medium">
