@@ -162,7 +162,7 @@ export async function GET(request: Request) {
               ))
               FROM gmail_label_names gln
               WHERE gln.user_email = $1
-              AND gln.label_id = ANY(gm.label_ids)
+              AND gln.label_id = ANY(gm.label_ids::text[])
             ),
             '[]'
           ) as labels
@@ -210,7 +210,7 @@ export async function GET(request: Request) {
                 FROM gmail_label_names gln
                 WHERE gln.user_email = $1
                 AND gln.label_id = ANY(
-                  (SELECT array_agg(DISTINCT l_sub) FROM gmail_messages gm_sub, unnest(gm_sub.label_ids) l_sub WHERE gm_sub.gmail_thread_id = gm.gmail_thread_id)
+                  SELECT DISTINCT unnest(label_ids)::text FROM gmail_messages gm_sub WHERE gm_sub.gmail_thread_id = gm.gmail_thread_id
                 )
               ),
               '[]'
@@ -218,7 +218,7 @@ export async function GET(request: Request) {
             bool_or(gm.has_attachments) as "hasAttachments"
           FROM gmail_messages gm
           WHERE gm.user_email = $1
-            AND (gm.subject ILIKE $2 OR gm.from_email ILIKE $2 OR gm.to_emails @> ARRAY[$3] OR gm.body_text ILIKE $2 OR gm.snippet ILIKE $2)
+            AND (gm.subject ILIKE $2 OR gm.from_email ILIKE $2 OR gm.to_emails @> ARRAY[$3::text] OR gm.body_text ILIKE $2 OR gm.snippet ILIKE $2)
           GROUP BY gm.gmail_thread_id, gm.user_email
           ORDER BY date DESC
           LIMIT $4 OFFSET $5
@@ -228,7 +228,7 @@ export async function GET(request: Request) {
           SELECT COUNT(DISTINCT gmail_thread_id) as total_count, 0 as unread_count
           FROM gmail_messages
           WHERE user_email = $1
-            AND (subject ILIKE $2 OR from_email ILIKE $2 OR to_emails @> ARRAY[$3] OR body_text ILIKE $2 OR snippet ILIKE $2)
+            AND (subject ILIKE $2 OR from_email ILIKE $2 OR to_emails @> ARRAY[$3::text] OR body_text ILIKE $2 OR snippet ILIKE $2)
         `, [userEmail, searchPattern, search]);
       } else {
         emailsPromise = db.query(`
@@ -258,13 +258,13 @@ export async function GET(request: Request) {
                 ))
                 FROM gmail_label_names gln
                 WHERE gln.user_email = $1
-                AND gln.label_id = ANY(gm.label_ids)
+                AND gln.label_id = ANY(gm.label_ids::text[])
               ),
               '[]'
             ) as labels
           FROM gmail_messages gm
           WHERE gm.user_email = $1
-            AND (gm.subject ILIKE $2 OR gm.from_email ILIKE $2 OR gm.to_emails @> ARRAY[$3] OR gm.body_text ILIKE $2 OR gm.snippet ILIKE $2)
+            AND (gm.subject ILIKE $2 OR gm.from_email ILIKE $2 OR gm.to_emails @> ARRAY[$3::text] OR gm.body_text ILIKE $2 OR gm.snippet ILIKE $2)
           ORDER BY gm.received_at DESC
           LIMIT $4 OFFSET $5
         `, [userEmail, searchPattern, search, limit, offset]);
@@ -273,7 +273,7 @@ export async function GET(request: Request) {
           SELECT COUNT(*) as total_count, 0 as unread_count
           FROM gmail_messages
           WHERE user_email = $1
-            AND (subject ILIKE $2 OR from_email ILIKE $2 OR to_emails @> ARRAY[$3] OR body_text ILIKE $2 OR snippet ILIKE $2)
+            AND (subject ILIKE $2 OR from_email ILIKE $2 OR to_emails @> ARRAY[$3::text] OR body_text ILIKE $2 OR snippet ILIKE $2)
         `, [userEmail, searchPattern, search]);
       }
     } else {
@@ -312,14 +312,14 @@ export async function GET(request: Request) {
                 FROM gmail_label_names gln
                 WHERE gln.user_email = $1
                 AND gln.label_id = ANY(
-                  (SELECT array_agg(DISTINCT l_sub) FROM gmail_messages gm_sub, unnest(gm_sub.label_ids) l_sub WHERE gm_sub.gmail_thread_id = gm.gmail_thread_id)
+                  SELECT DISTINCT unnest(label_ids)::text FROM gmail_messages gm_sub WHERE gm_sub.gmail_thread_id = gm.gmail_thread_id
                 )
               ),
               '[]'
             ) as labels
           FROM gmail_messages gm
           WHERE gm.user_email = $1
-            ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'] OR gm.label_ids @> ARRAY[\'TRASH\'] OR gm.label_ids @> ARRAY[\'SPAM\'])' : 'AND gm.label_ids @> ARRAY[$2]'}
+            ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'::text] OR gm.label_ids @> ARRAY[\'TRASH\'::text] OR gm.label_ids @> ARRAY[\'SPAM\'::text])' : 'AND gm.label_ids @> ARRAY[$2::text]'}
           GROUP BY gm.gmail_thread_id, gm.user_email
           ORDER BY date DESC
           LIMIT $3 OFFSET $4
@@ -353,13 +353,13 @@ export async function GET(request: Request) {
                 ))
                 FROM gmail_label_names gln
                 WHERE gln.user_email = $1
-                AND gln.label_id = ANY(gm.label_ids)
+                AND gln.label_id = ANY(gm.label_ids::text[])
               ),
               '[]'
             ) as labels
           FROM gmail_messages gm
           WHERE gm.user_email = $1
-          ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'] OR gm.label_ids @> ARRAY[\'TRASH\'] OR gm.label_ids @> ARRAY[\'SPAM\'])' : 'AND gm.label_ids @> ARRAY[$2]'}
+          ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'::text] OR gm.label_ids @> ARRAY[\'TRASH\'::text] OR gm.label_ids @> ARRAY[\'SPAM\'::text])' : 'AND gm.label_ids @> ARRAY[$2::text]'}
           ORDER BY gm.received_at DESC
           LIMIT $3 OFFSET $4
         `, labelId === 'archive' ? [userEmail, limit, offset] : [userEmail, labelId, limit, offset]);

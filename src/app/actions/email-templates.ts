@@ -26,10 +26,10 @@ export async function getEmailTemplates() {
       })
     );
 
-    return { success: true, data: templates as EmailTemplate[] };
+    return { success: true, data: (templates || []) as EmailTemplate[] };
   } catch (error) {
-    console.error("Failed to fetch email templates:", error);
-    return { success: false, error: String(error) };
+    console.warn("email_templates collection not accessible:", error);
+    return { success: true, data: [] as EmailTemplate[] };
   }
 }
 
