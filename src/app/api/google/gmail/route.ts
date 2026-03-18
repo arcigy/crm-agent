@@ -163,7 +163,7 @@ export async function GET(request: Request) {
                   'type', gln.label_type
                 ))
                 FROM gmail_label_names gln
-                WHERE gln.user_email = gm.user_email
+                WHERE gln.user_email = $1
                 AND gln.label_id = ANY(array_agg(DISTINCT l))
               ),
               '[]'
@@ -172,7 +172,7 @@ export async function GET(request: Request) {
           FROM gmail_messages gm, unnest(gm.label_ids) l
           WHERE gm.user_email = $1
             AND (gm.subject ILIKE $2 OR gm.from_email ILIKE $2 OR gm.to_emails @> ARRAY[$3] OR gm.body_text ILIKE $2 OR gm.snippet ILIKE $2)
-          GROUP BY gm.gmail_thread_id
+          GROUP BY gm.gmail_thread_id, gm.user_email
           ORDER BY date DESC
           LIMIT $4 OFFSET $5
         `, [userEmail, searchPattern, search, limit, offset]);
@@ -210,7 +210,7 @@ export async function GET(request: Request) {
                   'type', gln.label_type
                 ))
                 FROM gmail_label_names gln
-                WHERE gln.user_email = gm.user_email
+                WHERE gln.user_email = $1
                 AND gln.label_id = ANY(gm.label_ids)
               ),
               '[]'
@@ -263,7 +263,7 @@ export async function GET(request: Request) {
                   'type', gln.label_type
                 ))
                 FROM gmail_label_names gln
-                WHERE gln.user_email = gm.user_email
+                WHERE gln.user_email = $1
                 AND gln.label_id = ANY(array_agg(DISTINCT l))
               ),
               '[]'
@@ -272,7 +272,7 @@ export async function GET(request: Request) {
           unnest(gm.label_ids) l
           WHERE gm.user_email = $1
             ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'] OR gm.label_ids @> ARRAY[\'TRASH\'] OR gm.label_ids @> ARRAY[\'SPAM\'])' : 'AND gm.label_ids @> ARRAY[$2]'}
-          GROUP BY gm.gmail_thread_id
+          GROUP BY gm.gmail_thread_id, gm.user_email
           ORDER BY date DESC
           LIMIT $3 OFFSET $4
         `, labelId === 'archive' ? [userEmail, limit, offset] : [userEmail, labelId, limit, offset]);
@@ -304,7 +304,7 @@ export async function GET(request: Request) {
                   'type', gln.label_type
                 ))
                 FROM gmail_label_names gln
-                WHERE gln.user_email = gm.user_email
+                WHERE gln.user_email = $1
                 AND gln.label_id = ANY(gm.label_ids)
               ),
               '[]'
