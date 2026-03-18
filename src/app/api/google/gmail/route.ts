@@ -209,12 +209,14 @@ export async function GET(request: Request) {
                 ))
                 FROM gmail_label_names gln
                 WHERE gln.user_email = $1
-                AND gln.label_id = ANY(array_agg(DISTINCT l))
+                AND gln.label_id = ANY(
+                  (SELECT array_agg(DISTINCT l_sub) FROM gmail_messages gm_sub, unnest(gm_sub.label_ids) l_sub WHERE gm_sub.gmail_thread_id = gm.gmail_thread_id)
+                )
               ),
               '[]'
             ) as labels,
             bool_or(gm.has_attachments) as "hasAttachments"
-          FROM gmail_messages gm, unnest(gm.label_ids) l
+          FROM gmail_messages gm
           WHERE gm.user_email = $1
             AND (gm.subject ILIKE $2 OR gm.from_email ILIKE $2 OR gm.to_emails @> ARRAY[$3] OR gm.body_text ILIKE $2 OR gm.snippet ILIKE $2)
           GROUP BY gm.gmail_thread_id, gm.user_email
@@ -309,12 +311,13 @@ export async function GET(request: Request) {
                 ))
                 FROM gmail_label_names gln
                 WHERE gln.user_email = $1
-                AND gln.label_id = ANY(array_agg(DISTINCT l))
+                AND gln.label_id = ANY(
+                  (SELECT array_agg(DISTINCT l_sub) FROM gmail_messages gm_sub, unnest(gm_sub.label_ids) l_sub WHERE gm_sub.gmail_thread_id = gm.gmail_thread_id)
+                )
               ),
               '[]'
             ) as labels
-          FROM gmail_messages gm,
-          unnest(gm.label_ids) l
+          FROM gmail_messages gm
           WHERE gm.user_email = $1
             ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'] OR gm.label_ids @> ARRAY[\'TRASH\'] OR gm.label_ids @> ARRAY[\'SPAM\'])' : 'AND gm.label_ids @> ARRAY[$2]'}
           GROUP BY gm.gmail_thread_id, gm.user_email
