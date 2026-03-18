@@ -7,6 +7,14 @@ export interface GmailAttachment {
     size: number;
 }
 
+export interface GmailLabel {
+    id: string;
+    name: string;
+    colorBg?: string;
+    colorText?: string;
+    type?: string;
+}
+
 export interface GmailMessage {
     id: string;
     threadId: string;
@@ -24,8 +32,8 @@ export interface GmailMessage {
     drive_files_count?: number;
     isRead: boolean;
     isStarred?: boolean;
-    labels: string[]; // Internal Gmail IDs
-    googleLabels?: string[]; // Human readable names
+    labels: (string | GmailLabel)[]; // Internal Gmail IDs or full label objects
+    googleLabels?: (string | GmailLabel)[]; // Human readable names or full label objects
     googleLabelColors?: Record<string, string>; // Label names mapped to background colors
     classification?: EmailClassification;
     isAnalyzing?: boolean;

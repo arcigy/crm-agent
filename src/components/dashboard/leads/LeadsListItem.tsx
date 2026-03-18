@@ -231,7 +231,11 @@ export const LeadsListItem = React.memo(({
           {msg.labels && msg.labels.length > 0 && (
             <div className="flex items-center gap-1.5 ml-4 mr-6 flex-shrink-0 justify-end max-w-[200px] flex-wrap">
               {msg.labels
-                .filter((l: any) => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.id.toUpperCase()))
+                .filter((l: any) => {
+                  const id = typeof l === 'object' ? l?.id : l;
+                  if (!id || typeof id !== 'string') return false;
+                  return !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(id.toUpperCase());
+                })
                 .slice(0, 3)
                 .map((label: any) => {
                   const displayLabel = label.name.replace(/^CRM\//, '');
@@ -282,7 +286,7 @@ export const LeadsListItem = React.memo(({
               >
                 <Tag className="w-3 h-3" />
               </button>
-              {msg.labels?.includes("TRASH") ? (
+              {msg.labels?.some((l: any) => (typeof l === 'object' ? l.id : l) === "TRASH") ? (
                 <button
                   onClick={(e) => { e.stopPropagation(); onRestoreMessage?.(e, msg); }}
                   className="p-1.5 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-lg transition-all text-zinc-400 hover:text-green-600 hover:scale-110 active:scale-95"

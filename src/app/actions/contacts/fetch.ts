@@ -47,6 +47,15 @@ export async function getContact(id: string | number) {
       ),
     ]);
 
+    // Map DB activities to a consistent format
+    const dbActivities = (activities as any[]).map((a: any): Activity => ({
+      type: a.type || 'activity',
+      subject: a.subject,
+      content: a.content,
+      duration: a.duration,
+      date: a.activity_date || a.date_created || new Date().toISOString()
+    }));
+
     const emailsResult = await db.query(`
       SELECT 
         gmail_message_id as id,
@@ -57,7 +66,8 @@ export async function getContact(id: string | number) {
         label_ids as labels,
         body_text
       FROM gmail_messages
-      WHERE user_email = $1 AND (from_email ILIKE $2 OR $2 = ANY(to_emails) OR $2 = ANY(cc_emails))
+      WHERE user_email = $1 
+        AND ($2 <> 'NO_EMAIL' AND (from_email ILIKE $2 OR $2 = ANY(to_emails) OR $2 = ANY(cc_emails)))
       ORDER BY received_at DESC
       LIMIT 100
     `, [contact.user_email, contact.email || "NO_EMAIL"]);
@@ -72,9 +82,11 @@ export async function getContact(id: string | number) {
     contact.projects = projects as unknown as Project[];
     contact.deals = deals as unknown as Deal[];
     contact.activities = [
-      ...(activities as unknown as Activity[]),
+      ...dbActivities,
       ...emailActivities
-    ].sort((a: any, b: any) => new Date(b.date || b.activity_date).getTime() - new Date(a.date || a.activity_date).getTime());
+    ].sort((a: Activity, b: Activity) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
 
     return { success: true, data: contact };
   } catch (error) {

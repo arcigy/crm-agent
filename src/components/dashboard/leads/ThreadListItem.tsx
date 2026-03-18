@@ -93,7 +93,11 @@ export const ThreadListItem = React.memo(({
           {/* Tags — Human names and colors from DB */}
           <div className="flex gap-1">
              {(item.labels || [])
-               .filter((l: any) => typeof l === 'object' && !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.id.toUpperCase()))
+               .filter((l: any) => {
+                 const id = typeof l === 'object' ? l?.id : l;
+                 if (!id || typeof id !== 'string') return false;
+                 return !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(id.toUpperCase());
+               })
                .slice(0, 2)
                .map((label: any) => {
                  const name = label.name.replace(/^CRM\//, '');

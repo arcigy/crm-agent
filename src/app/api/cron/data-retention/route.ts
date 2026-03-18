@@ -82,12 +82,13 @@ export async function GET(request: Request) {
 
     // 6. Log the cleanup results
     try {
+      const { randomUUID } = await import("crypto");
       await db.query(`
         INSERT INTO automation_logs 
-          (automation_name, status, result, created_at)
+          (automation_name, run_id, status, result, created_at)
         VALUES 
-          ('data_retention', 'completed', $1, NOW())
-      `, [JSON.stringify(results)]);
+          ('data_retention', $1, 'success', $2, NOW())
+      `, [randomUUID(), JSON.stringify(results)]);
     } catch (e) {
       // Fallback if automation_logs isn't ready or has different schema
       console.warn("[Data Retention] Failed to log result to automation_logs", e);

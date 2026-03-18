@@ -142,11 +142,16 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     if (messages.length > 0) {
       const newTags: Record<string, string[]> = {};
       messages.forEach(msg => {
-        if (msg.googleLabels && msg.googleLabels.length > 0) {
-          // Filter out system labels to keep messageTags focused on user labels
-          newTags[msg.id] = msg.googleLabels.filter(l => 
-            !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.toUpperCase())
-          );
+        // Handle both googleLabels (names/objects) and labels (IDs/objects)
+        const labelsToProcess: any[] = (msg as any).googleLabels || (msg as any).labels || [];
+        if (labelsToProcess.length > 0) {
+          newTags[msg.id] = labelsToProcess
+            .map(l => (typeof l === 'object' && l !== null ? (l.name || l.id) : l))
+            .filter(name => {
+              if (typeof name !== 'string') return false;
+              const upper = name.toUpperCase();
+              return !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(upper);
+            });
         }
       });
       setMessageTags(prev => ({ ...prev, ...newTags }));
