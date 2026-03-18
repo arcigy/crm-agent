@@ -226,27 +226,6 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         console.error("Failed to mark as read:", error);
       }
     }
-
-    // Load full body if missing (for replies/forwards)
-    if (!msg.bodyHtml || msg.bodyHtml.length < 50) {
-      try {
-        const res = await fetch(`/api/google/gmail?id=${msg.id}`);
-        const data = await res.json();
-        if (data.message?.bodyHtml) {
-          const updatedMsg = { 
-            ...msg, 
-            bodyHtml: data.message.bodyHtml, 
-            messageIdHeader: data.message.messageIdHeader,
-            referencesHeader: data.message.referencesHeader,
-            isRead: true 
-          };
-          setSelectedEmail(updatedMsg);
-          setMessages(prev => prev.map(m => m.id === msg.id ? updatedMsg : m));
-        }
-      } catch (err) {
-        console.error("Failed to fetch full body:", err);
-      }
-    }
   };
 
   const handleToggleStar = async (e: React.MouseEvent, msg: GmailMessage) => {

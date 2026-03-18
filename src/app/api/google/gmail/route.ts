@@ -129,8 +129,53 @@ export async function GET(request: Request) {
     const labelId = LABEL_MAP[category] || category;
 
     // Single thread detail fetch
+    // Single thread detail fetch - Return all messages in the thread
     if (threadId) {
-      // ... (existing thread logic)
+      const threadRes = await db.query(`
+        SELECT 
+          gm.gmail_message_id as id,
+          gm.gmail_thread_id as thread_id,
+          gm.subject,
+          gm.from_email as from,
+          gm.from_name,
+          gm.to_emails as "toEmails",
+          gm.snippet,
+          gm.received_at as date,
+          gm.is_read as "isRead",
+          gm.is_starred as "isStarred",
+          gm.has_attachments as "hasAttachments",
+          gm.ai_intent,
+          gm.ai_priority,
+          gm.ai_summary,
+          gm.body_text as body,
+          gm.body_html as "bodyHtml",
+          gm.message_id_header as "messageIdHeader",
+          gm.references_header as "referencesHeader",
+          COALESCE(
+            (
+              SELECT json_agg(json_build_object(
+                'id', gln.label_id,
+                'name', gln.label_name,
+                'colorBg', gln.color_bg,
+                'colorText', gln.color_text,
+                'type', gln.label_type
+              ))
+              FROM gmail_label_names gln
+              WHERE gln.user_email = $1
+              AND gln.label_id = ANY(gm.label_ids)
+            ),
+            '[]'
+          ) as labels
+        FROM gmail_messages gm
+        WHERE gm.user_email = $1 AND gm.gmail_thread_id = $2
+        ORDER BY gm.received_at ASC
+      `, [userEmail, threadId]);
+
+      return Response.json({
+        isConnected: true,
+        messages: threadRes.rows,
+        threadId: threadId
+      });
     }
 
     let emailsPromise: Promise<any>;
