@@ -161,13 +161,13 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
               {/* Native Gmail Labels ONLY as requested */}
               {(gmailLabels || []).map((l: any) => {
                  const displayLabel = l.name.replace(/^CRM\//, '');
-                 const color = l.color || (l.name.startsWith("CRM/") ? "#a78bfa" : "#8e63ce");
+                 const color = l.colorBg || "#a78bfa";
                  return (
                    <SidebarTag
-                     key={`label:${l.name}`}
+                     key={l.id}
                      label={displayLabel}
-                     isActive={selectedTab === `tag:${l.name}`}
-                     onClick={() => onTabChange(`tag:${l.name}`)}
+                     isActive={selectedTab === `tag:${l.id}`}
+                     onClick={() => onTabChange(`tag:${l.id}`)}
                      color={color}
                    />
                  );

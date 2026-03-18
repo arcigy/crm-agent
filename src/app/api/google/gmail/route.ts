@@ -141,23 +141,38 @@ export async function GET(request: Request) {
       if (view === 'threads') {
         emailsPromise = db.query(`
           SELECT 
-            gmail_thread_id as id,
-            gmail_thread_id as thread_id,
+            gm.gmail_thread_id as id,
+            gm.gmail_thread_id as thread_id,
             COUNT(*) as message_count,
-            MAX(received_at) as date,
-            (array_agg(subject ORDER BY received_at DESC))[1] as subject,
-            (array_agg(from_email ORDER BY received_at DESC))[1] as "from",
-            (array_agg(from_name ORDER BY received_at DESC))[1] as from_name,
-            (array_agg(snippet ORDER BY received_at DESC))[1] as snippet,
-            (array_agg(gmail_message_id ORDER BY received_at DESC))[1] as latest_message_id,
-            bool_or(NOT is_read) as "hasUnread",
-            bool_or(is_starred) as "isStarred",
-            array_agg(DISTINCT from_name) as participants,
-            array_agg(DISTINCT l) as labels
-          FROM gmail_messages, unnest(label_ids) l
-          WHERE user_email = $1
-            AND (subject ILIKE $2 OR from_email ILIKE $2 OR to_emails @> ARRAY[$3] OR body_text ILIKE $2 OR snippet ILIKE $2)
-          GROUP BY gmail_thread_id
+            MAX(gm.received_at) as date,
+            (array_agg(gm.subject ORDER BY gm.received_at DESC))[1] as subject,
+            (array_agg(gm.from_email ORDER BY gm.received_at DESC))[1] as "from",
+            (array_agg(gm.from_name ORDER BY gm.received_at DESC))[1] as from_name,
+            (array_agg(gm.snippet ORDER BY gm.received_at DESC))[1] as snippet,
+            (array_agg(gm.gmail_message_id ORDER BY gm.received_at DESC))[1] as latest_message_id,
+            bool_or(NOT gm.is_read) as "hasUnread",
+            bool_or(gm.is_starred) as "isStarred",
+            array_agg(DISTINCT gm.from_name) as participants,
+            COALESCE(
+              (
+                SELECT json_agg(json_build_object(
+                  'id', gln.label_id,
+                  'name', gln.label_name,
+                  'colorBg', gln.color_bg,
+                  'colorText', gln.color_text,
+                  'type', gln.label_type
+                ))
+                FROM gmail_label_names gln
+                WHERE gln.user_email = gm.user_email
+                AND gln.label_id = ANY(array_agg(DISTINCT l))
+              ),
+              '[]'
+            ) as labels,
+            bool_or(gm.has_attachments) as "hasAttachments"
+          FROM gmail_messages gm, unnest(gm.label_ids) l
+          WHERE gm.user_email = $1
+            AND (gm.subject ILIKE $2 OR gm.from_email ILIKE $2 OR gm.to_emails @> ARRAY[$3] OR gm.body_text ILIKE $2 OR gm.snippet ILIKE $2)
+          GROUP BY gm.gmail_thread_id
           ORDER BY date DESC
           LIMIT $4 OFFSET $5
         `, [userEmail, searchPattern, search, limit, offset]);
@@ -171,25 +186,39 @@ export async function GET(request: Request) {
       } else {
         emailsPromise = db.query(`
           SELECT 
-            gmail_message_id as id,
-            gmail_thread_id as thread_id,
-            subject,
-            from_email as from,
-            to_emails as "toEmails",
-            snippet,
-            received_at as date,
-            is_read as "isRead",
-            is_starred as "isStarred",
-            has_attachments as "hasAttachments",
-            label_ids as labels,
-            ai_intent,
-            ai_priority,
-            ai_summary,
-            body_text as body
-          FROM gmail_messages
-          WHERE user_email = $1
-            AND (subject ILIKE $2 OR from_email ILIKE $2 OR to_emails @> ARRAY[$3] OR body_text ILIKE $2 OR snippet ILIKE $2)
-          ORDER BY received_at DESC
+            gm.gmail_message_id as id,
+            gm.gmail_thread_id as thread_id,
+            gm.subject,
+            gm.from_email as from,
+            gm.to_emails as "toEmails",
+            gm.snippet,
+            gm.received_at as date,
+            gm.is_read as "isRead",
+            gm.is_starred as "isStarred",
+            gm.has_attachments as "hasAttachments",
+            gm.ai_intent,
+            gm.ai_priority,
+            gm.ai_summary,
+            gm.body_text as body,
+            COALESCE(
+              (
+                SELECT json_agg(json_build_object(
+                  'id', gln.label_id,
+                  'name', gln.label_name,
+                  'colorBg', gln.color_bg,
+                  'colorText', gln.color_text,
+                  'type', gln.label_type
+                ))
+                FROM gmail_label_names gln
+                WHERE gln.user_email = gm.user_email
+                AND gln.label_id = ANY(gm.label_ids)
+              ),
+              '[]'
+            ) as labels
+          FROM gmail_messages gm
+          WHERE gm.user_email = $1
+            AND (gm.subject ILIKE $2 OR gm.from_email ILIKE $2 OR gm.to_emails @> ARRAY[$3] OR gm.body_text ILIKE $2 OR gm.snippet ILIKE $2)
+          ORDER BY gm.received_at DESC
           LIMIT $4 OFFSET $5
         `, [userEmail, searchPattern, search, limit, offset]);
 
@@ -222,9 +251,23 @@ export async function GET(request: Request) {
             bool_or(NOT gm.is_read) as "hasUnread",
             bool_or(gm.is_starred) as "isStarred",
             array_agg(DISTINCT gm.from_name) as participants,
-            array_agg(DISTINCT l) as labels,
             bool_or(gm.has_attachments) as "hasAttachments",
-            (SELECT COUNT(*) FROM drive_files df WHERE df.gmail_message_id = ANY(array_agg(gm.gmail_message_id))) as drive_files_count
+            (SELECT COUNT(*) FROM drive_files df WHERE df.gmail_message_id = ANY(array_agg(gm.gmail_message_id))) as drive_files_count,
+            COALESCE(
+              (
+                SELECT json_agg(json_build_object(
+                  'id', gln.label_id,
+                  'name', gln.label_name,
+                  'colorBg', gln.color_bg,
+                  'colorText', gln.color_text,
+                  'type', gln.label_type
+                ))
+                FROM gmail_label_names gln
+                WHERE gln.user_email = gm.user_email
+                AND gln.label_id = ANY(array_agg(DISTINCT l))
+              ),
+              '[]'
+            ) as labels
           FROM gmail_messages gm,
           unnest(gm.label_ids) l
           WHERE gm.user_email = $1
@@ -246,12 +289,26 @@ export async function GET(request: Request) {
             gm.is_read as "isRead",
             gm.is_starred as "isStarred",
             gm.has_attachments as "hasAttachments",
-            gm.label_ids as labels,
             gm.ai_intent,
             gm.ai_priority,
             gm.ai_summary,
             gm.body_text as body,
-            (SELECT COUNT(*) FROM drive_files df WHERE df.gmail_message_id = gm.gmail_message_id) as drive_files_count
+            (SELECT COUNT(*) FROM drive_files df WHERE df.gmail_message_id = gm.gmail_message_id) as drive_files_count,
+            COALESCE(
+              (
+                SELECT json_agg(json_build_object(
+                  'id', gln.label_id,
+                  'name', gln.label_name,
+                  'colorBg', gln.color_bg,
+                  'colorText', gln.color_text,
+                  'type', gln.label_type
+                ))
+                FROM gmail_label_names gln
+                WHERE gln.user_email = gm.user_email
+                AND gln.label_id = ANY(gm.label_ids)
+              ),
+              '[]'
+            ) as labels
           FROM gmail_messages gm
           WHERE gm.user_email = $1
           ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'] OR gm.label_ids @> ARRAY[\'TRASH\'] OR gm.label_ids @> ARRAY[\'SPAM\'])' : 'AND gm.label_ids @> ARRAY[$2]'}
@@ -261,27 +318,49 @@ export async function GET(request: Request) {
       }
     }
 
+    // NEW: Labels Endpoint for Sidebar
+    if (searchParams.get("action") === "getLabels") {
+      const { syncGmailLabels, ensureLabelTable } = await import("@/lib/gmail-labels");
+      await ensureLabelTable();
+      
+      const res = await db.query(`
+        SELECT label_id as id, label_name as name, color_bg, color_text, label_type as type
+        FROM gmail_label_names
+        WHERE user_email = $1
+        ORDER BY label_type ASC, label_name ASC
+      `, [userEmail]);
+
+      if (res.rows.length === 0) {
+        // First sync
+        await syncGmailLabels(userEmail, user.id).catch(e => console.error(e));
+        const res2 = await db.query(`
+          SELECT label_id as id, label_name as name, color_bg, color_text, label_type as type
+          FROM gmail_label_names
+          WHERE user_email = $1
+          ORDER BY label_type ASC, label_name ASC
+        `, [userEmail]);
+        return NextResponse.json({ labels: res2.rows });
+      }
+
+      return NextResponse.json({ labels: res.rows });
+    }
+
     const syncStatePromise = db.query(`
       SELECT sync_status, synced_messages, total_messages, last_full_sync
       FROM gmail_sync_state
       WHERE user_email = $1 AND label_id = 'INBOX'
     `, [userEmail]);
 
-    // FIX: Read labels from DB instead of calling Gmail API (saves 200-500ms per request)
-    // gmail_message_labels table stores label metadata synced during full sync
+    // Read labels from DB
     const labelsPromise = db.query(`
-      SELECT DISTINCT
-        label_id as id,
-        label_name as name,
-        color,
-        'user' as type
-      FROM gmail_message_labels
+      SELECT label_id as id, label_name as name, color_bg as color, label_type as type
+      FROM gmail_label_names
       WHERE user_email = $1
         AND label_type = 'user'
       ORDER BY label_name
-    `, [userEmail]).catch(() => ({ rows: [] })); // Graceful fallback if table doesn't exist
+    `, [userEmail]).catch(() => ({ rows: [] }));
 
-    // Run all 4 queries in parallel — zero sequential waits
+    // Run parallel queries
     const [countResult, emailsResult, syncStateRes, labelRows] = await Promise.all([
       countPromise,
       emailsPromise,

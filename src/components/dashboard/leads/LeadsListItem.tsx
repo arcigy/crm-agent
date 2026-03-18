@@ -227,30 +227,25 @@ export const LeadsListItem = React.memo(({
             )}
           </div>
 
-          {/* Real Gmail Labels ONLY as requested - always visible */}
-          {msg.googleLabels && msg.googleLabels.length > 0 && (
+          {/* Gmail Labels — Displaying names and colors from DB */}
+          {msg.labels && msg.labels.length > 0 && (
             <div className="flex items-center gap-1.5 ml-4 mr-6 flex-shrink-0 justify-end max-w-[200px] flex-wrap">
-              {msg.googleLabels
-                .filter(l => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.toUpperCase()))
+              {msg.labels
+                .filter((l: any) => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.id.toUpperCase()))
                 .slice(0, 3)
-                .map((label: string) => {
-                  const labelObj = gmailLabels.find(l => l.id === label);
-                  const name = labelObj ? labelObj.name : label;
-                  const isCrmTag = name.startsWith("CRM/");
-                  const displayLabel = name.replace(/^CRM\//, '');
-                  
-                  // Priority: 1. Native Gmail color from labelObj, 2. Previous color mapping, 3. User requested default violet
-                  const color = labelObj?.color || msg.googleLabelColors?.[label] || "#8e63ce";
+                .map((label: any) => {
+                  const displayLabel = label.name.replace(/^CRM\//, '');
+                  const color = label.colorBg || "#8e63ce";
                   
                   return (
                     <span
-                      key={label}
+                      key={label.id}
                       className="px-2 py-[2px] rounded-md text-[9px] font-black tracking-widest uppercase border whitespace-nowrap transition-all duration-300"
                       style={{ 
                         borderColor: `${color}40`,
                         backgroundColor: `${color}15`,
                         color: color,
-                        textShadow: (isCrmTag || labelObj?.color || msg.googleLabelColors?.[label]) ? `0 0 8px ${color}60` : 'none'
+                        textShadow: `0 0 8px ${color}60`
                       }}
                     >
                       {displayLabel}
@@ -258,7 +253,7 @@ export const LeadsListItem = React.memo(({
                   );
                 })}
 
-              {msg.googleLabels?.filter(l => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.toUpperCase())).length > 3 && (
+              {msg.labels?.filter((l: any) => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.id.toUpperCase())).length > 3 && (
                 <span className="text-[9px] font-black text-white/30">...</span>
               )}
             </div>

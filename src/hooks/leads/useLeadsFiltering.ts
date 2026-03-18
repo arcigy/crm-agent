@@ -38,11 +38,14 @@ export function useLeadsFiltering(
     if (selectedTab === "inbox") return matchesSearch && (!msg.labels || msg.labels.includes("INBOX") || msg.labels.length === 0);
     
     if (selectedTab.startsWith("tag:")) {
-      const tag = selectedTab.replace("tag:", "");
+      const tagId = selectedTab.replace("tag:", "");
       const msgTags = messageTags[msg.id] || [];
-      const hasGmailLabel = (msg as any).googleLabels?.includes(tag) || (msg as any).googleLabels?.includes(`CRM/${tag}`);
-      const hasGmailTag = msg.labels?.includes(tag) || msg.labels?.includes(`CRM/${tag}`);
-      return matchesSearch && (hasGmailLabel || hasGmailTag || msgTags.includes(tag));
+      // Check labels array (which contains objects or strings)
+      const hasLabelMatch = msg.labels?.some((l: any) => {
+        if (typeof l === 'string') return l === tagId;
+        return l.id === tagId;
+      });
+      return matchesSearch && (hasLabelMatch || msgTags.includes(tagId));
     }
 
     if (["leads", "more", "archive", "all"].includes(selectedTab)) return matchesSearch;

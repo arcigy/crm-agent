@@ -90,22 +90,24 @@ export const ThreadListItem = React.memo(({
           <span className={`text-[13px] truncate ${item.hasUnread ? 'font-black text-[#1f1f1f] dark:text-white' : 'font-semibold text-zinc-700 dark:text-zinc-300'}`}>
             {item.subject || "(Bez predmetu)"}
           </span>
-          {/* Tags */}
+          {/* Tags — Human names and colors from DB */}
           <div className="flex gap-1">
-             {tags.slice(0, 2).map(tag => {
-               const labelObj = gmailLabels.find(l => l.id === tag);
-               const name = labelObj ? labelObj.name.replace(/^CRM\//, '') : tag;
-               const bgColor = labelObj?.color || "#8e63ce";
-               return (
-                 <span 
-                   key={tag} 
-                   className="px-1.5 py-0.5 text-white text-[9px] font-black rounded uppercase"
-                   style={{ backgroundColor: bgColor }}
-                 >
-                   {name}
-                 </span>
-               );
-             })}
+             {(item.labels || [])
+               .filter((l: any) => typeof l === 'object' && !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS'].includes(l.id.toUpperCase()))
+               .slice(0, 2)
+               .map((label: any) => {
+                 const name = label.name.replace(/^CRM\//, '');
+                 const bgColor = label.colorBg || "#8e63ce";
+                 return (
+                   <span 
+                     key={label.id} 
+                     className="px-1.5 py-0.5 text-white text-[9px] font-black rounded uppercase"
+                     style={{ backgroundColor: bgColor }}
+                   >
+                     {name}
+                   </span>
+                 );
+               })}
           </div>
         </div>
         <span className="text-[12px] text-zinc-500 dark:text-zinc-500 truncate font-medium">

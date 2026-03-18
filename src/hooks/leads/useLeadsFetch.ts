@@ -158,12 +158,10 @@ export function useLeadsFetch(
             stats: gmailData.stats
           };
 
-          // ── FIX 2: Only update state if this tab is still active ──────────
           const activeCategory = selectedTab.startsWith("tag:") ? selectedTab.replace("tag:", "") : selectedTab;
           if (category === activeCategory || isBackground) {
             setMessages(processedMessages);
             setTotalMessages(gmailData.pagination?.total || gmailData.totalMessages || 0);
-            if (gmailData.userLabels) setUserLabels(gmailData.userLabels);
             if (gmailData.stats) setInboxStats(gmailData.stats);
           }
 
@@ -184,6 +182,40 @@ export function useLeadsFetch(
       if (!isBackground) setLoading(false);
     }
   }, [selectedTab, dbAnalyses]); // eslint-disable-line
+
+  // ─── Fetch Labels and Sync Progress periodically ────────────────────────
+  React.useEffect(() => {
+    const fetchLabelsAndSync = async () => {
+      try {
+        const [labelRes, syncRes] = await Promise.all([
+          fetch("/api/google/gmail?action=getLabels"),
+          fetch("/api/google/gmail/sync")
+        ]);
+
+        if (labelRes.ok) {
+          const data = await labelRes.json();
+          if (data.success && data.labels) {
+            setUserLabels(data.labels.filter((l: any) => l.type === 'user'));
+          }
+        }
+
+        if (syncRes.ok) {
+          const data = await syncRes.json();
+          // Find the INBOX sync state which we use for general progress
+          const inboxSync = data.sync_states?.find((s: any) => s.label_id === 'INBOX');
+          if (inboxSync) {
+            setSyncStatus(inboxSync);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch labels/sync:", err);
+      }
+    };
+
+    fetchLabelsAndSync();
+    const interval = setInterval(fetchLabelsAndSync, 10000); // Polling every 10s
+    return () => clearInterval(interval);
+  }, []);
 
   // ─── Preload adjacent tabs silently ──────────────────────────────────────
   React.useEffect(() => {
