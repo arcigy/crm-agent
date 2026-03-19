@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
+import { getUserEmail } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { performFullSync } from "@/lib/gmail-sync-engine";
 
@@ -7,8 +8,16 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const user = await currentUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const session = await auth();
+    let userId = session.userId;
+    const clerkEmail = await getUserEmail();
+    
+    if (!userId && clerkEmail && (await import("@/lib/dev-mode/auth-bypass")).shouldBypassAuth()) {
+       userId = (await import("@/lib/dev-mode/auth-bypass")).getDevUser().id;
+    }
+    
+    if (!userId || !clerkEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = { id: userId, emailAddresses: [{ emailAddress: clerkEmail }] };
     
     // Get the actually linked Google email for this user
     const linkedToken = await db.query(
@@ -17,7 +26,7 @@ export async function POST(request: Request) {
     );
     
     const userEmail = linkedToken.rows[0]?.user_email?.toLowerCase() || 
-                      user.emailAddresses[0]?.emailAddress?.toLowerCase();
+                      clerkEmail.toLowerCase();
                       
     if (!userEmail) return NextResponse.json({ error: "No email identified" }, { status: 400 });
 
@@ -58,8 +67,16 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const user = await currentUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const session = await auth();
+    let userId = session.userId;
+    const clerkEmail = await getUserEmail();
+    
+    if (!userId && clerkEmail && (await import("@/lib/dev-mode/auth-bypass")).shouldBypassAuth()) {
+       userId = (await import("@/lib/dev-mode/auth-bypass")).getDevUser().id;
+    }
+    
+    if (!userId || !clerkEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = { id: userId, emailAddresses: [{ emailAddress: clerkEmail }] };
     
     // Get the actually linked Google email for this user
     const linkedToken = await db.query(
@@ -68,7 +85,7 @@ export async function GET(request: Request) {
     );
     
     const userEmail = linkedToken.rows[0]?.user_email?.toLowerCase() || 
-                      user.emailAddresses[0]?.emailAddress?.toLowerCase();
+                      clerkEmail.toLowerCase();
                       
     if (!userEmail) return NextResponse.json({ error: "No email identified" }, { status: 400 });
     

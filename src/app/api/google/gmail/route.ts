@@ -62,8 +62,14 @@ export async function GET(request: Request) {
   const messageId = searchParams.get("id");
 
   try {
-    const { userId } = await auth();
+    const session = await auth();
+    let userId = session.userId;
     const clerkEmail = await getUserEmail();
+    
+    if (!userId && clerkEmail && (await import("@/lib/dev-mode/auth-bypass")).shouldBypassAuth()) {
+       userId = (await import("@/lib/dev-mode/auth-bypass")).getDevUser().id;
+    }
+    
     if (!userId || !clerkEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const user = { id: userId, emailAddresses: [{ emailAddress: clerkEmail }] };
     
@@ -503,8 +509,14 @@ export async function DELETE(req: Request) {
   const action = searchParams.get("action");
 
   try {
-    const { userId } = await auth();
+    const session = await auth();
+    let userId = session.userId;
     const clerkEmail = await getUserEmail();
+    
+    if (!userId && clerkEmail && (await import("@/lib/dev-mode/auth-bypass")).shouldBypassAuth()) {
+       userId = (await import("@/lib/dev-mode/auth-bypass")).getDevUser().id;
+    }
+    
     if (!userId || !clerkEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const user = { id: userId, emailAddresses: [{ emailAddress: clerkEmail }] };
 
@@ -549,8 +561,14 @@ export async function DELETE(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { userId } = await auth();
+    const session = await auth();
+    let userId = session.userId;
     const clerkEmail = await getUserEmail();
+    
+    if (!userId && clerkEmail && (await import("@/lib/dev-mode/auth-bypass")).shouldBypassAuth()) {
+       userId = (await import("@/lib/dev-mode/auth-bypass")).getDevUser().id;
+    }
+    
     if (!userId || !clerkEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const user = { id: userId, emailAddresses: [{ emailAddress: clerkEmail }] };
 
@@ -685,8 +703,14 @@ export async function PATCH(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
+    const session = await auth();
+    let userId = session.userId;
     const clerkEmail = await getUserEmail();
+    
+    if (!userId && clerkEmail && (await import("@/lib/dev-mode/auth-bypass")).shouldBypassAuth()) {
+       userId = (await import("@/lib/dev-mode/auth-bypass")).getDevUser().id;
+    }
+    
     if (!userId || !clerkEmail) return new Response("Unauthorized", { status: 401 });
     const user = { id: userId, emailAddresses: [{ emailAddress: clerkEmail }] };
 
