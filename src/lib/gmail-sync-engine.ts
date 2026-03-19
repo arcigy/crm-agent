@@ -535,12 +535,104 @@ export async function fetchNewEmailsForUser(userEmail: string) {
       });
     }
 
+    // Always sync current drafts to ensure they are up to date
+    await syncDraftsForUser(userEmail, gmail);
+
     console.log(`[Gmail Sync] Polling complete: ${inserted} new emails inserted for ${userEmail}`);
     return inserted;
     
   } catch (err) {
     console.error(`[Gmail Sync] fetchNewEmails error for ${userEmail}:`, err);
     throw err;
+  }
+}
+
+/**
+ * Specifically syncs all current drafts from Gmail
+ */
+async function syncDraftsForUser(
+  userEmail: string,
+  gmail: any
+): Promise<void> {
+  console.log(`[Gmail Sync] syncDraftsForUser called for ${userEmail}`);
+  try {
+    // Fetch all current drafts from Gmail
+    const draftsResult = await gmail.users.drafts.list({
+      userId: 'me',
+      maxResults: 50
+    });
+
+    const drafts = draftsResult.data.drafts || [];
+    if (!drafts.length) {
+      console.log(`[Gmail Sync] No drafts found in Gmail for ${userEmail}`);
+      return;
+    }
+
+    console.log(`[Gmail Sync] Found ${drafts.length} drafts in Gmail for ${userEmail}, verifying local DB...`);
+
+    for (const draft of drafts) {
+      if (!draft.id) continue;
+      
+      // Get full draft details
+      const draftDetail = await gmail.users.drafts.get({
+        userId: 'me',
+        id: draft.id,
+        format: 'full'
+      });
+
+      const message = draftDetail.data.message;
+      if (!message) continue;
+
+      // Check if already in DB
+      const existing = await db.query(
+        'SELECT id FROM gmail_messages WHERE gmail_message_id = $1 AND user_email = $2',
+        [message.id, userEmail]
+      );
+
+      if (existing.rows.length > 0) {
+        // Update existing draft (content/labels may have changed)
+        await db.query(`
+          UPDATE gmail_messages
+          SET 
+            label_ids = $1,
+            synced_at = NOW()
+          WHERE gmail_message_id = $2
+          AND user_email = $3
+        `, [message.labelIds || ['DRAFT'], message.id, userEmail]);
+        continue;
+      }
+
+      // Insert new draft
+      const headers = message.payload?.headers || [];
+      const getHeader = (name: string) =>
+        headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+
+      await db.query(`
+        INSERT INTO gmail_messages (
+          user_email, gmail_message_id, gmail_thread_id,
+          subject, from_email, snippet, received_at,
+          is_read, label_ids, synced_at
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())
+        ON CONFLICT (user_email, gmail_message_id) 
+        DO UPDATE SET
+          label_ids = EXCLUDED.label_ids,
+          synced_at = NOW()
+      `, [
+        userEmail,
+        message.id,
+        message.threadId,
+        getHeader('Subject') || '(no subject)',
+        getHeader('From') || userEmail,
+        message.snippet || '',
+        new Date(parseInt(message.internalDate || '0')).toISOString(),
+        true, // drafts are always "read"
+        message.labelIds || ['DRAFT']
+      ]);
+    }
+
+    console.log(`[Gmail Sync] Draft sync finished for ${userEmail}`);
+  } catch (err) {
+    console.error(`[Gmail Sync] Draft sync error for ${userEmail}:`, err);
   }
 }
 

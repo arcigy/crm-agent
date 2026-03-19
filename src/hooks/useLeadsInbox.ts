@@ -609,6 +609,12 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         setSelectedTab(tab);
         setSelectedEmail(null);
         setCurrentPage(1);
+        
+        // Clear all local states to avoid flicker/ghost items
+        setMessages([]);
+        setLocalSentMessages([]);
+        setAndroidLogs([]);
+        
         fetchMessages(false, tab, 1, view, debouncedSearchQuery).then(() => {
           console.timeEnd(`tab-switch-to-${tab}`);
         });
