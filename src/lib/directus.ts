@@ -1,11 +1,12 @@
 import { createDirectus, rest, staticToken } from "@directus/sdk";
 const IS_SERVER = typeof window === "undefined";
 
+// On server, ALWAYS try internal first to bypass proxy timeouts
 const DIRECTUS_URL = IS_SERVER
-  ? (process.env.DIRECTUS_PRIVATE_URL || process.env.NEXT_PUBLIC_DIRECTUS_URL || "http://directus-buk1.railway.internal:8055")
+  ? (process.env.DIRECTUS_PRIVATE_URL || "http://directus-buk1.railway.internal:8055")
   : (process.env.NEXT_PUBLIC_DIRECTUS_URL || "https://directus-buk1-production.up.railway.app");
 
-console.log(`[Directus] Initializing client (${IS_SERVER ? 'Server' : 'Client'}) with URL: ${DIRECTUS_URL}`);
+console.log(`[Directus] Initializing (${IS_SERVER ? 'SERVER-SIDE' : 'CLIENT-SIDE'}) -> URL: ${DIRECTUS_URL}`);
 
 if (IS_SERVER && !process.env.DIRECTUS_TOKEN) {
   console.warn("⚠️ [Directus] DIRECTUS_TOKEN is missing! Client may fail unauthorized requests.");
