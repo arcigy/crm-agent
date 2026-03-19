@@ -3,9 +3,9 @@ import { getValidToken, getGmailClient } from "./google";
 
 const BATCH_SIZE = 100;        // Gmail API max per request
 const DETAIL_BATCH_SIZE = 50;  // Parallel detail fetches
-const RATE_LIMIT_DELAY = 100;  // ms between batch requests
+const RATE_LIMIT_DELAY = 250;  // ms between batch requests (increased for safety)
 const MAX_RETRIES = 3;
-const QUOTA_LIMIT_PER_SECOND = 200; // conservative
+const QUOTA_LIMIT_PER_SECOND = 100; // conservative (lowered from 200)
 
 let quotaUsed = 0;
 
@@ -202,32 +202,41 @@ export async function triggerFullSyncForUser(
 
   // If we are triggering for INBOX (default), we want to ensure all core labels are synced
   if (labelId === 'INBOX') {
-    for (const lid of LABELS_TO_SYNC) {
-      // 1. Initialize sync state synchronously to ensure it exists
-      await updateSyncState(userEmail, lid, { 
-        sync_status: 'syncing',
-        last_full_sync: new Date().toISOString(),
-        synced_messages: 0,
-        total_messages: 0
-      });
-
-      // 2. Run the actual work in background
-      performFullSync(userEmail, lid, clerkUserId).catch(err => {
-        console.error(`[Gmail Sync] Full sync background worker error for ${userEmail} (${lid}):`, err);
-      });
-    }
+    // RUN SEQUENTIALLY to avoid hitting per-user quotas
+    (async () => {
+      console.log(`[Gmail Sync] Starting sequential full sync for ${userEmail}`);
+      for (const lid of LABELS_TO_SYNC) {
+        try {
+          await updateSyncState(userEmail, lid, { 
+            sync_status: 'syncing',
+            last_full_sync: new Date().toISOString(),
+            synced_messages: 0,
+            total_messages: 0
+          });
+          
+          await performFullSync(userEmail, lid, clerkUserId);
+        } catch (err) {
+          console.error(`[Gmail Sync] Sequential sync worker error for ${userEmail} (${lid}):`, err);
+        }
+      }
+      console.log(`[Gmail Sync] Sequential full sync finished for ${userEmail}`);
+    })();
   } else {
     // Single label trigger
-    await updateSyncState(userEmail, labelId, { 
-      sync_status: 'syncing',
-      last_full_sync: new Date().toISOString(),
-      synced_messages: 0,
-      total_messages: 0
-    });
+    (async () => {
+      try {
+        await updateSyncState(userEmail, labelId, { 
+          sync_status: 'syncing',
+          last_full_sync: new Date().toISOString(),
+          synced_messages: 0,
+          total_messages: 0
+        });
 
-    performFullSync(userEmail, labelId, clerkUserId).catch(err => {
-      console.error(`[Gmail Sync] Full sync background worker error for ${userEmail} (${labelId}):`, err);
-    });
+        await performFullSync(userEmail, labelId, clerkUserId);
+      } catch (err) {
+        console.error(`[Gmail Sync] Single sync background worker error for ${userEmail} (${labelId}):`, err);
+      }
+    })();
   }
 }
 

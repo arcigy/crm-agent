@@ -20,6 +20,15 @@ export function useLeadsFiltering(
       .toLowerCase();
   };
 
+  const hasLabel = (msg: GmailMessage, labelId: string) => {
+    if (!msg.labels || !Array.isArray(msg.labels)) return false;
+    return msg.labels.some(l => {
+      if (typeof l === 'string') return l.toUpperCase() === labelId.toUpperCase();
+      if (typeof l === 'object' && l !== null) return (l.id || '').toUpperCase() === labelId.toUpperCase();
+      return false;
+    });
+  };
+
   const filteredMessages = messages.filter((msg) => {
     const lowerSearch = normalizeSearchText(searchQuery);
     const matchesSearch =
@@ -29,23 +38,18 @@ export function useLeadsFiltering(
 
     if (selectedTab === "unread") return matchesSearch && !msg.isRead;
     if (selectedTab === "starred") return matchesSearch && msg.isStarred;
-    if (selectedTab === "sent") return matchesSearch && msg.labels?.includes("SENT");
-    if (selectedTab === "drafts") return matchesSearch && msg.labels?.includes("DRAFT");
-    if (selectedTab === "snoozed") return matchesSearch && msg.labels?.includes("SNOOZED");
-    if (selectedTab === "shopping") return matchesSearch && msg.labels?.includes("CATEGORY_PURCHASES");
-    if (selectedTab === "spam") return matchesSearch && msg.labels?.includes("SPAM");
-    if (selectedTab === "trash") return matchesSearch && msg.labels?.includes("TRASH");
-    if (selectedTab === "inbox") return matchesSearch && (!msg.labels || msg.labels.includes("INBOX") || msg.labels.length === 0);
+    if (selectedTab === "sent") return matchesSearch && hasLabel(msg, "SENT");
+    if (selectedTab === "drafts") return matchesSearch && hasLabel(msg, "DRAFT");
+    if (selectedTab === "snoozed") return matchesSearch && hasLabel(msg, "SNOOZED");
+    if (selectedTab === "shopping") return matchesSearch && hasLabel(msg, "CATEGORY_PURCHASES");
+    if (selectedTab === "spam") return matchesSearch && hasLabel(msg, "SPAM");
+    if (selectedTab === "trash") return matchesSearch && hasLabel(msg, "TRASH");
+    if (selectedTab === "inbox") return matchesSearch && (hasLabel(msg, "INBOX") || (!msg.labels || (Array.isArray(msg.labels) && msg.labels.length === 0)));
     
     if (selectedTab.startsWith("tag:")) {
       const tagId = selectedTab.replace("tag:", "");
       const msgTags = messageTags[msg.id] || [];
-      // Check labels array (which contains objects or strings)
-      const hasLabelMatch = msg.labels?.some((l: any) => {
-        if (typeof l === 'string') return l === tagId;
-        return l.id === tagId;
-      });
-      return matchesSearch && (hasLabelMatch || msgTags.includes(tagId));
+      return matchesSearch && (hasLabel(msg, tagId) || msgTags.includes(tagId));
     }
 
     if (["leads", "more", "archive", "all"].includes(selectedTab)) return matchesSearch;
@@ -58,7 +62,7 @@ export function useLeadsFiltering(
       normalizeSearchText(msg.subject).includes(lowerSearch) ||
       normalizeSearchText(msg.snippet).includes(lowerSearch);
 
-    if (selectedTab === "sent") return matchesSearch && msg.labels?.includes("SENT");
+    if (selectedTab === "sent") return matchesSearch && hasLabel(msg, "SENT");
     if (selectedTab === "all") return matchesSearch;
     return false;
   });

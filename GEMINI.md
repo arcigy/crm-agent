@@ -35,6 +35,7 @@ PWA Manifest: Musí existovať manifest.json s ikonami a display: standalone.
 No-Mac Dev: Všetko UI musí fungovať v Safari na iOS bez adresného riadku.
 
 Click-to-Call: Telefónne čísla v CRM musia byť vždy ako <a href="tel:...">.
+
 - **Dashboard Primary Size (CRITICAL):** Hlavné widgety na nástenke (`Tasks`, `Calendar`, `Quick Action`, `Pipeline`) majú primárnu výšku **340px** (Tailwind: `md:h-[340px]`). Na menších oknách sa systém NESMIE pokúšať bubliny zmenšovať – namiesto toho sa musí povoliť skrolovanie celej stránky.
 
 🧩 5. VIBE CODE PROTOKOL: "Anti-Spaghetti"
@@ -120,6 +121,7 @@ Supabase kód treba postupne odstrániť a nahradiť Directus volaniami.
 GitHub repo: https://github.com/arcigy/crm-agent
 
 ⚠️ AKTUÁLNY REŽIM: LOKÁLNE TESTOVANIE
+
 - Testujeme VÝHRADNE lokálne (npm run dev).
 - NEPUSHUJ na GitHub ani nedeployuj na Railway, pokiaľ to užívateľ výslovne nevyžiada (napr. napíše "push" alebo "deploy").
 - Keď dostaneš pokyn na push, použiješ:
@@ -149,5 +151,6 @@ Kľúčové kľúče v stave:
 - isParallelSafe: true umožnuje asynchrónny beh (napr. generovanie textu), false vynucuje sekvenciu pre zápis do DB.
 
 ### 🛠️ 12. AUTOMATICKÁ ÚDRŽBA PROSTREDIA
+
 - **ALWAYS RESTART:** Po každej finálnej úprave kódu MUSÍŠ automaticky reštartovať lokálny vývojový server (`npm run dev`), aby mal užívateľ web vždy dostupný.
 - Ak port 3000 koliduje, použi: `taskkill /F /IM node.exe /T; npm run dev`.

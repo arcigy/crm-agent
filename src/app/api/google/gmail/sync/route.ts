@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getUserEmail } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { performFullSync } from "@/lib/gmail-sync-engine";
+import { triggerFullSyncForUser } from "@/lib/gmail-sync-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -50,8 +50,8 @@ export async function POST(request: Request) {
       });
     }
 
-    // Start sync in background (don't await)
-    performFullSync(userEmail, 'INBOX', user.id).catch(err => {
+    // Start full sync in background (includes multiple labels sequentially)
+    triggerFullSyncForUser(userEmail, 'INBOX', user.id).catch(err => {
       console.error('[Gmail Sync] Full sync background error:', err);
     });
 
