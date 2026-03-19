@@ -77,11 +77,22 @@ export async function GET(request: Request) {
         const { expiration, historyId } = watchResponse.data;
 
         // 3. Update expiration in DB
+        const expiryDate = expiration ? new Date(parseInt(expiration)).toISOString() : null;
+        
         await directus.request(updateItem("google_tokens", tokenRecord.id, {
-          gmail_watch_expiry: expiration ? new Date(parseInt(expiration)).toISOString() : null,
+          gmail_watch_expiry: expiryDate,
           last_gmail_history_id: historyId,
           last_sync: new Date().toISOString()
         }));
+
+        const { db } = await import("@/lib/db");
+        await db.query(`
+          UPDATE google_tokens
+          SET 
+            last_gmail_history_id = $1,
+            gmail_watch_expiry = $2
+          WHERE user_email = $3
+        `, [historyId, expiryDate, email]);
 
         successCount++;
         console.log(`[GMAIL WATCH] Successfully renewed watch for ${email}. Expiry: ${expiration}`);

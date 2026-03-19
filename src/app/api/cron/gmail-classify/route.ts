@@ -37,6 +37,27 @@ export async function GET(request: Request) {
 
     for (const user of allUsers) {
       try {
+        // Check if there are emails newer than last full sync
+        // that haven't been added to gmail_messages yet
+        const { db } = await import("@/lib/db");
+        const { performIncrementalSync } = await import("@/lib/gmail-sync-engine");
+        
+        // Get sync state for this user
+        const syncState = await db.query(`
+          SELECT history_id FROM gmail_sync_state
+          WHERE user_email = $1 AND label_id = 'INBOX'
+        `, [user.email]);
+        
+        if (syncState.rows[0]?.history_id) {
+          // Fetch new messages since last known historyId
+          await performIncrementalSync(user.email, syncState.rows[0].history_id);
+        }
+      } catch (err) {
+        console.error(`[Classify Cron] Sync error for ${user.email}:`, err);
+        // Continue to next user
+      }
+
+      try {
         await processUnclassifiedEmailsForUser(user.email, results);
       } catch (err) {
         console.error(`[Gmail Cron] Failed for user ${user.email}:`, err);
