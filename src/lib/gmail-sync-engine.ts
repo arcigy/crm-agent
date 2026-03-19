@@ -550,7 +550,7 @@ export async function fetchNewEmailsForUser(userEmail: string) {
 /**
  * Specifically syncs all current drafts from Gmail
  */
-async function syncDraftsForUser(
+export async function syncDraftsForUser(
   userEmail: string,
   gmail: any
 ): Promise<void> {

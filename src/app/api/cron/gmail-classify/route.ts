@@ -37,8 +37,13 @@ export async function GET(request: Request) {
     for (const user of allUsers) {
       const userEmail = user.user_email || user.email;
       try {
-        const { fetchNewEmailsForUser } = await import("@/lib/gmail-sync-engine");
+        const { fetchNewEmailsForUser, syncDraftsForUser } = await import("@/lib/gmail-sync-engine");
+        const { getGmailClient } = await import("@/lib/google");
+        
         await fetchNewEmailsForUser(userEmail);
+        
+        const gmail = await getGmailClient("", userEmail);
+        if (gmail) await syncDraftsForUser(userEmail, gmail);
       } catch (err) {
         console.error(`[Classify Cron] Sync error for ${userEmail}:`, err);
       }

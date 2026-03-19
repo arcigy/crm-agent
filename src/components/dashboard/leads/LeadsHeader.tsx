@@ -37,8 +37,6 @@ interface LeadsHeaderProps {
   currentTab?: string;
   gmailLabels?: any[];
   isBuffering?: boolean;
-  view: "threads" | "messages";
-  onViewChange: (view: "threads" | "messages") => void;
   syncStatus?: {
     sync_status: string;
     synced_messages: number;
@@ -67,8 +65,6 @@ export function LeadsHeader({
   currentTab,
   gmailLabels = [],
   isBuffering = false,
-  view,
-  onViewChange,
   syncStatus = null,
 }: LeadsHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -117,22 +113,6 @@ export function LeadsHeader({
           >
             <RefreshCw className={`w-5 h-5 group-hover:text-violet-600 transition-colors ${loading ? "animate-spin" : ""}`} />
           </button>
-        </div>
-
-        {/* View Toggle */}
-        <div className="flex bg-slate-100 dark:bg-zinc-900/50 p-1 rounded-full items-center ml-2 border border-slate-200/50 dark:border-white/5">
-           <button 
-             onClick={() => onViewChange("threads")}
-             className={`px-3 py-1 text-[11px] font-black uppercase tracking-tight rounded-full transition-all ${view === "threads" ? "bg-white dark:bg-zinc-800 text-violet-600 shadow-sm" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"}`}
-           >
-             Vlákna
-           </button>
-           <button 
-             onClick={() => onViewChange("messages")}
-             className={`px-3 py-1 text-[11px] font-black uppercase tracking-tight rounded-full transition-all ${view === "messages" ? "bg-white dark:bg-zinc-800 text-violet-600 shadow-sm" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"}`}
-           >
-             Správy
-           </button>
         </div>
 
         {/* Visible Empty Trash Button */}

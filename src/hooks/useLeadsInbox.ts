@@ -27,7 +27,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const { user, isLoaded } = useCurrentCRMUser();
   const [selectedTab, setSelectedTab] = React.useState<string>("inbox");
   const [isPending, startTransition] = React.useTransition();
-  const [view, setView] = React.useState<"threads" | "messages">("threads");
+  const view = "threads"; // Force threads view only
   const {
     messageTags, setMessageTags,
     getSmartTags,
@@ -162,9 +162,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
 
   // Trigger server-side search
   React.useEffect(() => {
-    fetchMessages(false, selectedTab, 1, view, debouncedSearchQuery);
+    fetchMessages(false, selectedTab, 1, "threads", debouncedSearchQuery);
     setCurrentPage(1);
-  }, [debouncedSearchQuery, selectedTab, view]);
+  }, [debouncedSearchQuery, selectedTab]);
 
   const analyzedIds = React.useRef<Set<string>>(new Set());
 
@@ -172,9 +172,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   // with dependency on selectedTab. We only need periodic background refresh here if desired.
   React.useEffect(() => {
     // Background refresh — increased to 5 minutes to save server resources
-    const interval = setInterval(() => fetchMessages(true, selectedTab, currentPage, view, debouncedSearchQuery), 300000);
+    const interval = setInterval(() => fetchMessages(true, selectedTab, currentPage, "threads", debouncedSearchQuery), 300000);
     return () => clearInterval(interval);
-  }, [selectedTab, fetchMessages, currentPage, view, debouncedSearchQuery]);
+  }, [selectedTab, fetchMessages, currentPage, debouncedSearchQuery]);
 
   const handleConnect = async () => {
     if (!isLoaded || !user) return;
@@ -538,7 +538,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       ? ((currentPage - 1) * itemsPerPage) + allItems.findIndex(i => i.id === selectedEmail.id) + 1 
       : 0,
     onPageChange: (page: number) => {
-      fetchMessages(false, selectedTab, page, view, debouncedSearchQuery);
+      fetchMessages(false, selectedTab, page, "threads", debouncedSearchQuery);
       setCurrentPage(page);
     },
     totalCount: (gmailTotalMessages || 0) + androidLogs.length,
@@ -601,11 +601,6 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     selectedTab,
     setSelectedTab,
     view,
-    setView: (v: "threads" | "messages") => {
-       setView(v);
-       fetchMessages(false, selectedTab, 1, v, debouncedSearchQuery);
-       setCurrentPage(1);
-    },
     setSelectedTabWithReset: (tab: string) => {
         console.time(`tab-switch-to-${tab}`);
         
@@ -624,7 +619,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         // 3. Fetch data (which will show loading spinner until done)
         const fetchWithDelay = async () => {
           await Promise.all([
-            fetchMessages(false, tab, 1, view, debouncedSearchQuery),
+            fetchMessages(false, tab, 1, "threads", debouncedSearchQuery),
             new Promise(r => setTimeout(r, 150)) // Add slight intentional delay to stabilize UI
           ]);
           console.timeEnd(`tab-switch-to-${tab}`);

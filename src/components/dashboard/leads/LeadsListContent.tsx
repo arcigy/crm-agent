@@ -99,8 +99,6 @@ export function LeadsListContent({
   gmailLabels = [],
   isBuffering,
   syncStatus,
-  view,
-  onViewChange,
 }: LeadsListContentProps) {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -129,8 +127,6 @@ export function LeadsListContent({
         gmailLabels={gmailLabels}
         isBuffering={isBuffering}
         syncStatus={syncStatus}
-        view={view}
-        onViewChange={onViewChange}
       />
 
       <div className="flex-1 overflow-y-auto px-4 pb-8 thin-scrollbar relative scroll-smooth bg-transparent transform-gpu">
@@ -140,22 +136,7 @@ export function LeadsListContent({
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="w-10 h-10 border-[3px] border-violet-500/10 border-t-violet-500 rounded-full animate-spin"></div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-violet-500/40 animate-pulse">Načítavam stranu {currentPage}...</p>
-            </div>
-          ) : allItems.length === 0 && syncStatus?.sync_status === 'syncing' ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center px-12">
-               <div className="w-16 h-16 bg-violet-500/5 rounded-2xl flex items-center justify-center mb-6 border border-violet-500/10 animate-pulse">
-                <div className="w-8 h-8 border-2 border-violet-500/20 border-t-violet-500 rounded-full animate-spin" />
-              </div>
-              <h3 className="text-lg font-black text-foreground italic uppercase">Sťahujem tvoje e-maily...</h3>
-              <div className="text-muted-foreground/60 text-sm font-bold mt-2">
-                <p>Pripravujem tvoj inbox pre bleskové prehliadanie.</p>
-                {syncStatus && syncStatus.total_messages > 0 && (
-                  <span className="block mt-1 text-violet-500/60">
-                    Spracované: {syncStatus.synced_messages} z {syncStatus.total_messages}
-                  </span>
-                )}
-              </div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-violet-500/40 animate-pulse">Načítavam...</p>
             </div>
           ) : allItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center px-12">
@@ -168,48 +149,15 @@ export function LeadsListContent({
           ) : (
             <div className="divide-y divide-black/[0.02] dark:divide-white/[0.02]">
               {paginatedItems.map((item) => (
-                view === "threads" && (item as any).itemType === "email" ? (
-                  <ThreadListItem 
-                    key={`thread-${(item as any).id}`}
-                    item={item as any}
-                    isSelected={selectedIds.has((item as any).id)}
-                    onToggleSelection={(e, id) => toggleSelection(id)}
-                    onOpenThread={(id) => handleOpenEmail(item as any)}
-                    tags={messageTags[(item as any).id] || []}
-                    gmailLabels={gmailLabels}
-                  />
-                ) : (
-                  <LeadsListItem
-                    key={`${(item as any).itemType}-${(item as any).id}`}
-                    item={item}
-                    isActionOpen={activeActionId === (item as any).id}
-                    isGeneratingDraft={isGeneratingDraft}
-                    customCommandMode={customCommandMode}
-                    customPrompt={customPrompt}
-                    setCustomPrompt={setCustomPrompt}
-                    setCustomCommandMode={setCustomCommandMode}
-                    onOpenEmail={handleOpenEmail}
-                    onToggleStar={handleToggleStar}
-                    onToggleAction={handleToggleAction}
-                    onManualAnalyze={handleManualAnalyze}
-                    onSaveContact={handleSaveContact}
-                    onDraftReply={handleDraftReply}
-                    onExecuteCustomCommand={() => {
-                      const msg = item as unknown as GmailMessage;
-                      handleExecuteCustomCommand(msg, customPrompt);
-                    }}
-                    onDeleteMessage={handleDeleteMessage}
-                    onRestoreMessage={handleRestoreMessage}
-                    isSelected={selectedIds.has((item as any).id)}
-                    onToggleSelection={(e, id) => toggleSelection(id)}
-                    onToggleTag={(e, msg) => {
-                      setTagModalEmail(msg);
-                      setIsTagModalOpen(true);
-                    }}
-                    tags={messageTags[(item as any).id] || []}
-                    gmailLabels={gmailLabels}
-                  />
-                )
+                <ThreadListItem 
+                  key={`thread-${(item as any).id}`}
+                  item={item as any}
+                  isSelected={selectedIds.has((item as any).id)}
+                  onToggleSelection={(e, id) => toggleSelection(id)}
+                  onOpenThread={(id) => handleOpenEmail(item as any)}
+                  tags={messageTags[(item as any).id] || []}
+                  gmailLabels={gmailLabels}
+                />
               ))}
             </div>
           )}
