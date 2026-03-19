@@ -107,9 +107,9 @@ export function useLeadsFetch(
 
       // Only fetch android logs on foreground initial load
       const [gmailRes, dbRes, androidRes] = await Promise.all([
-        fetch(gmailUrl, { signal: controller.signal }),
-        fetch("/api/notes?type=ai_analysis", { signal: controller.signal }),
-        !isBackground ? fetch("/api/android-logs") : Promise.resolve(null)
+        fetch(gmailUrl, { signal: controller.signal }).catch(() => null),
+        fetch("/api/notes?type=ai_analysis", { signal: controller.signal }).catch(() => null),
+        !isBackground ? fetch("/api/android-logs").catch(() => null) : Promise.resolve(null)
       ]);
 
       console.log('[fetch] got response', Date.now() - t0, 'ms');
@@ -134,8 +134,8 @@ export function useLeadsFetch(
         if (androidData.success) setAndroidLogs(androidData.logs);
       }
 
-      if (gmailRes.ok) {
-        const gmailData = await gmailRes.json();
+      if (gmailRes?.ok) {
+        const gmailData = await gmailRes.json().catch(() => ({}));
         if (gmailData.isConnected && gmailData.messages) {
           setIsConnected(true);
 
@@ -213,7 +213,7 @@ export function useLeadsFetch(
     };
 
     fetchLabelsAndSync();
-    const interval = setInterval(fetchLabelsAndSync, 10000); // Polling every 10s
+    const interval = setInterval(fetchLabelsAndSync, 300000); // Polling every 5 minutes
     return () => clearInterval(interval);
   }, []);
 
