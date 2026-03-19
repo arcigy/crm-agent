@@ -463,6 +463,77 @@ export async function performIncrementalSync(
 }
 
 /**
+ * Direct polling fallback - fetches emails newer than last known email in DB
+ */
+export async function fetchNewEmailsForUser(userEmail: string) {
+  console.log(`[Gmail Sync] fetchNewEmailsForUser called for ${userEmail}`);
+  try {
+    const gmail = await getClientForUser(userEmail);
+    
+    // Get newest email we have in DB
+    const lastEmail = await db.query(`
+      SELECT MAX(received_at) as last_date
+      FROM gmail_messages
+      WHERE user_email = $1
+    `, [userEmail]);
+    
+    const lastDate = lastEmail.rows[0]?.last_date;
+    
+    // Build query for emails newer than last sync
+    const afterDate = lastDate 
+      ? Math.floor(new Date(lastDate).getTime() / 1000)
+      : Math.floor(Date.now() / 1000) - 86400; // last 24h fallback
+    
+    // Fetch new message IDs from Gmail
+    const listResult = await gmail.users.messages.list({
+      userId: 'me',
+      q: `after:${afterDate}`,
+      maxResults: 100
+    });
+    
+    const messages = listResult.data.messages || [];
+    if (!messages.length) {
+      console.log(`[Gmail Sync] No new messages found for ${userEmail} since ${lastDate || 'last 24h'}`);
+      return 0;
+    }
+    
+    console.log(`[Gmail Sync] Found ${messages.length} potential new messages for ${userEmail}`);
+    
+    // Process each new message
+    let inserted = 0;
+    const { processNewEmail } = await import("./gmail-processor");
+
+    for (const msg of messages) {
+      if (!msg.id) continue;
+      const existing = await db.query(
+        'SELECT gmail_message_id FROM gmail_messages WHERE gmail_message_id = $1 AND user_email = $2',
+        [msg.id, userEmail]
+      );
+      if (existing.rows.length > 0) continue;
+      
+      await processNewEmail(msg.id, userEmail, gmail);
+      inserted++;
+      // Minimal delay to respect rate limits during polling
+      await new Promise(r => setTimeout(r, 100));
+    }
+    
+    if (inserted > 0) {
+      await refreshLabelCounts(userEmail);
+      await updateSyncState(userEmail, 'INBOX', {
+        last_incremental: new Date().toISOString()
+      });
+    }
+
+    console.log(`[Gmail Sync] Polling complete: ${inserted} new emails inserted for ${userEmail}`);
+    return inserted;
+    
+  } catch (err) {
+    console.error(`[Gmail Sync] fetchNewEmails error for ${userEmail}:`, err);
+    throw err;
+  }
+}
+
+/**
  * Runs AI categorization for a batch of messages based on user-defined label prompts
  */
 async function runAiLabelingForMessages(userEmail: string, messages: any[]) {

@@ -29,6 +29,18 @@ export async function POST(request: Request) {
                       clerkEmail.toLowerCase();
                       
     if (!userEmail) return NextResponse.json({ error: "No email identified" }, { status: 400 });
+  
+    const body = await request.json().catch(() => ({}));
+
+    if (body.quick) {
+      // Quick sync - only fetch new emails since last sync
+      // Run in background, return immediately
+      const { fetchNewEmailsForUser } = await import("@/lib/gmail-sync-engine");
+      fetchNewEmailsForUser(userEmail).catch(err => {
+        console.error('[Gmail Sync] Quick sync background error:', err);
+      });
+      return NextResponse.json({ status: 'sync_started', type: 'quick' });
+    }
 
     // Check if already syncing
     const stateRes = await db.query(`

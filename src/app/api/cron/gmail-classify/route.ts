@@ -37,7 +37,8 @@ export async function GET(request: Request) {
     for (const user of allUsers) {
       const userEmail = user.user_email || user.email;
       try {
-        await fetchNewEmailsForUser(userEmail, results);
+        const { fetchNewEmailsForUser } = await import("@/lib/gmail-sync-engine");
+        await fetchNewEmailsForUser(userEmail);
       } catch (err) {
         console.error(`[Classify Cron] Sync error for ${userEmail}:`, err);
       }
@@ -56,59 +57,6 @@ export async function GET(request: Request) {
   } catch (err) {
     console.error('[Gmail Cron] Fatal error:', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
-  }
-}
-
-async function fetchNewEmailsForUser(userEmail: string, results: any) {
-  try {
-    const { db } = await import("@/lib/db");
-    const token = await getValidToken("", userEmail);
-    if (!token || typeof token === "string") return;
-
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: token });
-    const gmail = google.gmail({ version: 'v1', auth });
-    
-    // Get newest email we have in DB
-    const lastEmail = await db.query(`
-      SELECT MAX(received_at) as last_date
-      FROM gmail_messages
-      WHERE user_email = $1
-    `, [userEmail]);
-    
-    const lastDate = lastEmail.rows[0]?.last_date;
-    
-    // Build query for emails newer than last sync
-    const afterDate = lastDate 
-      ? Math.floor(new Date(lastDate).getTime() / 1000)
-      : Math.floor(Date.now() / 1000) - 86400; // last 24h fallback
-    
-    // Fetch new message IDs from Gmail
-    const listResult = await gmail.users.messages.list({
-      userId: 'me',
-      q: `after:${afterDate}`,
-      maxResults: 100
-    });
-    
-    const messages = listResult.data.messages || [];
-    if (!messages.length) return;
-    
-    console.log(`[Classify Cron] Found ${messages.length} new messages for ${userEmail}`);
-    
-    for (const msg of messages) {
-      if (!msg.id) continue;
-      const existing = await db.query(
-        'SELECT gmail_message_id FROM gmail_messages WHERE gmail_message_id = $1 AND user_email = $2',
-        [msg.id, userEmail]
-      );
-      if (existing.rows.length > 0) continue;
-      
-      await processNewEmail(msg.id, userEmail, gmail);
-      results.processed++;
-      await new Promise(r => setTimeout(r, 200));
-    }
-  } catch (err) {
-    console.error(`[Classify Cron] fetchNewEmails error for ${userEmail}:`, err);
   }
 }
 

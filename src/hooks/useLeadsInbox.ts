@@ -512,7 +512,21 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     searchQuery,
     debouncedSearchQuery,
     onSearchChange: setSearchQuery,
-    onRefresh: () => fetchMessages(false, selectedTab),
+    onRefresh: async () => {
+      try {
+        // 1. Trigger quick sync from Gmail API first
+        await fetch('/api/google/gmail/sync', { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quick: true })
+        });
+      } catch (err) {
+        // Sync trigger failed - still refresh from local DB
+        console.warn('[Refresh] Sync trigger failed, refreshing from DB only:', err);
+      }
+      // 2. Re-fetch from local DB (which will now include newly polled emails)
+      fetchMessages(false, selectedTab);
+    },
     onConnect: handleConnect,
     allItems,
     paginatedItems,
