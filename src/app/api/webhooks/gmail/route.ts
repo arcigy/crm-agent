@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { applyAILabelToGmail } from "@/app/actions/labels";
+import { applyAILabelToGmail } from "@/lib/gmail-processor";
 
 export const dynamic = "force-dynamic";
 
