@@ -25,16 +25,17 @@ export async function GET(request: Request) {
       readItems('google_tokens', {
         filter: { 
           _and: [
-            { email: { _nnull: true } }
+            { user_email: { _nnull: true } }
           ]
         },
-        fields: ['email', 'user_id', 'last_gmail_history_id']
+        fields: ['user_email', 'user_id', 'last_gmail_history_id']
       })
     ) as any[];
 
     const results = { processed: 0, failed: 0, skipped: 0 };
 
     for (const user of allUsers) {
+      const userEmail = user.user_email || user.email;
       try {
         // Check if there are emails newer than last full sync
         // that haven't been added to gmail_messages yet
@@ -45,21 +46,21 @@ export async function GET(request: Request) {
         const syncState = await db.query(`
           SELECT history_id FROM gmail_sync_state
           WHERE user_email = $1 AND label_id = 'INBOX'
-        `, [user.email]);
+        `, [userEmail]);
         
         if (syncState.rows[0]?.history_id) {
           // Fetch new messages since last known historyId
-          await performIncrementalSync(user.email, syncState.rows[0].history_id);
+          await performIncrementalSync(userEmail, syncState.rows[0].history_id);
         }
       } catch (err) {
-        console.error(`[Classify Cron] Sync error for ${user.email}:`, err);
+        console.error(`[Classify Cron] Sync error for ${userEmail}:`, err);
         // Continue to next user
       }
 
       try {
-        await processUnclassifiedEmailsForUser(user.email, results);
+        await processUnclassifiedEmailsForUser(userEmail, results);
       } catch (err) {
-        console.error(`[Gmail Cron] Failed for user ${user.email}:`, err);
+        console.error(`[Gmail Cron] Failed for user ${userEmail}:`, err);
         results.failed++;
       }
     }

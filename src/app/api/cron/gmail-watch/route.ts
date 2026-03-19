@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       readItems("google_tokens", {
         filter: { 
           _and: [
-            { email: { _nnull: true } }
+            { user_email: { _nnull: true } }
           ]
         },
         limit: -1,
