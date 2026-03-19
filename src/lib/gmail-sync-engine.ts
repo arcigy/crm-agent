@@ -50,8 +50,19 @@ async function retryWithBackoff<T>(
 }
 
 async function getClientForUser(userEmail: string, clerkUserId: string = "") {
-  console.log(`[getClientForUser] Fetching token for ${userEmail} (ID: ${clerkUserId})...`);
-  const token = await getValidToken(clerkUserId, userEmail);
+  let finalUserId = clerkUserId;
+  
+  if (!finalUserId || finalUserId === "") {
+    // Try to find the correct user_id from google_tokens table
+    const userRes = await db.query(
+      'SELECT user_id FROM google_tokens WHERE user_email = $1 LIMIT 1',
+      [userEmail.toLowerCase()]
+    );
+    finalUserId = userRes.rows[0]?.user_id || "";
+  }
+
+  console.log(`[getClientForUser] Fetching token for ${userEmail} (ID: ${finalUserId})...`);
+  const token = await getValidToken(finalUserId, userEmail);
   if (!token) {
     console.error(`[getClientForUser] FAILED to get token for ${userEmail}`);
     throw new Error(`No valid Google token found for ${userEmail}`);

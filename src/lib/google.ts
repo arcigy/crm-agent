@@ -73,6 +73,10 @@ async function fetchWithRetry(fn: () => Promise<any>, retries = 1): Promise<any>
 }
 
 export async function getValidToken(clerkUserId: string, userEmail?: string) {
+    if (!clerkUserId || clerkUserId.trim() === '') {
+        console.error(`[getValidToken] Error: Called with empty userId for ${userEmail}`);
+        return null;
+    }
     console.log(`[getValidToken] Checking token for user: ${clerkUserId} (${userEmail})`);
     try {
         const { default: directus } = await import("@/lib/directus");
