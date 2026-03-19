@@ -50,9 +50,9 @@ export function ComposeModal({
 
   React.useEffect(() => {
     const loadTemplates = async () => {
-      const res = await getEmailTemplates();
-      if (res.success && res.data) {
-        setTemplates(res.data);
+      const data = await getEmailTemplates();
+      if (Array.isArray(data)) {
+        setTemplates(data);
       }
     };
     loadTemplates();

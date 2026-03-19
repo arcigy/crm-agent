@@ -14,22 +14,22 @@ export interface EmailTemplate {
   user_email?: string;
 }
 
-export async function getEmailTemplates() {
+export async function getEmailTemplates(userEmailOverride?: string) {
   try {
-    const userEmail = await getUserEmail();
-    if (!userEmail) throw new Error("Unauthorized");
+    const email = userEmailOverride || (await getUserEmail());
+    if (!email) return [];
 
     const templates = await directus.request(
       readItems("email_templates", {
-        filter: { user_email: { _eq: userEmail } },
+        filter: { user_email: { _eq: email } },
         sort: ["name"] as string[],
       })
     );
 
-    return { success: true, data: (templates || []) as EmailTemplate[] };
-  } catch (error) {
-    console.warn("email_templates collection not accessible:", error);
-    return { success: true, data: [] as EmailTemplate[] };
+    return (templates || []) as EmailTemplate[];
+  } catch (error: any) {
+    console.warn("email_templates collection not accessible:", error.message || error);
+    return [] as EmailTemplate[];
   }
 }
 

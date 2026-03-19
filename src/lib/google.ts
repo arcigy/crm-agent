@@ -59,6 +59,19 @@ export async function getTokensFromCode(code: string, redirectUri?: string) {
     }
 }
 
+async function fetchWithRetry(fn: () => Promise<any>, retries = 1): Promise<any> {
+    try {
+        return await fn();
+    } catch (err: any) {
+        if (retries > 0) {
+            console.log(`[retry] Fetch failed, retrying... (${retries} left)`);
+            await new Promise((r) => setTimeout(r, 500));
+            return fetchWithRetry(fn, retries - 1);
+        }
+        throw err;
+    }
+}
+
 export async function getValidToken(clerkUserId: string, userEmail?: string) {
     console.log(`[getValidToken] Checking token for user: ${clerkUserId} (${userEmail})`);
     try {
@@ -68,17 +81,27 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
         const filters: any[] = [{ user_id: { _eq: clerkUserId } }];
         if (userEmail) filters.push({ user_email: { _eq: userEmail.toLowerCase() } });
 
-        console.log(`[getValidToken] Searching Directus for existing tokens with URL: ${directus.url}...`);
+        console.log(`[getValidToken] Searching Directus for existing tokens...`);
         
-        const tokens = await Promise.race([
-            directus.request(
-                readItems("google_tokens" as any, {
-                    filter: { _or: filters },
-                    limit: 1,
-                })
-            ),
-            new Promise((_, reject) => setTimeout(() => reject(new Error("Directus request timeout")), 15000))
-        ]) as any[];
+        const tokens = await fetchWithRetry(async () => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            try {
+                return (await directus.request(
+                    readItems("google_tokens" as any, {
+                        filter: { _or: filters },
+                        limit: 1,
+                    })
+                )) as any[];
+            } catch (err: any) {
+                if (err.name === 'AbortError') {
+                    throw new Error('Directus request timeout');
+                }
+                throw err;
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }, 1);
 
         console.log(`[getValidToken] Directus response received. Tokens found: ${Array.isArray(tokens) ? tokens.length : 0}`);
 
