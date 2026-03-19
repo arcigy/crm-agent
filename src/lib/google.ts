@@ -85,7 +85,7 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
         
         const tokens = await fetchWithRetry(async () => {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
             try {
                 return (await directus.request(
                     readItems("google_tokens" as any, {
