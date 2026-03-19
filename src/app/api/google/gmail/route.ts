@@ -333,7 +333,7 @@ export async function GET(request: Request) {
             ) as labels
           FROM gmail_messages gm
           WHERE gm.user_email = $1
-            ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'::text] OR gm.label_ids @> ARRAY[\'TRASH\'::text] OR gm.label_ids @> ARRAY[\'SPAM\'::text])' : 'AND gm.label_ids @> ARRAY[$2::text]'}
+            ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'::text] OR gm.label_ids @> ARRAY[\'TRASH\'::text] OR gm.label_ids @> ARRAY[\'SPAM\'::text] OR gm.label_ids @> ARRAY[\'DRAFT\'::text])' : 'AND gm.label_ids @> ARRAY[$2::text]'}
           GROUP BY gm.gmail_thread_id, gm.user_email
           ORDER BY date DESC
           LIMIT $3 OFFSET $4
@@ -373,7 +373,7 @@ export async function GET(request: Request) {
             ) as labels
           FROM gmail_messages gm
           WHERE gm.user_email = $1
-          ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'::text] OR gm.label_ids @> ARRAY[\'TRASH\'::text] OR gm.label_ids @> ARRAY[\'SPAM\'::text])' : 'AND gm.label_ids @> ARRAY[$2::text]'}
+          ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'::text] OR gm.label_ids @> ARRAY[\'TRASH\'::text] OR gm.label_ids @> ARRAY[\'SPAM\'::text] OR gm.label_ids @> ARRAY[\'DRAFT\'::text])' : 'AND gm.label_ids @> ARRAY[$2::text]'}
           ORDER BY gm.received_at DESC
           LIMIT $3 OFFSET $4
         `, labelId === 'archive' ? [userEmail, limit, offset] : [userEmail, labelId, limit, offset]);
@@ -786,7 +786,7 @@ export async function POST(req: Request) {
     const user = { id: userId, emailAddresses: [{ emailAddress: clerkEmail }] };
 
     const body = await req.json();
-    const { messageId, attachmentId, action, ids, labelName } = body;
+    const { messageId, attachmentId, action, ids, labelName, to, subject, body: emailBody, draftId } = body;
 
     const { db } = await import("@/lib/db");
     const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
@@ -798,6 +798,47 @@ export async function POST(req: Request) {
     if (!token) return new Response("Google not connected", { status: 400 });
 
     const gmail = await getGmailClient(token);
+
+    // CASE 0: DRAFT SAVING
+    if (action === 'saveDraft') {
+      const message = [
+        `To: ${to || ''}`,
+        `Subject: ${subject || ''}`,
+        `Content-Type: text/plain; charset=utf-8`,
+        ``,
+        emailBody || ''
+      ].join('\r\n');
+      
+      const encoded = Buffer.from(message)
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+      
+      if (draftId) {
+        // Update existing draft
+        await gmail.users.drafts.update({
+          userId: 'me',
+          id: draftId,
+          requestBody: {
+            message: { raw: encoded }
+          }
+        });
+        return NextResponse.json({ success: true, draftId });
+      } else {
+        // Create new draft
+        const result = await gmail.users.drafts.create({
+          userId: 'me',
+          requestBody: {
+            message: { raw: encoded }
+          }
+        });
+        return NextResponse.json({ 
+          success: true, 
+          draftId: result.data.id 
+        });
+      }
+    }
 
     // CASE 1: BULK ACTIONS
     if (action && ids && Array.isArray(ids)) {

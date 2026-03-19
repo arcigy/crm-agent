@@ -30,6 +30,7 @@ export function ComposeModal({
   const [to, setTo] = React.useState("");
   const [subject, setSubject] = React.useState("");
   const [body, setBody] = React.useState("");
+  const [draftId, setDraftId] = React.useState<string | null>(null);
   const [isMaximized, setIsMaximized] = React.useState(false);
   const [isMinimized, setIsMinimized] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<{id: string; first_name: string; last_name: string; email: string}[]>([]);
@@ -100,8 +101,34 @@ export function ComposeModal({
   React.useEffect(() => {
     if (isOpen) {
       onDraftUpdate?.({ to, subject, body });
+      
+      // Auto-save draft to Gmail API (debounced)
+      if (to || subject || body) {
+        const timer = setTimeout(async () => {
+          try {
+            const res = await fetch('/api/google/gmail', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'saveDraft',
+                to,
+                subject,
+                body,
+                draftId
+              })
+            });
+            const data = await res.json();
+            if (data.draftId && data.draftId !== draftId) {
+              setDraftId(data.draftId);
+            }
+          } catch (err) {
+            console.error('Failed to auto-save draft:', err);
+          }
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [to, subject, body]);
+  }, [to, subject, body, isOpen]); // eslint-disable-line
 
   // Debounced contact search + Local merge
   React.useEffect(() => {

@@ -76,7 +76,10 @@ export function useLeadsFetch(
     }
 
     // No cache — show loading and fetch
-    if (!isBackground) setLoading(true);
+    if (!isBackground) {
+      setMessages([]); // Clear immediately - no flicker
+      setLoading(true);
+    }
     await fetchFresh(category, isBackground, page, view, search, cacheKey);
   }, [selectedTab]); // eslint-disable-line
 
