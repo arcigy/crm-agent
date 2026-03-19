@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
+import { getUserEmail } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -61,8 +62,10 @@ export async function GET(request: Request) {
   const messageId = searchParams.get("id");
 
   try {
-    const user = await currentUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { userId } = await auth();
+    const clerkEmail = await getUserEmail();
+    if (!userId || !clerkEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = { id: userId, emailAddresses: [{ emailAddress: clerkEmail }] };
     
     // List fetching from local DB
     const { db } = await import("@/lib/db");
@@ -74,7 +77,7 @@ export async function GET(request: Request) {
     );
     
     const userEmail = linkedToken.rows[0]?.user_email?.toLowerCase() || 
-                      user.emailAddresses[0]?.emailAddress?.toLowerCase();
+                      clerkEmail.toLowerCase();
                       
     if (!userEmail) return NextResponse.json({ error: "No email identified" }, { status: 400 });
 
@@ -500,10 +503,12 @@ export async function DELETE(req: Request) {
   const action = searchParams.get("action");
 
   try {
-    const user = await currentUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { userId } = await auth();
+    const clerkEmail = await getUserEmail();
+    if (!userId || !clerkEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = { id: userId, emailAddresses: [{ emailAddress: clerkEmail }] };
 
-    const userEmail = user.emailAddresses[0]?.emailAddress;
+    const userEmail = clerkEmail;
     const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
     const { db } = await import("@/lib/db");
     const token = await getValidToken(user.id, userEmail);
@@ -544,13 +549,14 @@ export async function DELETE(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const user = await currentUser();
-    if (!user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { userId } = await auth();
+    const clerkEmail = await getUserEmail();
+    if (!userId || !clerkEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = { id: userId, emailAddresses: [{ emailAddress: clerkEmail }] };
 
     const body = await req.json();
     const { messageId, action } = body;
-    const userEmail = user.emailAddresses[0]?.emailAddress;
+    const userEmail = clerkEmail;
     const { getValidToken, getGmailClient } = (await import("@/lib/google")) as any;
     const { db } = await import("@/lib/db");
     const token = await getValidToken(user.id, userEmail);
@@ -679,8 +685,10 @@ export async function PATCH(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const user = await currentUser();
-    if (!user) return new Response("Unauthorized", { status: 401 });
+    const { userId } = await auth();
+    const clerkEmail = await getUserEmail();
+    if (!userId || !clerkEmail) return new Response("Unauthorized", { status: 401 });
+    const user = { id: userId, emailAddresses: [{ emailAddress: clerkEmail }] };
 
     const body = await req.json();
     const { messageId, attachmentId, action, ids, labelName } = body;
@@ -690,7 +698,7 @@ export async function POST(req: Request) {
     
     // Get user email
     const linkedToken = await db.query('SELECT user_email FROM google_tokens WHERE user_id = $1 LIMIT 1', [user.id]);
-    const userEmail = linkedToken.rows[0]?.user_email || user.emailAddresses[0]?.emailAddress;
+    const userEmail = linkedToken.rows[0]?.user_email || clerkEmail;
     const token = await getValidToken(user.id, userEmail);
     if (!token) return new Response("Google not connected", { status: 400 });
 
