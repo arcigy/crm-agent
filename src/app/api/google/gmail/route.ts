@@ -614,9 +614,6 @@ export async function PATCH(req: Request) {
         WHERE user_email = $1 
         AND gmail_message_id = $2
       `, [userEmail, messageId]);
-      
-      const { refreshLabelCounts } = await import("@/lib/gmail-sync-engine");
-      await refreshLabelCounts(userEmail);
     } else if (action === "unstar") {
       await gmail.users.messages.modify({
         userId: "me",
@@ -635,15 +632,21 @@ export async function PATCH(req: Request) {
         WHERE user_email = $1 
         AND gmail_message_id = $2
       `, [userEmail, messageId]);
-
-      const { refreshLabelCounts } = await import("@/lib/gmail-sync-engine");
-      await refreshLabelCounts(userEmail);
-    }
-    else if (action === "trash") {
+    } else if (action === "trash") {
       await gmail.users.messages.trash({
         userId: "me",
         id: messageId,
       });
+      await db.query(`
+        UPDATE gmail_messages
+        SET 
+          label_ids = array_append(
+            array_remove(label_ids, 'INBOX'), 
+            'TRASH'
+          )
+        WHERE gmail_message_id = $1
+        AND user_email = $2
+      `, [messageId, userEmail]);
     } else if (action === "archive") {
       await gmail.users.messages.modify({
         userId: "me",
@@ -652,6 +655,30 @@ export async function PATCH(req: Request) {
           removeLabelIds: ["INBOX"],
         },
       });
+      await db.query(`
+        UPDATE gmail_messages
+        SET label_ids = array_remove(label_ids, 'INBOX')
+        WHERE gmail_message_id = $1
+        AND user_email = $2
+      `, [messageId, userEmail]);
+    } else if (action === "unarchive") {
+      await gmail.users.messages.modify({
+        userId: 'me',
+        id: messageId,
+        requestBody: {
+          addLabelIds: ['INBOX']
+        }
+      });
+      await db.query(`
+        UPDATE gmail_messages
+        SET label_ids = CASE
+          WHEN NOT (label_ids @> ARRAY['INBOX'::text])
+          THEN array_append(label_ids, 'INBOX')
+          ELSE label_ids
+        END
+        WHERE gmail_message_id = $1
+        AND user_email = $2
+      `, [messageId, userEmail]);
     } else if (action === "spam") {
       await gmail.users.messages.modify({
         userId: "me",
@@ -661,6 +688,16 @@ export async function PATCH(req: Request) {
           removeLabelIds: ["INBOX"],
         },
       });
+      await db.query(`
+        UPDATE gmail_messages
+        SET 
+          label_ids = array_append(
+            array_remove(label_ids, 'INBOX'),
+            'SPAM'
+          )
+        WHERE gmail_message_id = $1
+        AND user_email = $2
+      `, [messageId, userEmail]);
     } else if (action === "unread") {
       await gmail.users.messages.modify({
         userId: "me",
@@ -669,6 +706,18 @@ export async function PATCH(req: Request) {
           addLabelIds: ["UNREAD"],
         },
       });
+      await db.query(`
+        UPDATE gmail_messages
+        SET 
+          is_read = false,
+          label_ids = CASE 
+            WHEN NOT (label_ids @> ARRAY['UNREAD'::text])
+            THEN array_append(label_ids, 'UNREAD')
+            ELSE label_ids
+          END
+        WHERE gmail_message_id = $1
+        AND user_email = $2
+      `, [messageId, userEmail]);
     } else if (action === "untrash") {
       await gmail.users.messages.untrash({
         userId: "me",
@@ -702,10 +751,23 @@ export async function PATCH(req: Request) {
           removeLabelIds: ["UNREAD"],
         },
       });
+      await db.query(`
+        UPDATE gmail_messages
+        SET 
+          is_read = true,
+          label_ids = array_remove(label_ids, 'UNREAD')
+        WHERE gmail_message_id = $1
+        AND user_email = $2
+      `, [messageId, userEmail]);
     }
+
+    // Always refresh label counts after any DB change
+    const { refreshLabelCounts } = await import("@/lib/gmail-sync-engine");
+    await refreshLabelCounts(userEmail);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    console.error("PATCH Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
