@@ -333,7 +333,7 @@ export async function GET(request: Request) {
             ) as labels
           FROM gmail_messages gm
           WHERE gm.user_email = $1
-            ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'::text] OR gm.label_ids @> ARRAY[\'TRASH\'::text] OR gm.label_ids @> ARRAY[\'SPAM\'::text] OR gm.label_ids @> ARRAY[\'DRAFT\'::text] OR gm.label_ids @> ARRAY[\'SENT\'::text])' : 'AND gm.label_ids @> ARRAY[$2::text]'}
+            ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'::text] OR gm.label_ids @> ARRAY[\'TRASH\'::text] OR gm.label_ids @> ARRAY[\'SPAM\'::text] OR gm.label_ids @> ARRAY[\'DRAFT\'::text] OR gm.label_ids @> ARRAY[\'SENT\'::text]) AND (gm.label_ids @> ARRAY[\'CATEGORY_PERSONAL\'::text] OR gm.label_ids @> ARRAY[\'IMPORTANT\'::text] OR gm.label_ids @> ARRAY[\'CATEGORY_UPDATES\'::text] OR gm.label_ids @> ARRAY[\'CATEGORY_PROMOTIONS\'::text] OR gm.label_ids @> ARRAY[\'CATEGORY_SOCIAL\'::text] OR gm.label_ids @> ARRAY[\'CATEGORY_FORUMS\'::text])' : 'AND gm.label_ids @> ARRAY[$2::text]'}
           GROUP BY gm.gmail_thread_id, gm.user_email
           ORDER BY date DESC
           LIMIT $3 OFFSET $4
@@ -373,7 +373,7 @@ export async function GET(request: Request) {
             ) as labels
           FROM gmail_messages gm
           WHERE gm.user_email = $1
-          ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'::text] OR gm.label_ids @> ARRAY[\'TRASH\'::text] OR gm.label_ids @> ARRAY[\'SPAM\'::text] OR gm.label_ids @> ARRAY[\'DRAFT\'::text] OR gm.label_ids @> ARRAY[\'SENT\'::text])' : 'AND gm.label_ids @> ARRAY[$2::text]'}
+          ${labelId === 'archive' ? 'AND NOT (gm.label_ids @> ARRAY[\'INBOX\'::text] OR gm.label_ids @> ARRAY[\'TRASH\'::text] OR gm.label_ids @> ARRAY[\'SPAM\'::text] OR gm.label_ids @> ARRAY[\'DRAFT\'::text] OR gm.label_ids @> ARRAY[\'SENT\'::text]) AND (gm.label_ids @> ARRAY[\'CATEGORY_PERSONAL\'::text] OR gm.label_ids @> ARRAY[\'IMPORTANT\'::text] OR gm.label_ids @> ARRAY[\'CATEGORY_UPDATES\'::text] OR gm.label_ids @> ARRAY[\'CATEGORY_PROMOTIONS\'::text] OR gm.label_ids @> ARRAY[\'CATEGORY_SOCIAL\'::text] OR gm.label_ids @> ARRAY[\'CATEGORY_FORUMS\'::text])' : 'AND gm.label_ids @> ARRAY[$2::text]'}
           ORDER BY gm.received_at DESC
           LIMIT $3 OFFSET $4
         `, labelId === 'archive' ? [userEmail, limit, offset] : [userEmail, labelId, limit, offset]);

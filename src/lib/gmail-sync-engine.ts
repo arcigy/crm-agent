@@ -556,19 +556,52 @@ async function syncDraftsForUser(
 ): Promise<void> {
   console.log(`[Gmail Sync] syncDraftsForUser called for ${userEmail}`);
   try {
-    // Fetch all current drafts from Gmail
+    // 1. Get all current draft metadata from Gmail
     const draftsResult = await gmail.users.drafts.list({
       userId: 'me',
-      maxResults: 50
+      maxResults: 100
     });
 
     const drafts = draftsResult.data.drafts || [];
+    
+    // 2. Fetch details to get the actual message IDs for the drafts
+    const currentDraftMessageIds: string[] = [];
+    for (const d of drafts) {
+        if (!d.id) continue;
+        const dDetail = await gmail.users.drafts.get({
+            userId: 'me',
+            id: d.id,
+            format: 'metadata',
+            fields: 'message(id)'
+        });
+        if (dDetail.data.message?.id) {
+            currentDraftMessageIds.push(dDetail.data.message.id);
+        }
+    }
+
+    // 3. Delete ALL old drafts from local DB that are no longer present in Gmail
+    if (currentDraftMessageIds.length > 0) {
+        await db.query(`
+            DELETE FROM gmail_messages
+            WHERE user_email = $1
+            AND label_ids @> ARRAY['DRAFT'::text]
+            AND gmail_message_id != ALL($2::text[])
+        `, [userEmail, currentDraftMessageIds]);
+    } else {
+        // No drafts in Gmail - clear all local drafts for this user
+        await db.query(`
+            DELETE FROM gmail_messages
+            WHERE user_email = $1
+            AND label_ids @> ARRAY['DRAFT'::text]
+        `, [userEmail]);
+    }
+
     if (!drafts.length) {
       console.log(`[Gmail Sync] No drafts found in Gmail for ${userEmail}`);
       return;
     }
 
-    console.log(`[Gmail Sync] Found ${drafts.length} drafts in Gmail for ${userEmail}, verifying local DB...`);
+    console.log(`[Gmail Sync] Syncing ${drafts.length} current drafts for ${userEmail}...`);
 
     for (const draft of drafts) {
       if (!draft.id) continue;

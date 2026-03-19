@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTransition, useState } from "react";
 import { toast } from "sonner";
 import { useCurrentCRMUser } from "@/hooks/useCurrentCRMUser";
 import { GmailMessage } from "@/types/gmail";
@@ -25,6 +26,7 @@ import { useLeadsFetch } from "./leads/useLeadsFetch";
 export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
   const { user, isLoaded } = useCurrentCRMUser();
   const [selectedTab, setSelectedTab] = React.useState<string>("inbox");
+  const [isPending, startTransition] = React.useTransition();
   const [view, setView] = React.useState<"threads" | "messages">("threads");
   const {
     messageTags, setMessageTags,
@@ -606,18 +608,29 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     },
     setSelectedTabWithReset: (tab: string) => {
         console.time(`tab-switch-to-${tab}`);
-        setSelectedTab(tab);
-        setSelectedEmail(null);
-        setCurrentPage(1);
         
-        // Clear all local states to avoid flicker/ghost items
+        // 1. Clear all local states IMMEDIATELY and SYNCHRONOUSLY
         setMessages([]);
         setLocalSentMessages([]);
         setAndroidLogs([]);
-        
-        fetchMessages(false, tab, 1, view, debouncedSearchQuery).then(() => {
-          console.timeEnd(`tab-switch-to-${tab}`);
+        setSelectedEmail(null);
+        setCurrentPage(1);
+
+        // 2. Transition to new tab state
+        startTransition(() => {
+          setSelectedTab(tab);
         });
+
+        // 3. Fetch data (which will show loading spinner until done)
+        const fetchWithDelay = async () => {
+          await Promise.all([
+            fetchMessages(false, tab, 1, view, debouncedSearchQuery),
+            new Promise(r => setTimeout(r, 150)) // Add slight intentional delay to stabilize UI
+          ]);
+          console.timeEnd(`tab-switch-to-${tab}`);
+        };
+
+        fetchWithDelay();
     },
     handleAddLocalSentMessage: (data: { to: string; subject: string; body: string }) => {
       const newSentMsg = {
