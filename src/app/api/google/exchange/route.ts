@@ -62,8 +62,8 @@ export async function POST(req: Request) {
                         access_token = $2,
                         expiry_date = $3,
                         date_updated = NOW()
-                    WHERE user_email = $4
-                `, [tokens.refresh_token, tokens.access_token, expiryMs, userEmail]);
+                    WHERE user_id = $4
+                `, [tokens.refresh_token, tokens.access_token, expiryMs, user.id]);
                 console.log('[Exchange] Saved refresh_token to PostgreSQL');
             } else {
                 await db.query(`
@@ -72,8 +72,8 @@ export async function POST(req: Request) {
                         access_token = $1,
                         expiry_date = $2,
                         date_updated = NOW()
-                    WHERE user_email = $3
-                `, [tokens.access_token, expiryMs, userEmail]);
+                    WHERE user_id = $3
+                `, [tokens.access_token, expiryMs, user.id]);
             }
         } catch (dbErr) {
             console.error('[Exchange] Failed to update PostgreSQL:', dbErr);
