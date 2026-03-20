@@ -254,6 +254,7 @@ export function useLeadsFetch(
       if (typeof document !== 'undefined' && document.hidden) return;
       if (loading) return;
       
+      console.log('[Poll] checking last_change...');
       try {
         const res = await fetch(
           `/api/google/gmail?action=last_change`,
@@ -263,6 +264,11 @@ export function useLeadsFetch(
         
         const data = await res.json();
         const serverLastChange = data.last_change;
+        
+        console.log('[Poll] server lastChange:', serverLastChange);
+        console.log('[Poll] local lastChange:', lastChangeRef.current);
+        console.log('[Poll] document.hidden:', typeof document !== 'undefined' ? document.hidden : 'unknown');
+        console.log('[Poll] loading:', loading);
         
         if (!serverLastChange) return;
         
@@ -274,7 +280,7 @@ export function useLeadsFetch(
         
         // If server has newer change than we know about
         if (serverLastChange > lastChangeRef.current) {
-          console.log('[refresh] change detected:', serverLastChange);
+          console.log('[Poll] CHANGE DETECTED - refreshing:', serverLastChange);
           lastChangeRef.current = serverLastChange;
           // Silent refresh - no loading spinner
           fetchMessages(true, selectedTab);

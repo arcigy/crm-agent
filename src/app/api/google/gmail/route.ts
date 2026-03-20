@@ -410,6 +410,8 @@ export async function GET(request: Request) {
         WHERE user_email = $1
       `, [userEmail]);
       
+      console.log('[LastChange API] returning:', result.rows[0]?.last_change);
+      
       return NextResponse.json({ 
         last_change: result.rows[0]?.last_change 
       });
