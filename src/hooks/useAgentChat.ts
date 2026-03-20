@@ -14,6 +14,7 @@ import {
   Message,
   CostInfo,
 } from "@/components/dashboard/agent/AgentChatMessage";
+import { useEmailContext } from "@/components/providers/EmailContextProvider";
 
 export function useAgentChat() {
   const router = useRouter();
@@ -26,6 +27,8 @@ export function useAgentChat() {
   const [expandedLogs, setExpandedLogs] = React.useState<
     Record<number, boolean>
   >({});
+
+  const { activeEmail, activeThread, activeContact } = useEmailContext();
 
   const fetchChats = async () => {
     const list = await getAgentChats();
@@ -82,6 +85,15 @@ export function useAgentChat() {
           role: m.role,
           content: m.content,
         })),
+        activeEmail ? {
+          subject: activeEmail.subject,
+          from: activeEmail.from,
+          to: activeEmail.to,
+          date: activeEmail.date,
+          body: activeEmail.body?.substring(0, 3000),
+          threadLength: activeThread?.length || 1,
+          contact: activeContact
+        } : undefined
       );
 
       let finalMessages: Message[] = [];

@@ -43,6 +43,10 @@ import { generateTaskTitleFromEmail } from "@/app/actions/tasks";
 import { PremiumDatePicker } from "@/components/ui/PremiumDatePicker";
 import { PremiumTimePicker } from "@/components/ui/PremiumTimePicker";
 import { SaveToDriveModal } from "./SaveToDriveModal";
+import { useEmailContext } from "@/components/providers/EmailContextProvider";
+import directus from "@/lib/directus";
+import { readItems } from "@directus/sdk";
+import { Lead } from "@/types/contact";
 
 interface EmailDetailViewProps {
   email: GmailMessage;
@@ -94,24 +98,57 @@ export function EmailDetailView({
   const [isScanning, setIsScanning] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
+  const { setActiveEmail, clearEmailContext } = useEmailContext();
+
   // Load full thread messages
   React.useEffect(() => {
     const tid = email.threadId || email.id;
+    const senderEmailRaw = email.from || "";
+    const senderEmail = senderEmailRaw.includes("<") 
+      ? senderEmailRaw.split("<")[1].split(">")[0] 
+      : senderEmailRaw;
+
     if (tid) {
       setIsLoadingBody(true);
-      fetch(`/api/google/gmail?threadId=${tid}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.messages && data.messages.length > 0) {
-            setMessages(data.messages);
-          }
-        })
-        .catch(err => console.error("Thread fetch error:", err))
-        .finally(() => setIsLoadingBody(false));
+      
+      // Concurrently fetch thread and search for contact
+      Promise.all([
+        fetch(`/api/google/gmail?threadId=${tid}`).then(res => res.json()),
+        directus.request(readItems("contacts", {
+          filter: { email: { _icontains: senderEmail } },
+          limit: 1
+        }))
+      ])
+      .then(([threadData, contacts]) => {
+        const fullThread = threadData.messages && threadData.messages.length > 0 
+          ? threadData.messages 
+          : [email];
+        
+        const contact = (contacts as Lead[])?.[0] || null;
+        
+        if (threadData.messages) {
+          setMessages(threadData.messages);
+        }
+        
+        // Populate global email context for the AI agent
+        setActiveEmail(email, fullThread, contact);
+      })
+      .catch(err => {
+        console.error("Context data fetch error:", err);
+        // Fallback: at least set the current email without thread/contact
+        setActiveEmail(email, [email], null);
+      })
+      .finally(() => setIsLoadingBody(false));
     } else {
       setIsLoadingBody(false);
+      setActiveEmail(email, [email], null);
     }
-  }, [email.id, email.threadId]);
+
+    // Cleanup when user leaves the detail view
+    return () => {
+      clearEmailContext();
+    };
+  }, [email.id, email.threadId, setActiveEmail, clearEmailContext]);
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

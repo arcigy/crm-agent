@@ -28,7 +28,7 @@ import { MissionState, ToolResult } from '@/app/actions/agent-types';
 import { sanitizeUserInput } from '@/lib/entity-tags';
 
 export async function POST(req: Request) {
-    const { message: rawMessage, conversationId, debug = false, messages: reqMessages } = await req.json();
+    const { message: rawMessage, conversationId, debug = false, messages: reqMessages, emailContext } = await req.json();
     const message = sanitizeUserInput(rawMessage || "");
     const host = req.headers.get("host") || "";
     const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
@@ -124,13 +124,30 @@ export async function POST(req: Request) {
         console.log(` [${stage}] ${message}`, detail ? JSON.stringify(detail, null, 2) : '');
     };
 
-    const sendStatus = async (message: string) => {
+            const sendStatus = async (message: string) => {
         await writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'status', message })}\n\n`));
     };
 
     const sendResponseChunk = async (chunk: string) => {
         await writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'response', message: chunk })}\n\n`));
     };
+
+    const formatEmailContext = (ctx: any) => {
+        if (!ctx) return "";
+        return `
+[EMAIL CONTEXT]
+From: ${ctx.from}
+To: ${ctx.to}
+Subject: ${ctx.subject}
+Date: ${ctx.date}
+Thread Length: ${ctx.threadLength}
+Body (Excerpt): ${ctx.body}
+${ctx.contact ? `Linked CRM Contact: ${ctx.contact.first_name} ${ctx.contact.last_name} (${ctx.contact.company || 'No Company'})` : ''}
+-----------------
+`;
+    };
+
+    const emailContextBlock = formatEmailContext(emailContext);
 
     (async () => {
         try {
@@ -139,7 +156,12 @@ export async function POST(req: Request) {
 
             await sendStatus("🔍 Analyzujem zadanie...");
             await log("ROUTER", "Analyzing intent...");
-            const routing = await routeIntent(lastUserMsg, messages as any, userName);
+            
+            // Per instructions: "pred routeIntent volaním pridaj kontext do správy"
+            // We prepend it to the current message so the router sees it
+            const enrichedLastMsg = emailContext ? `${emailContextBlock}\nUSER MESSAGE: ${lastUserMsg}` : lastUserMsg;
+            
+            const routing = await routeIntent(enrichedLastMsg, messages as any, userName);
             console.log('[TIMING] After router:', Date.now() - startTime, 'ms');
             await log("ROUTER", "Result", routing);
 
@@ -154,7 +176,8 @@ PRAVIDLÁ:
 - Žiadne formality ("Samozrejme...").
 - Markdown tabuľky, odrážky, code-bloky.
 - Zvýrazňuj kľúčové vety **tučným**.
-- NIKDY nepoužívaj podpisy ako "Branislav Arcigy" na konci správy.`, 
+- NIKDY nepoužívaj podpisy ako "Branislav Arcigy" na konci správy.
+${emailContextBlock ? `\nADITIONAL CONTEXT:\n${emailContextBlock}` : ''}`, 
                     messages: messages as any 
                 });
                 for await (const delta of result.textStream) {
@@ -210,7 +233,8 @@ PRAVIDLÁ:
                   state,
                   routing.orchestrator_brief_structured?.goal,
                   routing.orchestrator_brief_structured?.negative_constraints ?? [],
-                  userName
+                  userName,
+                  emailContextBlock
                 );
                 console.log(`[TIMING] After orchestrator iter ${iter}:`, Date.now() - startTime, 'ms');
                 await log("ORCHESTRATOR", "Plan", taskPlan.steps);

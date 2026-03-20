@@ -12,6 +12,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAgentChat } from "@/hooks/useAgentChat";
 import { AgentChatMessage } from "./agent/AgentChatMessage";
+import { useEmailContext } from "@/components/providers/EmailContextProvider";
+import { Mail } from "lucide-react";
 
 interface FloatingAgentChatProps {
   isMenuOpen: boolean;
@@ -34,6 +36,8 @@ export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentCh
     handleSend,
     copyMessagesToClipboard
   } = useAgentChat();
+
+  const { activeEmail, activeThread, clearEmailContext } = useEmailContext();
 
   React.useEffect(() => {
     if (scrollRef.current) {
@@ -134,6 +138,31 @@ export function FloatingAgentChat({ isMenuOpen, setIsMenuOpen }: FloatingAgentCh
                     </div>
                 )}
             </div>
+
+            {/* Email Context Badge */}
+            {activeEmail && (
+              <div className="mx-6 mb-2 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-between group/badge animate-in slide-in-from-bottom-2 shrink-0">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="p-2 bg-indigo-600 rounded-xl shadow-lg shrink-0">
+                    <Mail className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <div className="overflow-hidden">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400 leading-none">Kontext e-mailu</span>
+                      <span className="text-[8px] text-muted-foreground">•</span>
+                      <span className="text-[8px] font-bold text-muted-foreground uppercase truncate">Od {activeEmail.from?.split('<')[0].replace(/"/g, '') || activeEmail.from}</span>
+                    </div>
+                    <h4 className="text-[11px] font-bold text-foreground truncate mt-0.5">{activeEmail.subject || "(Bez predmetu)"}</h4>
+                  </div>
+                </div>
+                <button 
+                  onClick={clearEmailContext}
+                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-muted-foreground hover:text-foreground ml-2 shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             {/* Input */}
             <div className="p-6 border-t border-border bg-card/85 backdrop-blur-xl relative z-10">

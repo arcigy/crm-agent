@@ -8,6 +8,8 @@ import { DashboardShell } from "@/components/dashboard/DashboardShell";
 
 export const dynamic = "force-dynamic";
 
+import { EmailContextProvider } from "@/components/providers/EmailContextProvider";
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -17,18 +19,20 @@ export default async function DashboardLayout({
 
   return (
     <div className="marble-bg">
-      <ContactPreviewProvider>
-        <ProjectPreviewProvider>
-          <NotePreviewProvider>
-            <DashboardShell 
-              completed={completed} 
-              onboardingScene={<OnboardingScene />}
-            >
-              {children}
-            </DashboardShell>
-          </NotePreviewProvider>
-        </ProjectPreviewProvider>
-      </ContactPreviewProvider>
+      <EmailContextProvider>
+        <ContactPreviewProvider>
+          <ProjectPreviewProvider>
+            <NotePreviewProvider>
+              <DashboardShell 
+                completed={completed} 
+                onboardingScene={<OnboardingScene />}
+              >
+                {children}
+              </DashboardShell>
+            </NotePreviewProvider>
+          </ProjectPreviewProvider>
+        </ContactPreviewProvider>
+      </EmailContextProvider>
     </div>
   );
 }

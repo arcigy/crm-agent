@@ -16,8 +16,8 @@ import {
  * HIGH-LEVEL SERVER ACTIONS
  */
 
-export async function chatWithAgent(messages: ChatMessage[]) {
-  return originalChatWithAgent(messages);
+export async function chatWithAgent(messages: ChatMessage[], emailContext?: any) {
+  return originalChatWithAgent(messages, emailContext);
 }
 
 export async function getAgentChats() {

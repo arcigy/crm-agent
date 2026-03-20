@@ -16,7 +16,7 @@ import { runOrchestratorLoop } from "./agent-orchestrator";
  * Main entry point for chatting with the AI CRM Agent.
  * Orchestrates multiple specialized LLMs to perform actions and answer queries.
  */
-export async function chatWithAgent(messages: ChatMessage[]) {
+export async function chatWithAgent(messages: ChatMessage[], emailContext?: any) {
   const superState = createStreamableValue({
     toolResults: [] as AgentStep[],
     content: "",
@@ -51,10 +51,20 @@ export async function chatWithAgent(messages: ChatMessage[]) {
       const userEmail = rawEmail.toLowerCase();
       const context = await getIsolatedAIContext(userEmail, "GLOBAL");
 
+      const emailContextBlock = emailContext ? `
+## ADDITIONAL CONTEXT (EMAIL)
+From: ${emailContext.from}
+To: ${emailContext.to}
+Subject: ${emailContext.subject}
+Date: ${emailContext.date}
+Body (Excerpt): ${emailContext.body}
+${emailContext.contact ? `Linked Contact: ${emailContext.contact.first_name} ${emailContext.contact.last_name}` : ''}
+` : "";
+
       startCostSession(userEmail);
 
       // 1. GATEKEEPER - Identifies intent and extracts data
-      const verdict = await runGatekeeper(messages);
+      const verdict = await runGatekeeper(messages, emailContextBlock);
 
       superState.update({
         toolResults: [],
@@ -79,13 +89,13 @@ export async function chatWithAgent(messages: ChatMessage[]) {
       });
 
       if (verdict.intent === "INFO_ONLY") {
-        await handleInfoOnly(messages, context, superState, verdict);
+        await handleInfoOnly(messages, context, superState, verdict, emailContextBlock);
         return;
       }
 
       // 2. ORCHESTRATOR LOOP - Performs actions using tools
       const { finalResults, missionHistory, attempts, lastPlan, state } =
-        await runOrchestratorLoop(messages, user, superState);
+        await runOrchestratorLoop(messages, user, superState, emailContextBlock);
 
       // 3. FINAL REPORTER - Summarizes the mission
       await runFinalReporter(
@@ -96,7 +106,8 @@ export async function chatWithAgent(messages: ChatMessage[]) {
         verdict,
         superState,
         lastPlan,
-        state
+        state,
+        emailContextBlock
       );
     } catch (error) {
       console.error("Agent Error:", error);

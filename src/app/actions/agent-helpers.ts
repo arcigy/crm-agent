@@ -18,8 +18,10 @@ const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export async function runGatekeeper(
   messages: ChatMessage[],
+  context?: string
 ): Promise<ChatVerdict> {
   const prompt = `Si klasifikátor správ pre AI agenta. Zaraď poslednú správu do INFO_ONLY alebo ACTION.
+${context ? `\n\nPOUŽI TENTO KONTEXT PRE LEPŠIU KLASIFIKÁCIU:\n${context}` : ""}
 
 DEFINÍCIE:
 INFO_ONLY = správa pýtajúca sa VŠEOBECNE (bez konkrétneho cieľa, osoby, firmy alebo objektu)
@@ -80,6 +82,7 @@ export async function handleInfoOnly(
   context: AIContextBundle,
   superState: ReturnType<typeof createStreamableValue>,
   verdict: ChatVerdict,
+  emailContext?: string
 ) {
   const userText = messages
     .filter((m) => m.role === "user")
@@ -88,9 +91,10 @@ export async function handleInfoOnly(
   const prompt = `Si ArciGy AI Agent pre CRM systém. 
 JAZYK: Slovenčina. ŠTÝL: Stručný, priamy (1-2 vety).
 SCHOPNOSTI: Môžeš vyhľadávať na webe (Google Search), scrapovať stránky, pracovať s kontaktmi/projektmi/dealmi/poznámkami/úlohami v CRM, čítať a písať emaily (Gmail), analyzovať prílohy, pamätať si fakty o užívateľovi, vykonávať multi-step akcie.
-KONTEXT: Užívateľ "${context.user_nickname}".
-OTÁZKA: ${userText}
-Odpovedz priamo a stručne. Ak sa pýta na tvoje schopnosti, odpovedz áno/nie + krátke vysvetlenie.`;
+  KONTEXT: Užívateľ "${context.user_nickname}".
+  OTÁZKA: ${userText}
+  ${emailContext ? `\n\nPOUŽI TENTO KONTEXT E-MAILU PRE ODPOVEĎ:\n${emailContext}` : ""}
+  Odpovedz priamo a stručne. Ak sa pýta na tvoje schopnosti, odpovedz áno/nie + krátke vysvetlenie.`;
   const start = Date.now();
   console.log(`[INFO-ONLY] Calling AI, prompt length: ${prompt.length}`);
   let output = "Prepáč, nastal problém s AI odpoveďou.";
@@ -142,7 +146,8 @@ export async function runFinalReporter(
   verdict: ChatVerdict,
   superState: ReturnType<typeof createStreamableValue>,
   lastPlan?: any,
-  state?: MissionState
+  state?: MissionState,
+  emailContext?: string
 ) {
   const start = Date.now();
   const goal = state?.checklist?.length ? messages[messages.length - 1].content : (lastPlan?.intent || messages[messages.length - 1].content);
@@ -165,6 +170,10 @@ export async function runFinalReporter(
     // 3. Verifier pass (Human-friendly summary)
     superState.update({ status: "thinking", message: "Finalizujem odpoveď...", toolResults: results });
     const verification = await verifyExecutionResults(goal, results, manifest);
+    
+    if (emailContext) {
+        verification.analysis += `\n\n*(Spracované s kontextom e-mailu: ${JSON.stringify(emailContext).substring(0, 50)}...)*`;
+    }
     
     updateMissionStatus(goal, reflection.goalAchieved);
 

@@ -34,7 +34,8 @@ const MAX_SAME_TOOL_REPEAT = 2;
 export async function runOrchestratorLoop(
   messages: ChatMessage[],
   user: UserResource,
-  superState: ReturnType<typeof createStreamableValue>
+  superState: ReturnType<typeof createStreamableValue>,
+  emailContext?: string
 ) {
   const finalResults: AgentStep[] = [];
   const missionHistory: MissionHistoryItem[] = [];
@@ -98,7 +99,7 @@ export async function runOrchestratorLoop(
     }
 
     // 1. Plan next steps (inject resolvedEntities into every call)
-    lastPlan = await orchestrateParams(messages, missionHistory, state, undefined, negativeConstraintsForIteration);
+    lastPlan = await orchestrateParams(messages, missionHistory, state, undefined, negativeConstraintsForIteration, "Používateľ", emailContext);
     console.log(`${tag} Plan: ${JSON.stringify(lastPlan, null, 2)}`);
 
     if (!lastPlan.steps || lastPlan.steps.length === 0) {
@@ -333,7 +334,8 @@ export async function orchestrateParams(
   state?: MissionState,
   orchestratorBrief?: string,
   negativeConstraints: string[] = [],
-  userName: string = "Používateľ"
+  userName: string = "Používateľ",
+  emailContext?: string
 ) {
   const start = Date.now();
   try {
@@ -429,6 +431,8 @@ ${resolvedEntitiesBlock}
 
 MISSION CHECKLIST:
 ${checklistBlock}
+
+${emailContext ? `## ADDITIONAL CONTEXT (EMAIL)\n${emailContext}` : ""}
 
 PLANNING RULES:
 
