@@ -542,30 +542,46 @@ export async function fetchNewEmailsForUser(userEmail: string, gmailClient?: any
     const lastDate = lastEmail.rows[0]?.last_date;
     
     // Build query for emails newer than last sync
-    const afterDate = lastDate 
+    const afterDate = lastDate
       ? Math.floor(new Date(lastDate).getTime() / 1000)
       : Math.floor(Date.now() / 1000) - 86400; // last 24h fallback
     
-    // Fetch new message IDs from Gmail
-    const listResult = await gmail.users.messages.list({
+    // PRIMARY: Fetch new emails since last sync
+    const newEmailsResult = await gmail.users.messages.list({
       userId: 'me',
       q: `after:${afterDate}`,
       maxResults: 100
     });
     
-    const messages = listResult.data.messages || [];
-    if (!messages.length) {
+    // SECONDARY: Fetch recently starred emails (last 7 days)
+    // This catches emails that were starred after they were received
+    const recentlyStarredResult = await gmail.users.messages.list({
+      userId: 'me',
+      labelIds: ['STARRED'],
+      maxResults: 50
+    });
+    
+    // Merge and deduplicate
+    const allMessages = [
+      ...(newEmailsResult.data.messages || []),
+      ...(recentlyStarredResult.data.messages || [])
+    ];
+    const uniqueMessages = Array.from(
+      new Map(allMessages.map(m => [m.id, m])).values()
+    );
+    
+    if (!uniqueMessages.length) {
       console.log(`[Gmail Sync] No new messages found for ${userEmail} since ${lastDate || 'last 24h'}`);
       return 0;
     }
     
-    console.log(`[Gmail Sync] Found ${messages.length} potential new messages for ${userEmail}`);
+    console.log(`[Gmail Sync] Found ${uniqueMessages.length} potential new messages for ${userEmail} (${newEmailsResult.data.messages?.length || 0} new, ${recentlyStarredResult.data.messages?.length || 0} starred)`);
     
     // Process each new message
     let inserted = 0;
     const { processNewEmail } = await import("./gmail-processor");
 
-    for (const msg of messages) {
+    for (const msg of uniqueMessages) {
       if (!msg.id) continue;
       const existing = await db.query(
         'SELECT gmail_message_id FROM gmail_messages WHERE gmail_message_id = $1 AND user_email = $2',
