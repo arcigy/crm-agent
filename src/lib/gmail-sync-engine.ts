@@ -436,7 +436,8 @@ export async function performIncrementalSync(
             is_starred = CASE
               WHEN $1::text[] @> ARRAY['STARRED'] THEN true
               ELSE is_starred
-            END
+            END,
+            synced_at = NOW()
           WHERE gmail_message_id = $2 AND user_email = $3
         `, [addedLabels, msgId, userEmail]);
       }
@@ -463,7 +464,8 @@ export async function performIncrementalSync(
             is_starred = CASE
               WHEN $1::text[] @> ARRAY['STARRED'] THEN false
               ELSE is_starred
-            END
+            END,
+            synced_at = NOW()
           WHERE gmail_message_id = $2 AND user_email = $3
         `, [removedLabels, msgId, userEmail]);
       }

@@ -245,47 +245,47 @@ export function useLeadsFetch(
     fetchMessages(false, selectedTab);
   }, [selectedTab]); // eslint-disable-line
 
-  // ─── Auto-refresh UI when new email arrives ───────────────────────────────
+  // Store last known change time for auto-refresh
+  const lastChangeRef = React.useRef<string | null>(null);
+
+  // ─── Auto-refresh UI when ANY change occurs ───────────────────────────────
   React.useEffect(() => {
     const interval = setInterval(async () => {
-      // Skip if tab hidden or loading
       if (typeof document !== 'undefined' && document.hidden) return;
       if (loading) return;
       
       try {
         const res = await fetch(
-          `/api/google/gmail?tab=${selectedTab}&limit=1&silent=true`,
+          `/api/google/gmail?action=last_change`,
           { signal: AbortSignal.timeout(3000) }
         );
         if (!res.ok) return;
         
         const data = await res.json();
-        if (!data.emails?.length) return;
+        const serverLastChange = data.last_change;
         
-        // Check 1: New email arrived
-        const newestIncoming = new Date(
-          data.emails[0].date || data.emails[0].received_at
-        );
-        const newestShown = messages[0]
-          ? new Date(messages[0].date || (messages[0] as any).received_at)
-          : new Date(0);
-        const newestChanged = newestIncoming > newestShown;
+        if (!serverLastChange) return;
         
-        // Check 2: Unread count changed
-        const currentUnread = messages.filter(m => !m.isRead).length;
-        const incomingUnread = data.stats?.[selectedTab]?.unread || 0;
-        const unreadChanged = currentUnread !== incomingUnread;
+        // First poll - just store the value
+        if (!lastChangeRef.current) {
+          lastChangeRef.current = serverLastChange;
+          return;
+        }
         
-        if (newestChanged || unreadChanged) {
+        // If server has newer change than we know about
+        if (serverLastChange > lastChangeRef.current) {
+          console.log('[refresh] change detected:', serverLastChange);
+          lastChangeRef.current = serverLastChange;
+          // Silent refresh - no loading spinner
           fetchMessages(true, selectedTab);
         }
       } catch (err) {
-        // Silent fail - never interrupt user
+        // Silent fail
       }
     }, 5000);
     
     return () => clearInterval(interval);
-  }, [messages, selectedTab, loading, fetchMessages]);
+  }, [selectedTab, loading, fetchMessages]);
 
   return {
     messages, setMessages,

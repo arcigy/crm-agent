@@ -402,6 +402,19 @@ export async function GET(request: Request) {
       return NextResponse.json({ labels: res.rows });
     }
 
+    // NEW: Detect ANY change in messages for auto-refresh
+    if (searchParams.get("action") === "last_change") {
+      const result = await db.query(`
+        SELECT MAX(synced_at) as last_change
+        FROM gmail_messages
+        WHERE user_email = $1
+      `, [userEmail]);
+      
+      return NextResponse.json({ 
+        last_change: result.rows[0]?.last_change 
+      });
+    }
+
     const syncStatePromise = db.query(`
       SELECT sync_status, synced_messages, total_messages, last_full_sync
       FROM gmail_sync_state
