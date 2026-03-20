@@ -83,12 +83,17 @@ export async function processNewEmail(
 }
 
 export async function checkActivityExists(messageId: string) {
-  const res = await db.query(`
-    SELECT id FROM activities
-    WHERE metadata->>'gmail_message_id' = $1
-    LIMIT 1
-  `, [messageId]);
-  return res.rows.length > 0;
+  try {
+    const res = await db.query(`
+      SELECT id FROM gmail_messages
+      WHERE gmail_message_id = $1
+      LIMIT 1
+    `, [messageId]);
+    return res.rows.length > 0;
+  } catch (err) {
+    console.error(`[Gmail] checkActivityExists error:`, err);
+    return false;
+  }
 }
 
 export async function saveEmailActivity(data: any) {

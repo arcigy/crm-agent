@@ -138,15 +138,28 @@ export async function getValidToken(clerkUserId: string, userEmail?: string) {
                     };
                     if (credentials.expiry_date) {
                         // Google returns expiry_date as a timestamp in ms
-                        newTokenData.expiry_date = new Date(credentials.expiry_date).toISOString();
+                        newTokenData.expiry_date = credentials.expiry_date;
                     } else {
                         // Default to 1 hour if not provided
-                        newTokenData.expiry_date = new Date(Date.now() + 3500 * 1000).toISOString();
+                        newTokenData.expiry_date = Date.now() + 3500 * 1000;
                     }
 
                     await directus.request(
                         updateItem("google_tokens" as any, tokenRecord.id, newTokenData)
                     );
+                    
+                    // Also update PostgreSQL directly for consistency
+                    try {
+                        const { db } = await import('@/lib/db');
+                        await db.query(`
+                            UPDATE google_tokens
+                            SET access_token = $1, expiry_date = $2, date_updated = NOW()
+                            WHERE id = $3
+                        `, [credentials.access_token, newTokenData.expiry_date, tokenRecord.id]);
+                    } catch (dbErr) {
+                        console.error("[getValidToken] Failed to update PG:", dbErr);
+                    }
+
                     console.log(`[getValidToken] Refresh successful stored in DB.`);
                     return credentials.access_token as string;
                 } catch (refreshError: any) {
