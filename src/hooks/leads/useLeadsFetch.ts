@@ -43,48 +43,15 @@ export function useLeadsFetch(
 
   const CACHE_TTL = 30_000; // 30s — fast switching uses cache, background refresh keeps it fresh
 
-  // ─── Core fetch function ──────────────────────────────────────────────────
-  const fetchMessages = React.useCallback(async (
-    isBackground = false,
-    tabParam?: string,
-    page: number = 1,
-    view: string = "threads",
-    search: string = ""
-  ) => {
-    const activeTab = tabParam || selectedTab;
-    const category = activeTab.startsWith("tag:") ? activeTab.replace("tag:", "") : activeTab;
-    const now = Date.now();
-    const cacheKey = `${category}_${page}_${view}_${search}`;
-    const cached = emailCache.current[cacheKey];
-
-    // ── FIX 1: Show cached data IMMEDIATELY, never block UI ─────────────────
-    if (cached) {
-      // Show cached data instantly regardless of freshness
-      setMessages(cached.data);
-      setTotalMessages(cached.totalMessages || 0);
-      if (cached.userLabels) setUserLabels(cached.userLabels);
-      if (cached.stats) setInboxStats(cached.stats);
-      setLoading(false);
-
-      // Cache still fresh? Done — no refetch needed
-      if (now - cached.fetchedAt < CACHE_TTL) {
-        console.log(`[fetch] cache hit (${Date.now() - now}ms)`, cacheKey);
-        return;
-      }
-
-      // Cache stale — refetch silently in background (no loading spinner)
-      fetchFresh(category, true /* silent */, page, view, search, cacheKey);
-      return;
+  const invalidateCache = React.useCallback((category?: string) => {
+    if (category) {
+      Object.keys(emailCache.current).forEach((key) => {
+        if (key.startsWith(`${category}_`)) delete emailCache.current[key];
+      });
+    } else {
+      emailCache.current = {};
     }
-
-    // No cache — show loading and fetch
-    if (!isBackground) {
-      // DO NOT clear messages - keep old content visible
-      setIsTransitioning(true);
-      setLoading(true);
-    }
-    await fetchFresh(category, isBackground, page, view, search, cacheKey);
-  }, [selectedTab]); // eslint-disable-line
+  }, []);
 
   // ─── Fresh fetch with abort + race condition protection ───────────────────
   const fetchFresh = React.useCallback(async (
@@ -195,6 +162,49 @@ export function useLeadsFetch(
     }
   }, [selectedTab, dbAnalyses]); // eslint-disable-line
 
+  // ─── Core fetch function ──────────────────────────────────────────────────
+  const fetchMessages = React.useCallback(async (
+    isBackground = false,
+    tabParam?: string,
+    page: number = 1,
+    view: string = "threads",
+    search: string = ""
+  ) => {
+    const activeTab = tabParam || selectedTab;
+    const category = activeTab.startsWith("tag:") ? activeTab.replace("tag:", "") : activeTab;
+    const now = Date.now();
+    const cacheKey = `${category}_${page}_${view}_${search}`;
+    const cached = emailCache.current[cacheKey];
+
+    // ── FIX 1: Show cached data IMMEDIATELY, never block UI ─────────────────
+    if (cached) {
+      // Show cached data instantly regardless of freshness
+      setMessages(cached.data);
+      setTotalMessages(cached.totalMessages || 0);
+      if (cached.userLabels) setUserLabels(cached.userLabels);
+      if (cached.stats) setInboxStats(cached.stats);
+      setLoading(false);
+
+      // Cache still fresh? Done — no refetch needed
+      if (now - cached.fetchedAt < CACHE_TTL) {
+        console.log(`[fetch] cache hit (${Date.now() - now}ms)`, cacheKey);
+        return;
+      }
+
+      // Cache stale — refetch silently in background (no loading spinner)
+      fetchFresh(category, true /* silent */, page, view, search, cacheKey);
+      return;
+    }
+
+    // No cache — show loading and fetch
+    if (!isBackground) {
+      // DO NOT clear messages - keep old content visible
+      setIsTransitioning(true);
+      setLoading(true);
+    }
+    await fetchFresh(category, isBackground, page, view, search, cacheKey);
+  }, [selectedTab, fetchFresh]);
+
   // ─── Fetch Labels and Sync Progress periodically ────────────────────────
   React.useEffect(() => {
     const fetchLabelsAndSync = async () => {
@@ -247,12 +257,12 @@ export function useLeadsFetch(
         fetchFresh(tab, true, 1, "threads", "", cacheKey);
       }
     });
-  }, [selectedTab]); // eslint-disable-line
+  }, [selectedTab, fetchFresh]);
 
   // ─── Re-fetch when tab changes ────────────────────────────────────────────
   React.useEffect(() => {
     fetchMessages(false, selectedTab);
-  }, [selectedTab]); // eslint-disable-line
+  }, [selectedTab, fetchMessages]);
 
   // Store last known change time for auto-refresh
   const lastChangeRef = React.useRef<string | null>(null);
@@ -295,18 +305,24 @@ export function useLeadsFetch(
           console.log('[Poll] CHANGE DETECTED - refreshing:', serverLastChange);
           lastChangeRef.current = serverLastChange;
           
-          // ── FIX 5: Smart cache clearing - only if change happened after last fetch ──
+          // ── Smart cache clearing - only if change happened after last fetch ──
           const category = selectedTab.startsWith("tag:") ? selectedTab.replace("tag:", "") : selectedTab;
-          const cacheKey = `${category}_1_threads_`;
-          const cached = emailCache.current[cacheKey];
           const serverChangeTime = new Date(serverLastChange).getTime();
           
-          if (cached && serverChangeTime > cached.fetchedAt) {
-            console.log('[Poll] clearing cache for:', cacheKey);
-            delete emailCache.current[cacheKey];
+          // Find any cached page for this category that is older than the server change
+          const hasStaleCache = Object.keys(emailCache.current).some(key => {
+            if (key.startsWith(`${category}_`)) {
+              return serverChangeTime > emailCache.current[key].fetchedAt;
+            }
+            return false;
+          });
+
+          if (hasStaleCache) {
+            console.log('[Poll] clearing cache for category:', category);
+            invalidateCache(category);
           }
 
-          // ── FIX 5: Background refresh only - no empty flash ───────────────
+          // ── Background refresh only - no empty flash ───────────────
           fetchMessages(true, selectedTab);
         }
       } catch (err) {
@@ -315,7 +331,7 @@ export function useLeadsFetch(
     }, 5000);
     
     return () => clearInterval(interval);
-  }, [selectedTab, loading, fetchMessages]);
+  }, [selectedTab, loading, fetchMessages, invalidateCache]);
 
   return {
     messages, setMessages,
@@ -330,15 +346,7 @@ export function useLeadsFetch(
     isBuffering,
     isTransitioning,
     setIsTransitioning,
-    invalidateCache: (category?: string) => {
-      if (category) {
-        Object.keys(emailCache.current).forEach(key => {
-          if (key.startsWith(`${category}_`)) delete emailCache.current[key];
-        });
-      } else {
-        emailCache.current = {};
-      }
-    },
+    invalidateCache,
     // ── FIX 3: Smart cache clearing for star toggle ─────────────────────────
     updateCachedStar: (messageId: string, isStarred: boolean) => {
       Object.keys(emailCache.current).forEach(key => {
