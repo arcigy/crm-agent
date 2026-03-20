@@ -38,19 +38,17 @@ export async function getLabels() {
 
 export async function getAiLabels(userEmail: string) {
   try {
-    const labels = (await directus.request(
+    const allLabels = (await directus.request(
       readItems("contact_labels", {
         filter: {
-          _and: [
-            { user_email: { _eq: userEmail } },
-            { ai_enabled: { _eq: true } }
-          ]
+          user_email: { _eq: userEmail }
         }
       })
-    )) as unknown as ContactLabel[];
-    return labels;
+    )) as any[];
+    
+    return allLabels.filter((l: any) => l.ai_enabled === true) || [];
   } catch (e) {
-    console.error("Failed to fetch AI labels", e);
+    console.warn("Failed to fetch AI labels from Directus", e);
     return [];
   }
 }
