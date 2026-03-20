@@ -31,14 +31,15 @@ export function useLeadsFetch(
     fetchedAt: number,
     totalMessages?: number,
     userLabels?: any[],
-    stats?: any
+    stats?: any,
+    category: string
   }>>({});
 
   // AbortControllers keyed by cacheKey — cancel stale requests
   const abortControllers = React.useRef<Record<string, AbortController>>({});
 
-  // Track which request is "current" to discard stale results
-  const currentRequestId = React.useRef<string>('');
+  // Track latest request ID per category to prevent race conditions
+  const tabRequestIds = React.useRef<Record<string, number>>({});
 
   const CACHE_TTL = 30_000; // 30s — fast switching uses cache, background refresh keeps it fresh
 
@@ -78,7 +79,8 @@ export function useLeadsFetch(
 
     // No cache — show loading and fetch
     if (!isBackground) {
-      setMessages([]); // Clear immediately - no flicker
+      // DO NOT clear messages - keep old content visible
+      setIsTransitioning(true);
       setLoading(true);
     }
     await fetchFresh(category, isBackground, page, view, search, cacheKey);
@@ -98,12 +100,12 @@ export function useLeadsFetch(
     const controller = new AbortController();
     abortControllers.current[cacheKey] = controller;
 
-    // ── FIX 2: Unique ID to discard stale results ────────────────────────────
-    const requestId = `${cacheKey}-${Date.now()}`;
-    if (!isBackground) currentRequestId.current = requestId;
+    // ── FIX 2: Unique ID per category to prevent race conditions ─────────────
+    const requestId = Date.now();
+    tabRequestIds.current[category] = requestId;
 
     const t0 = Date.now();
-    console.log('[fetch] start', category, page, view);
+    console.log('[fetch] start', category, page, view, 'requestId:', requestId);
 
     try {
       const pageQuery = `&page=${page}&limit=50&view=${view}${search ? `&search=${encodeURIComponent(search)}` : ""}`;
@@ -118,9 +120,9 @@ export function useLeadsFetch(
 
       console.log('[fetch] got response', Date.now() - t0, 'ms');
 
-      // ── FIX 2: Discard if another foreground request came in ─────────────
-      if (!isBackground && currentRequestId.current !== requestId) {
-        console.log('[fetch] discarding stale result for', category);
+      // ── FIX 2: Check if this is still the latest request for this category ─
+      if (tabRequestIds.current[category] !== requestId) {
+        console.log('[fetch] discarding stale result for', category, 'latest is', tabRequestIds.current[category]);
         return;
       }
 
@@ -153,20 +155,23 @@ export function useLeadsFetch(
 
           if (gmailData.sync) setSyncStatus(gmailData.sync);
 
-          // Store in cache
+          // ── FIX 2: Always cache the result, even for non-active tabs ───────
           emailCache.current[cacheKey] = {
             data: processedMessages,
             fetchedAt: Date.now(),
             totalMessages: gmailData.pagination?.total || gmailData.totalMessages,
             userLabels: gmailData.userLabels,
-            stats: gmailData.stats
+            stats: gmailData.stats,
+            category
           };
 
+          // ── FIX 2: Only update UI if this is still the active category ─────
           const activeCategory = selectedTab.startsWith("tag:") ? selectedTab.replace("tag:", "") : selectedTab;
-          if (category === activeCategory || isBackground) {
+          if (category === activeCategory) {
             setMessages(processedMessages);
             setTotalMessages(gmailData.pagination?.total || gmailData.totalMessages || 0);
             if (gmailData.stats) setInboxStats(gmailData.stats);
+            setIsTransitioning(false);
           }
 
           console.log('[fetch] state updated', Date.now() - t0, 'ms total');
@@ -183,7 +188,10 @@ export function useLeadsFetch(
       console.error("Failed to fetch messages:", error);
       setIsConnected(false);
     } finally {
-      if (!isBackground) setLoading(false);
+      if (!isBackground) {
+        setLoading(false);
+        setIsTransitioning(false);
+      }
     }
   }, [selectedTab, dbAnalyses]); // eslint-disable-line
 
@@ -270,8 +278,6 @@ export function useLeadsFetch(
         
         console.log('[Poll] server lastChange:', serverLastChange);
         console.log('[Poll] local lastChange:', lastChangeRef.current);
-        console.log('[Poll] document.hidden:', typeof document !== 'undefined' ? document.hidden : 'unknown');
-        console.log('[Poll] loading:', loading);
         
         if (!serverLastChange) return;
         
@@ -289,16 +295,19 @@ export function useLeadsFetch(
           console.log('[Poll] CHANGE DETECTED - refreshing:', serverLastChange);
           lastChangeRef.current = serverLastChange;
           
-          // Clear cache for this tab so fresh data is fetched
+          // ── FIX 5: Smart cache clearing - only if change happened after last fetch ──
           const category = selectedTab.startsWith("tag:") ? selectedTab.replace("tag:", "") : selectedTab;
           const cacheKey = `${category}_1_threads_`;
-          if (emailCache.current[cacheKey]) {
+          const cached = emailCache.current[cacheKey];
+          const serverChangeTime = new Date(serverLastChange).getTime();
+          
+          if (cached && serverChangeTime > cached.fetchedAt) {
             console.log('[Poll] clearing cache for:', cacheKey);
             delete emailCache.current[cacheKey];
           }
 
-          // Force fresh fetch (isBackground = false)
-          fetchMessages(false, selectedTab);
+          // ── FIX 5: Background refresh only - no empty flash ───────────────
+          fetchMessages(true, selectedTab);
         }
       } catch (err) {
         // Silent fail
@@ -319,6 +328,8 @@ export function useLeadsFetch(
     inboxStats,
     totalMessages,
     isBuffering,
+    isTransitioning,
+    setIsTransitioning,
     invalidateCache: (category?: string) => {
       if (category) {
         Object.keys(emailCache.current).forEach(key => {
@@ -328,7 +339,7 @@ export function useLeadsFetch(
         emailCache.current = {};
       }
     },
-    // ── FIX 3: Optimistic star update in all cache entries ─────────────────
+    // ── FIX 3: Smart cache clearing for star toggle ─────────────────────────
     updateCachedStar: (messageId: string, isStarred: boolean) => {
       Object.keys(emailCache.current).forEach(key => {
         const cached = emailCache.current[key];
@@ -338,10 +349,12 @@ export function useLeadsFetch(
           );
         }
       });
-      // Invalidate starred tab so next visit shows fresh data
-      Object.keys(emailCache.current).forEach(key => {
-        if (key.startsWith('starred_')) delete emailCache.current[key];
-      });
+      // Only invalidate starred cache if not currently on starred tab
+      if (selectedTab !== 'starred') {
+        Object.keys(emailCache.current).forEach(key => {
+          if (key.startsWith('starred_')) delete emailCache.current[key];
+        });
+      }
     },
     suppressPoll: () => {
       console.log('[Poll] suppressing next poll cycles...');

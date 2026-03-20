@@ -100,6 +100,62 @@ export function LeadsListContent({
   isBuffering,
   syncStatus,
 }: LeadsListContentProps) {
+  // Show skeleton when loading AND no messages yet
+  if (loading && allItems.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <LeadsHeader
+          isConnected={isConnected}
+          loading={loading}
+          searchQuery={searchQuery}
+          onSearchChange={onSearchChange}
+          onRefresh={onRefresh}
+          onConnect={onConnect}
+          totalCount={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+          selectedCount={selectedIds.size}
+          totalVisibleCount={0}
+          onToggleSelectAll={() => {}}
+          onClearSelection={clearSelection}
+          onBulkArchive={() => {}}
+          onBulkTag={() => {}}
+          onEmptyTrash={handleEmptyTrash}
+          currentTab={selectedTab}
+          gmailLabels={gmailLabels}
+          isBuffering={isBuffering}
+          syncStatus={syncStatus}
+        />
+
+        <div className="flex-1 overflow-y-auto px-4 pb-8 thin-scrollbar relative scroll-smooth bg-transparent transform-gpu">
+          <div className="sticky top-0 left-0 right-0 h-4 bg-gradient-to-b from-black/20 to-transparent z-20 pointer-events-none" />
+          
+          <div className="bg-white/5 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-white/5 shadow-[0_20px_40px_-8px_rgba(0,0,0,0.2)] overflow-hidden transition-all duration-700 relative">
+            <div className="space-y-0">
+              {[1,2,3,4,5,6,7,8].map(i => (
+                <div key={i}
+                  className="flex items-center gap-3 px-4 py-3
+                             border-b border-white/5 animate-pulse opacity-40">
+                  <div className="w-4 h-4 rounded bg-white/20 flex-shrink-0" />
+                  <div className="w-4 h-4 rounded bg-white/20 flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5 min-w-0">
+                    <div className="flex gap-2">
+                      <div className="h-3 bg-white/20 rounded w-32" />
+                      <div className="h-3 bg-white/20 rounded w-24" />
+                    </div>
+                    <div className="h-3 bg-white/20 rounded w-2/3" />
+                  </div>
+                  <div className="h-3 bg-white/20 rounded w-12 flex-shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <LeadsHeader
@@ -133,12 +189,7 @@ export function LeadsListContent({
         <div className="sticky top-0 left-0 right-0 h-4 bg-gradient-to-b from-black/20 to-transparent z-20 pointer-events-none" />
         
         <div className="bg-white/5 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-white/5 shadow-[0_20px_40px_-8px_rgba(0,0,0,0.2)] overflow-hidden transition-all duration-700 relative">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="w-10 h-10 border-[3px] border-violet-500/10 border-t-violet-500 rounded-full animate-spin"></div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-violet-500/40 animate-pulse">Načítavam...</p>
-            </div>
-          ) : allItems.length === 0 ? (
+          {allItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center px-12">
               <div className="w-16 h-16 bg-violet-500/5 rounded-2xl flex items-center justify-center mb-6 border border-violet-500/10 rotate-3">
                 <Mail className="w-6 h-6 text-violet-500/40 -rotate-3" />
@@ -149,7 +200,7 @@ export function LeadsListContent({
           ) : (
             <div className="divide-y divide-black/[0.02] dark:divide-white/[0.02]">
               {paginatedItems.map((item) => (
-                <ThreadListItem 
+                <ThreadListItem
                   key={`thread-${(item as any).id}`}
                   item={item as any}
                   isSelected={selectedIds.has((item as any).id)}

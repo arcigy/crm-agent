@@ -613,19 +613,12 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     setSelectedTabWithReset: (tab: string) => {
         console.time(`tab-switch-to-${tab}`);
         
-        // 1. Clear all local states IMMEDIATELY and SYNCHRONOUSLY
-        setMessages([]);
-        setLocalSentMessages([]);
-        setAndroidLogs([]);
-        setSelectedEmail(null);
-        setCurrentPage(1);
-
-        // 2. Transition to new tab state
+        // 1. Transition to new tab state WITHOUT clearing messages
         startTransition(() => {
           setSelectedTab(tab);
         });
 
-        // 3. Fetch data (which will show loading spinner until done)
+        // 2. Fetch data (which will show loading spinner until done)
         const fetchWithDelay = async () => {
           await Promise.all([
             fetchMessages(false, tab, 1, "threads", debouncedSearchQuery),
