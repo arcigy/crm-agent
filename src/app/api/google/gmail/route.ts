@@ -180,9 +180,16 @@ export async function GET(request: Request) {
         ORDER BY gm.received_at ASC
       `, [userEmail, threadId]);
 
+      const cleanLabelIds = ['YELLOW_STAR', 'BLUE_STAR', 'RED_STAR', 'ORANGE_STAR', 'GREEN_STAR', 'PURPLE_STAR', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'IMPORTANT'];
+      
+      const cleanedMessages = threadRes.rows.map((m: any) => ({
+        ...m,
+        labels: (m.labels || []).filter((l: any) => !cleanLabelIds.includes(l.id))
+      }));
+
       return Response.json({
         isConnected: true,
-        messages: threadRes.rows,
+        messages: cleanedMessages,
         threadId: threadId
       });
     }
@@ -483,10 +490,14 @@ export async function GET(request: Request) {
         isRead = rawIsRead === true || rawIsRead === 't' || rawIsRead === 'true';
       }
 
+      const cleanLabelIds = ['YELLOW_STAR', 'BLUE_STAR', 'RED_STAR', 'ORANGE_STAR', 'GREEN_STAR', 'PURPLE_STAR', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'IMPORTANT'];
+      const filteredLabels = (row.labels || []).filter((l: any) => !cleanLabelIds.includes(l.id));
+
       return {
         ...row,
         isRead,
-        googleLabels: row.labels,
+        googleLabels: filteredLabels,
+        labels: filteredLabels,
         to: row.to_emails?.join(', ') || '',
         classification: row.ai_intent ? {
           intent: row.ai_intent,
