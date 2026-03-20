@@ -287,10 +287,14 @@ export async function performFullSync(
 
       const messageIds = messages.map(m => m.id!);
       const existingIds = await getExistingMessageIds(userEmail, messageIds);
+      
+      // ── FIX 1: Split into new and existing ────────────────────────────────
       const newIds = messageIds.filter(id => !existingIds.has(id));
+      const existingIdsToUpdate = messageIds.filter(id => existingIds.has(id));
 
-      console.log(`[Gmail Sync] Page: ${messages.length} messages, ${newIds.length} new`);
+      console.log(`[Gmail Sync] Page: ${messages.length} messages, ${newIds.length} new, ${existingIdsToUpdate.length} existing`);
 
+      // 1. Process NEW messages
       for (let i = 0; i < newIds.length; i += DETAIL_BATCH_SIZE) {
         const batchIds = newIds.slice(i, i + DETAIL_BATCH_SIZE);
         
@@ -332,6 +336,24 @@ export async function performFullSync(
         totalSynced += rows.length;
 
         await sleep(RATE_LIMIT_DELAY);
+      }
+
+      // 2. Process EXISTING messages (Update labels fast)
+      if (existingIdsToUpdate.length > 0) {
+        console.log(`[Gmail Sync] Updating labels for ${existingIdsToUpdate.length} existing messages with ${labelId}`);
+        await db.query(`
+          UPDATE gmail_messages
+          SET 
+            label_ids = (
+              SELECT array_agg(DISTINCT elem)
+              FROM unnest(label_ids || ARRAY[$1::text]) elem
+            ),
+            is_starred = CASE WHEN $1 = 'STARRED' THEN true ELSE is_starred END,
+            synced_at = NOW()
+          WHERE user_email = $2
+          AND gmail_message_id = ANY($3::text[])
+          AND NOT (label_ids @> ARRAY[$1::text])
+        `, [labelId, userEmail, existingIdsToUpdate]);
       }
 
       await updateSyncState(userEmail, labelId, {
