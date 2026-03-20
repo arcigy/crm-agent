@@ -215,9 +215,11 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
         localStorage.setItem(`email_read_${index}`, "true");
       }
       
+      // Immediate local UI update for read status
       setMessages((prev) =>
         prev.map((m) => (m.id === msg.id ? { ...m, isRead: true } : m)),
       );
+
       try {
         await fetch("/api/google/gmail", {
           method: "PATCH",

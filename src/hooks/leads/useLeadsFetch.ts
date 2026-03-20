@@ -274,7 +274,10 @@ export function useLeadsFetch(
         
         // First poll - just store the value
         if (!lastChangeRef.current) {
+          console.log('[Poll] initial load - storing lastChange:', serverLastChange);
           lastChangeRef.current = serverLastChange;
+          // Trigger fresh fetch to ensure we have latest data on load
+          fetchMessages(false, selectedTab);
           return;
         }
         
@@ -282,8 +285,17 @@ export function useLeadsFetch(
         if (serverLastChange > lastChangeRef.current) {
           console.log('[Poll] CHANGE DETECTED - refreshing:', serverLastChange);
           lastChangeRef.current = serverLastChange;
-          // Silent refresh - no loading spinner
-          fetchMessages(true, selectedTab);
+          
+          // Clear cache for this tab so fresh data is fetched
+          const category = selectedTab.startsWith("tag:") ? selectedTab.replace("tag:", "") : selectedTab;
+          const cacheKey = `${category}_1_threads_`;
+          if (emailCache.current[cacheKey]) {
+            console.log('[Poll] clearing cache for:', cacheKey);
+            delete emailCache.current[cacheKey];
+          }
+
+          // Force fresh fetch (isBackground = false)
+          fetchMessages(false, selectedTab);
         }
       } catch (err) {
         // Silent fail
