@@ -8,12 +8,14 @@ export const dynamic = "force-dynamic";
  * Returns 200 immediately to avoid Pub/Sub retries
  */
 export async function POST(req: Request) {
-  const authHeader = req.headers.get('authorization');
   const pubsubToken = process.env.GOOGLE_PUBSUB_TOKEN;
   
-  if (!pubsubToken || authHeader !== `Bearer ${pubsubToken}`) {
-    console.warn("[Gmail Webhook] Unauthorized access attempt");
-    return new Response('Unauthorized', { status: 401 });
+  if (pubsubToken) {
+    const authHeader = req.headers.get('authorization');
+    if (authHeader !== `Bearer ${pubsubToken}`) {
+      console.warn("[Gmail Webhook] Unauthorized access attempt");
+      return new Response('Unauthorized', { status: 401 });
+    }
   }
 
   try {

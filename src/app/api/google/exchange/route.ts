@@ -16,8 +16,6 @@ export async function POST(req: Request) {
 
         // 1. Exchange code for tokens (using unified redirect URI internally)
         const tokens = await getTokensFromCode(code);
-        console.log('[Exchange] Token keys received:', Object.keys(tokens));
-        console.log('[Exchange] Has refresh_token:', !!tokens.refresh_token);
         
         const userEmail = user.emailAddresses[0]?.emailAddress?.toLowerCase();
 
@@ -64,7 +62,6 @@ export async function POST(req: Request) {
                         date_updated = NOW()
                     WHERE user_id = $4
                 `, [tokens.refresh_token, tokens.access_token, expiryMs, user.id]);
-                console.log('[Exchange] Saved refresh_token to PostgreSQL');
             } else {
                 await db.query(`
                     UPDATE google_tokens

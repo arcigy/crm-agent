@@ -40,3 +40,12 @@
 2026-03-19T10:37:57Z INF Retrying connection in up to 16s connIndex=0 event=0 ip=198.41.200.53
 2026-03-19T10:38:07Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=0 event=0 ip=198.41.200.13
 2026-03-19T10:38:07Z INF Registered tunnel connection connIndex=0 connection=7db970c1-1837-4cdf-b894-1a7ed39f8fb4 event=0 ip=198.41.200.13 location=vie06 protocol=quic
+2026-03-19T23:52:31Z INF Initiating graceful shutdown due to signal terminated ...
+2026-03-19T23:52:31Z ERR failed to run the datagram handler error="Application error 0x0 (remote)" connIndex=0 event=0 ip=198.41.200.13
+2026-03-19T23:52:31Z ERR failed to serve tunnel connection error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.13
+2026-03-19T23:52:31Z ERR Serve tunnel error error="accept stream listener encountered a failure while serving" connIndex=0 event=0 ip=198.41.200.13
+2026-03-19T23:52:31Z INF Retrying connection in up to 1s connIndex=0 event=0 ip=198.41.200.13
+2026-03-19T23:52:31Z ERR Connection terminated connIndex=0
+2026-03-19T23:52:31Z ERR no more connections active and exiting
+2026-03-19T23:52:31Z INF Tunnel server stopped
+2026-03-19T23:52:31Z INF Metrics server stopped
