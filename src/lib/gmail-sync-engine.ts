@@ -147,9 +147,9 @@ export function parseGmailMessage(msg: any, userEmail: string) {
     body_text: isRecent ? extractBody(msg.payload, 'text/plain') : null,
     body_html: null, // Never store HTML to save DB space
     received_at: new Date(internalDate).toISOString(),
-    is_read: !msg.labelIds?.includes('UNREAD'),
-    is_starred: msg.labelIds?.includes('STARRED') || false,
-    is_important: msg.labelIds?.includes('IMPORTANT') || false,
+    is_read: !msg.labelIds?.map((l: string) => l.toUpperCase()).includes('UNREAD'),
+    is_starred: msg.labelIds?.map((l: string) => l.toUpperCase()).includes('STARRED') || false,
+    is_important: msg.labelIds?.map((l: string) => l.toUpperCase()).includes('IMPORTANT') || false,
     has_attachments: hasAttachments(msg.payload),
     label_ids: msg.labelIds || [],
     size_estimate: msg.sizeEstimate || 0,
