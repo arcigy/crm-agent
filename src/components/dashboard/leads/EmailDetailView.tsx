@@ -1,4 +1,6 @@
-"use client";
+﻿"use client";
+
+import { getContactByEmail } from "@/app/actions/contacts";
 
 import * as React from "react";
 import { format, formatDistanceToNow } from "date-fns";
@@ -44,8 +46,8 @@ import { PremiumDatePicker } from "@/components/ui/PremiumDatePicker";
 import { PremiumTimePicker } from "@/components/ui/PremiumTimePicker";
 import { SaveToDriveModal } from "./SaveToDriveModal";
 import { useEmailContext } from "@/components/providers/EmailContextProvider";
-import directus from "@/lib/directus";
-import { readItems } from "@directus/sdk";
+// removed directus import
+// removed readItems import
 import { Lead } from "@/types/contact";
 
 interface EmailDetailViewProps {
@@ -114,17 +116,14 @@ export function EmailDetailView({
       // Concurrently fetch thread and search for contact
       Promise.all([
         fetch(`/api/google/gmail?threadId=${tid}`).then(res => res.json()),
-        directus.request(readItems("contacts", {
-          filter: { email: { _icontains: senderEmail } },
-          limit: 1
-        }))
+        getContactByEmail(senderEmail)
       ])
-      .then(([threadData, contacts]) => {
+      .then(([threadData, contactRes]) => {
         const fullThread = threadData.messages && threadData.messages.length > 0 
           ? threadData.messages 
           : [email];
         
-        const contact = (contacts as Lead[])?.[0] || null;
+        const contact = contactRes.success ? contactRes.data as Lead : null;
         
         if (threadData.messages) {
           setMessages(threadData.messages);
@@ -195,9 +194,9 @@ export function EmailDetailView({
     setIsScanning(true);
     
     const latestMsg = messages[messages.length - 1];
-    const senderName = latestMsg.from?.split("<")[0]?.trim().replace(/"/g, "") || "Neznámy";
+    const senderName = latestMsg.from?.split("<")[0]?.trim().replace(/"/g, "") || "NeznĂˇmy";
     const subject = latestMsg.subject || "Bez predmetu";
-    setTaskTitle(`Odpovedať na e-mail od: ${senderName}`);
+    setTaskTitle(`OdpovedaĹĄ na e-mail od: ${senderName}`);
     setTaskStartDate(""); 
     setTaskStartTime(""); 
     setIsTaskModalOpen(true);
@@ -218,7 +217,7 @@ export function EmailDetailView({
   const submitTask = async () => {
     try {
       if (!taskTitle.trim()) return;
-      const toastId = toast.loading("Vytváram úlohu...");
+      const toastId = toast.loading("VytvĂˇram Ăşlohu...");
       const latestMsg = messages[messages.length - 1];
       const subject = latestMsg.subject || "Bez predmetu";
       const titleWithLink = `${taskTitle.trim()} (<a href="/dashboard/outreach/leads?messageId=${latestMsg.id}" class="text-violet-500 hover:text-violet-600 font-bold hover:underline transition-colors" data-email-link="true">E-mail: ${subject}</a>)`;
@@ -239,14 +238,14 @@ export function EmailDetailView({
 
       const res = await createTask(titleWithLink, finalDueDate);
       if (res.success) {
-        toast.success("Úloha bola pridaná do denníka", { id: toastId });
+        toast.success("Ăšloha bola pridanĂˇ do dennĂ­ka", { id: toastId });
         setIsTaskModalOpen(false);
       } else {
-        toast.error("Nepodarilo sa vytvoriť úlohu", { id: toastId });
+        toast.error("Nepodarilo sa vytvoriĹĄ Ăşlohu", { id: toastId });
       }
     } catch (error) {
       console.error(error);
-      toast.error("Vyskytla sa nečakaná chyba");
+      toast.error("Vyskytla sa neÄŤakanĂˇ chyba");
     }
   };
 
@@ -259,36 +258,36 @@ export function EmailDetailView({
         .violet-select-zone *::-moz-selection { background-color: rgba(124, 58, 237, 0.25); color: inherit; }
       `}</style>
       
-      {/* ── Top Toolbar ── */}
+      {/* â”€â”€ Top Toolbar â”€â”€ */}
       <div className="h-14 px-4 flex items-center justify-between flex-shrink-0 bg-white dark:bg-zinc-950 border-b border-black/[0.03] dark:border-white/[0.03] select-none">
         <div className="flex items-center gap-1">
-          <button onClick={onClose} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-violet-600/70 hover:text-violet-600" title="Späť">
+          <button onClick={onClose} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-violet-600/70 hover:text-violet-600" title="SpĂ¤ĹĄ">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="h-5 w-[1px] bg-violet-500/10 mx-1" />
-          <button onClick={() => { onArchive?.(email); onClose(); }} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" title="Archivovať">
+          <button onClick={() => { onArchive?.(email); onClose(); }} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" title="ArchivovaĹĄ">
             <Archive className="w-5 h-5" />
           </button>
-          <button onClick={() => { onSpam?.(email); onClose(); }} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" title="Nahlásiť spam">
+          <button onClick={() => { onSpam?.(email); onClose(); }} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" title="NahlĂˇsiĹĄ spam">
             <AlertOctagon className="w-5 h-5" />
           </button>
           {email.labels?.includes("TRASH") ? (
-            <button onClick={() => { onRestore?.(null, email); onClose(); }} className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-all text-[#444746] hover:text-green-600" title="Obnoviť z koša">
+            <button onClick={() => { onRestore?.(null, email); onClose(); }} className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-all text-[#444746] hover:text-green-600" title="ObnoviĹĄ z koĹˇa">
               <RotateCcw className="w-5 h-5" />
             </button>
           ) : (
-            <button onClick={() => { onDeleteMessage(email); onClose(); }} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all text-[#444746] hover:text-red-500" title="Odstrániť">
+            <button onClick={() => { onDeleteMessage(email); onClose(); }} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all text-[#444746] hover:text-red-500" title="OdstrĂˇniĹĄ">
               <Trash2 className="w-5 h-5" />
             </button>
           )}
           <div className="h-5 w-[1px] bg-violet-500/10 mx-1" />
-          <button onClick={() => { onMarkUnread?.(email); onClose(); }} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" title="Označiť ako neprečítané">
+          <button onClick={() => { onMarkUnread?.(email); onClose(); }} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" title="OznaÄŤiĹĄ ako nepreÄŤĂ­tanĂ©">
             <Mail className="w-5 h-5" />
           </button>
-          <button onClick={() => { toast.info("Funkcia 'Presunúť do' bude dostupná v ďalšej verzii"); }} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" title="Presunúť do">
+          <button onClick={() => { toast.info("Funkcia 'PresunĂşĹĄ do' bude dostupnĂˇ v ÄŹalĹˇej verzii"); }} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" title="PresunĂşĹĄ do">
             <FolderInput className="w-5 h-5" />
           </button>
-          <button onClick={() => { toast.info("Správa štítkov je v príprave"); }} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" title="Štítky">
+          <button onClick={() => { toast.info("SprĂˇva ĹˇtĂ­tkov je v prĂ­prave"); }} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-full transition-all text-[#444746] hover:text-violet-600" title="Ĺ tĂ­tky">
             <Tag className="w-5 h-5" />
           </button>
           <div className="relative">
@@ -298,7 +297,7 @@ export function EmailDetailView({
             {activeMenu === 'top' && (
               <div ref={menuRef} className="absolute top-full right-0 mt-1 w-64 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 rounded-2xl shadow-xl z-50 py-2 animate-in fade-in zoom-in-95 duration-150">
                 <button onClick={handleCreateTask} className="w-full text-left px-4 py-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-[13px] font-bold text-zinc-700 dark:text-zinc-200 transition-colors flex items-center gap-3">
-                  <ListTodo className="w-4 h-4 text-violet-500" /> Vytvoriť úlohu z tohto e-mailu
+                  <ListTodo className="w-4 h-4 text-violet-500" /> VytvoriĹĄ Ăşlohu z tohto e-mailu
                 </button>
               </div>
             )}
@@ -306,16 +305,16 @@ export function EmailDetailView({
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[12px] text-[#444746] mr-4 whitespace-nowrap">
-            {currentIndex > 0 ? `${currentIndex} z ${totalCount}` : `— z ${totalCount}`}
+            {currentIndex > 0 ? `${currentIndex} z ${totalCount}` : `â€” z ${totalCount}`}
           </span>
-          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746] opacity-50" disabled title="Predchádzajúca správa"><ChevronLeft className="w-5 h-5" /></button>
-          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="Ďalšia správa"><ChevronRight className="w-5 h-5" /></button>
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746] opacity-50" disabled title="PredchĂˇdzajĂşca sprĂˇva"><ChevronLeft className="w-5 h-5" /></button>
+          <button className="p-2 hover:bg-black/5 rounded-full transition-all text-[#444746]" title="ÄŽalĹˇia sprĂˇva"><ChevronRight className="w-5 h-5" /></button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto thin-scrollbar">
         <div className="max-w-[1200px] min-h-full mx-auto px-6 md:px-12 py-10">
-          {/* ── Subject Area ── */}
+          {/* â”€â”€ Subject Area â”€â”€ */}
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-4">
               <h2 className="text-[28px] font-black tracking-tight text-[#2d1b4e] dark:text-zinc-100 leading-tight">
@@ -335,12 +334,12 @@ export function EmailDetailView({
               })}
             </div>
             <div className="flex items-center gap-4 text-violet-400">
-              <button onClick={() => window.print()} title="Vytlačiť všetko" className="hover:text-violet-600 transition-colors"><Printer className="w-5 h-5" /></button>
-              <button onClick={() => { toast.success("Email otvorený v novom sandboxovanom okne"); }} title="V novom okne" className="hover:text-violet-600 transition-colors"><ExternalLink className="w-5 h-5" /></button>
+              <button onClick={() => window.print()} title="VytlaÄŤiĹĄ vĹˇetko" className="hover:text-violet-600 transition-colors"><Printer className="w-5 h-5" /></button>
+              <button onClick={() => { toast.success("Email otvorenĂ˝ v novom sandboxovanom okne"); }} title="V novom okne" className="hover:text-violet-600 transition-colors"><ExternalLink className="w-5 h-5" /></button>
             </div>
           </div>
 
-          {/* ── Conversation Messages ── */}
+          {/* â”€â”€ Conversation Messages â”€â”€ */}
           <div className="space-y-6">
             {isLoadingBody && messages.length <= 1 ? (
               <div className="space-y-4 animate-pulse">
@@ -375,14 +374,14 @@ export function EmailDetailView({
                           <div className="mt-3 p-3 bg-slate-50 dark:bg-zinc-900/50 rounded-xl border border-black/5 dark:border-white/5 space-y-1 text-[11px]">
                             <div><span className="text-slate-400 font-bold w-12 inline-block">OD:</span> {msg.from}</div>
                             <div><span className="text-slate-400 font-bold w-12 inline-block">KOMU:</span> {msg.to || "mne"}</div>
-                            <div><span className="text-slate-400 font-bold w-12 inline-block">DÁTUM:</span> {msg.date}</div>
+                            <div><span className="text-slate-400 font-bold w-12 inline-block">DĂTUM:</span> {msg.date}</div>
                           </div>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover/msg:opacity-100 transition-all">
-                        <button onClick={() => onReply?.(msg)} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-slate-400 hover:text-violet-600 rounded-full transition-all" title="Odpovedať"><Reply className="w-4 h-4" /></button>
-                        <button onClick={() => onForward?.(msg)} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-slate-400 hover:text-violet-600 rounded-full transition-all" title="Preposlať"><Forward className="w-4 h-4" /></button>
+                        <button onClick={() => onReply?.(msg)} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-slate-400 hover:text-violet-600 rounded-full transition-all" title="OdpovedaĹĄ"><Reply className="w-4 h-4" /></button>
+                        <button onClick={() => onForward?.(msg)} className="p-2 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-slate-400 hover:text-violet-600 rounded-full transition-all" title="PreposlaĹĄ"><Forward className="w-4 h-4" /></button>
                     </div>
                   </div>
 
@@ -410,7 +409,7 @@ export function EmailDetailView({
             )}
           </div>
 
-          {/* ── AI Insights Panel ── */}
+          {/* â”€â”€ AI Insights Panel â”€â”€ */}
           {classification && (
             <div className="mt-8 mb-10 p-6 bg-[#f8f6ff] dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30 rounded-[2rem] flex gap-5 shadow-sm">
               <div className="w-12 h-12 rounded-2xl bg-violet-100 dark:bg-violet-900/20 flex items-center justify-center flex-shrink-0 text-violet-600 shadow-inner">
@@ -418,7 +417,7 @@ export function EmailDetailView({
               </div>
               <div className="flex-1 min-w-0">
                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-[12px] font-black uppercase tracking-widest text-violet-600">AI Analýza dopytu</span>
+                    <span className="text-[12px] font-black uppercase tracking-widest text-violet-600">AI AnalĂ˝za dopytu</span>
                  </div>
                  <p className="text-[15px] text-[#2e2e2e] dark:text-zinc-200 font-bold leading-relaxed mb-4">{classification.summary}</p>
                  <div className="flex flex-wrap gap-3">
@@ -429,27 +428,27 @@ export function EmailDetailView({
             </div>
           )}
 
-          {/* ── Footer Actions ── */}
+          {/* â”€â”€ Footer Actions â”€â”€ */}
           <div className="flex items-center gap-3 pt-8 select-none pb-12 border-t border-black/[0.03] mt-8">
             <button onClick={() => onReply?.(messages[messages.length - 1])} className="flex items-center gap-2.5 px-7 py-3 bg-violet-600 text-white rounded-2xl text-[14px] font-black hover:bg-violet-700 transition-all active:scale-95 group">
-              <Reply className="w-4 h-4" /> Odpovedať všetkým
+              <Reply className="w-4 h-4" /> OdpovedaĹĄ vĹˇetkĂ˝m
             </button>
             <button onClick={() => onForward?.(messages[messages.length - 1])} className="flex items-center gap-2.5 px-7 py-3 border-2 border-violet-100 rounded-2xl text-[14px] font-black text-violet-600 hover:bg-violet-600 hover:text-white transition-all active:scale-95">
-              <Forward className="w-4 h-4" /> Preposlať celú niť
+              <Forward className="w-4 h-4" /> PreposlaĹĄ celĂş niĹĄ
             </button>
-            <button onClick={() => { toast.success("Reakcia pridaná (✨)"); }} className="p-3 hover:bg-violet-50 rounded-2xl transition-all text-violet-400 hover:text-violet-600">
+            <button onClick={() => { toast.success("Reakcia pridanĂˇ (âś¨)"); }} className="p-3 hover:bg-violet-50 rounded-2xl transition-all text-violet-400 hover:text-violet-600">
               <Smile className="w-6 h-6" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── Task Modal ── */}
+      {/* â”€â”€ Task Modal â”€â”€ */}
       {isTaskModalOpen && (
         <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-3xl shadow-2xl border border-violet-100">
             <div className="p-6 border-b border-black/5 flex items-center justify-between">
-              <h3 className="text-base font-black text-violet-950 dark:text-violet-100 uppercase">Nová úloha z e-mailu</h3>
+              <h3 className="text-base font-black text-violet-950 dark:text-violet-100 uppercase">NovĂˇ Ăşloha z e-mailu</h3>
             </div>
             <div className="p-6 space-y-5">
               <input type="text" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} className="w-full px-4 py-3 border border-violet-200 rounded-xl font-bold" />
@@ -459,8 +458,8 @@ export function EmailDetailView({
               </div>
             </div>
             <div className="p-6 bg-violet-50/50 flex justify-end gap-3">
-              <button onClick={() => setIsTaskModalOpen(false)} className="px-6 py-2.5 font-black uppercase text-[11px]">Zrušiť</button>
-              <button onClick={submitTask} disabled={!taskTitle.trim()} className="px-8 py-2.5 bg-violet-600 text-white font-black uppercase text-[11px] rounded-xl">Vytvoriť a prepojiť</button>
+              <button onClick={() => setIsTaskModalOpen(false)} className="px-6 py-2.5 font-black uppercase text-[11px]">ZruĹˇiĹĄ</button>
+              <button onClick={submitTask} disabled={!taskTitle.trim()} className="px-8 py-2.5 bg-violet-600 text-white font-black uppercase text-[11px] rounded-xl">VytvoriĹĄ a prepojiĹĄ</button>
             </div>
           </div>
         </div>
@@ -473,7 +472,7 @@ export function EmailDetailView({
   );
 }
 
-// ── FIXED IFRAME COMPONENT (Prevents Flickering/Height issues) ───────────
+// â”€â”€ FIXED IFRAME COMPONENT (Prevents Flickering/Height issues) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function EmailBodyIframe({ bodyHtml }: { bodyHtml: string }) {
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
 

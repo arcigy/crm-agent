@@ -152,3 +152,28 @@ export async function getContacts() {
     };
   }
 }
+
+export async function getContactByEmail(email: string) {
+  try {
+    const authEmails = await getAuthorizedEmails();
+    if (authEmails.length === 0) return { success: false, error: "Unauthorized" };
+
+    const contacts = await directus.request(
+      readItems("contacts", {
+        filter: {
+          _and: [
+            { email: { _icontains: email } },
+            { user_email: { _in: authEmails } }
+          ]
+        },
+        limit: 1
+      })
+    );
+
+    const contact = (contacts as any[])?.[0] || null;
+    return { success: true, data: contact };
+  } catch (error) {
+    console.error(`Failed to fetch contact by email ${email}:`, error);
+    return { success: false, error: String(error) };
+  }
+}
