@@ -12,10 +12,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET || 'arcigy-cron-2026-master-key';
-  
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    console.warn(`[GMAIL WATCH] Unauthorized attempt with header: ${authHeader?.substring(0, 15)}...`);
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response('Unauthorized', { status: 401 });
   }
 
