@@ -159,7 +159,9 @@ export function LeadsSidebar({ selectedTab, onTabChange, unreadCount = 0, draftC
           {isTagsExpanded && (
             <div className="mt-2 animate-in slide-in-from-top-2 fade-in duration-200">
               {/* Native Gmail Labels ONLY as requested */}
-              {(gmailLabels || []).map((l: any) => {
+              {(gmailLabels || [])
+                .filter((l: any) => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'YELLOW_STAR', 'BLUE_STAR', 'RED_STAR', 'ORANGE_STAR', 'GREEN_STAR', 'PURPLE_STAR'].includes(l.id.toUpperCase()))
+                .map((l: any) => {
                  const displayLabel = l.name.replace(/^CRM\//, '');
                  const color = l.colorBg || "#a78bfa";
                  return (

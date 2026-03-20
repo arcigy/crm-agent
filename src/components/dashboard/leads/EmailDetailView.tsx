@@ -284,7 +284,9 @@ export function EmailDetailView({
               <h2 className="text-[28px] font-black tracking-tight text-[#2d1b4e] dark:text-zinc-100 leading-tight">
                 {email.subject || "(Bez predmetu)"}
               </h2>
-              {tags.map((tag: string) => {
+              {tags
+                .filter(tag => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'YELLOW_STAR', 'BLUE_STAR', 'RED_STAR', 'ORANGE_STAR', 'GREEN_STAR', 'PURPLE_STAR'].includes(tag.toUpperCase()))
+                .map((tag: string) => {
                 const labelObj = gmailLabels.find(l => l.id === tag);
                 const name = labelObj ? labelObj.name : tag;
                 const color = labelObj?.color || email.googleLabelColors?.[tag] || "#8e63ce";

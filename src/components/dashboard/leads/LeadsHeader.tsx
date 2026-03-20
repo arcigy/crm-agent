@@ -209,10 +209,14 @@ export function LeadsHeader({
                       <div className="px-4 py-1 mb-1">
                         <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Existujúce štítky</span>
                       </div>
-                      {gmailLabels.length === 0 ? (
+                      {gmailLabels
+                        .filter((label: any) => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'YELLOW_STAR', 'BLUE_STAR', 'RED_STAR', 'ORANGE_STAR', 'GREEN_STAR', 'PURPLE_STAR'].includes(label.id.toUpperCase()))
+                        .length === 0 ? (
                         <div className="px-4 py-2 text-[11px] italic text-zinc-500 text-center">Žiadne štítky</div>
                       ) : (
-                        gmailLabels.map((label: any) => (
+                        gmailLabels
+                          .filter((label: any) => !['INBOX', 'UNREAD', 'STARRED', 'SENT', 'DRAFT', 'TRASH', 'SPAM', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'YELLOW_STAR', 'BLUE_STAR', 'RED_STAR', 'ORANGE_STAR', 'GREEN_STAR', 'PURPLE_STAR'].includes(label.id.toUpperCase()))
+                          .map((label: any) => (
                           <button
                             key={label.name}
                             onClick={() => {
