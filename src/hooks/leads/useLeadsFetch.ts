@@ -245,6 +245,34 @@ export function useLeadsFetch(
     fetchMessages(false, selectedTab);
   }, [selectedTab]); // eslint-disable-line
 
+  // ─── Auto-refresh UI when new email arrives ───────────────────────────────
+  React.useEffect(() => {
+    const interval = setInterval(async () => {
+      // Silent background check for new emails
+      try {
+        const res = await fetch(
+          `/api/google/gmail?tab=inbox&limit=1&silent=true`
+        );
+        const data = await res.json();
+        if (data.emails?.length > 0) {
+          const newestIncoming = data.emails[0];
+          const newestShown = messages[0];
+          
+          // If there's a newer email than what's shown
+          if (newestShown && 
+              newestIncoming.date > newestShown.date) {
+            // Silent refresh - don't show loading spinner
+            fetchMessages(true, selectedTab);
+          }
+        }
+      } catch (err) {
+        // Silent fail - don't interrupt user
+      }
+    }, 30000); // Every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [messages, selectedTab, fetchMessages]);
+
   return {
     messages, setMessages,
     dbAnalyses, setDbAnalyses,

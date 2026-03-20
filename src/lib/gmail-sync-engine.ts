@@ -49,7 +49,7 @@ async function retryWithBackoff<T>(
   throw new Error('Max retries exceeded');
 }
 
-async function getClientForUser(userEmail: string, clerkUserId: string = "") {
+export async function getClientForUser(userEmail: string, clerkUserId: string = "") {
   let finalUserId = clerkUserId;
   
   if (!finalUserId || finalUserId === "") {
@@ -476,10 +476,10 @@ export async function performIncrementalSync(
 /**
  * Direct polling fallback - fetches emails newer than last known email in DB
  */
-export async function fetchNewEmailsForUser(userEmail: string) {
+export async function fetchNewEmailsForUser(userEmail: string, gmailClient?: any) {
   console.log(`[Gmail Sync] fetchNewEmailsForUser called for ${userEmail}`);
   try {
-    const gmail = await getClientForUser(userEmail);
+    const gmail = gmailClient || await getClientForUser(userEmail);
     
     // Get newest email we have in DB
     const lastEmail = await db.query(`

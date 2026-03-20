@@ -35,15 +35,18 @@ export async function POST(request: Request) {
     if (body.quick) {
       // Quick sync - only fetch new emails since last sync
       // Run in background, return immediately
-      const { fetchNewEmailsForUser, syncDraftsForUser } = await import("@/lib/gmail-sync-engine");
-      const { getGmailClient } = await import("@/lib/google");
+      const { fetchNewEmailsForUser, syncDraftsForUser, getClientForUser } = await import("@/lib/gmail-sync-engine");
       
       // Run both polling and draft sync in background
       (async () => {
           try {
-              await fetchNewEmailsForUser(userEmail);
-              const gmail = await getGmailClient("", userEmail);
-              if (gmail) await syncDraftsForUser(userEmail, gmail);
+              const gmailClient = await getClientForUser(userEmail);
+              if (gmailClient) {
+                  await Promise.all([
+                      fetchNewEmailsForUser(userEmail, gmailClient),
+                      syncDraftsForUser(userEmail, gmailClient)
+                  ]);
+              }
           } catch (err) {
               console.error('[Gmail Sync] Quick sync error:', err);
           }
