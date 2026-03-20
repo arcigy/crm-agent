@@ -32,7 +32,7 @@ export async function POST(req: Request) {
             user_id: user.id,
             user_email: userEmail,
             access_token: tokens.access_token,
-            expiry_date: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
+            expiry_date: tokens.expiry_date,
             date_updated: new Date().toISOString()
         };
 
@@ -53,6 +53,7 @@ export async function POST(req: Request) {
         // Also update PostgreSQL directly for consistency with background sync
         try {
             const { db } = await import('@/lib/db');
+            const expiryMs = tokens.expiry_date; 
             if (tokens.refresh_token) {
                 await db.query(`
                     UPDATE google_tokens
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
                         expiry_date = $3,
                         date_updated = NOW()
                     WHERE user_email = $4
-                `, [tokens.refresh_token, tokens.access_token, tokenData.expiry_date, userEmail]);
+                `, [tokens.refresh_token, tokens.access_token, expiryMs, userEmail]);
                 console.log('[Exchange] Saved refresh_token to PostgreSQL');
             } else {
                 await db.query(`
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
                         expiry_date = $2,
                         date_updated = NOW()
                     WHERE user_email = $3
-                `, [tokens.access_token, tokenData.expiry_date, userEmail]);
+                `, [tokens.access_token, expiryMs, userEmail]);
             }
         } catch (dbErr) {
             console.error('[Exchange] Failed to update PostgreSQL:', dbErr);
