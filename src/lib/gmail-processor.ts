@@ -83,13 +83,12 @@ export async function processNewEmail(
 }
 
 export async function checkActivityExists(messageId: string) {
-  const activities = await directus.request(
-    readItems("activities", {
-      filter: { metadata: { gmail_message_id: { _eq: messageId } } },
-      limit: 1
-    })
-  ) as any[];
-  return activities.length > 0;
+  const res = await db.query(`
+    SELECT id FROM activities
+    WHERE metadata->>'gmail_message_id' = $1
+    LIMIT 1
+  `, [messageId]);
+  return res.rows.length > 0;
 }
 
 export async function saveEmailActivity(data: any) {

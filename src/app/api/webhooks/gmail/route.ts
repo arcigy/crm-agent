@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     
     if (!body.message?.data) {
-      return NextResponse.json({ error: "No data" }, { status: 400 });
+      return NextResponse.json({ success: true });
     }
 
     // Return 200 immediately to stop Pub/Sub retries
