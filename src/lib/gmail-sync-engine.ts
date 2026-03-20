@@ -204,6 +204,73 @@ export async function refreshLabelCounts(userEmail: string) {
   `, [userEmail]);
 }
 
+/**
+ * Perform a targeted sync for specific labels (STARRED, SENT, etc)
+ */
+export async function syncFullLabels(userEmail: string, labels: string[] = ['STARRED', 'SENT', 'TRASH', 'DRAFT']) {
+  const gmail = await getClientForUser(userEmail);
+  console.log(`[SyncLabels] starting for ${userEmail}, labels: ${labels.join(', ')}`);
+
+  const DETAIL_BATCH_SIZE = 50;
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const MAX_RETRIES = 3;
+
+  async function retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    retries = MAX_RETRIES
+  ): Promise<T> {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        return await fn();
+      } catch (err: any) {
+        const isRateLimit = err?.status === 429 || 
+                            err?.code === 429 ||
+                            err?.message?.includes('quota');
+        
+        if (isRateLimit && attempt < retries - 1) {
+          const delay = Math.pow(2, attempt) * 1000;
+          await sleep(delay);
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error('Max retries exceeded');
+  }
+
+  for (const label of labels) {
+    try {
+      console.log(`[SyncLabels] fetching ${label}...`);
+      const res = await gmail.users.messages.list({
+        userId: 'me',
+        q: `label:${label}`,
+        maxResults: 100
+      });
+
+      if (!res.data.messages?.length) continue;
+
+      const messageIds = res.data.messages.map(m => m.id!);
+      const existingIds = await getExistingMessageIds(userEmail, messageIds);
+      const missingIds = messageIds.filter(id => !existingIds.has(id));
+
+      if (missingIds.length > 0) {
+        console.log(`[SyncLabels] ${label}: ${missingIds.length} missing. Fetching...`);
+        const rows = [];
+        for (let i = 0; i < missingIds.length; i += DETAIL_BATCH_SIZE) {
+          const batch = missingIds.slice(i, i + DETAIL_BATCH_SIZE);
+          const details = await Promise.all(
+            batch.map(id => retryWithBackoff(() => gmail.users.messages.get({ userId: 'me', id })))
+          );
+          rows.push(...details.map(d => parseGmailMessage(d.data, userEmail)));
+        }
+        await upsertMessageBatch(rows);
+      }
+    } catch (err) {
+      console.error(`[SyncLabels] failed for ${label}:`, err);
+    }
+  }
+}
+
 export async function triggerFullSyncForUser(
   userEmail: string,
   labelId: string = 'INBOX',
