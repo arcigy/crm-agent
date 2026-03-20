@@ -388,34 +388,7 @@ export function EmailDetailView({
 
                   <div className="pl-14">
                     {msg.bodyHtml ? (
-                      <iframe
-                        srcDoc={`
-                          <!DOCTYPE html>
-                          <html>
-                            <head>
-                              <style>
-                                body { font-family: sans-serif; font-size: 15px; line-height: 1.6; color: ${typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#e4e4e7' : '#18181b'}; margin: 0; }
-                                a { color: #8b5cf6; }
-                                img { max-width: 100%; height: auto; border-radius: 8px; }
-                                blockquote { border-left: 3px solid #ddd; margin: 10px 0; padding-left: 15px; color: #666; }
-                              </style>
-                            </head>
-                            <body>${msg.bodyHtml}</body>
-                          </html>
-                        `}
-                        className="w-full h-auto min-h-[100px] border-none"
-                        onLoad={(e) => {
-                          const ifrm = e.currentTarget;
-                          const resize = () => {
-                            if (ifrm.contentWindow?.document.body) {
-                              ifrm.style.height = ifrm.contentWindow.document.body.scrollHeight + 20 + 'px';
-                            }
-                          };
-                          resize();
-                          setTimeout(resize, 100);
-                        }}
-                        sandbox="allow-same-origin"
-                      />
+                      <EmailBodyIframe bodyHtml={msg.bodyHtml} />
                     ) : (
                       <div className="text-[15px] whitespace-pre-wrap text-slate-700 dark:text-zinc-300">
                         {msg.body || msg.snippet}
@@ -497,5 +470,68 @@ export function EmailDetailView({
         <SaveToDriveModal email={email} attachments={email.attachments} onClose={() => setSaveToDriveOpen(false)} />
       )}
     </div>
+  );
+}
+
+// ── FIXED IFRAME COMPONENT (Prevents Flickering/Height issues) ───────────
+function EmailBodyIframe({ bodyHtml }: { bodyHtml: string }) {
+  const iframeRef = React.useRef<HTMLIFrameElement>(null);
+
+  const srcDoc = React.useMemo(() => {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+              font-size: 15px; line-height: 1.6; 
+              color: var(--text-color); margin: 0; padding: 0;
+              overflow-y: hidden;
+            }
+            :root {
+              --text-color: #18181b;
+            }
+            @media (prefers-color-scheme: dark) {
+              :root { --text-color: #e4e4e7; }
+            }
+            a { color: #8b5cf6; }
+            img { max-width: 100%; height: auto; border-radius: 8px; display: block; }
+            blockquote { border-left: 3px solid #ddd; margin: 10px 0; padding-left: 15px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div id="content-wrapper">${bodyHtml}</div>
+          <script>
+            function pushHeight() {
+              const height = document.getElementById('content-wrapper').offsetHeight;
+              window.parent.postMessage({ type: 'iframe-height', height: height }, '*');
+            }
+            window.addEventListener('load', pushHeight);
+            const observer = new ResizeObserver(pushHeight);
+            observer.observe(document.body);
+          </script>
+        </body>
+      </html>
+    `;
+  }, [bodyHtml]);
+
+  React.useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'iframe-height' && iframeRef.current) {
+        iframeRef.current.style.height = (event.data.height + 20) + 'px';
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      srcDoc={srcDoc}
+      className="w-full border-none h-[100px] transition-all duration-300"
+      sandbox="allow-same-origin allow-scripts"
+    />
   );
 }

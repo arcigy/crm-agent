@@ -7,6 +7,8 @@ import { DashboardShell } from "@/components/dashboard/DashboardShell";
 
 export const dynamic = "force-dynamic";
 
+import { EmailContextProvider } from "@/components/providers/EmailContextProvider";
+
 export default async function ChatLayout({
   children,
 }: {
@@ -15,17 +17,19 @@ export default async function ChatLayout({
   const { completed } = await checkOnboardingStatus();
 
   return (
-    <ContactPreviewProvider>
-      <ProjectPreviewProvider>
-        <NotePreviewProvider>
-          <DashboardShell 
-            completed={completed} 
-            onboardingScene={<OnboardingScene />}
-          >
-            {children}
-          </DashboardShell>
-        </NotePreviewProvider>
-      </ProjectPreviewProvider>
-    </ContactPreviewProvider>
+    <EmailContextProvider>
+      <ContactPreviewProvider>
+        <ProjectPreviewProvider>
+          <NotePreviewProvider>
+            <DashboardShell 
+              completed={completed} 
+              onboardingScene={<OnboardingScene />}
+            >
+              {children}
+            </DashboardShell>
+          </NotePreviewProvider>
+        </ProjectPreviewProvider>
+      </ContactPreviewProvider>
+    </EmailContextProvider>
   );
 }
