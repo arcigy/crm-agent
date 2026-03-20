@@ -11,6 +11,7 @@ import {
   Coins,
 } from "lucide-react";
 import { AgentStep } from "@/app/actions/agent-types";
+import { MarkdownRenderer } from "@/components/chat/MarkdownRenderer";
 
 export interface CostInfo {
   totalCost: number;
@@ -78,7 +79,7 @@ export function AgentChatMessage({
               : "bg-indigo-600 border-indigo-400/30 text-white rounded-tr-none"
           }`}
         >
-          {msg.content}
+          <MarkdownRenderer content={msg.content} role={msg.role} />
         </div>
 
         {/* Cost Badge */}
@@ -218,18 +219,18 @@ export function AgentChatMessage({
                           </div>
                           <span
                             className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                              step.result?.success
+                              (step.result as any)?.success
                                 ? "bg-emerald-500/10 text-emerald-500"
                                 : "bg-rose-500/10 text-rose-500"
                             }`}
                           >
-                            {step.result?.success ? "Success" : "Failed"}
+                            {(step.result as any)?.success ? "Success" : "Failed"}
                           </span>
                         </div>
 
                         <pre className="text-[10px] font-mono bg-black/20 p-3 rounded-xl overflow-x-auto text-indigo-300/80 border border-indigo-500/5">
                           {JSON.stringify(
-                            step.result?.data || step.result,
+                            (step.result as any)?.data || step.result,
                             null,
                             2,
                           )}
