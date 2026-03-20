@@ -61,7 +61,12 @@ export async function processNewEmail(
     ) as any[];
     if (contacts.length > 0) contactId = contacts[0].id;
 
-    // 6. Save to activities
+    // 6. Save to gmail_messages
+    const { parseGmailMessage, upsertMessageBatch } = await import("./gmail-sync-engine");
+    const parsed = parseGmailMessage(message.data, userEmail);
+    await upsertMessageBatch([parsed]);
+
+    // 7. Save to activities
     await saveEmailActivity({
       messageId,
       userEmail,

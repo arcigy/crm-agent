@@ -123,7 +123,7 @@ function extractBody(payload: any, mimeType: string): string | null {
   return null;
 }
 
-function parseGmailMessage(msg: any, userEmail: string) {
+export function parseGmailMessage(msg: any, userEmail: string) {
   const headers = msg.payload?.headers || [];
   const getHeader = (name: string) =>
     headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
@@ -156,7 +156,7 @@ function parseGmailMessage(msg: any, userEmail: string) {
   };
 }
 
-async function upsertMessageBatch(rows: any[]) {
+export async function upsertMessageBatch(rows: any[]) {
   if (!rows.length) return;
   
   await db.query(`
