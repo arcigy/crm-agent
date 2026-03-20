@@ -16,6 +16,8 @@ export async function POST(req: Request) {
 
         // 1. Exchange code for tokens (using unified redirect URI internally)
         const tokens = await getTokensFromCode(code);
+        console.log('[Exchange] Token keys received:', Object.keys(tokens));
+        console.log('[Exchange] Has refresh_token:', !!tokens.refresh_token);
         
         const userEmail = user.emailAddresses[0]?.emailAddress?.toLowerCase();
 
@@ -46,6 +48,34 @@ export async function POST(req: Request) {
                 ...tokenData,
                 date_created: new Date().toISOString()
             }));
+        }
+
+        // Also update PostgreSQL directly for consistency with background sync
+        try {
+            const { db } = await import('@/lib/db');
+            if (tokens.refresh_token) {
+                await db.query(`
+                    UPDATE google_tokens
+                    SET 
+                        refresh_token = $1,
+                        access_token = $2,
+                        expiry_date = $3,
+                        date_updated = NOW()
+                    WHERE user_email = $4
+                `, [tokens.refresh_token, tokens.access_token, tokenData.expiry_date, userEmail]);
+                console.log('[Exchange] Saved refresh_token to PostgreSQL');
+            } else {
+                await db.query(`
+                    UPDATE google_tokens
+                    SET 
+                        access_token = $1,
+                        expiry_date = $2,
+                        date_updated = NOW()
+                    WHERE user_email = $3
+                `, [tokens.access_token, tokenData.expiry_date, userEmail]);
+            }
+        } catch (dbErr) {
+            console.error('[Exchange] Failed to update PostgreSQL:', dbErr);
         }
 
         // 3. Trigger Gmail Watch Registration
