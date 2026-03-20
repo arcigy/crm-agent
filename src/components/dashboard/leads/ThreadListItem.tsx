@@ -22,6 +22,7 @@ interface ThreadListItemProps {
   isSelected: boolean;
   onToggleSelection: (e: React.MouseEvent, id: string) => void;
   onOpenThread: (threadId: string) => void;
+  onToggleStar?: (e: React.MouseEvent, item: any) => void;
   tags?: string[];
   gmailLabels?: { id: string, name: string, color?: string, type?: string }[];
 }
@@ -31,6 +32,7 @@ export const ThreadListItem = React.memo(({
   isSelected,
   onToggleSelection,
   onOpenThread,
+  onToggleStar,
   tags = [],
   gmailLabels = []
 }: ThreadListItemProps) => {
@@ -71,7 +73,20 @@ export const ThreadListItem = React.memo(({
 
       {/* Star */}
       <div className="mr-3">
-        <Star className={`w-4 h-4 ${item.isStarred ? 'fill-amber-400 text-amber-400' : 'text-zinc-300 dark:text-zinc-700'}`} />
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onToggleStar) {
+              onToggleStar(e, item);
+            }
+          }}
+          className="p-1 hover:bg-amber-100/40 dark:hover:bg-amber-900/20 rounded-lg transition-all group/star"
+        >
+          <Star className={`w-4 h-4 transition-all duration-300 ${item.isStarred
+            ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.8)]"
+            : "text-zinc-300 dark:text-zinc-700 group-hover/star:text-amber-400 group-hover/star:fill-amber-400/20 group-hover/star:drop-shadow-[0_0_10px_rgba(251,191,36,0.8)]"}`}
+          />
+        </button>
       </div>
 
       {/* Participants */}

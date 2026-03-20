@@ -206,6 +206,7 @@ export function LeadsListContent({
                   isSelected={selectedIds.has((item as any).id)}
                   onToggleSelection={(e, id) => toggleSelection(id)}
                   onOpenThread={(id) => handleOpenEmail(item as any)}
+                  onToggleStar={handleToggleStar}
                   tags={messageTags[(item as any).id] || []}
                   gmailLabels={gmailLabels}
                 />
