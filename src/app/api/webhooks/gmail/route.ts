@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
  * Returns 200 immediately to avoid Pub/Sub retries
  */
 export async function POST(req: Request) {
+  console.log('[Webhook] Received request:', req.method, req.headers.get('content-type'));
   const pubsubToken = process.env.GOOGLE_PUBSUB_TOKEN;
   
   if (pubsubToken) {
