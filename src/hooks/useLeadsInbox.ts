@@ -46,6 +46,7 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     isBuffering,
     invalidateCache,
     updateCachedStar,
+    suppressPoll,
     syncStatus
   } = useLeadsFetch(initialMessages, getSmartTags, selectedTab);
 
@@ -219,6 +220,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
       setMessages((prev) =>
         prev.map((m) => (m.id === msg.id ? { ...m, isRead: true } : m)),
       );
+      
+      // Suppress polling to avoid immediate full refetch that might cause flicker
+      suppressPoll();
 
       try {
         await fetch("/api/google/gmail", {
@@ -251,6 +255,9 @@ export function useLeadsInbox(initialMessages: GmailMessage[] = []) {
     if (selectedEmail?.id === msg.id) {
       setSelectedEmail({ ...selectedEmail, isStarred: newIsStarred });
     }
+    
+    // Suppress polling to avoid immediate full refetch that might cause flicker
+    suppressPoll();
     
     if (msg.id.startsWith("mock-")) return;
     

@@ -18,6 +18,7 @@ export function useLeadsFetch(
   const [inboxStats, setInboxStats] = React.useState<Record<string, { total: number, unread: number }>>({});
   const [totalMessages, setTotalMessages] = React.useState(0);
   const [isBuffering] = React.useState(false);
+  const [isTransitioning, setIsTransitioning] = React.useState(false);
   const [syncStatus, setSyncStatus] = React.useState<{
     sync_status: string;
     synced_messages: number;
@@ -247,12 +248,14 @@ export function useLeadsFetch(
 
   // Store last known change time for auto-refresh
   const lastChangeRef = React.useRef<string | null>(null);
+  const suppressPollRef = React.useRef(false);
 
   // ─── Auto-refresh UI when ANY change occurs ───────────────────────────────
   React.useEffect(() => {
     const interval = setInterval(async () => {
       if (typeof document !== 'undefined' && document.hidden) return;
       if (loading) return;
+      if (suppressPollRef.current) return;
       
       console.log('[Poll] checking last_change...');
       try {
@@ -339,6 +342,11 @@ export function useLeadsFetch(
       Object.keys(emailCache.current).forEach(key => {
         if (key.startsWith('starred_')) delete emailCache.current[key];
       });
+    },
+    suppressPoll: () => {
+      console.log('[Poll] suppressing next poll cycles...');
+      suppressPollRef.current = true;
+      setTimeout(() => { suppressPollRef.current = false; }, 3000);
     },
     syncStatus
   };
