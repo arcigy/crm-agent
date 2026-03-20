@@ -137,11 +137,6 @@ export async function GET(request: Request) {
     };
     const labelId = LABEL_MAP[category] || category;
 
-    // Temporary production debugging (Railway logs)
-    console.log("[Gmail Debug] userEmail:", userEmail);
-    console.log("[Gmail Debug] category:", category);
-    console.log("[Gmail Debug] labelId:", labelId);
-
     // Single thread detail fetch
     // Single thread detail fetch - Return all messages in the thread
     if (threadId) {
@@ -430,8 +425,6 @@ export async function GET(request: Request) {
       labelsPromise
     ]);
 
-    console.log("[Gmail Debug] emailsResult rows:", emailsResult?.rows?.length);
-
     // Build userLabels from DB rows
     const userLabels = (labelRows.rows || []).map((l: any) => ({
       id: l.id,
@@ -487,8 +480,6 @@ export async function GET(request: Request) {
         } : undefined
       };
     });
-
-    console.log("[Gmail Debug] returning emails count:", formattedEmails?.length);
 
     return NextResponse.json({
       isConnected: true,

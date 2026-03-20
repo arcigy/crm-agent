@@ -248,30 +248,44 @@ export function useLeadsFetch(
   // ─── Auto-refresh UI when new email arrives ───────────────────────────────
   React.useEffect(() => {
     const interval = setInterval(async () => {
-      // Silent background check for new emails
+      // Skip if tab hidden or loading
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (loading) return;
+      
       try {
         const res = await fetch(
-          `/api/google/gmail?tab=inbox&limit=1&silent=true`
+          `/api/google/gmail?tab=${selectedTab}&limit=1&silent=true`,
+          { signal: AbortSignal.timeout(3000) }
         );
+        if (!res.ok) return;
+        
         const data = await res.json();
-        if (data.emails?.length > 0) {
-          const newestIncoming = data.emails[0];
-          const newestShown = messages[0];
-          
-          // If there's a newer email than what's shown
-          if (newestShown && 
-              newestIncoming.date > newestShown.date) {
-            // Silent refresh - don't show loading spinner
-            fetchMessages(true, selectedTab);
-          }
+        if (!data.emails?.length) return;
+        
+        // Check 1: New email arrived
+        const newestIncoming = new Date(
+          data.emails[0].date || data.emails[0].received_at
+        );
+        const newestShown = messages[0]
+          ? new Date(messages[0].date || (messages[0] as any).received_at)
+          : new Date(0);
+        const newestChanged = newestIncoming > newestShown;
+        
+        // Check 2: Unread count changed
+        const currentUnread = messages.filter(m => !m.isRead).length;
+        const incomingUnread = data.stats?.[selectedTab]?.unread || 0;
+        const unreadChanged = currentUnread !== incomingUnread;
+        
+        if (newestChanged || unreadChanged) {
+          fetchMessages(true, selectedTab);
         }
       } catch (err) {
-        // Silent fail - don't interrupt user
+        // Silent fail - never interrupt user
       }
-    }, 30000); // Every 30 seconds
+    }, 5000);
     
     return () => clearInterval(interval);
-  }, [messages, selectedTab, fetchMessages]);
+  }, [messages, selectedTab, loading, fetchMessages]);
 
   return {
     messages, setMessages,

@@ -365,112 +365,139 @@ export async function performIncrementalSync(
   historyId: string
 ): Promise<void> {
   const gmail = await getClientForUser(userEmail);
-  const syncState = await getSyncState(userEmail, 'INBOX');
   
-  if (!syncState?.history_id) {
-    await triggerFullSyncForUser(userEmail);
-    return;
-  }
-
-  try {
-    await trackQuota(2);
-    const history = await retryWithBackoff(() =>
-      gmail.users.history.list({
-        userId: 'me',
-        startHistoryId: syncState.history_id!,
-        historyTypes: ['messageAdded', 'messageDeleted', 'labelAdded', 'labelRemoved']
-      })
-    );
-
-    if (!history.data.history?.length) {
-      await updateSyncState(userEmail, 'INBOX', { 
-        history_id: historyId,
-        last_incremental: new Date().toISOString()
-      });
-      return;
-    }
-
-    for (const event of history.data.history) {
-      if (event.messagesAdded) {
-        const newIds = event.messagesAdded
-          .map(m => m.message?.id)
-          .filter(Boolean) as string[];
-          
-        await trackQuota(5 * newIds.length);
-        const details = await Promise.allSettled(
-          newIds.map(id => gmail.users.messages.get({
-            userId: 'me', id, format: 'full'
-          }))
-        );
-        
-        const rows = details
-          .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
-          .map(r => parseGmailMessage((r as PromiseFulfilledResult<any>).value.data, userEmail));
-          
-        await upsertMessageBatch(rows);
-        // Trigger AI categorization for newly ingested messages
-        runAiLabelingForMessages(userEmail, rows).catch(e => console.error("AI tagging error (background):", e));
-      }
-
-      if (event.messagesDeleted) {
-        const deletedIds = event.messagesDeleted
-          .map(m => m.message?.id)
-          .filter(Boolean);
-          
-        if (deletedIds.length) {
-          await db.query(`
-            DELETE FROM gmail_messages
-            WHERE user_email = $1 
-            AND gmail_message_id = ANY($2)
-          `, [userEmail, deletedIds]);
-        }
-      }
-
-      if (event.labelsAdded || event.labelsRemoved) {
-        const allChanges = [
-          ...(event.labelsAdded || []),
-          ...(event.labelsRemoved || [])
-        ];
-        
-        for (const change of allChanges) {
-          if (!change.message?.id) continue;
-          
-          await trackQuota(5);
-          const msg = await gmail.users.messages.get({
-            userId: 'me',
-            id: change.message.id,
-            fields: 'id,labelIds'
-          });
-          
-          await db.query(`
-            UPDATE gmail_messages
-            SET 
-              label_ids = $1,
-              is_read = NOT ($1::text[] @> ARRAY['UNREAD']),
-              is_starred = ($1::text[] @> ARRAY['STARRED']),
-              synced_at = NOW()
-            WHERE user_email = $2 
-            AND gmail_message_id = $3
-          `, [msg.data.labelIds || [], userEmail, change.message.id]);
-        }
-      }
-    }
-
-    await updateSyncState(userEmail, 'INBOX', {
-      history_id: historyId,
-      last_incremental: new Date().toISOString()
-    });
+  const syncState = await db.query(`
+    SELECT history_id FROM gmail_sync_state
+    WHERE user_email = $1 AND label_id = 'INBOX'
+  `, [userEmail]);
+  
+  const startHistoryId = syncState.rows[0]?.history_id;
+  if (!startHistoryId) return;
+  
+  const historyRes = await gmail.users.history.list({
+    userId: 'me',
+    startHistoryId: startHistoryId,
+    historyTypes: [
+      'messageAdded',
+      'messageDeleted',
+      'labelAdded',
+      'labelRemoved'
+    ]
+  });
+  
+  const history = historyRes.data.history || [];
+  
+  for (const record of history) {
     
-    await refreshLabelCounts(userEmail);
-
-  } catch (err: any) {
-    if (err?.status === 410 || err?.code === 410) {
-      console.warn('[Gmail Sync] historyId expired, triggering full resync');
-      await triggerFullSyncForUser(userEmail);
-    } else {
-      throw err;
+    // NEW EMAILS
+    if (record.messagesAdded) {
+      const { processNewEmail } = await import("./gmail-processor");
+      for (const item of record.messagesAdded) {
+        const msgId = item.message?.id;
+        if (!msgId) continue;
+        const existing = await db.query(
+          'SELECT id FROM gmail_messages WHERE gmail_message_id = $1',
+          [msgId]
+        );
+        if (existing.rows.length > 0) continue;
+        await processNewEmail(msgId, userEmail, gmail);
+      }
+    }
+    
+    // DELETED EMAILS
+    if (record.messagesDeleted) {
+      for (const item of record.messagesDeleted) {
+        const msgId = item.message?.id;
+        if (!msgId) continue;
+        await db.query(`
+          DELETE FROM gmail_messages
+          WHERE gmail_message_id = $1 AND user_email = $2
+        `, [msgId, userEmail]);
+      }
+    }
+    
+    // LABELS ADDED
+    if (record.labelsAdded) {
+      for (const item of record.labelsAdded) {
+        const msgId = item.message?.id;
+        const addedLabels = item.labelIds || [];
+        if (!msgId || !addedLabels.length) continue;
+        await db.query(`
+          UPDATE gmail_messages
+          SET 
+            label_ids = (
+              SELECT array_agg(DISTINCT elem)
+              FROM unnest(label_ids || $1::text[]) elem
+            ),
+            is_read = CASE 
+              WHEN $1::text[] @> ARRAY['UNREAD'] THEN false
+              ELSE is_read
+            END,
+            is_starred = CASE
+              WHEN $1::text[] @> ARRAY['STARRED'] THEN true
+              ELSE is_starred
+            END
+          WHERE gmail_message_id = $2 AND user_email = $3
+        `, [addedLabels, msgId, userEmail]);
+      }
+    }
+    
+    // LABELS REMOVED
+    if (record.labelsRemoved) {
+      for (const item of record.labelsRemoved) {
+        const msgId = item.message?.id;
+        const removedLabels = item.labelIds || [];
+        if (!msgId || !removedLabels.length) continue;
+        await db.query(`
+          UPDATE gmail_messages
+          SET 
+            label_ids = (
+              SELECT array_agg(elem)
+              FROM unnest(label_ids) elem
+              WHERE elem != ALL($1::text[])
+            ),
+            is_read = CASE
+              WHEN $1::text[] @> ARRAY['UNREAD'] THEN true
+              ELSE is_read
+            END,
+            is_starred = CASE
+              WHEN $1::text[] @> ARRAY['STARRED'] THEN false
+              ELSE is_starred
+            END
+          WHERE gmail_message_id = $2 AND user_email = $3
+        `, [removedLabels, msgId, userEmail]);
+      }
     }
   }
+  
+  // Update history_id
+  await db.query(`
+    UPDATE gmail_sync_state
+    SET history_id = $1, last_incremental = NOW()
+    WHERE user_email = $2
+  `, [historyId, userEmail]);
+  
+  // Refresh label counts
+  await db.query(`
+    INSERT INTO gmail_label_counts 
+      (user_email, label_id, total_count, unread_count, updated_at)
+    SELECT 
+      user_email,
+      unnest(label_ids) as label_id,
+      COUNT(*) as total_count,
+      COUNT(*) FILTER (WHERE is_read = false) as unread_count,
+      NOW()
+    FROM gmail_messages
+    WHERE user_email = $1
+    GROUP BY user_email, unnest(label_ids)
+    ON CONFLICT (user_email, label_id)
+    DO UPDATE SET
+      total_count = EXCLUDED.total_count,
+      unread_count = EXCLUDED.unread_count,
+      updated_at = NOW()
+  `, [userEmail]);
+  
+  console.log(`[Gmail Webhook] Incremental sync done for ${userEmail} @ historyId ${historyId}`);
 }
 
 /**
